@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Внутренний куб · 3D интерактив (только фигуры, без дублей)</title>
+    <title>Куб со всеми связями · обновление при движении</title>
     <style>
         body {
             margin: 0;
@@ -34,7 +34,7 @@
         #hint {
             position: absolute;
             top: 20px;
-            right: 20px;
+            right: 70px;
             background: rgba(0,0,0,0.4);
             color: #aaa;
             font-size: 12px;
@@ -43,11 +43,34 @@
             backdrop-filter: blur(2px);
             z-index: 100;
         }
+        #toggle-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 215, 0, 0.8);
+            border: none;
+            border-radius: 50%;
+            color: #0a0a0a;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 300;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        #toggle-controls:hover {
+            background: #ffb700;
+        }
         #controls {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: rgba(30, 30, 40, 0.9);
+            background: rgba(30, 30, 40, 0.95);
             backdrop-filter: blur(5px);
             padding: 15px 20px;
             border-radius: 20px;
@@ -58,6 +81,12 @@
             z-index: 200;
             pointer-events: auto;
             width: 240px;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        #controls.hidden {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
         }
         #controls h4 {
             margin: 0 0 10px 0;
@@ -130,22 +159,24 @@
 </head>
 <body>
     <div id="info-panel">👆 Кликни по фигуре или символу</div>
-    <div id="hint">🧊 3×3×3 · центр 👁️ · фигуры без смайлов</div>
+    <div id="hint">🧊 3×3×3 · все связи</div>
+    <button id="toggle-controls">⚙️</button>
 
     <div id="controls">
         <h4>⚙️ Управление фигурами</h4>
         <label>Выбрать фигуру:</label>
         <select id="shape-select">
             <option value="🟧">🟧 (0.5,0,0.5) куб</option>
+            <option value="🟡" selected>🟡 центр (0.5,0.5,0.5) сфера</option>
             <option value="🟠">🟠 (0.5,1,0.5) сфера</option>
-            <option value="🟥">🟥 (1,0,1) сфера</option>
+            <option value="🟥">🟥 (1,0,1) куб</option>
             <option value="🟦">🟦 (0,0,1) куб</option>
-            <option value="🔵">🔵 (1,0,0) куб</option>
-            <option value="🔴">🔴 (0,0,0) куб</option>
+            <option value="🔵">🔵 (1,0,0) сфера</option>
+            <option value="🔴">🔴 (0,0,0) сфера</option>
         </select>
         <div class="slider-container">
             <span>Размер</span>
-            <input type="range" id="size-slider" min="0.1" max="1.0" step="0.01" value="0.2">
+            <input type="range" id="size-slider" min="0.01" max="1.0" step="0.01" value="0.2">
             <span id="size-value">0.20</span>
         </div>
         <button id="save-btn">💾 Сохранить состояние</button>
@@ -168,72 +199,61 @@
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { DragControls } from 'three/addons/controls/DragControls.js';
 
-        // --- Конфигурация (центр 👁️, фигуры без дублей) ---
-        const CONFIG = {
-            cubeSize: 1,
-            // Все позиции эмодзи (для CSS2D)
-            emojiPositions: [
-                // Верхний слой y = 1
-                { emoji: '💨', x: 0, y: 1, z: 0 },
-                { emoji: '◀️', x: 0, y: 1, z: 0.5 },
-                { emoji: '🌦', x: 0, y: 1, z: 1 },
-                { emoji: '🔼', x: 0.5, y: 1, z: 0 },
-                { emoji: '🟠', x: 0.5, y: 1, z: 0.5 },
-                { emoji: '🔽', x: 0.5, y: 1, z: 1 },
-                { emoji: '🌤', x: 1, y: 1, z: 0 },
-                { emoji: '▶️', x: 1, y: 1, z: 0.5 },
-                { emoji: '🌧', x: 1, y: 1, z: 1 },
-                // Средний слой y = 0.5
-                { emoji: '↙️', x: 0, y: 0.5, z: 0 },
-                { emoji: '⬅️', x: 0, y: 0.5, z: 0.5 },
-                { emoji: '↖️', x: 0, y: 0.5, z: 1 },
-                { emoji: '⬇️', x: 0.5, y: 0.5, z: 0 },
-                { emoji: '👁️', x: 0.5, y: 0.5, z: 0.5 },  // ЦЕНТР - глаз
-                { emoji: '⬆️', x: 0.5, y: 0.5, z: 1 },
-                { emoji: '↘️', x: 1, y: 0.5, z: 0 },
-                { emoji: '➡️', x: 1, y: 0.5, z: 0.5 },
-                { emoji: '↗️', x: 1, y: 0.5, z: 1 },
-                // Нижний слой y = 0
-                { emoji: '🔴', x: 0, y: 0, z: 0 },
-                { emoji: '⚔️', x: 0, y: 0, z: 0.5 },
-                { emoji: '🟦', x: 0, y: 0, z: 1 },
-                { emoji: '🧊', x: 0.5, y: 0, z: 0 },
-                { emoji: '🟧', x: 0.5, y: 0, z: 0.5 },
-                { emoji: '🪨', x: 0.5, y: 0, z: 1 },
-                { emoji: '🔵', x: 1, y: 0, z: 0 },
-                { emoji: '🪵', x: 1, y: 0, z: 0.5 },
-                { emoji: '🟥', x: 1, y: 0, z: 1 }
-            ],
-            // Какие эмодзи заменяем на 3D-фигуры (для них НЕ создаём CSS2D)
-            shapeEmojis: ['🟧', '🟠', '🟥', '🟦', '🔵', '🔴'],
-            line1: {
-                startEmoji: '💨',
-                endEmoji: '🟥',
-                color: '#FFD700', // жёлтый
-                dashLength: 0.06,
-                gapLength: 0.04,
-                thickness: 0.025
-            },
-            line2: {
-                startEmoji: '🟧',
-                endEmoji: '🟠',
-                color: '#FF9900', // оранжевый
-                dashLength: 0.06,
-                gapLength: 0.04,
-                thickness: 0.025
-            }
+        // ========== КОНФИГУРАЦИЯ ==========
+        const EMOJI_POSITIONS = [
+            // Верхний слой y = 1
+            { emoji: '💨', position: { x: 0, y: 1, z: 0 }, width: 0.3, connect_color: {} },
+            { emoji: '◀️', position: { x: 0, y: 1, z: 0.5 }, width: 0.3, connect_color: {} },
+            { emoji: '🌦', position: { x: 0, y: 1, z: 1 }, width: 0.3, connect_color: {} },
+            { emoji: '🔼', position: { x: 0.5, y: 1, z: 0 }, width: 0.3, connect_color: {} },
+            { emoji: '🟠', position: { x: 0.5, y: 1, z: 0.5 }, width: 0.3, connect_color: {} },
+            { emoji: '🔽', position: { x: 0.5, y: 1, z: 1 }, width: 0.3, connect_color: {} },
+            { emoji: '🌤', position: { x: 1, y: 1, z: 0 }, width: 0.3, connect_color: {} },
+            { emoji: '▶️', position: { x: 1, y: 1, z: 0.5 }, width: 0.3, connect_color: {} },
+            { emoji: '🌧', position: { x: 1, y: 1, z: 1 }, width: 0.3, connect_color: {} },
+
+            // Средний слой y = 0.5
+            { emoji: '↙️', position: { x: 0, y: 0.5, z: 0 }, width: 0.3, connect_color: {} },
+            { emoji: '⬅️', position: { x: 0, y: 0.5, z: 0.5 }, width: 0.3, connect_color: {} },
+            { emoji: '↖️', position: { x: 0, y: 0.5, z: 1 }, width: 0.3, connect_color: {} },
+            { emoji: '⬇️', position: { x: 0.5, y: 0.5, z: 0 }, width: 0.3, connect_color: {} },
+            { emoji: '🟡', position: { x: 0.5, y: 0.5, z: 0.5 }, width: 0.3, 
+              connect_color: { yellow: ['💨', '🟥'], orange: ['🟧', '🟠'] } },  // центр
+            { emoji: '⬆️', position: { x: 0.5, y: 0.5, z: 1 }, width: 0.3, connect_color: {} },
+            { emoji: '↘️', position: { x: 1, y: 0.5, z: 0 }, width: 0.3, connect_color: {} },
+            { emoji: '➡️', position: { x: 1, y: 0.5, z: 0.5 }, width: 0.3, connect_color: {} },
+            { emoji: '↗️', position: { x: 1, y: 0.5, z: 1 }, width: 0.3, connect_color: {} },
+
+            // Нижний слой y = 0
+            { emoji: '🔴', position: { x: 0, y: 0, z: 0 }, width: 0.3, connect_color: {} },
+            { emoji: '⚔️', position: { x: 0, y: 0, z: 0.5 }, width: 0.3, connect_color: {} },
+            { emoji: '🟦', position: { x: 0, y: 0, z: 1 }, width: 0.3, connect_color: {} },
+            { emoji: '🧊', position: { x: 0.5, y: 0, z: 0 }, width: 0.3, connect_color: {} },
+            { emoji: '🟧', position: { x: 0.5, y: 0, z: 0.5 }, width: 0.3, connect_color: {} },
+            { emoji: '🪨', position: { x: 0.5, y: 0, z: 1 }, width: 0.3, connect_color: {} },
+            { emoji: '🔵', position: { x: 1, y: 0, z: 0 }, width: 0.3, connect_color: {} },
+            { emoji: '🪵', position: { x: 1, y: 0, z: 0.5 }, width: 0.3, connect_color: {} },
+            { emoji: '🟥', position: { x: 1, y: 0, z: 1 }, width: 0.3, connect_color: {} }
+        ];
+
+        const SHAPE_EMOJIS = ['🟧', '🟡', '🟠', '🟥', '🟦', '🔵', '🔴'];
+
+        const LINE_DEFAULTS = {
+            dashLength: 0.06,
+            gapLength: 0.04,
+            thickness: 0.025
         };
 
-        // --- Глобальные переменные ---
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
         let scene, camera, renderer, labelRenderer, controls;
-        let shapes = [];            // { emoji, mesh, initialPos }
-        let line1Group, line2Group;
+        let shapes = [];            // { emoji, mesh, initialPos, initialWidth }
+        let lines = [];             // массив групп линий
         let dragControls;
         let raycaster, mouse;
 
-        // --- Загрузка состояния из localStorage ---
+        // ========== LOCALSTORAGE ==========
         function loadState() {
-            const saved = localStorage.getItem('interactiveCubeState');
+            const saved = localStorage.getItem('cubePreciseState');
             if (saved) {
                 try {
                     return JSON.parse(saved);
@@ -244,69 +264,91 @@
             return null;
         }
 
-        // --- Сохранение состояния ---
         function saveState() {
-            const state = {};
-            shapes.forEach(item => {
-                state[item.emoji] = {
-                    position: [item.mesh.position.x, item.mesh.position.y, item.mesh.position.z],
-                    size: item.mesh.scale.x
-                };
-            });
-            localStorage.setItem('interactiveCubeState', JSON.stringify(state));
+            const state = shapes.map(item => ({
+                emoji: item.emoji,
+                position: {
+                    x: item.mesh.position.x,
+                    y: item.mesh.position.y,
+                    z: item.mesh.position.z
+                },
+                width: item.mesh.scale.x
+            }));
+            localStorage.setItem('cubePreciseState', JSON.stringify(state));
             document.getElementById('status').innerText = 'Сохранено ✓';
             setTimeout(() => document.getElementById('status').innerText = 'Готово', 1500);
         }
 
-        // --- Сброс к начальным позициям и размеру ---
         function resetPositions() {
             shapes.forEach(item => {
-                item.mesh.position.copy(item.initialPos);
-                item.mesh.scale.set(0.2, 0.2, 0.2);
+                const orig = EMOJI_POSITIONS.find(p => p.emoji === item.emoji);
+                if (orig) {
+                    item.mesh.position.set(orig.position.x, orig.position.y, orig.position.z);
+                    item.mesh.scale.set(orig.width, orig.width, orig.width);
+                }
             });
-            updateLines();
+            updateAllLines();
             saveState();
             updateSliderFromSelected();
             document.getElementById('status').innerText = 'Сброшено ↺';
             setTimeout(() => document.getElementById('status').innerText = 'Готово', 1500);
         }
 
-        // --- Получение позиции эмодзи (из фигуры или конфига) ---
+        // ========== ПОЛУЧЕНИЕ ПОЗИЦИИ ЭМОДЗИ ==========
         function getEmojiPosition(emoji) {
             const shape = shapes.find(s => s.emoji === emoji);
             if (shape) return shape.mesh.position.clone();
-            const pos = CONFIG.emojiPositions.find(p => p.emoji === emoji);
-            if (pos) return new THREE.Vector3(pos.x, pos.y, pos.z);
+            const pos = EMOJI_POSITIONS.find(p => p.emoji === emoji);
+            if (pos) return new THREE.Vector3(pos.position.x, pos.position.y, pos.position.z);
             return new THREE.Vector3(0.5, 0.5, 0.5);
         }
 
-        // --- Обновление пунктирных линий ---
-        function updateLines() {
-            if (line1Group) scene.remove(line1Group);
-            if (line2Group) scene.remove(line2Group);
+        // ========== ОБНОВЛЕНИЕ ВСЕХ ЛИНИЙ (теперь для всех элементов) ==========
+        function updateAllLines() {
+            // Удаляем старые линии
+            lines.forEach(line => scene.remove(line));
+            lines = [];
 
-            line1Group = createDashedLine(
-                getEmojiPosition(CONFIG.line1.startEmoji),
-                getEmojiPosition(CONFIG.line1.endEmoji),
-                CONFIG.line1.color,
-                CONFIG.line1.thickness,
-                CONFIG.line1.dashLength,
-                CONFIG.line1.gapLength
-            );
-            scene.add(line1Group);
+            // Проходим по всем элементам, у которых есть connect_color
+            EMOJI_POSITIONS.forEach(item => {
+                const connections = item.connect_color;
+                if (!connections || Object.keys(connections).length === 0) return;
 
-            line2Group = createDashedLine(
-                getEmojiPosition(CONFIG.line2.startEmoji),
-                getEmojiPosition(CONFIG.line2.endEmoji),
-                CONFIG.line2.color,
-                CONFIG.line2.thickness,
-                CONFIG.line2.dashLength,
-                CONFIG.line2.gapLength
-            );
-            scene.add(line2Group);
+                const fromEmoji = item.emoji;
+                const fromPos = getEmojiPosition(fromEmoji);
+
+                Object.entries(connections).forEach(([colorName, emojiList]) => {
+                    // Определяем цвет
+                    let color;
+                    switch (colorName) {
+                        case 'yellow': color = '#FFD700'; break;
+                        case 'orange': color = '#FF9900'; break;
+                        case 'red': color = '#ff3333'; break;
+                        case 'blue': color = '#3366ff'; break;
+                        case 'green': color = '#33ff33'; break;
+                        case 'purple': color = '#aa44ff'; break;
+                        default: color = '#ffffff';
+                    }
+
+                    if (Array.isArray(emojiList)) {
+                        emojiList.forEach(toEmoji => {
+                            if (toEmoji === fromEmoji) return; // не рисовать линию к самому себе
+                            const toPos = getEmojiPosition(toEmoji);
+                            const lineGroup = createDashedLine(
+                                fromPos, toPos, color,
+                                LINE_DEFAULTS.thickness,
+                                LINE_DEFAULTS.dashLength,
+                                LINE_DEFAULTS.gapLength
+                            );
+                            scene.add(lineGroup);
+                            lines.push(lineGroup);
+                        });
+                    }
+                });
+            });
         }
 
-        // --- Создание пунктирной линии из сфер ---
+        // ========== СОЗДАНИЕ ПУНКТИРНОЙ ЛИНИИ ==========
         function createDashedLine(startVec, endVec, color, thickness, dashLen, gapLen) {
             const group = new THREE.Group();
             const direction = new THREE.Vector3().subVectors(endVec, startVec);
@@ -345,7 +387,7 @@
             return group;
         }
 
-        // --- Инициализация сцены ---
+        // ========== ИНИЦИАЛИЗАЦИЯ СЦЕНЫ ==========
         function initScene() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0a0a0a);
@@ -411,14 +453,13 @@
             gridHelper.position.set(0.5, 0, 0.5);
             scene.add(gridHelper);
 
-            // --- Создаём CSS2D метки ТОЛЬКО для эмодзи, не входящих в shapeEmojis ---
-            CONFIG.emojiPositions.forEach(pos => {
-                if (CONFIG.shapeEmojis.includes(pos.emoji)) return; // пропускаем фигуры
+            // ========== CSS2D МЕТКИ ДЛЯ НЕ-ФИГУР ==========
+            EMOJI_POSITIONS.forEach(item => {
+                if (SHAPE_EMOJIS.includes(item.emoji)) return;
 
-                const isCenter = (pos.emoji === '👁️');
                 const div = document.createElement('div');
-                div.textContent = pos.emoji;
-                div.style.fontSize = isCenter ? '60px' : '44px';
+                div.textContent = item.emoji;
+                div.style.fontSize = '44px';
                 div.style.fontWeight = 'bold';
                 div.style.fontFamily = 'Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
                 div.style.textShadow = '0 0 10px rgba(255,255,255,0.5)';
@@ -427,31 +468,29 @@
                 div.style.userSelect = 'none';
                 div.style.pointerEvents = 'auto';
                 
-                if (isCenter) {
-                    div.classList.add('center-emoji');
-                    div.style.textShadow = '0 0 20px gold, 0 0 30px orange';
-                }
-                
                 div.addEventListener('click', (ev) => {
                     ev.stopPropagation();
-                    document.getElementById('info-panel').innerHTML = `🧿 Символ: <span>${pos.emoji}</span>  |  (X: ${pos.x.toFixed(1)}, Y: ${pos.y.toFixed(1)}, Z: ${pos.z.toFixed(1)})`;
+                    const pos = item.position;
+                    document.getElementById('info-panel').innerHTML = `🧿 Символ: <span>${item.emoji}</span>  |  (X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)})`;
                     if (navigator.vibrate) navigator.vibrate(10);
                 });
                 
                 const label = new CSS2DObject(div);
-                label.position.set(pos.x, pos.y, pos.z);
+                label.position.set(item.position.x, item.position.y, item.position.z);
                 scene.add(label);
             });
 
-            // --- Создаём 3D-фигуры для выбранных эмодзи ---
+            // ========== 3D-ФИГУРЫ ==========
             const savedState = loadState();
 
-            CONFIG.emojiPositions.forEach(pos => {
-                if (!CONFIG.shapeEmojis.includes(pos.emoji)) return;
+            EMOJI_POSITIONS.forEach(item => {
+                if (!SHAPE_EMOJIS.includes(item.emoji)) return;
 
+                // Определяем цвет
                 let color;
-                switch (pos.emoji) {
+                switch (item.emoji) {
                     case '🟧': color = 0xff8800; break;
+                    case '🟡': color = 0xffdd00; break;
                     case '🟠': color = 0xff9900; break;
                     case '🟥': color = 0xff3333; break;
                     case '🟦': color = 0x3366ff; break;
@@ -460,40 +499,47 @@
                     default: color = 0xffffff;
                 }
 
+                // Базовая геометрия размером 1 (масштабируется через width)
                 let geometry;
-                if (pos.emoji === '🟠' || pos.emoji === '🟥') {
-                    geometry = new THREE.SphereGeometry(0.15, 32);
+                if (item.emoji === '🔵' || item.emoji === '🔴' || item.emoji === '🟡' || item.emoji === '🟠') {
+                    geometry = new THREE.SphereGeometry(0.5, 32);  // диаметр 1
                 } else {
-                    geometry = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+                    geometry = new THREE.BoxGeometry(1, 1, 1);    // куб со стороной 1
                 }
                 const material = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 });
                 const mesh = new THREE.Mesh(geometry, material);
                 
-                const initialPos = new THREE.Vector3(pos.x, pos.y, pos.z);
+                const initialPos = new THREE.Vector3(item.position.x, item.position.y, item.position.z);
+                const initialWidth = item.width;
                 
-                if (savedState && savedState[pos.emoji]) {
-                    const p = savedState[pos.emoji].position;
-                    mesh.position.set(p[0], p[1], p[2]);
-                    const sz = savedState[pos.emoji].size || 0.2;
-                    mesh.scale.set(sz, sz, sz);
+                if (savedState) {
+                    const saved = savedState.find(s => s.emoji === item.emoji);
+                    if (saved) {
+                        mesh.position.set(saved.position.x, saved.position.y, saved.position.z);
+                        mesh.scale.set(saved.width, saved.width, saved.width);
+                    } else {
+                        mesh.position.copy(initialPos);
+                        mesh.scale.set(initialWidth, initialWidth, initialWidth);
+                    }
                 } else {
                     mesh.position.copy(initialPos);
-                    mesh.scale.set(0.2, 0.2, 0.2);
+                    mesh.scale.set(initialWidth, initialWidth, initialWidth);
                 }
                 
                 scene.add(mesh);
                 
                 shapes.push({
-                    emoji: pos.emoji,
+                    emoji: item.emoji,
                     mesh: mesh,
-                    initialPos: initialPos
+                    initialPos: initialPos,
+                    initialWidth: initialWidth
                 });
             });
 
-            // --- Линии ---
-            updateLines();
+            // ========== ПЕРВОНАЧАЛЬНОЕ ПОСТРОЕНИЕ ЛИНИЙ ==========
+            updateAllLines();
 
-            // --- DragControls для фигур ---
+            // ========== DRAG CONTROLS ==========
             const dragableMeshes = shapes.map(s => s.mesh);
             dragControls = new DragControls(dragableMeshes, camera, renderer.domElement);
             
@@ -507,6 +553,10 @@
                 }
             });
 
+            dragControls.addEventListener('drag', function() {
+                updateAllLines();  // обновляем линии при каждом движении
+            });
+
             dragControls.addEventListener('dragend', function(event) {
                 controls.enabled = true;
                 if (event.object.material) {
@@ -515,23 +565,20 @@
                     else
                         event.object.material.emissiveIntensity = 0.3;
                 }
-                updateLines();
+                updateAllLines();
                 saveState();
             });
 
-            // --- Raycaster для кликов по фигурам (чтобы показывать информацию) ---
+            // ========== RAYCASTER ДЛЯ КЛИКОВ ==========
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
 
             renderer.domElement.addEventListener('click', (event) => {
-                // Вычисляем позицию мыши в нормализованных координатах
                 const rect = renderer.domElement.getBoundingClientRect();
                 mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
                 mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
                 raycaster.setFromCamera(mouse, camera);
-
-                // Проверяем пересечения с фигурами
                 const meshes = shapes.map(s => s.mesh);
                 const intersects = raycaster.intersectObjects(meshes);
 
@@ -546,7 +593,7 @@
                 }
             });
 
-            // --- Звёзды для фона ---
+            // ========== ЗВЁЗДЫ ==========
             const starsGeometry = new THREE.BufferGeometry();
             const starsCount = 400;
             const starPositions = new Float32Array(starsCount * 3);
@@ -570,7 +617,7 @@
             animateStars();
         }
 
-        // --- UI ---
+        // ========== UI ==========
         function updateSliderFromSelected() {
             const select = document.getElementById('shape-select');
             const selectedEmoji = select.value;
@@ -607,36 +654,53 @@
             resetBtn.addEventListener('click', resetPositions);
 
             updateSliderFromSelected();
+
+            const toggleBtn = document.getElementById('toggle-controls');
+            const controlsPanel = document.getElementById('controls');
+            toggleBtn.addEventListener('click', () => {
+                controlsPanel.classList.toggle('hidden');
+            });
         }
 
-        // --- Анимация линий ---
-        function animateLines() {
+        // ========== АНИМАЦИЯ ==========
+        function animateLinesAndCenter() {
             const elapsedTime = performance.now() / 1000;
-            if (line1Group) {
-                line1Group.children.forEach((sphere, i) => {
-                    const scale = 1 + Math.sin(elapsedTime * 5 + i) * 0.2;
-                    sphere.scale.set(scale, scale, scale);
-                });
-            }
-            if (line2Group) {
-                line2Group.children.forEach((sphere, i) => {
-                    const scale = 1 + Math.sin(elapsedTime * 5 + i) * 0.2;
-                    sphere.scale.set(scale, scale, scale);
-                });
+            
+            // Пульсация сфер линий
+            lines.forEach(lineGroup => {
+                if (lineGroup) {
+                    lineGroup.children.forEach((sphere, i) => {
+                        const scale = 1 + Math.sin(elapsedTime * 5 + i) * 0.2;
+                        sphere.scale.set(scale, scale, scale);
+                    });
+                }
+            });
+
+            // Пульсация центральной фигуры 🟡
+            const centerShape = shapes.find(s => s.emoji === '🟡');
+            if (centerShape) {
+                const intensity = 0.3 + Math.sin(elapsedTime * 4) * 0.2;
+                if (centerShape.mesh.material) {
+                    if (Array.isArray(centerShape.mesh.material)) {
+                        centerShape.mesh.material.forEach(m => m.emissiveIntensity = intensity);
+                    } else {
+                        centerShape.mesh.material.emissiveIntensity = intensity;
+                    }
+                }
             }
         }
 
-        // --- Основной цикл ---
         function animate() {
             requestAnimationFrame(animate);
 
-            animateLines();
+            animateLinesAndCenter();
             controls.update();
 
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         }
 
+        // ========== ЗАПУСК ==========
         function start() {
             initScene();
             setupUI();
