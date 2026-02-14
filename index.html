@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Внутренний куб · 3D интерактив (фиксация размера)</title>
+    <title>Внутренний куб · 3D интерактив (центр 👁️)</title>
     <style>
         body {
             margin: 0;
@@ -130,14 +130,13 @@
 </head>
 <body>
     <div id="info-panel">👆 Нажми на символ (цветные фигуры можно двигать)</div>
-    <div id="hint">🧊 3×3×3 · центр 🟡 · фигуры сохраняются</div>
+    <div id="hint">🧊 3×3×3 · центр 👁️ · фигуры сохраняются</div>
 
     <div id="controls">
         <h4>⚙️ Управление фигурами</h4>
         <label>Выбрать фигуру:</label>
         <select id="shape-select">
             <option value="🟧">🟧 (0.5,0,0.5) куб</option>
-            <option value="🟡" selected>🟡 центр (0.5,0.5,0.5) сфера</option>
             <option value="🟠">🟠 (0.5,1,0.5) сфера</option>
             <option value="🟥">🟥 (1,0,1) сфера</option>
             <option value="🟦">🟦 (0,0,1) куб</option>
@@ -169,7 +168,7 @@
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { DragControls } from 'three/addons/controls/DragControls.js';
 
-        // --- Конфигурация ---
+        // --- Конфигурация (центр заменён на 👁️) ---
         const CONFIG = {
             cubeSize: 1,
             // Все позиции эмодзи (для CSS2D)
@@ -189,7 +188,7 @@
                 { emoji: '⬅️', x: 0, y: 0.5, z: 0.5 },
                 { emoji: '↖️', x: 0, y: 0.5, z: 1 },
                 { emoji: '⬇️', x: 0.5, y: 0.5, z: 0 },
-                { emoji: '🟡', x: 0.5, y: 0.5, z: 0.5 },  // ЦЕНТР
+                { emoji: '👁️', x: 0.5, y: 0.5, z: 0.5 },  // ЦЕНТР - глаз
                 { emoji: '⬆️', x: 0.5, y: 0.5, z: 1 },
                 { emoji: '↘️', x: 1, y: 0.5, z: 0 },
                 { emoji: '➡️', x: 1, y: 0.5, z: 0.5 },
@@ -205,8 +204,8 @@
                 { emoji: '🪵', x: 1, y: 0, z: 0.5 },
                 { emoji: '🟥', x: 1, y: 0, z: 1 }
             ],
-            // Какие эмодзи заменяем на 3D-фигуры
-            shapeEmojis: ['🟧', '🟡', '🟠', '🟥', '🟦', '🔵', '🔴'],
+            // Какие эмодзи заменяем на 3D-фигуры (убрали 🟡, добавить при необходимости)
+            shapeEmojis: ['🟧', '🟠', '🟥', '🟦', '🔵', '🔴'],
             line1: {
                 startEmoji: '💨',
                 endEmoji: '🟥',
@@ -273,21 +272,30 @@
             setTimeout(() => document.getElementById('status').innerText = 'Готово', 1500);
         }
 
+        // --- Вспомогательная функция для получения позиции эмодзи (из фигуры или из конфига) ---
+        function getEmojiPosition(emoji) {
+            // Сначала ищем среди фигур
+            const shape = shapes.find(s => s.emoji === emoji);
+            if (shape) return shape.mesh.position.clone();
+            
+            // Иначе ищем в исходной конфигурации
+            const pos = CONFIG.emojiPositions.find(p => p.emoji === emoji);
+            if (pos) return new THREE.Vector3(pos.x, pos.y, pos.z);
+            
+            // Если не найдено, возвращаем центр (запасной вариант)
+            return new THREE.Vector3(0.5, 0.5, 0.5);
+        }
+
         // --- Обновление пунктирных линий по текущим позициям ---
         function updateLines() {
-            const getPos = (emoji) => {
-                const item = shapes.find(s => s.emoji === emoji);
-                return item ? item.mesh.position.clone() : new THREE.Vector3(0,0,0);
-            };
-
             // Удалить старые линии
             if (line1Group) scene.remove(line1Group);
             if (line2Group) scene.remove(line2Group);
 
             // Создать новые
             line1Group = createDashedLine(
-                getPos(CONFIG.line1.startEmoji),
-                getPos(CONFIG.line1.endEmoji),
+                getEmojiPosition(CONFIG.line1.startEmoji),
+                getEmojiPosition(CONFIG.line1.endEmoji),
                 CONFIG.line1.color,
                 CONFIG.line1.thickness,
                 CONFIG.line1.dashLength,
@@ -296,8 +304,8 @@
             scene.add(line1Group);
 
             line2Group = createDashedLine(
-                getPos(CONFIG.line2.startEmoji),
-                getPos(CONFIG.line2.endEmoji),
+                getEmojiPosition(CONFIG.line2.startEmoji),
+                getEmojiPosition(CONFIG.line2.endEmoji),
                 CONFIG.line2.color,
                 CONFIG.line2.thickness,
                 CONFIG.line2.dashLength,
@@ -416,7 +424,7 @@
 
             // --- Создаём CSS2D метки для ВСЕХ эмодзи ---
             CONFIG.emojiPositions.forEach(pos => {
-                const isCenter = (pos.emoji === '🟡');
+                const isCenter = (pos.emoji === '👁️');
                 const div = document.createElement('div');
                 div.textContent = pos.emoji;
                 div.style.fontSize = isCenter ? '60px' : '44px';
@@ -454,7 +462,6 @@
                 let color;
                 switch (pos.emoji) {
                     case '🟧': color = 0xff8800; break;
-                    case '🟡': color = 0xffdd00; break;
                     case '🟠': color = 0xff9900; break;
                     case '🟥': color = 0xff3333; break;
                     case '🟦': color = 0x3366ff; break;
@@ -463,12 +470,12 @@
                     default: color = 0xffffff;
                 }
 
-                // Для разнообразия: сферы для 🟡,🟠,🟥; кубы для остальных
+                // Для разнообразия: сферы для 🟠,🟥; кубы для остальных
                 let geometry;
-                if (pos.emoji === '🟡' || pos.emoji === '🟠' || pos.emoji === '🟥') {
-                    geometry = new THREE.SphereGeometry(0.15, 32); // базовый радиус
+                if (pos.emoji === '🟠' || pos.emoji === '🟥') {
+                    geometry = new THREE.SphereGeometry(0.15, 32);
                 } else {
-                    geometry = new THREE.BoxGeometry(0.25, 0.25, 0.25); // куб
+                    geometry = new THREE.BoxGeometry(0.25, 0.25, 0.25);
                 }
                 const material = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 });
                 const mesh = new THREE.Mesh(geometry, material);
