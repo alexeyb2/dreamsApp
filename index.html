@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Внутренний куб · 3D интерактив (центр 👁️)</title>
+    <title>Внутренний куб · 3D интерактив (только фигуры, без дублей)</title>
     <style>
         body {
             margin: 0;
@@ -129,8 +129,8 @@
     </style>
 </head>
 <body>
-    <div id="info-panel">👆 Нажми на символ (цветные фигуры можно двигать)</div>
-    <div id="hint">🧊 3×3×3 · центр 👁️ · фигуры сохраняются</div>
+    <div id="info-panel">👆 Кликни по фигуре или символу</div>
+    <div id="hint">🧊 3×3×3 · центр 👁️ · фигуры без смайлов</div>
 
     <div id="controls">
         <h4>⚙️ Управление фигурами</h4>
@@ -168,7 +168,7 @@
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { DragControls } from 'three/addons/controls/DragControls.js';
 
-        // --- Конфигурация (центр заменён на 👁️) ---
+        // --- Конфигурация (центр 👁️, фигуры без дублей) ---
         const CONFIG = {
             cubeSize: 1,
             // Все позиции эмодзи (для CSS2D)
@@ -204,7 +204,7 @@
                 { emoji: '🪵', x: 1, y: 0, z: 0.5 },
                 { emoji: '🟥', x: 1, y: 0, z: 1 }
             ],
-            // Какие эмодзи заменяем на 3D-фигуры (убрали 🟡, добавить при необходимости)
+            // Какие эмодзи заменяем на 3D-фигуры (для них НЕ создаём CSS2D)
             shapeEmojis: ['🟧', '🟠', '🟥', '🟦', '🔵', '🔴'],
             line1: {
                 startEmoji: '💨',
@@ -229,7 +229,7 @@
         let shapes = [];            // { emoji, mesh, initialPos }
         let line1Group, line2Group;
         let dragControls;
-        let selectedMesh = null;
+        let raycaster, mouse;
 
         // --- Загрузка состояния из localStorage ---
         function loadState() {
@@ -250,7 +250,7 @@
             shapes.forEach(item => {
                 state[item.emoji] = {
                     position: [item.mesh.position.x, item.mesh.position.y, item.mesh.position.z],
-                    size: item.mesh.scale.x   // масштаб одинаковый по всем осям
+                    size: item.mesh.scale.x
                 };
             });
             localStorage.setItem('interactiveCubeState', JSON.stringify(state));
@@ -262,37 +262,29 @@
         function resetPositions() {
             shapes.forEach(item => {
                 item.mesh.position.copy(item.initialPos);
-                item.mesh.scale.set(0.2, 0.2, 0.2); // базовый размер 0.2
+                item.mesh.scale.set(0.2, 0.2, 0.2);
             });
             updateLines();
             saveState();
-            // Обновить слайдер, если выбрана эта фигура
             updateSliderFromSelected();
             document.getElementById('status').innerText = 'Сброшено ↺';
             setTimeout(() => document.getElementById('status').innerText = 'Готово', 1500);
         }
 
-        // --- Вспомогательная функция для получения позиции эмодзи (из фигуры или из конфига) ---
+        // --- Получение позиции эмодзи (из фигуры или конфига) ---
         function getEmojiPosition(emoji) {
-            // Сначала ищем среди фигур
             const shape = shapes.find(s => s.emoji === emoji);
             if (shape) return shape.mesh.position.clone();
-            
-            // Иначе ищем в исходной конфигурации
             const pos = CONFIG.emojiPositions.find(p => p.emoji === emoji);
             if (pos) return new THREE.Vector3(pos.x, pos.y, pos.z);
-            
-            // Если не найдено, возвращаем центр (запасной вариант)
             return new THREE.Vector3(0.5, 0.5, 0.5);
         }
 
-        // --- Обновление пунктирных линий по текущим позициям ---
+        // --- Обновление пунктирных линий ---
         function updateLines() {
-            // Удалить старые линии
             if (line1Group) scene.remove(line1Group);
             if (line2Group) scene.remove(line2Group);
 
-            // Создать новые
             line1Group = createDashedLine(
                 getEmojiPosition(CONFIG.line1.startEmoji),
                 getEmojiPosition(CONFIG.line1.endEmoji),
@@ -319,7 +311,7 @@
             const group = new THREE.Group();
             const direction = new THREE.Vector3().subVectors(endVec, startVec);
             const totalLength = direction.length();
-            if (totalLength < 0.001) return group; // защита от нулевой длины
+            if (totalLength < 0.001) return group;
             direction.normalize();
             
             const sphereMaterial = new THREE.MeshStandardMaterial({ 
@@ -342,7 +334,6 @@
                 group.add(sphere);
             }
             
-            // Добавим сферы покрупнее на концах для яркости
             const endGeom = new THREE.SphereGeometry(thickness * 1.8, 8);
             const s1 = new THREE.Mesh(endGeom, sphereMaterial);
             s1.position.copy(startVec);
@@ -387,7 +378,6 @@
             fillLight.position.set(0.5, 0.5, 0.5);
             scene.add(fillLight);
 
-            // Орбитальный контроллер
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
@@ -417,13 +407,14 @@
             edgesLines.position.set(0.5, 0.5, 0.5);
             scene.add(edgesLines);
 
-            // Сетка на полу
             const gridHelper = new THREE.GridHelper(1, 3, 0x88aaff, 0x445577);
             gridHelper.position.set(0.5, 0, 0.5);
             scene.add(gridHelper);
 
-            // --- Создаём CSS2D метки для ВСЕХ эмодзи ---
+            // --- Создаём CSS2D метки ТОЛЬКО для эмодзи, не входящих в shapeEmojis ---
             CONFIG.emojiPositions.forEach(pos => {
+                if (CONFIG.shapeEmojis.includes(pos.emoji)) return; // пропускаем фигуры
+
                 const isCenter = (pos.emoji === '👁️');
                 const div = document.createElement('div');
                 div.textContent = pos.emoji;
@@ -458,7 +449,6 @@
             CONFIG.emojiPositions.forEach(pos => {
                 if (!CONFIG.shapeEmojis.includes(pos.emoji)) return;
 
-                // Определяем цвет
                 let color;
                 switch (pos.emoji) {
                     case '🟧': color = 0xff8800; break;
@@ -470,7 +460,6 @@
                     default: color = 0xffffff;
                 }
 
-                // Для разнообразия: сферы для 🟠,🟥; кубы для остальных
                 let geometry;
                 if (pos.emoji === '🟠' || pos.emoji === '🟥') {
                     geometry = new THREE.SphereGeometry(0.15, 32);
@@ -482,7 +471,6 @@
                 
                 const initialPos = new THREE.Vector3(pos.x, pos.y, pos.z);
                 
-                // Применяем сохранённое состояние или начальное
                 if (savedState && savedState[pos.emoji]) {
                     const p = savedState[pos.emoji].position;
                     mesh.position.set(p[0], p[1], p[2]);
@@ -502,27 +490,21 @@
                 });
             });
 
-            // --- Создаём линии (первоначально) ---
+            // --- Линии ---
             updateLines();
 
-            // --- DragControls для перемещения фигур ---
+            // --- DragControls для фигур ---
             const dragableMeshes = shapes.map(s => s.mesh);
             dragControls = new DragControls(dragableMeshes, camera, renderer.domElement);
             
             dragControls.addEventListener('dragstart', function(event) {
                 controls.enabled = false;
-                selectedMesh = event.object;
-                // подсветка
                 if (event.object.material) {
                     if (Array.isArray(event.object.material))
                         event.object.material.forEach(m => m.emissiveIntensity = 0.8);
                     else
                         event.object.material.emissiveIntensity = 0.8;
                 }
-            });
-
-            dragControls.addEventListener('drag', function() {
-                // ничего не делаем, линии обновятся в конце
             });
 
             dragControls.addEventListener('dragend', function(event) {
@@ -533,8 +515,35 @@
                     else
                         event.object.material.emissiveIntensity = 0.3;
                 }
-                updateLines();   // перестраиваем линии
-                saveState();      // автосохранение
+                updateLines();
+                saveState();
+            });
+
+            // --- Raycaster для кликов по фигурам (чтобы показывать информацию) ---
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            renderer.domElement.addEventListener('click', (event) => {
+                // Вычисляем позицию мыши в нормализованных координатах
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+
+                // Проверяем пересечения с фигурами
+                const meshes = shapes.map(s => s.mesh);
+                const intersects = raycaster.intersectObjects(meshes);
+
+                if (intersects.length > 0) {
+                    const hitMesh = intersects[0].object;
+                    const shape = shapes.find(s => s.mesh === hitMesh);
+                    if (shape) {
+                        const pos = hitMesh.position;
+                        document.getElementById('info-panel').innerHTML = `🧿 Фигура: <span>${shape.emoji}</span>  |  (X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)})`;
+                        if (navigator.vibrate) navigator.vibrate(10);
+                    }
+                }
             });
 
             // --- Звёзды для фона ---
@@ -554,7 +563,6 @@
             const stars = new THREE.Points(starsGeometry, starsMaterial);
             scene.add(stars);
 
-            // Анимация звёзд
             function animateStars() {
                 stars.rotation.y += 0.0002;
                 requestAnimationFrame(animateStars);
@@ -562,7 +570,7 @@
             animateStars();
         }
 
-        // --- Вспомогательные функции для UI ---
+        // --- UI ---
         function updateSliderFromSelected() {
             const select = document.getElementById('shape-select');
             const selectedEmoji = select.value;
@@ -574,7 +582,6 @@
             }
         }
 
-        // --- Настройка UI и событий ---
         function setupUI() {
             const select = document.getElementById('shape-select');
             const slider = document.getElementById('size-slider');
@@ -582,12 +589,8 @@
             const saveBtn = document.getElementById('save-btn');
             const resetBtn = document.getElementById('reset-btn');
 
-            // При смене выбора обновляем ползунок
-            select.addEventListener('change', () => {
-                updateSliderFromSelected();
-            });
+            select.addEventListener('change', updateSliderFromSelected);
 
-            // При движении ползунка меняем размер выбранной фигуры
             slider.addEventListener('input', (e) => {
                 const val = parseFloat(e.target.value);
                 sizeSpan.innerText = val.toFixed(2);
@@ -598,18 +601,15 @@
                 }
             });
 
-            slider.addEventListener('change', () => {
-                saveState(); // сохраняем после изменения размера
-            });
+            slider.addEventListener('change', saveState);
 
             saveBtn.addEventListener('click', saveState);
             resetBtn.addEventListener('click', resetPositions);
 
-            // Инициализация ползунка
             updateSliderFromSelected();
         }
 
-        // --- Анимация линий (пульсация) ---
+        // --- Анимация линий ---
         function animateLines() {
             const elapsedTime = performance.now() / 1000;
             if (line1Group) {
@@ -626,19 +626,17 @@
             }
         }
 
-        // --- Основной цикл анимации ---
+        // --- Основной цикл ---
         function animate() {
             requestAnimationFrame(animate);
 
             animateLines();
-
             controls.update();
 
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         }
 
-        // --- Запуск ---
         function start() {
             initScene();
             setupUI();
@@ -654,7 +652,6 @@
             labelRenderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // --- Telegram Mini App ---
         if (window.Telegram && Telegram.WebApp) {
             Telegram.WebApp.ready();
             Telegram.WebApp.expand();
