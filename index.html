@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Куб со всеми связями · обновление при движении</title>
+    <title>3D Emoji Cube · JSON редактор</title>
     <style>
         body {
             margin: 0;
@@ -31,18 +31,31 @@
             color: #ffd700;
             font-weight: bold;
         }
-        #hint {
+        /* Кнопка скрытия/показа левой панели */
+        #toggle-editor {
             position: absolute;
             top: 20px;
-            right: 70px;
-            background: rgba(0,0,0,0.4);
-            color: #aaa;
-            font-size: 12px;
-            padding: 4px 10px;
-            border-radius: 16px;
-            backdrop-filter: blur(2px);
-            z-index: 100;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 215, 0, 0.8);
+            border: none;
+            border-radius: 50%;
+            color: #0a0a0a;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 300;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
         }
+        #toggle-editor:hover {
+            background: #ffb700;
+        }
+        /* Кнопка скрытия/показа правой панели */
         #toggle-controls {
             position: absolute;
             top: 20px;
@@ -65,6 +78,78 @@
         }
         #toggle-controls:hover {
             background: #ffb700;
+        }
+        #editor-panel {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            width: 320px;
+            background: rgba(30, 30, 40, 0.95);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            padding: 15px;
+            color: #ddd;
+            border: 1px solid #444;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+            z-index: 200;
+            pointer-events: auto;
+            max-height: calc(80vh - 70px);
+            overflow-y: auto;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        #editor-panel.hidden {
+            display: none;
+        }
+        #editor-panel h3 {
+            margin: 0 0 10px 0;
+            color: #ffd700;
+            text-align: center;
+        }
+        #editor-panel textarea {
+            width: 100%;
+            height: 200px;
+            background: #222;
+            color: #eee;
+            border: 1px solid #555;
+            border-radius: 10px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        #editor-panel .button-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        #editor-panel button {
+            background: #ffd700;
+            color: #0a0a0a;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            flex: 1 1 auto;
+            transition: 0.2s;
+        }
+        #editor-panel button:hover {
+            background: #ffb700;
+        }
+        #editor-panel button.secondary {
+            background: #444;
+            color: #fff;
+        }
+        #editor-panel button.secondary:hover {
+            background: #555;
+        }
+        #editor-panel .status {
+            color: #0f0;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 8px;
         }
         #controls {
             position: absolute;
@@ -146,41 +231,67 @@
             text-align: center;
             margin-top: 8px;
         }
-        .center-emoji {
-            animation: pulse 2s infinite ease-in-out;
-            filter: drop-shadow(0 0 12px gold);
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.95; text-shadow: 0 0 20px gold; }
-            100% { transform: scale(1); opacity: 1; }
-        }
     </style>
 </head>
 <body>
     <div id="info-panel">👆 Кликни по фигуре или символу</div>
-    <div id="hint">🧊 3×3×3 · все связи</div>
+    <button id="toggle-editor">📄</button>
     <button id="toggle-controls">⚙️</button>
 
+    <!-- Панель редактора JSON слева -->
+    <div id="editor-panel">
+        <h3>📦 JSON редактор</h3>
+        <textarea id="json-input" placeholder="Вставьте JSON массива объектов...">[
+  { "emoji": "💨", "position": { "x": 0, "y": 1, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "◀️", "position": { "x": 0, "y": 1, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🌦", "position": { "x": 0, "y": 1, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🔼", "position": { "x": 0.5, "y": 1, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟠", "position": { "x": 0.5, "y": 1, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🔽", "position": { "x": 0.5, "y": 1, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🌤", "position": { "x": 1, "y": 1, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "▶️", "position": { "x": 1, "y": 1, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🌧", "position": { "x": 1, "y": 1, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "↙️", "position": { "x": 0, "y": 0.5, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "⬅️", "position": { "x": 0, "y": 0.5, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "↖️", "position": { "x": 0, "y": 0.5, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "⬇️", "position": { "x": 0.5, "y": 0.5, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟡", "position": { "x": 0.5, "y": 0.5, "z": 0.5 }, "width": 0.3, "connect_color": { "yellow": ["💨", "🟥"], "orange": ["🟧", "🟠"], "blue": ["🟦"] } },
+  { "emoji": "⬆️", "position": { "x": 0.5, "y": 0.5, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "↘️", "position": { "x": 1, "y": 0.5, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "➡️", "position": { "x": 1, "y": 0.5, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "↗️", "position": { "x": 1, "y": 0.5, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🔴", "position": { "x": 0, "y": 0, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "⚔️", "position": { "x": 0, "y": 0, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟦", "position": { "x": 0, "y": 0, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🧊", "position": { "x": 0.5, "y": 0, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟧", "position": { "x": 0.5, "y": 0, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🪨", "position": { "x": 0.5, "y": 0, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🔵", "position": { "x": 1, "y": 0, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🪵", "position": { "x": 1, "y": 0, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟥", "position": { "x": 1, "y": 0, "z": 1 }, "width": 0.3, "connect_color": { "blue": ["🟦"] } }
+]</textarea>
+        <div class="button-row">
+            <button id="load-json">🚀 Загрузить</button>
+            <button id="copy-json" class="secondary">📋 Копировать JSON</button>
+            <button id="update-field" class="secondary">🔄 Обновить поле</button>
+        </div>
+        <div class="button-row">
+            <button id="reset-json" class="secondary">↺ Сбросить к загруженному</button>
+        </div>
+        <div id="json-status" class="status">Готово</div>
+    </div>
+
+    <!-- Панель управления размером (справа) -->
     <div id="controls">
         <h4>⚙️ Управление фигурами</h4>
         <label>Выбрать фигуру:</label>
-        <select id="shape-select">
-            <option value="🟧">🟧 (0.5,0,0.5) куб</option>
-            <option value="🟡" selected>🟡 центр (0.5,0.5,0.5) сфера</option>
-            <option value="🟠">🟠 (0.5,1,0.5) сфера</option>
-            <option value="🟥">🟥 (1,0,1) куб</option>
-            <option value="🟦">🟦 (0,0,1) куб</option>
-            <option value="🔵">🔵 (1,0,0) сфера</option>
-            <option value="🔴">🔴 (0,0,0) сфера</option>
-        </select>
+        <select id="shape-select"></select>
         <div class="slider-container">
             <span>Размер</span>
-            <input type="range" id="size-slider" min="0.01" max="1.0" step="0.01" value="0.2">
-            <span id="size-value">0.20</span>
+            <input type="range" id="size-slider" min="0.01" max="1.0" step="0.01" value="0.3">
+            <span id="size-value">0.30</span>
         </div>
-        <button id="save-btn">💾 Сохранить состояние</button>
-        <button id="reset-btn">↺ Сбросить позиции и размер</button>
+        <button id="save-btn">💾 Сохранить в localStorage</button>
         <div id="status">Готово</div>
     </div>
 
@@ -199,51 +310,6 @@
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { DragControls } from 'three/addons/controls/DragControls.js';
 
-        // ========== КОНФИГУРАЦИЯ ==========
-        const EMOJI_POSITIONS = [
-            // Верхний слой y = 1
-            { emoji: '💨', position: { x: 0, y: 1, z: 0 }, width: 0.3, connect_color: {} },
-            { emoji: '◀️', position: { x: 0, y: 1, z: 0.5 }, width: 0.3, connect_color: {} },
-            { emoji: '🌦', position: { x: 0, y: 1, z: 1 }, width: 0.3, connect_color: {} },
-            { emoji: '🔼', position: { x: 0.5, y: 1, z: 0 }, width: 0.3, connect_color: {} },
-            { emoji: '🟠', position: { x: 0.5, y: 1, z: 0.5 }, width: 0.3, connect_color: {} },
-            { emoji: '🔽', position: { x: 0.5, y: 1, z: 1 }, width: 0.3, connect_color: {} },
-            { emoji: '🌤', position: { x: 1, y: 1, z: 0 }, width: 0.3, connect_color: {} },
-            { emoji: '▶️', position: { x: 1, y: 1, z: 0.5 }, width: 0.3, connect_color: {} },
-            { emoji: '🌧', position: { x: 1, y: 1, z: 1 }, width: 0.3, connect_color: {} },
-
-            // Средний слой y = 0.5
-            { emoji: '↙️', position: { x: 0, y: 0.5, z: 0 }, width: 0.3, connect_color: {} },
-            { emoji: '⬅️', position: { x: 0, y: 0.5, z: 0.5 }, width: 0.3, connect_color: {} },
-            { emoji: '↖️', position: { x: 0, y: 0.5, z: 1 }, width: 0.3, connect_color: {} },
-            { emoji: '⬇️', position: { x: 0.5, y: 0.5, z: 0 }, width: 0.3, connect_color: {} },
-            { emoji: '🟡', position: { x: 0.5, y: 0.5, z: 0.5 }, width: 0.3, 
-              connect_color: { yellow: ['💨', '🟥'], orange: ['🟧', '🟠'] } },  // центр
-            { emoji: '⬆️', position: { x: 0.5, y: 0.5, z: 1 }, width: 0.3, connect_color: {} },
-            { emoji: '↘️', position: { x: 1, y: 0.5, z: 0 }, width: 0.3, connect_color: {} },
-            { emoji: '➡️', position: { x: 1, y: 0.5, z: 0.5 }, width: 0.3, connect_color: {} },
-            { emoji: '↗️', position: { x: 1, y: 0.5, z: 1 }, width: 0.3, connect_color: {} },
-
-            // Нижний слой y = 0
-            { emoji: '🔴', position: { x: 0, y: 0, z: 0 }, width: 0.3, connect_color: {} },
-            { emoji: '⚔️', position: { x: 0, y: 0, z: 0.5 }, width: 0.3, connect_color: {} },
-            { emoji: '🟦', position: { x: 0, y: 0, z: 1 }, width: 0.3, connect_color: {} },
-            { emoji: '🧊', position: { x: 0.5, y: 0, z: 0 }, width: 0.3, connect_color: {} },
-            { emoji: '🟧', position: { x: 0.5, y: 0, z: 0.5 }, width: 0.3, connect_color: {} },
-            { emoji: '🪨', position: { x: 0.5, y: 0, z: 1 }, width: 0.3, connect_color: {} },
-            { emoji: '🔵', position: { x: 1, y: 0, z: 0 }, width: 0.3, connect_color: {} },
-            { emoji: '🪵', position: { x: 1, y: 0, z: 0.5 }, width: 0.3, connect_color: {} },
-            { emoji: '🟥', position: { x: 1, y: 0, z: 1 }, width: 0.3, connect_color: {} }
-        ];
-
-        const SHAPE_EMOJIS = ['🟧', '🟡', '🟠', '🟥', '🟦', '🔵', '🔴'];
-
-        const LINE_DEFAULTS = {
-            dashLength: 0.06,
-            gapLength: 0.04,
-            thickness: 0.025
-        };
-
         // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
         let scene, camera, renderer, labelRenderer, controls;
         let shapes = [];            // { emoji, mesh, initialPos, initialWidth }
@@ -251,66 +317,262 @@
         let dragControls;
         let raycaster, mouse;
 
-        // ========== LOCALSTORAGE ==========
-        function loadState() {
-            const saved = localStorage.getItem('cubePreciseState');
-            if (saved) {
-                try {
-                    return JSON.parse(saved);
-                } catch (e) {
-                    return null;
-                }
+        // Текущие данные (загруженный JSON)
+        let currentData = [];
+
+        // Какие эмодзи заменяем на 3D-фигуры (все цветные квадраты/круги)
+        const SHAPE_EMOJIS = ['🟧', '🟡', '🟠', '🟥', '🟦', '🔵', '🔴'];
+
+        // Параметры линий
+        const LINE_DEFAULTS = {
+            dashLength: 0.06,
+            gapLength: 0.04,
+            thickness: 0.025
+        };
+
+        // ========== ИНИЦИАЛИЗАЦИЯ СЦЕНЫ (очистка и создание заново) ==========
+        function initScene() {
+            if (scene) {
+                while(scene.children.length > 0) scene.remove(scene.children[0]);
+            } else {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0a0a0a);
+                scene.fog = new THREE.Fog(0x0a0a0a, 1.5, 3.5);
             }
-            return null;
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(1.8, 1.5, 2.2);
+            camera.lookAt(0.5, 0.5, 0.5);
+
+            if (!renderer) {
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                document.body.appendChild(renderer.domElement);
+
+                labelRenderer = new CSS2DRenderer();
+                labelRenderer.setSize(window.innerWidth, window.innerHeight);
+                labelRenderer.domElement.style.position = 'absolute';
+                labelRenderer.domElement.style.top = '0px';
+                labelRenderer.domElement.style.left = '0px';
+                labelRenderer.domElement.style.pointerEvents = 'none';
+                document.body.appendChild(labelRenderer.domElement);
+
+                controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.rotateSpeed = 0.8;
+                controls.enableZoom = true;
+                controls.zoomSpeed = 1.2;
+                controls.enablePan = false;
+                controls.maxPolarAngle = Math.PI / 2;
+                controls.target.set(0.5, 0.5, 0.5);
+            }
+
+            const ambientLight = new THREE.AmbientLight(0x404060);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(1, 2, 1);
+            scene.add(dirLight);
+            const fillLight = new THREE.PointLight(0x446688, 0.5);
+            fillLight.position.set(0.5, 0.5, 0.5);
+            scene.add(fillLight);
+
+            const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const boxEdges = new THREE.EdgesGeometry(boxGeometry);
+            
+            const transparentMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2a4a6a,
+                transparent: true,
+                opacity: 0.1,
+                side: THREE.DoubleSide
+            });
+            const wireframeBox = new THREE.Mesh(boxGeometry, transparentMaterial);
+            wireframeBox.position.set(0.5, 0.5, 0.5);
+            scene.add(wireframeBox);
+
+            const edgesMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.25, transparent: true });
+            const edgesLines = new THREE.LineSegments(boxEdges, edgesMaterial);
+            edgesLines.position.set(0.5, 0.5, 0.5);
+            scene.add(edgesLines);
+
+            const gridHelper = new THREE.GridHelper(1, 3, 0x88aaff, 0x445577);
+            gridHelper.position.set(0.5, 0, 0.5);
+            scene.add(gridHelper);
+
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsCount = 400;
+            const starPositions = new Float32Array(starsCount * 3);
+            for (let i = 0; i < starsCount; i++) {
+                const r = 2 + Math.random() * 2;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                starPositions[i*3] = 0.5 + r * Math.sin(phi) * Math.cos(theta);
+                starPositions[i*3+1] = 0.5 + r * Math.sin(phi) * Math.sin(theta);
+                starPositions[i*3+2] = 0.5 + r * Math.cos(phi);
+            }
+            starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            const starsMaterial = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.02, transparent: true, opacity: 0.4 });
+            const stars = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(stars);
         }
 
-        function saveState() {
-            const state = shapes.map(item => ({
-                emoji: item.emoji,
-                position: {
-                    x: item.mesh.position.x,
-                    y: item.mesh.position.y,
-                    z: item.mesh.position.z
-                },
-                width: item.mesh.scale.x
-            }));
-            localStorage.setItem('cubePreciseState', JSON.stringify(state));
-            document.getElementById('status').innerText = 'Сохранено ✓';
-            setTimeout(() => document.getElementById('status').innerText = 'Готово', 1500);
-        }
+        // ========== ПОСТРОЕНИЕ ОБЪЕКТОВ ПО ДАННЫМ ==========
+        function buildFromData(data) {
+            shapes = [];
+            lines = [];
 
-        function resetPositions() {
-            shapes.forEach(item => {
-                const orig = EMOJI_POSITIONS.find(p => p.emoji === item.emoji);
-                if (orig) {
-                    item.mesh.position.set(orig.position.x, orig.position.y, orig.position.z);
-                    item.mesh.scale.set(orig.width, orig.width, orig.width);
+            initScene();
+
+            currentData = data;
+
+            // ========== CSS2D МЕТКИ ДЛЯ НЕ-ФИГУР ==========
+            data.forEach(item => {
+                if (SHAPE_EMOJIS.includes(item.emoji)) return;
+
+                const div = document.createElement('div');
+                div.textContent = item.emoji;
+                div.style.fontSize = '44px';
+                div.style.fontWeight = 'bold';
+                div.style.fontFamily = 'Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+                div.style.textShadow = '0 0 10px rgba(255,255,255,0.5)';
+                div.style.color = 'white';
+                div.style.cursor = 'pointer';
+                div.style.userSelect = 'none';
+                div.style.pointerEvents = 'auto';
+                
+                div.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    const pos = item.position;
+                    document.getElementById('info-panel').innerHTML = `🧿 Символ: <span>${item.emoji}</span>  |  (X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)})`;
+                    if (navigator.vibrate) navigator.vibrate(10);
+                });
+                
+                const label = new CSS2DObject(div);
+                label.position.set(item.position.x, item.position.y, item.position.z);
+                scene.add(label);
+            });
+
+            // ========== 3D-ФИГУРЫ ==========
+            data.forEach(item => {
+                if (!SHAPE_EMOJIS.includes(item.emoji)) return;
+
+                let color;
+                switch (item.emoji) {
+                    case '🟧': color = 0xff8800; break;
+                    case '🟡': color = 0xffdd00; break;
+                    case '🟠': color = 0xff9900; break;
+                    case '🟥': color = 0xff3333; break;
+                    case '🟦': color = 0x3366ff; break;
+                    case '🔵': color = 0x0066cc; break;
+                    case '🔴': color = 0xcc3333; break;
+                    default: color = 0xffffff;
+                }
+
+                let geometry;
+                if (item.emoji === '🔵' || item.emoji === '🔴' || item.emoji === '🟡' || item.emoji === '🟠') {
+                    geometry = new THREE.SphereGeometry(0.5, 32);
+                } else {
+                    geometry = new THREE.BoxGeometry(1, 1, 1);
+                }
+                const material = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 });
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                mesh.position.set(item.position.x, item.position.y, item.position.z);
+                mesh.scale.set(item.width, item.width, item.width);
+                
+                scene.add(mesh);
+                
+                shapes.push({
+                    emoji: item.emoji,
+                    mesh: mesh,
+                    initialPos: new THREE.Vector3(item.position.x, item.position.y, item.position.z),
+                    initialWidth: item.width
+                });
+            });
+
+            updateAllLines();
+
+            if (dragControls) {
+                dragControls.dispose();
+            }
+            const dragableMeshes = shapes.map(s => s.mesh);
+            dragControls = new DragControls(dragableMeshes, camera, renderer.domElement);
+            
+            dragControls.addEventListener('dragstart', function(event) {
+                controls.enabled = false;
+                if (event.object.material) {
+                    if (Array.isArray(event.object.material))
+                        event.object.material.forEach(m => m.emissiveIntensity = 0.8);
+                    else
+                        event.object.material.emissiveIntensity = 0.8;
                 }
             });
-            updateAllLines();
-            saveState();
+
+            dragControls.addEventListener('drag', function() {
+                updateAllLines();
+            });
+
+            dragControls.addEventListener('dragend', function(event) {
+                controls.enabled = true;
+                if (event.object.material) {
+                    if (Array.isArray(event.object.material))
+                        event.object.material.forEach(m => m.emissiveIntensity = 0.3);
+                    else
+                        event.object.material.emissiveIntensity = 0.3;
+                }
+                updateAllLines();
+                saveToLocalStorage();
+                updateShapeSelect();
+                updateSliderFromSelected();
+            });
+
+            if (!raycaster) {
+                raycaster = new THREE.Raycaster();
+                mouse = new THREE.Vector2();
+
+                renderer.domElement.addEventListener('click', (event) => {
+                    const rect = renderer.domElement.getBoundingClientRect();
+                    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+                    raycaster.setFromCamera(mouse, camera);
+                    const meshes = shapes.map(s => s.mesh);
+                    const intersects = raycaster.intersectObjects(meshes);
+
+                    if (intersects.length > 0) {
+                        const hitMesh = intersects[0].object;
+                        const shape = shapes.find(s => s.mesh === hitMesh);
+                        if (shape) {
+                            const pos = hitMesh.position;
+                            document.getElementById('info-panel').innerHTML = `🧿 Фигура: <span>${shape.emoji}</span>  |  (X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)})`;
+                            if (navigator.vibrate) navigator.vibrate(10);
+                        }
+                    }
+                });
+            }
+
+            updateShapeSelect();
             updateSliderFromSelected();
-            document.getElementById('status').innerText = 'Сброшено ↺';
-            setTimeout(() => document.getElementById('status').innerText = 'Готово', 1500);
+
+            document.getElementById('json-status').innerText = 'Загружено ✓';
         }
 
         // ========== ПОЛУЧЕНИЕ ПОЗИЦИИ ЭМОДЗИ ==========
         function getEmojiPosition(emoji) {
             const shape = shapes.find(s => s.emoji === emoji);
             if (shape) return shape.mesh.position.clone();
-            const pos = EMOJI_POSITIONS.find(p => p.emoji === emoji);
-            if (pos) return new THREE.Vector3(pos.position.x, pos.position.y, pos.position.z);
+            const item = currentData.find(p => p.emoji === emoji);
+            if (item) return new THREE.Vector3(item.position.x, item.position.y, item.position.z);
             return new THREE.Vector3(0.5, 0.5, 0.5);
         }
 
-        // ========== ОБНОВЛЕНИЕ ВСЕХ ЛИНИЙ (теперь для всех элементов) ==========
+        // ========== ОБНОВЛЕНИЕ ВСЕХ ЛИНИЙ ==========
         function updateAllLines() {
-            // Удаляем старые линии
             lines.forEach(line => scene.remove(line));
             lines = [];
 
-            // Проходим по всем элементам, у которых есть connect_color
-            EMOJI_POSITIONS.forEach(item => {
+            currentData.forEach(item => {
                 const connections = item.connect_color;
                 if (!connections || Object.keys(connections).length === 0) return;
 
@@ -318,7 +580,6 @@
                 const fromPos = getEmojiPosition(fromEmoji);
 
                 Object.entries(connections).forEach(([colorName, emojiList]) => {
-                    // Определяем цвет
                     let color;
                     switch (colorName) {
                         case 'yellow': color = '#FFD700'; break;
@@ -332,7 +593,7 @@
 
                     if (Array.isArray(emojiList)) {
                         emojiList.forEach(toEmoji => {
-                            if (toEmoji === fromEmoji) return; // не рисовать линию к самому себе
+                            if (toEmoji === fromEmoji) return;
                             const toPos = getEmojiPosition(toEmoji);
                             const lineGroup = createDashedLine(
                                 fromPos, toPos, color,
@@ -387,237 +648,53 @@
             return group;
         }
 
-        // ========== ИНИЦИАЛИЗАЦИЯ СЦЕНЫ ==========
-        function initScene() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0a0a);
-            scene.fog = new THREE.Fog(0x0a0a0a, 1.5, 3.5);
+        // ========== LOCALSTORAGE ==========
+        function saveToLocalStorage() {
+            const state = shapes.map(item => ({
+                emoji: item.emoji,
+                position: {
+                    x: item.mesh.position.x,
+                    y: item.mesh.position.y,
+                    z: item.mesh.position.z
+                },
+                width: item.mesh.scale.x,
+                connect_color: currentData.find(d => d.emoji === item.emoji)?.connect_color || {}
+            }));
+            localStorage.setItem('cubePreciseState', JSON.stringify(state));
+            document.getElementById('status').innerText = 'Сохранено ✓';
+            setTimeout(() => document.getElementById('status').innerText = 'Готово', 1500);
+        }
 
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(1.8, 1.5, 2.2);
-            camera.lookAt(0.5, 0.5, 0.5);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.body.appendChild(renderer.domElement);
-
-            labelRenderer = new CSS2DRenderer();
-            labelRenderer.setSize(window.innerWidth, window.innerHeight);
-            labelRenderer.domElement.style.position = 'absolute';
-            labelRenderer.domElement.style.top = '0px';
-            labelRenderer.domElement.style.left = '0px';
-            labelRenderer.domElement.style.pointerEvents = 'none';
-            document.body.appendChild(labelRenderer.domElement);
-
-            // Освещение
-            const ambientLight = new THREE.AmbientLight(0x404060);
-            scene.add(ambientLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(1, 2, 1);
-            scene.add(dirLight);
-            const fillLight = new THREE.PointLight(0x446688, 0.5);
-            fillLight.position.set(0.5, 0.5, 0.5);
-            scene.add(fillLight);
-
-            controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.rotateSpeed = 0.8;
-            controls.enableZoom = true;
-            controls.zoomSpeed = 1.2;
-            controls.enablePan = false;
-            controls.maxPolarAngle = Math.PI / 2;
-            controls.target.set(0.5, 0.5, 0.5);
-
-            // Каркас куба
-            const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
-            const boxEdges = new THREE.EdgesGeometry(boxGeometry);
-            
-            const transparentMaterial = new THREE.MeshPhongMaterial({
-                color: 0x2a4a6a,
-                transparent: true,
-                opacity: 0.1,
-                side: THREE.DoubleSide
-            });
-            const wireframeBox = new THREE.Mesh(boxGeometry, transparentMaterial);
-            wireframeBox.position.set(0.5, 0.5, 0.5);
-            scene.add(wireframeBox);
-
-            const edgesMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.25, transparent: true });
-            const edgesLines = new THREE.LineSegments(boxEdges, edgesMaterial);
-            edgesLines.position.set(0.5, 0.5, 0.5);
-            scene.add(edgesLines);
-
-            const gridHelper = new THREE.GridHelper(1, 3, 0x88aaff, 0x445577);
-            gridHelper.position.set(0.5, 0, 0.5);
-            scene.add(gridHelper);
-
-            // ========== CSS2D МЕТКИ ДЛЯ НЕ-ФИГУР ==========
-            EMOJI_POSITIONS.forEach(item => {
-                if (SHAPE_EMOJIS.includes(item.emoji)) return;
-
-                const div = document.createElement('div');
-                div.textContent = item.emoji;
-                div.style.fontSize = '44px';
-                div.style.fontWeight = 'bold';
-                div.style.fontFamily = 'Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-                div.style.textShadow = '0 0 10px rgba(255,255,255,0.5)';
-                div.style.color = 'white';
-                div.style.cursor = 'pointer';
-                div.style.userSelect = 'none';
-                div.style.pointerEvents = 'auto';
-                
-                div.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    const pos = item.position;
-                    document.getElementById('info-panel').innerHTML = `🧿 Символ: <span>${item.emoji}</span>  |  (X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)})`;
-                    if (navigator.vibrate) navigator.vibrate(10);
-                });
-                
-                const label = new CSS2DObject(div);
-                label.position.set(item.position.x, item.position.y, item.position.z);
-                scene.add(label);
-            });
-
-            // ========== 3D-ФИГУРЫ ==========
-            const savedState = loadState();
-
-            EMOJI_POSITIONS.forEach(item => {
-                if (!SHAPE_EMOJIS.includes(item.emoji)) return;
-
-                // Определяем цвет
-                let color;
-                switch (item.emoji) {
-                    case '🟧': color = 0xff8800; break;
-                    case '🟡': color = 0xffdd00; break;
-                    case '🟠': color = 0xff9900; break;
-                    case '🟥': color = 0xff3333; break;
-                    case '🟦': color = 0x3366ff; break;
-                    case '🔵': color = 0x0066cc; break;
-                    case '🔴': color = 0xcc3333; break;
-                    default: color = 0xffffff;
-                }
-
-                // Базовая геометрия размером 1 (масштабируется через width)
-                let geometry;
-                if (item.emoji === '🔵' || item.emoji === '🔴' || item.emoji === '🟡' || item.emoji === '🟠') {
-                    geometry = new THREE.SphereGeometry(0.5, 32);  // диаметр 1
-                } else {
-                    geometry = new THREE.BoxGeometry(1, 1, 1);    // куб со стороной 1
-                }
-                const material = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 });
-                const mesh = new THREE.Mesh(geometry, material);
-                
-                const initialPos = new THREE.Vector3(item.position.x, item.position.y, item.position.z);
-                const initialWidth = item.width;
-                
-                if (savedState) {
-                    const saved = savedState.find(s => s.emoji === item.emoji);
-                    if (saved) {
-                        mesh.position.set(saved.position.x, saved.position.y, saved.position.z);
-                        mesh.scale.set(saved.width, saved.width, saved.width);
-                    } else {
-                        mesh.position.copy(initialPos);
-                        mesh.scale.set(initialWidth, initialWidth, initialWidth);
-                    }
-                } else {
-                    mesh.position.copy(initialPos);
-                    mesh.scale.set(initialWidth, initialWidth, initialWidth);
-                }
-                
-                scene.add(mesh);
-                
-                shapes.push({
-                    emoji: item.emoji,
-                    mesh: mesh,
-                    initialPos: initialPos,
-                    initialWidth: initialWidth
-                });
-            });
-
-            // ========== ПЕРВОНАЧАЛЬНОЕ ПОСТРОЕНИЕ ЛИНИЙ ==========
-            updateAllLines();
-
-            // ========== DRAG CONTROLS ==========
-            const dragableMeshes = shapes.map(s => s.mesh);
-            dragControls = new DragControls(dragableMeshes, camera, renderer.domElement);
-            
-            dragControls.addEventListener('dragstart', function(event) {
-                controls.enabled = false;
-                if (event.object.material) {
-                    if (Array.isArray(event.object.material))
-                        event.object.material.forEach(m => m.emissiveIntensity = 0.8);
-                    else
-                        event.object.material.emissiveIntensity = 0.8;
-                }
-            });
-
-            dragControls.addEventListener('drag', function() {
-                updateAllLines();  // обновляем линии при каждом движении
-            });
-
-            dragControls.addEventListener('dragend', function(event) {
-                controls.enabled = true;
-                if (event.object.material) {
-                    if (Array.isArray(event.object.material))
-                        event.object.material.forEach(m => m.emissiveIntensity = 0.3);
-                    else
-                        event.object.material.emissiveIntensity = 0.3;
-                }
-                updateAllLines();
-                saveState();
-            });
-
-            // ========== RAYCASTER ДЛЯ КЛИКОВ ==========
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
-
-            renderer.domElement.addEventListener('click', (event) => {
-                const rect = renderer.domElement.getBoundingClientRect();
-                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-                raycaster.setFromCamera(mouse, camera);
-                const meshes = shapes.map(s => s.mesh);
-                const intersects = raycaster.intersectObjects(meshes);
-
-                if (intersects.length > 0) {
-                    const hitMesh = intersects[0].object;
-                    const shape = shapes.find(s => s.mesh === hitMesh);
-                    if (shape) {
-                        const pos = hitMesh.position;
-                        document.getElementById('info-panel').innerHTML = `🧿 Фигура: <span>${shape.emoji}</span>  |  (X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)})`;
-                        if (navigator.vibrate) navigator.vibrate(10);
-                    }
-                }
-            });
-
-            // ========== ЗВЁЗДЫ ==========
-            const starsGeometry = new THREE.BufferGeometry();
-            const starsCount = 400;
-            const starPositions = new Float32Array(starsCount * 3);
-            for (let i = 0; i < starsCount; i++) {
-                const r = 2 + Math.random() * 2;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
-                starPositions[i*3] = 0.5 + r * Math.sin(phi) * Math.cos(theta);
-                starPositions[i*3+1] = 0.5 + r * Math.sin(phi) * Math.sin(theta);
-                starPositions[i*3+2] = 0.5 + r * Math.cos(phi);
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('cubePreciseState');
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    state.forEach(s => {
+                        const shape = shapes.find(sh => sh.emoji === s.emoji);
+                        if (shape) {
+                            shape.mesh.position.set(s.position.x, s.position.y, s.position.z);
+                            shape.mesh.scale.set(s.width, s.width, s.width);
+                        }
+                    });
+                    updateAllLines();
+                    updateSliderFromSelected();
+                } catch (e) {}
             }
-            starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-            const starsMaterial = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.02, transparent: true, opacity: 0.4 });
-            const stars = new THREE.Points(starsGeometry, starsMaterial);
-            scene.add(stars);
-
-            function animateStars() {
-                stars.rotation.y += 0.0002;
-                requestAnimationFrame(animateStars);
-            }
-            animateStars();
         }
 
         // ========== UI ==========
+        function updateShapeSelect() {
+            const select = document.getElementById('shape-select');
+            select.innerHTML = '';
+            shapes.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s.emoji;
+                option.textContent = `${s.emoji} (${s.mesh.position.x.toFixed(2)}, ${s.mesh.position.y.toFixed(2)}, ${s.mesh.position.z.toFixed(2)})`;
+                select.appendChild(option);
+            });
+        }
+
         function updateSliderFromSelected() {
             const select = document.getElementById('shape-select');
             const selectedEmoji = select.value;
@@ -634,7 +711,24 @@
             const slider = document.getElementById('size-slider');
             const sizeSpan = document.getElementById('size-value');
             const saveBtn = document.getElementById('save-btn');
-            const resetBtn = document.getElementById('reset-btn');
+            const loadJsonBtn = document.getElementById('load-json');
+            const copyJsonBtn = document.getElementById('copy-json');
+            const resetJsonBtn = document.getElementById('reset-json');
+            const updateFieldBtn = document.getElementById('update-field');
+            const jsonInput = document.getElementById('json-input');
+            const jsonStatus = document.getElementById('json-status');
+            const toggleEditor = document.getElementById('toggle-editor');
+            const editorPanel = document.getElementById('editor-panel');
+            const toggleControls = document.getElementById('toggle-controls');
+            const controlsPanel = document.getElementById('controls');
+
+            toggleEditor.addEventListener('click', () => {
+                editorPanel.classList.toggle('hidden');
+            });
+
+            toggleControls.addEventListener('click', () => {
+                controlsPanel.classList.toggle('hidden');
+            });
 
             select.addEventListener('change', updateSliderFromSelected);
 
@@ -648,17 +742,101 @@
                 }
             });
 
-            slider.addEventListener('change', saveState);
+            slider.addEventListener('change', saveToLocalStorage);
 
-            saveBtn.addEventListener('click', saveState);
-            resetBtn.addEventListener('click', resetPositions);
+            saveBtn.addEventListener('click', saveToLocalStorage);
 
-            updateSliderFromSelected();
+            loadJsonBtn.addEventListener('click', () => {
+                try {
+                    const parsed = JSON.parse(jsonInput.value);
+                    if (!Array.isArray(parsed)) throw new Error('Должен быть массив');
+                    buildFromData(parsed);
+                    jsonStatus.innerText = 'Загружено ✓';
+                } catch (e) {
+                    jsonStatus.innerText = 'Ошибка: ' + e.message;
+                }
+            });
 
-            const toggleBtn = document.getElementById('toggle-controls');
-            const controlsPanel = document.getElementById('controls');
-            toggleBtn.addEventListener('click', () => {
-                controlsPanel.classList.toggle('hidden');
+            copyJsonBtn.addEventListener('click', () => {
+                const state = shapes.map(item => {
+                    const original = currentData.find(d => d.emoji === item.emoji);
+                    return {
+                        emoji: item.emoji,
+                        position: {
+                            x: item.mesh.position.x,
+                            y: item.mesh.position.y,
+                            z: item.mesh.position.z
+                        },
+                        width: item.mesh.scale.x,  // берём текущий масштаб
+                        connect_color: original?.connect_color || {}
+                    };
+                });
+                // Добавляем не-фигуры из currentData (они не двигаются)
+                currentData.forEach(item => {
+                    if (!SHAPE_EMOJIS.includes(item.emoji)) {
+                        state.push(item);
+                    }
+                });
+                // Сортируем для удобства
+                state.sort((a, b) => {
+                    if (a.position.y !== b.position.y) return b.position.y - a.position.y;
+                    if (a.position.x !== b.position.x) return a.position.x - b.position.x;
+                    return a.position.z - b.position.z;
+                });
+                const jsonStr = JSON.stringify(state, null, 2);
+                navigator.clipboard.writeText(jsonStr).then(() => {
+                    jsonStatus.innerText = 'Скопировано!';
+                    setTimeout(() => jsonStatus.innerText = 'Готово', 1500);
+                });
+                // Отладка: выведем в консоль
+                console.log('Скопированный JSON:', jsonStr);
+            });
+
+            // Новая кнопка: обновить поле JSON текущим состоянием
+            updateFieldBtn.addEventListener('click', () => {
+                const state = shapes.map(item => {
+                    const original = currentData.find(d => d.emoji === item.emoji);
+                    return {
+                        emoji: item.emoji,
+                        position: {
+                            x: item.mesh.position.x,
+                            y: item.mesh.position.y,
+                            z: item.mesh.position.z
+                        },
+                        width: item.mesh.scale.x,
+                        connect_color: original?.connect_color || {}
+                    };
+                });
+                currentData.forEach(item => {
+                    if (!SHAPE_EMOJIS.includes(item.emoji)) {
+                        state.push(item);
+                    }
+                });
+                state.sort((a, b) => {
+                    if (a.position.y !== b.position.y) return b.position.y - a.position.y;
+                    if (a.position.x !== b.position.x) return a.position.x - b.position.x;
+                    return a.position.z - b.position.z;
+                });
+                jsonInput.value = JSON.stringify(state, null, 2);
+                jsonStatus.innerText = 'Поле обновлено';
+                setTimeout(() => jsonStatus.innerText = 'Готово', 1500);
+            });
+
+            resetJsonBtn.addEventListener('click', () => {
+                if (currentData.length === 0) return;
+                shapes.forEach(item => {
+                    const orig = currentData.find(d => d.emoji === item.emoji);
+                    if (orig) {
+                        item.mesh.position.set(orig.position.x, orig.position.y, orig.position.z);
+                        item.mesh.scale.set(orig.width, orig.width, orig.width);
+                    }
+                });
+                updateAllLines();
+                saveToLocalStorage();
+                updateShapeSelect();
+                updateSliderFromSelected();
+                jsonStatus.innerText = 'Сброшено';
+                setTimeout(() => jsonStatus.innerText = 'Готово', 1500);
             });
         }
 
@@ -666,7 +844,6 @@
         function animateLinesAndCenter() {
             const elapsedTime = performance.now() / 1000;
             
-            // Пульсация сфер линий
             lines.forEach(lineGroup => {
                 if (lineGroup) {
                     lineGroup.children.forEach((sphere, i) => {
@@ -676,7 +853,6 @@
                 }
             });
 
-            // Пульсация центральной фигуры 🟡
             const centerShape = shapes.find(s => s.emoji === '🟡');
             if (centerShape) {
                 const intensity = 0.3 + Math.sin(elapsedTime * 4) * 0.2;
@@ -703,6 +879,8 @@
         // ========== ЗАПУСК ==========
         function start() {
             initScene();
+            const defaultJson = JSON.parse(document.getElementById('json-input').value);
+            buildFromData(defaultJson);
             setupUI();
             animate();
 
