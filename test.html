@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Emoji Cube · JSON редактор</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background-color: #0a0a0a;
+            color: white;
+        }
+        canvas {
+            touch-action: none; /* важно для мобильных жестов */
+        }
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(20, 20, 30, 0.8);
+            backdrop-filter: blur(5px);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border-left: 3px solid #ffd700;
+            font-size: 16px;
+            color: #eee;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #info-panel span {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        /* Кнопка скрытия/показа левой панели */
+        #toggle-editor {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 215, 0, 0.8);
+            border: none;
+            border-radius: 50%;
+            color: #0a0a0a;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 300;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        #toggle-editor:hover {
+            background: #ffb700;
+        }
+        /* Кнопка скрытия/показа правой панели */
+        #toggle-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 215, 0, 0.8);
+            border: none;
+            border-radius: 50%;
+            color: #0a0a0a;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 300;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        #toggle-controls:hover {
+            background: #ffb700;
+        }
+        #editor-panel {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            width: 320px;
+            background: rgba(30, 30, 40, 0.95);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            padding: 15px;
+            color: #ddd;
+            border: 1px solid #444;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+            z-index: 200;
+            pointer-events: auto;
+            max-height: calc(80vh - 70px);
+            overflow-y: auto;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        #editor-panel.hidden {
+            display: none;
+        }
+        #editor-panel h3 {
+            margin: 0 0 10px 0;
+            color: #ffd700;
+            text-align: center;
+        }
+        #editor-panel textarea {
+            width: 100%;
+            height: 200px;
+            background: #222;
+            color: #eee;
+            border: 1px solid #555;
+            border-radius: 10px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        #editor-panel .button-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        #editor-panel button {
+            background: #ffd700;
+            color: #0a0a0a;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            flex: 1 1 auto;
+            transition: 0.2s;
+        }
+        #editor-panel button:hover {
+            background: #ffb700;
+        }
+        #editor-panel button.secondary {
+            background: #444;
+            color: #fff;
+        }
+        #editor-panel button.secondary:hover {
+            background: #555;
+        }
+        #editor-panel .status {
+            color: #0f0;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 8px;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(30, 30, 40, 0.95);
+            backdrop-filter: blur(5px);
+            padding: 15px 20px;
+            border-radius: 20px;
+            color: #ddd;
+            font-size: 14px;
+            border: 1px solid #444;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+            z-index: 200;
+            pointer-events: auto;
+            width: 240px;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        #controls.hidden {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+        }
+        #controls h4 {
+            margin: 0 0 10px 0;
+            color: #ffd700;
+            text-align: center;
+        }
+        #controls label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        #controls select {
+            width: 100%;
+            padding: 5px;
+            background: #222;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        #controls .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        #controls input[type=range] {
+            flex: 1;
+            cursor: pointer;
+            accent-color: #ffd700;
+            height: 6px;
+        }
+        #controls span#size-value {
+            min-width: 40px;
+            text-align: right;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        #controls button {
+            background: #ffd700;
+            color: #0a0a0a;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+            transition: 0.2s;
+        }
+        #controls button:hover {
+            background: #ffb700;
+        }
+        #status {
+            color: #0f0;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 8px;
+        }
+        /* Кнопки зума для мобильных */
+        #zoom-buttons {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            z-index: 400;
+            display: flex;
+            gap: 10px;
+        }
+        #zoom-buttons button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #ffd700;
+            color: #0a0a0a;
+            font-size: 24px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #zoom-buttons button:hover {
+            background: #ffb700;
+        }
+        #zoom-buttons button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div id="info-panel">👆 Кликни по фигуре или символу</div>
+    <button id="toggle-editor">📄</button>
+    <button id="toggle-controls">⚙️</button>
+
+    <!-- Панель редактора JSON слева -->
+    <div id="editor-panel">
+        <h3>📦 JSON редактор</h3>
+        <textarea id="json-input" placeholder="Вставьте JSON массива объектов...">[
+  { "emoji": "💨", "position": { "x": 0, "y": 1, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "◀️", "position": { "x": 0, "y": 1, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🌦", "position": { "x": 0, "y": 1, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🔼", "position": { "x": 0.5, "y": 1, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟠", "position": { "x": 0.5, "y": 1, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🔽", "position": { "x": 0.5, "y": 1, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🌤", "position": { "x": 1, "y": 1, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "▶️", "position": { "x": 1, "y": 1, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🌧", "position": { "x": 1, "y": 1, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "↙️", "position": { "x": 0, "y": 0.5, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "⬅️", "position": { "x": 0, "y": 0.5, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "↖️", "position": { "x": 0, "y": 0.5, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "⬇️", "position": { "x": 0.5, "y": 0.5, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟡", "position": { "x": 0.5, "y": 0.5, "z": 0.5 }, "width": 0.3, "connect_color": { "yellow": ["💨", "🟥"], "orange": ["🟧", "🟠"], "blue": ["🟦"] } },
+  { "emoji": "⬆️", "position": { "x": 0.5, "y": 0.5, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "↘️", "position": { "x": 1, "y": 0.5, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "➡️", "position": { "x": 1, "y": 0.5, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "↗️", "position": { "x": 1, "y": 0.5, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🔴", "position": { "x": 0, "y": 0, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "⚔️", "position": { "x": 0, "y": 0, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟦", "position": { "x": 0, "y": 0, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🧊", "position": { "x": 0.5, "y": 0, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟧", "position": { "x": 0.5, "y": 0, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🪨", "position": { "x": 0.5, "y": 0, "z": 1 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🔵", "position": { "x": 1, "y": 0, "z": 0 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🪵", "position": { "x": 1, "y": 0, "z": 0.5 }, "width": 0.3, "connect_color": {} },
+  { "emoji": "🟥", "position": { "x": 1, "y": 0, "z": 1 }, "width": 0.3, "connect_color": { "blue": ["🟦"] } }
+]</textarea>
+        <div class="button-row">
+            <button id="load-json">🚀 Загрузить</button>
+            <button id="copy-json" class="secondary">📋 Копировать JSON</button>
+            <button id="update-field" class="secondary">🔄 Обновить поле</button>
+        </div>
+        <div class="button-row">
+            <button id="reset-json" class="secondary">↺ Сбросить к загруженному</button>
+        </div>
+        <div id="json-status" class="status">Готово</div>
+    </div>
+
+    <!-- Панель управления размером (справа) -->
+    <div id="controls">
+        <h4>⚙️ Управление фигурами</h4>
+        <label>Выбрать фигуру:</label>
+        <select id="shape-select"></select>
+        <div class="slider-container">
+            <span>Размер</span>
+            <input type="range" id="size-slider" min="0.01" max="1.0" step="0.01" value="0.3">
+            <span id="size-value">0.30</span>
+        </div>
+        <button id="save-btn">💾 Сохранить в localStorage</button>
+        <div id="status">Готово</div>
+    </div>
+
+    <!-- Кнопки зума для мобильных -->
+    <div id="zoom-buttons">
+        <button id="zoom-in">+</button>
+        <button id="zoom-out">−</button>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import { DragControls } from 'three/addons/controls/DragControls.js';
+
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+        let scene, camera, renderer, labelRenderer, controls;
+        let shapes = [];            // { emoji, mesh, initialPos, initialWidth }
+        let lines = [];             // массив групп линий
+        let dragControls;
+        let raycaster, mouse;
+
+        // Текущие данные (загруженный JSON)
+        let currentData = [];
+
+        // Какие эмодзи заменяем на 3D-фигуры (все цветные квадраты/круги)
+        const SHAPE_EMOJIS = ['🟧', '🟡', '🟠', '🟥', '🟦', '🔵', '🔴'];
+
+        // Параметры линий
+        const LINE_DEFAULTS = {
+            dashLength: 0.06,
+            gapLength: 0.04,
+            thickness: 0.025
+        };
+
+        // ========== ИНИЦИАЛИЗАЦИЯ СЦЕНЫ (очистка и создание заново) ==========
+        function initScene() {
+            if (scene) {
+                while(scene.children.length > 0) scene.remove(scene.children[0]);
+            } else {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0a0a0a);
+                scene.fog = new THREE.Fog(0x0a0a0a, 1.5, 3.5);
+            }
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(1.8, 1.5, 2.2);
+            camera.lookAt(0.5, 0.5, 0.5);
+
+            if (!renderer) {
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                document.body.appendChild(renderer.domElement);
+
+                labelRenderer = new CSS2DRenderer();
+                labelRenderer.setSize(window.innerWidth, window.innerHeight);
+                labelRenderer.domElement.style.position = 'absolute';
+                labelRenderer.domElement.style.top = '0px';
+                labelRenderer.domElement.style.left = '0px';
+                labelRenderer.domElement.style.pointerEvents = 'none';
+                document.body.appendChild(labelRenderer.domElement);
+
+                controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.rotateSpeed = 0.8;
+                controls.enableZoom = true;
+                controls.zoomSpeed = 1.2;
+                controls.enablePan = false;
+                controls.maxPolarAngle = Math.PI / 2;
+                controls.target.set(0.5, 0.5, 0.5);
+            }
+
+            const ambientLight = new THREE.AmbientLight(0x404060);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(1, 2, 1);
+            scene.add(dirLight);
+            const fillLight = new THREE.PointLight(0x446688, 0.5);
+            fillLight.position.set(0.5, 0.5, 0.5);
+            scene.add(fillLight);
+
+            const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+            const boxEdges = new THREE.EdgesGeometry(boxGeometry);
+            
+            const transparentMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2a4a6a,
+                transparent: true,
+                opacity: 0.1,
+                side: THREE.DoubleSide
+            });
+            const wireframeBox = new THREE.Mesh(boxGeometry, transparentMaterial);
+            wireframeBox.position.set(0.5, 0.5, 0.5);
+            scene.add(wireframeBox);
+
+            const edgesMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.25, transparent: true });
+            const edgesLines = new THREE.LineSegments(boxEdges, edgesMaterial);
+            edgesLines.position.set(0.5, 0.5, 0.5);
+            scene.add(edgesLines);
+
+            const gridHelper = new THREE.GridHelper(1, 3, 0x88aaff, 0x445577);
+            gridHelper.position.set(0.5, 0, 0.5);
+            scene.add(gridHelper);
+
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsCount = 400;
+            const starPositions = new Float32Array(starsCount * 3);
+            for (let i = 0; i < starsCount; i++) {
+                const r = 2 + Math.random() * 2;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                starPositions[i*3] = 0.5 + r * Math.sin(phi) * Math.cos(theta);
+                starPositions[i*3+1] = 0.5 + r * Math.sin(phi) * Math.sin(theta);
+                starPositions[i*3+2] = 0.5 + r * Math.cos(phi);
+            }
+            starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            const starsMaterial = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.02, transparent: true, opacity: 0.4 });
+            const stars = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(stars);
+        }
+
+        // ========== ПОСТРОЕНИЕ ОБЪЕКТОВ ПО ДАННЫМ ==========
+        function buildFromData(data) {
+            shapes = [];
+            lines = [];
+
+            initScene();
+
+            currentData = data;
+
+            // ========== CSS2D МЕТКИ ДЛЯ НЕ-ФИГУР ==========
+            data.forEach(item => {
+                if (SHAPE_EMOJIS.includes(item.emoji)) return;
+
+                const div = document.createElement('div');
+                div.textContent = item.emoji;
+                div.style.fontSize = '44px';
+                div.style.fontWeight = 'bold';
+                div.style.fontFamily = 'Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+                div.style.textShadow = '0 0 10px rgba(255,255,255,0.5)';
+                div.style.color = 'white';
+                div.style.cursor = 'pointer';
+                div.style.userSelect = 'none';
+                div.style.pointerEvents = 'auto';
+                
+                div.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    const pos = item.position;
+                    document.getElementById('info-panel').innerHTML = `🧿 Символ: <span>${item.emoji}</span>  |  (X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)})`;
+                    if (navigator.vibrate) navigator.vibrate(10);
+                });
+                
+                const label = new CSS2DObject(div);
+                label.position.set(item.position.x, item.position.y, item.position.z);
+                scene.add(label);
+            });
+
+            // ========== 3D-ФИГУРЫ ==========
+            data.forEach(item => {
+                if (!SHAPE_EMOJIS.includes(item.emoji)) return;
+
+                let color;
+                switch (item.emoji) {
+                    case '🟧': color = 0xff8800; break;
+                    case '🟡': color = 0xffdd00; break;
+                    case '🟠': color = 0xff9900; break;
+                    case '🟥': color = 0xff3333; break;
+                    case '🟦': color = 0x3366ff; break;
+                    case '🔵': color = 0x0066cc; break;
+                    case '🔴': color = 0xcc3333; break;
+                    default: color = 0xffffff;
+                }
+
+                let geometry;
+                if (item.emoji === '🔵' || item.emoji === '🔴' || item.emoji === '🟡' || item.emoji === '🟠') {
+                    geometry = new THREE.SphereGeometry(0.5, 32);
+                } else {
+                    geometry = new THREE.BoxGeometry(1, 1, 1);
+                }
+                const material = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 });
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                mesh.position.set(item.position.x, item.position.y, item.position.z);
+                mesh.scale.set(item.width, item.width, item.width);
+                
+                scene.add(mesh);
+                
+                shapes.push({
+                    emoji: item.emoji,
+                    mesh: mesh,
+                    initialPos: new THREE.Vector3(item.position.x, item.position.y, item.position.z),
+                    initialWidth: item.width
+                });
+            });
+
+            updateAllLines();
+
+            if (dragControls) {
+                dragControls.dispose();
+            }
+            const dragableMeshes = shapes.map(s => s.mesh);
+            dragControls = new DragControls(dragableMeshes, camera, renderer.domElement);
+            
+            dragControls.addEventListener('dragstart', function(event) {
+                controls.enabled = false;
+                if (event.object.material) {
+                    if (Array.isArray(event.object.material))
+                        event.object.material.forEach(m => m.emissiveIntensity = 0.8);
+                    else
+                        event.object.material.emissiveIntensity = 0.8;
+                }
+            });
+
+            dragControls.addEventListener('drag', function() {
+                updateAllLines();
+            });
+
+            dragControls.addEventListener('dragend', function(event) {
+                controls.enabled = true;
+                if (event.object.material) {
+                    if (Array.isArray(event.object.material))
+                        event.object.material.forEach(m => m.emissiveIntensity = 0.3);
+                    else
+                        event.object.material.emissiveIntensity = 0.3;
+                }
+                updateAllLines();
+                saveToLocalStorage();
+                updateShapeSelect();
+                updateSliderFromSelected();
+            });
+
+            if (!raycaster) {
+                raycaster = new THREE.Raycaster();
+                mouse = new THREE.Vector2();
+
+                renderer.domElement.addEventListener('click', (event) => {
+                    const rect = renderer.domElement.getBoundingClientRect();
+                    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+                    raycaster.setFromCamera(mouse, camera);
+                    const meshes = shapes.map(s => s.mesh);
+                    const intersects = raycaster.intersectObjects(meshes);
+
+                    if (intersects.length > 0) {
+                        const hitMesh = intersects[0].object;
+                        const shape = shapes.find(s => s.mesh === hitMesh);
+                        if (shape) {
+                            const pos = hitMesh.position;
+                            document.getElementById('info-panel').innerHTML = `🧿 Фигура: <span>${shape.emoji}</span>  |  (X: ${pos.x.toFixed(2)}, Y: ${pos.y.toFixed(2)}, Z: ${pos.z.toFixed(2)})`;
+                            if (navigator.vibrate) navigator.vibrate(10);
+                        }
+                    }
+                });
+            }
+
+            updateShapeSelect();
+            updateSliderFromSelected();
+
+            document.getElementById('json-status').innerText = 'Загружено ✓';
+        }
+
+        // ========== ПОЛУЧЕНИЕ ПОЗИЦИИ ЭМОДЗИ ==========
+        function getEmojiPosition(emoji) {
+            const shape = shapes.find(s => s.emoji === emoji);
+            if (shape) return shape.mesh.position.clone();
+            const item = currentData.find(p => p.emoji === emoji);
+            if (item) return new THREE.Vector3(item.position.x, item.position.y, item.position.z);
+            return new THREE.Vector3(0.5, 0.5, 0.5);
+        }
+
+        // ========== ОБНОВЛЕНИЕ ВСЕХ ЛИНИЙ ==========
+        function updateAllLines() {
+            lines.forEach(line => scene.remove(line));
+            lines = [];
+
+            currentData.forEach(item => {
+                const connections = item.connect_color;
+                if (!connections || Object.keys(connections).length === 0) return;
+
+                const fromEmoji = item.emoji;
+                const fromPos = getEmojiPosition(fromEmoji);
+
+                Object.entries(connections).forEach(([colorName, emojiList]) => {
+                    let color;
+                    switch (colorName) {
+                        case 'yellow': color = '#FFD700'; break;
+                        case 'orange': color = '#FF9900'; break;
+                        case 'red': color = '#ff3333'; break;
+                        case 'blue': color = '#3366ff'; break;
+                        case 'green': color = '#33ff33'; break;
+                        case 'purple': color = '#aa44ff'; break;
+                        default: color = '#ffffff';
+                    }
+
+                    if (Array.isArray(emojiList)) {
+                        emojiList.forEach(toEmoji => {
+                            if (toEmoji === fromEmoji) return;
+                            const toPos = getEmojiPosition(toEmoji);
+                            const lineGroup = createDashedLine(
+                                fromPos, toPos, color,
+                                LINE_DEFAULTS.thickness,
+                                LINE_DEFAULTS.dashLength,
+                                LINE_DEFAULTS.gapLength
+                            );
+                            scene.add(lineGroup);
+                            lines.push(lineGroup);
+                        });
+                    }
+                });
+            });
+        }
+
+        // ========== СОЗДАНИЕ ПУНКТИРНОЙ ЛИНИИ ==========
+        function createDashedLine(startVec, endVec, color, thickness, dashLen, gapLen) {
+            const group = new THREE.Group();
+            const direction = new THREE.Vector3().subVectors(endVec, startVec);
+            const totalLength = direction.length();
+            if (totalLength < 0.001) return group;
+            direction.normalize();
+            
+            const sphereMaterial = new THREE.MeshStandardMaterial({ 
+                color: color, 
+                emissive: color, 
+                emissiveIntensity: 0.8,
+                roughness: 0.3
+            });
+            
+            const step = dashLen + gapLen;
+            const numSpheres = Math.floor(totalLength / step);
+            
+            for (let i = 0; i <= numSpheres; i++) {
+                const t = i * step;
+                if (t > totalLength) break;
+                const pos = new THREE.Vector3().copy(startVec).addScaledVector(direction, t);
+                const sphereGeom = new THREE.SphereGeometry(thickness * 1.2, 8);
+                const sphere = new THREE.Mesh(sphereGeom, sphereMaterial);
+                sphere.position.copy(pos);
+                group.add(sphere);
+            }
+            
+            const endGeom = new THREE.SphereGeometry(thickness * 1.8, 8);
+            const s1 = new THREE.Mesh(endGeom, sphereMaterial);
+            s1.position.copy(startVec);
+            group.add(s1);
+            const s2 = new THREE.Mesh(endGeom, sphereMaterial);
+            s2.position.copy(endVec);
+            group.add(s2);
+            
+            return group;
+        }
+
+        // ========== LOCALSTORAGE ==========
+        function saveToLocalStorage() {
+            const state = shapes.map(item => ({
+                emoji: item.emoji,
+                position: {
+                    x: item.mesh.position.x,
+                    y: item.mesh.position.y,
+                    z: item.mesh.position.z
+                },
+                width: item.mesh.scale.x,
+                connect_color: currentData.find(d => d.emoji === item.emoji)?.connect_color || {}
+            }));
+            localStorage.setItem('cubePreciseState', JSON.stringify(state));
+            document.getElementById('status').innerText = 'Сохранено ✓';
+            setTimeout(() => document.getElementById('status').innerText = 'Готово', 1500);
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('cubePreciseState');
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    state.forEach(s => {
+                        const shape = shapes.find(sh => sh.emoji === s.emoji);
+                        if (shape) {
+                            shape.mesh.position.set(s.position.x, s.position.y, s.position.z);
+                            shape.mesh.scale.set(s.width, s.width, s.width);
+                        }
+                    });
+                    updateAllLines();
+                    updateSliderFromSelected();
+                } catch (e) {}
+            }
+        }
+
+        // ========== UI ==========
+        function updateShapeSelect() {
+            const select = document.getElementById('shape-select');
+            select.innerHTML = '';
+            shapes.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s.emoji;
+                option.textContent = `${s.emoji} (${s.mesh.position.x.toFixed(2)}, ${s.mesh.position.y.toFixed(2)}, ${s.mesh.position.z.toFixed(2)})`;
+                select.appendChild(option);
+            });
+        }
+
+        function updateSliderFromSelected() {
+            const select = document.getElementById('shape-select');
+            const selectedEmoji = select.value;
+            const shape = shapes.find(s => s.emoji === selectedEmoji);
+            if (shape) {
+                const size = shape.mesh.scale.x;
+                document.getElementById('size-slider').value = size.toFixed(2);
+                document.getElementById('size-value').innerText = size.toFixed(2);
+            }
+        }
+
+        function setupUI() {
+            const select = document.getElementById('shape-select');
+            const slider = document.getElementById('size-slider');
+            const sizeSpan = document.getElementById('size-value');
+            const saveBtn = document.getElementById('save-btn');
+            const loadJsonBtn = document.getElementById('load-json');
+            const copyJsonBtn = document.getElementById('copy-json');
+            const resetJsonBtn = document.getElementById('reset-json');
+            const updateFieldBtn = document.getElementById('update-field');
+            const jsonInput = document.getElementById('json-input');
+            const jsonStatus = document.getElementById('json-status');
+            const toggleEditor = document.getElementById('toggle-editor');
+            const editorPanel = document.getElementById('editor-panel');
+            const toggleControls = document.getElementById('toggle-controls');
+            const controlsPanel = document.getElementById('controls');
+            const zoomIn = document.getElementById('zoom-in');
+            const zoomOut = document.getElementById('zoom-out');
+
+            toggleEditor.addEventListener('click', () => {
+                editorPanel.classList.toggle('hidden');
+            });
+
+            toggleControls.addEventListener('click', () => {
+                controlsPanel.classList.toggle('hidden');
+            });
+
+            // Кнопки зума
+            zoomIn.addEventListener('click', () => {
+                camera.zoom = Math.min(camera.zoom + 0.2, 3);
+                camera.updateProjectionMatrix();
+            });
+            zoomOut.addEventListener('click', () => {
+                camera.zoom = Math.max(camera.zoom - 0.2, 0.5);
+                camera.updateProjectionMatrix();
+            });
+
+            select.addEventListener('change', updateSliderFromSelected);
+
+            slider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                sizeSpan.innerText = val.toFixed(2);
+                const selectedEmoji = select.value;
+                const shape = shapes.find(s => s.emoji === selectedEmoji);
+                if (shape) {
+                    shape.mesh.scale.set(val, val, val);
+                }
+            });
+
+            slider.addEventListener('change', saveToLocalStorage);
+
+            saveBtn.addEventListener('click', saveToLocalStorage);
+
+            loadJsonBtn.addEventListener('click', () => {
+                try {
+                    const parsed = JSON.parse(jsonInput.value);
+                    if (!Array.isArray(parsed)) throw new Error('Должен быть массив');
+                    buildFromData(parsed);
+                    jsonStatus.innerText = 'Загружено ✓';
+                } catch (e) {
+                    jsonStatus.innerText = 'Ошибка: ' + e.message;
+                }
+            });
+
+            copyJsonBtn.addEventListener('click', () => {
+                const state = shapes.map(item => {
+                    const original = currentData.find(d => d.emoji === item.emoji);
+                    return {
+                        emoji: item.emoji,
+                        position: {
+                            x: item.mesh.position.x,
+                            y: item.mesh.position.y,
+                            z: item.mesh.position.z
+                        },
+                        width: item.mesh.scale.x,
+                        connect_color: original?.connect_color || {}
+                    };
+                });
+                currentData.forEach(item => {
+                    if (!SHAPE_EMOJIS.includes(item.emoji)) {
+                        state.push(item);
+                    }
+                });
+                state.sort((a, b) => {
+                    if (a.position.y !== b.position.y) return b.position.y - a.position.y;
+                    if (a.position.x !== b.position.x) return a.position.x - b.position.x;
+                    return a.position.z - b.position.z;
+                });
+                const jsonStr = JSON.stringify(state, null, 2);
+                navigator.clipboard.writeText(jsonStr).then(() => {
+                    jsonStatus.innerText = 'Скопировано!';
+                    setTimeout(() => jsonStatus.innerText = 'Готово', 1500);
+                });
+                console.log('Скопированный JSON:', jsonStr);
+            });
+
+            updateFieldBtn.addEventListener('click', () => {
+                const state = shapes.map(item => {
+                    const original = currentData.find(d => d.emoji === item.emoji);
+                    return {
+                        emoji: item.emoji,
+                        position: {
+                            x: item.mesh.position.x,
+                            y: item.mesh.position.y,
+                            z: item.mesh.position.z
+                        },
+                        width: item.mesh.scale.x,
+                        connect_color: original?.connect_color || {}
+                    };
+                });
+                currentData.forEach(item => {
+                    if (!SHAPE_EMOJIS.includes(item.emoji)) {
+                        state.push(item);
+                    }
+                });
+                state.sort((a, b) => {
+                    if (a.position.y !== b.position.y) return b.position.y - a.position.y;
+                    if (a.position.x !== b.position.x) return a.position.x - b.position.x;
+                    return a.position.z - b.position.z;
+                });
+                jsonInput.value = JSON.stringify(state, null, 2);
+                jsonStatus.innerText = 'Поле обновлено';
+                setTimeout(() => jsonStatus.innerText = 'Готово', 1500);
+            });
+
+            resetJsonBtn.addEventListener('click', () => {
+                if (currentData.length === 0) return;
+                shapes.forEach(item => {
+                    const orig = currentData.find(d => d.emoji === item.emoji);
+                    if (orig) {
+                        item.mesh.position.set(orig.position.x, orig.position.y, orig.position.z);
+                        item.mesh.scale.set(orig.width, orig.width, orig.width);
+                    }
+                });
+                updateAllLines();
+                saveToLocalStorage();
+                updateShapeSelect();
+                updateSliderFromSelected();
+                jsonStatus.innerText = 'Сброшено';
+                setTimeout(() => jsonStatus.innerText = 'Готово', 1500);
+            });
+        }
+
+        // ========== АНИМАЦИЯ ==========
+        function animateLinesAndCenter() {
+            const elapsedTime = performance.now() / 1000;
+            
+            lines.forEach(lineGroup => {
+                if (lineGroup) {
+                    lineGroup.children.forEach((sphere, i) => {
+                        const scale = 1 + Math.sin(elapsedTime * 5 + i) * 0.2;
+                        sphere.scale.set(scale, scale, scale);
+                    });
+                }
+            });
+
+            const centerShape = shapes.find(s => s.emoji === '🟡');
+            if (centerShape) {
+                const intensity = 0.3 + Math.sin(elapsedTime * 4) * 0.2;
+                if (centerShape.mesh.material) {
+                    if (Array.isArray(centerShape.mesh.material)) {
+                        centerShape.mesh.material.forEach(m => m.emissiveIntensity = intensity);
+                    } else {
+                        centerShape.mesh.material.emissiveIntensity = intensity;
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            animateLinesAndCenter();
+            controls.update();
+
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        // ========== ЗАПУСК ==========
+        function start() {
+            initScene();
+            const defaultJson = JSON.parse(document.getElementById('json-input').value);
+            buildFromData(defaultJson);
+            setupUI();
+            animate();
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        if (window.Telegram && Telegram.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+        }
+
+        start();
+    </script>
+</body>
+</html>
