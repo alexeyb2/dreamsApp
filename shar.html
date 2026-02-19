@@ -7,6 +7,7 @@
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a20; }
         
+        /* Верхние кнопки - крупные, удобные для тача */
         #top-panel {
             position: absolute;
             top: 20px;
@@ -19,29 +20,32 @@
             padding: 15px 25px;
             border-radius: 70px;
             border: 1px solid #444;
-            z-index: 30;
+            z-index: 40; /* выше всего */
             box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+            touch-action: manipulation;
         }
         .color-btn {
-            padding: 12px 24px;
-            border-radius: 50px;
+            padding: 15px 30px; /* увеличены для тача */
+            border-radius: 60px;
             border: 3px solid white;
             cursor: pointer;
             font-weight: bold;
-            font-size: 20px;
+            font-size: 24px;
             text-align: center;
-            min-width: 100px;
+            min-width: 130px;
             transition: transform 0.2s;
             box-shadow: 0 0 15px currentColor;
+            touch-action: manipulation;
+            user-select: none;
         }
         .color-btn:hover { transform: scale(1.05); }
         .color-btn span { 
             display: block; 
-            font-size: 18px; 
-            margin-top: 4px;
+            font-size: 20px; 
+            margin-top: 6px;
             background: rgba(0,0,0,0.5);
-            border-radius: 20px;
-            padding: 4px 0;
+            border-radius: 30px;
+            padding: 6px 0;
         }
         #btn-red { background: #ff0000; color: white; }
         #btn-blue { background: #0000ff; color: white; }
@@ -53,14 +57,14 @@
             bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(20,20,40,0.95);
+            background: rgba(20,20,40,0.98);
             backdrop-filter: blur(10px);
             color: white;
             padding: 25px 35px;
             border-radius: 70px;
             border: 2px solid #555;
             box-shadow: 0 15px 35px rgba(0,0,0,0.9);
-            z-index: 25;
+            z-index: 50; /* выше кнопок */
             display: none;
             flex-direction: column;
             align-items: center;
@@ -68,10 +72,11 @@
             min-width: 320px;
             border-top: 4px solid;
             border-bottom: 4px solid;
+            touch-action: manipulation;
         }
         .slider-panel.active { display: flex; }
         .panel-title {
-            font-size: 26px;
+            font-size: 28px;
             font-weight: bold;
             margin-bottom: 5px;
         }
@@ -79,57 +84,54 @@
         /* Специальный балансер для красного/синего */
         #balance-custom {
             width: 100%;
-            height: 80px; /* увеличено для мобильных */
+            height: 90px; /* ещё увеличено */
             display: flex;
-            border-radius: 50px;
+            border-radius: 60px;
             overflow: hidden;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
             position: relative;
             cursor: grab;
             user-select: none;
             touch-action: none;
-            margin: 10px 0;
+            margin: 15px 0;
         }
         #balance-red-part, #balance-blue-part {
             height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px; /* крупнее */
+            font-size: 32px;
             font-weight: bold;
             transition: width 0.05s linear;
         }
         #balance-red-part {
             background: #ff0000;
-            color: #0000ff; /* синий текст на красном */
+            color: #0000ff;
             text-shadow: 0 0 10px #ffffff;
         }
         #balance-blue-part {
             background: #0000ff;
-            color: #ff0000; /* красный текст на синем */
+            color: #ff0000;
             text-shadow: 0 0 10px #ffffff;
         }
         #balance-thumb {
             position: absolute;
             top: 50%;
             transform: translate(-50%, -50%);
-            width: 60px; /* крупнее */
-            height: 60px;
-            background: rgba(255,255,255,0.95);
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.98);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
+            font-size: 42px;
             box-shadow: 0 0 20px gold;
             cursor: grab;
             z-index: 3;
             user-select: none;
             touch-action: none;
             border: 3px solid #333;
-        }
-        #balance-thumb:active {
-            cursor: grabbing;
         }
 
         /* Обычный слайдер для жёлтого */
@@ -143,20 +145,20 @@
         .yellow-slider-container input {
             width: 100%;
             cursor: pointer;
-            height: 14px;
-            border-radius: 20px;
+            height: 20px;
+            border-radius: 30px;
             background: linear-gradient(to right, #ffff00, #ffffaa);
             accent-color: #ffff00;
         }
 
         @media (max-width: 700px) {
             #top-panel { gap: 8px; padding: 10px 15px; }
-            .color-btn { padding: 8px 12px; font-size: 16px; min-width: 70px; }
-            .color-btn span { font-size: 14px; }
-            .slider-panel { width: 90%; padding: 20px; min-width: auto; }
-            #balance-custom { height: 70px; }
-            #balance-red-part, #balance-blue-part { font-size: 24px; }
-            #balance-thumb { width: 50px; height: 50px; font-size: 30px; }
+            .color-btn { padding: 12px 16px; font-size: 20px; min-width: 90px; }
+            .color-btn span { font-size: 18px; }
+            .slider-panel { width: 92%; padding: 20px; min-width: auto; }
+            #balance-custom { height: 80px; }
+            #balance-red-part, #balance-blue-part { font-size: 26px; }
+            #balance-thumb { width: 60px; height: 60px; font-size: 36px; }
         }
 
         #instruction {
@@ -164,10 +166,10 @@
             bottom: 20px;
             left: 20px;
             color: rgba(255,255,255,0.4);
-            font-size: 13px;
+            font-size: 14px;
             background: rgba(0,0,0,0.3);
-            padding: 5px 12px;
-            border-radius: 30px;
+            padding: 8px 16px;
+            border-radius: 40px;
             pointer-events: none;
             z-index: 15;
         }
@@ -180,7 +182,7 @@
         <div class="color-btn" id="btn-yellow">🟡<span id="yellow-pct">50%</span></div>
     </div>
 
-    <!-- Панель баланса красный/синий (кастомный слайдер) -->
+    <!-- Панель баланса красный/синий -->
     <div id="balance-panel" class="slider-panel" style="border-top-color: #ff0000; border-bottom-color: #0000ff;">
         <div class="panel-title" style="color:#ff8888;">🔴🔵 БАЛАНС</div>
         <div id="balance-custom">
@@ -188,10 +190,10 @@
             <div id="balance-blue-part">50%</div>
             <div id="balance-thumb" draggable="false">☯</div>
         </div>
-        <div style="font-size: 14px; color: #ccc;">Перетаскивайте символ инь-ян</div>
+        <div style="font-size: 16px; color: #ccc;">Перетаскивайте символ</div>
     </div>
 
-    <!-- Панель жёлтого (обычный слайдер) -->
+    <!-- Панель жёлтого -->
     <div id="yellow-panel" class="slider-panel" style="border-top-color: #ffff00; border-bottom-color: #ffff00;">
         <div class="panel-title" style="color:#ffffaa;">🟡 ЖЁЛТАЯ</div>
         <div class="yellow-slider-container">
@@ -336,55 +338,39 @@
         scene.add(centerPoint);
 
         // --- Состояние ---
-        let redAngle = 0;      // угол поворота красной плоскости вокруг Y
-        let yellowAngle = 0;   // угол поворота жёлтой вокруг X
-
-        // Процент красного (0..100) определяется положением слайдера
+        let redAngle = 0;
+        let yellowAngle = 0;
         let redPercent = 50;
 
-        // Функция обновления процентов на кнопках и панелях
+        // Функция обновления процентов
         function updateUI() {
-            // Вычисляем проценты для отображения
             let bluePercent = 100 - redPercent;
-            
-            // Обновляем кнопки
             document.getElementById('red-pct').textContent = redPercent.toFixed(1) + '%';
             document.getElementById('blue-pct').textContent = bluePercent.toFixed(1) + '%';
             
-            // Жёлтый процент от yellowAngle
             let yellowPct = 50 + (yellowAngle / 80) * 50;
             if (yellowPct < 0) yellowPct = 0;
             if (yellowPct > 100) yellowPct = 100;
             document.getElementById('yellow-pct').textContent = yellowPct.toFixed(1) + '%';
 
-            // Обновляем балансер
             document.getElementById('balance-red-part').textContent = redPercent.toFixed(1) + '%';
             document.getElementById('balance-blue-part').textContent = bluePercent.toFixed(1) + '%';
-            
-            // Обновляем ширину частей
             document.getElementById('balance-red-part').style.width = redPercent + '%';
             document.getElementById('balance-blue-part').style.width = bluePercent + '%';
-            
-            // Позиционируем ползунок (значок) по центру между частями
-            const thumb = document.getElementById('balance-thumb');
-            thumb.style.left = redPercent + '%';
+            document.getElementById('balance-thumb').style.left = redPercent + '%';
         }
 
-        // Поворот плоскостей и обновление линий
+        // Поворот плоскостей
         function applyRotations() {
-            // Преобразуем redPercent в угол: при 0% -> -80°, 50% -> 0°, 100% -> +80°
             redAngle = (redPercent - 50) * 1.6;
             redPlane.rotation.y = THREE.MathUtils.degToRad(redAngle);
-            
             yellowPlane.rotation.x = THREE.MathUtils.degToRad(90 + yellowAngle);
 
-            // Нормали
             const nRed = new THREE.Vector3(Math.sin(redPlane.rotation.y), 0, Math.cos(redPlane.rotation.y));
             const nBlue = new THREE.Vector3(1, 0, 0);
             const yRot = yellowPlane.rotation.x;
             const nYellow = new THREE.Vector3(0, Math.cos(yRot), Math.sin(yRot));
 
-            // Линии пересечений
             const dirRY = new THREE.Vector3().crossVectors(nRed, nYellow).normalize();
             const dirBY = new THREE.Vector3().crossVectors(nBlue, nYellow).normalize();
             const len = 1.3;
@@ -403,7 +389,7 @@
             updateUI();
         }
 
-        // --- Интерфейс: открытие панелей ---
+        // --- Интерфейс: открытие панелей с поддержкой touch ---
         const btnRed = document.getElementById('btn-red');
         const btnBlue = document.getElementById('btn-blue');
         const btnYellow = document.getElementById('btn-yellow');
@@ -435,9 +421,15 @@
             }
         }
 
+        // Обработчики касаний и кликов
         btnRed.addEventListener('click', showBalancePanel);
+        btnRed.addEventListener('touchstart', (e) => { e.preventDefault(); showBalancePanel(); }, { passive: false });
+        
         btnBlue.addEventListener('click', showBalancePanel);
+        btnBlue.addEventListener('touchstart', (e) => { e.preventDefault(); showBalancePanel(); }, { passive: false });
+        
         btnYellow.addEventListener('click', showYellowPanel);
+        btnYellow.addEventListener('touchstart', (e) => { e.preventDefault(); showYellowPanel(); }, { passive: false });
 
         // --- Кастомный слайдер (перетаскивание) ---
         const balanceCustom = document.getElementById('balance-custom');
@@ -453,7 +445,6 @@
             if (!isDragging) return;
             e.preventDefault();
             
-            // Получаем координаты касания/мыши относительно контейнера
             const rect = balanceCustom.getBoundingClientRect();
             let clientX;
             if (e.touches) {
@@ -463,15 +454,9 @@
             }
             
             let x = clientX - rect.left;
-            // Ограничиваем в пределах контейнера
             x = Math.max(0, Math.min(rect.width, x));
-            
-            // Новый процент красного
             let newRedPercent = (x / rect.width) * 100;
-            
-            // Округляем до десятых
             redPercent = Math.round(newRedPercent * 10) / 10;
-            
             applyRotations();
         }
 
@@ -491,14 +476,14 @@
         window.addEventListener('touchend', handleDragEnd);
         window.addEventListener('touchcancel', handleDragEnd);
 
-        // Предотвращаем выделение текста при перетаскивании
         thumb.addEventListener('dragstart', (e) => e.preventDefault());
 
-        // --- Обычный слайдер для жёлтого ---
+        // --- Слайдер для жёлтого ---
         yellowSlider.addEventListener('input', (e) => {
             yellowAngle = parseInt(e.target.value);
             applyRotations();
         });
+        yellowSlider.addEventListener('touchmove', (e) => e.preventDefault()); // чтобы не скроллило страницу при движении
 
         // Инициализация
         updateUI();
