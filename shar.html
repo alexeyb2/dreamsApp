@@ -3,118 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Баланс синего и красного в сфере</title>
+    <title>Три плоскости: пересечения внутри шара (фон)</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: pan-x pan-y; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: pan-x pan-y; background: #0a0a20; }
         #info {
             position: absolute;
             top: 15px;
             left: 15px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             padding: 12px 20px;
             border-radius: 40px;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(8px);
             border: 1px solid #555;
-            z-index: 10;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            border-left: 4px solid #3366FF;
-            border-right: 4px solid #FF3333;
+            z-index: 15;
             font-size: 16px;
             pointer-events: none;
+            border-left: 4px solid #FF3333;
+            border-right: 4px solid #FFD700;
+            border-top: 2px solid #3366FF;
         }
         #balance {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             align-items: center;
             flex-wrap: wrap;
         }
-        .blue-text { color: #88aaff; font-weight: bold; }
-        .red-text { color: #ff8888; font-weight: bold; }
+        .red-text { color: #ff8888; font-weight: bold; text-shadow: 0 0 8px #FF3333; }
+        .blue-text { color: #88aaff; font-weight: bold; text-shadow: 0 0 8px #3366FF; }
+        .yellow-text { color: #ffd966; font-weight: bold; text-shadow: 0 0 8px #FFD700; }
+
+        /* Кнопка скрытия/показа панели */
+        #toggle-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(30, 30, 50, 0.9);
+            backdrop-filter: blur(10px);
+            border: 2px solid #aaa;
+            color: white;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 30;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.7);
+            transition: 0.3s;
+            user-select: none;
+        }
+        #toggle-panel:hover { background: rgba(60, 60, 90, 1); transform: scale(1.1); }
+        #toggle-panel.hidden-panel { background: rgba(200, 50, 50, 0.8); }
+
         #controls {
             position: absolute;
-            bottom: 30px;
+            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(10, 10, 20, 0.9);
-            backdrop-filter: blur(10px);
+            background: rgba(10, 10, 20, 0.95);
+            backdrop-filter: blur(15px);
             color: white;
-            padding: 15px 25px;
-            border-radius: 50px;
+            padding: 25px 35px;
+            border-radius: 70px;
             display: flex;
-            gap: 20px;
+            gap: 30px;
             align-items: center;
-            border: 1px solid #555;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.7);
-            z-index: 20;
+            border: 2px solid #555;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.9);
+            z-index: 25;
             font-size: 16px;
             flex-wrap: wrap;
             justify-content: center;
-            border-bottom: 2px solid #3366FF;
-            border-top: 2px solid #FF3333;
-            min-width: 280px;
+            border-bottom: 3px solid #FFD700;
+            border-top: 3px solid #FF3333;
+            border-left: 2px solid #3366FF;
+            border-right: 2px solid #3366FF;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: auto;
         }
-        #controls label {
+        #controls.hidden {
+            opacity: 0;
+            transform: translateX(-50%) scale(0.8);
+            pointer-events: none;
+        }
+
+        .slider-container {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 10px;
-            color: #ccc;
+            gap: 8px;
+            min-width: 160px;
         }
-        #controls input {
-            width: 260px;
+        .slider-container label {
+            font-size: 18px;
+            letter-spacing: 1px;
+        }
+        .slider-container input {
+            width: 100%;
             cursor: pointer;
-            accent-color: #ff6666;
-            height: 6px;
+            height: 8px;
             border-radius: 10px;
         }
-        #angle-value {
-            min-width: 60px;
-            text-align: center;
-            font-weight: bold;
+        #red-slider { accent-color: #ff4d4d; }
+        #blue-slider { accent-color: #4d4dff; }
+        #yellow-slider { accent-color: #ffd966; }
+        .angle-value {
+            font-size: 16px;
             color: #ffaa66;
+            font-weight: bold;
         }
-        @media (max-width: 700px) {
-            #controls { flex-direction: column; gap: 15px; padding: 20px; border-radius: 30px; width: 90%; }
-            #controls input { width: 100%; }
+
+        @media (max-width: 800px) {
+            #controls { 
+                flex-direction: column; 
+                gap: 20px; 
+                padding: 20px; 
+                border-radius: 40px; 
+                width: 85%; 
+                bottom: 80px;
+            }
+            .slider-container { width: 100%; }
             #info { font-size: 14px; padding: 10px 16px; }
+            #toggle-panel { width: 50px; height: 50px; font-size: 26px; bottom: 15px; right: 15px; }
         }
+
         #instruction {
             position: absolute;
-            bottom: 100px;
-            right: 15px;
-            color: rgba(255,255,255,0.4);
-            font-size: 12px;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 14px;
             background: rgba(0,0,0,0.3);
-            padding: 5px 12px;
-            border-radius: 20px;
+            padding: 6px 12px;
+            border-radius: 30px;
             pointer-events: none;
+            backdrop-filter: blur(4px);
+            z-index: 15;
         }
     </style>
 </head>
 <body>
     <div id="info">
         <div id="balance">
-            <span><span class="blue-text">●</span> Синий: <span id="blue-percent" class="blue-text">50.0%</span></span>
-            <span style="font-size: 18px;">⚖️</span>
-            <span><span class="red-text">●</span> Красный: <span id="red-percent" class="red-text">50.0%</span></span>
-        </div>
-        <div style="text-align: center; font-size: 13px; margin-top: 5px; color: #aaa;">
-            Угол между плоскостями: <span id="angle-display">90.0°</span>
+            <span class="red-text">🔴 <span id="red-angle-display">0°</span></span>
+            <span class="blue-text">🔵 <span id="blue-angle-display">0°</span></span>
+            <span class="yellow-text">🟡 <span id="yellow-angle-display">0°</span></span>
         </div>
     </div>
+
+    <div id="toggle-panel">⚙️</div>
 
     <div id="controls">
-        <label>
-            <span style="color:#88aaff;">◀ Синий перекос</span>
-            <input type="range" id="tilt" min="-80" max="80" value="0" step="1">
-            <span style="color:#ff8888;">Красный перекос ▶</span>
-        </label>
-        <div id="angle-value">0°</div>
+        <div class="slider-container">
+            <label class="red-text">🔴 КРАСНАЯ (Y)</label>
+            <input type="range" id="red-slider" min="-80" max="80" value="0" step="1">
+            <span class="angle-value" id="red-val">0°</span>
+        </div>
+        <div class="slider-container">
+            <label class="blue-text">🔵 СИНЯЯ (Y)</label>
+            <input type="range" id="blue-slider" min="-80" max="80" value="0" step="1">
+            <span class="angle-value" id="blue-val">0°</span>
+        </div>
+        <div class="slider-container">
+            <label class="yellow-text">🟡 ЖЁЛТАЯ (X)</label>
+            <input type="range" id="yellow-slider" min="-80" max="80" value="0" step="1">
+            <span class="angle-value" id="yellow-val">0°</span>
+        </div>
     </div>
 
-    <div id="instruction">👆 Вращайте / масштабируйте</div>
+    <div id="instruction">👆 Вращайте · Три плоскости пересекаются</div>
 
-    <!-- Подключаем Three.js и OrbitControls -->
     <script type="importmap">
         {
             "imports": {
@@ -128,13 +189,12 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- Инициализация сцены, камеры, рендерера ---
+        // --- Инициализация ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a20); // космический тёмно-синий
+        scene.background = new THREE.Color(0x0a0a20);
 
-        // Камера: ставим подальше, чтобы сфера точно влезала на любом экране
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(4, 2, 5);
+        camera.position.set(3.5, 2.5, 5);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -143,42 +203,36 @@
         renderer.setClearColor(0x0a0a20);
         document.body.appendChild(renderer.domElement);
 
-        // --- Управление (поддержка touch) ---
+        // --- Управление ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.autoRotate = false;
         controls.enableZoom = true;
         controls.rotateSpeed = 0.8;
-        controls.maxDistance = 10;
-        controls.minDistance = 2.5;
+        controls.maxDistance = 9;
+        controls.minDistance = 2.2;
         controls.target.set(0, 0, 0);
 
-        // --- Освещение ---
-        // Мягкий рассеянный свет
+        // --- Освещение (яркое, чтобы плоскости сияли) ---
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
-
-        // Основной направленный свет
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        dirLight.position.set(1, 2, 1);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+        dirLight.position.set(2, 3, 2);
         scene.add(dirLight);
-
-        // Подсветка сзади и снизу
-        const backLight = new THREE.PointLight(0x4466aa, 0.6);
-        backLight.position.set(-2, 1, -2);
+        const backLight = new THREE.PointLight(0x4466aa, 1.5);
+        backLight.position.set(-2, 1, -3);
         scene.add(backLight);
+        const fillLight = new THREE.PointLight(0xaa88ff, 1.2);
+        fillLight.position.set(1, -1, 2);
+        scene.add(fillLight);
 
-        const bottomLight = new THREE.PointLight(0xaa66aa, 0.5);
-        bottomLight.position.set(0, -2, 1);
-        scene.add(bottomLight);
-
-        // --- Звёзды (просто для атмосферы) ---
+        // --- Звёзды (фон) ---
         const starsGeometry = new THREE.BufferGeometry();
-        const starsCount = 600;
+        const starsCount = 800;
         const starPositions = new Float32Array(starsCount * 3);
         for (let i = 0; i < starsCount; i++) {
-            const r = 6 + Math.random() * 12;
+            const r = 8 + Math.random() * 15;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             starPositions[i*3] = r * Math.sin(phi) * Math.cos(theta);
@@ -186,188 +240,234 @@
             starPositions[i*3+2] = r * Math.cos(phi);
         }
         starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-        const starsMaterial = new THREE.PointsMaterial({ color: 0xaaccff, size: 0.08, transparent: true, opacity: 0.5 });
+        const starsMaterial = new THREE.PointsMaterial({ color: 0xaaccff, size: 0.1, transparent: true, opacity: 0.6 });
         const stars = new THREE.Points(starsGeometry, starsMaterial);
         scene.add(stars);
 
-        // --- Сфера (прозрачная, с каркасом) ---
         const sphereRadius = 1;
-        const sphereGeom = new THREE.SphereGeometry(sphereRadius, 48, 24); // меньше полигонов для мобильных, но достаточно
-        
-        // Полупрозрачная оболочка
+
+        // --- Сфера (ПОЧТИ НЕВИДИМАЯ, только тонкий каркас) ---
+        const sphereGeom = new THREE.SphereGeometry(sphereRadius, 48, 24);
+        // Убираем заливку полностью, оставляем только каркас
         const sphereMat = new THREE.MeshPhongMaterial({
             color: 0x3a6ea5,
-            emissive: 0x112233,
             transparent: true,
-            opacity: 0.15,
+            opacity: 0.0, // абсолютно прозрачная заливка
             side: THREE.DoubleSide,
             wireframe: false
         });
         const sphere = new THREE.Mesh(sphereGeom, sphereMat);
         scene.add(sphere);
 
-        // Каркас из линий (чтобы сфера была видна)
+        // Каркас сферы (очень тонкие линии)
         const edges = new THREE.EdgesGeometry(sphereGeom);
-        const lineMat = new THREE.LineBasicMaterial({ color: 0x88ccff, opacity: 0.3, transparent: true });
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x88aaff, opacity: 0.25, transparent: true });
         const wireframeSphere = new THREE.LineSegments(edges, lineMat);
         sphere.add(wireframeSphere);
 
-        // Дополнительные окружности (экватор и меридианы) для красоты
-        const circleMat = new THREE.LineBasicMaterial({ color: 0x44aaff, opacity: 0.2, transparent: true });
-        const circlePoints = [];
-        const segments = 64;
-        for (let i = 0; i <= segments; i++) {
-            const angle = (i / segments) * Math.PI * 2;
-            circlePoints.push(new THREE.Vector3(Math.cos(angle) * sphereRadius, 0, Math.sin(angle) * sphereRadius));
-        }
-        const equatorGeom = new THREE.BufferGeometry().setFromPoints(circlePoints);
-        const equator = new THREE.LineLoop(equatorGeom, circleMat);
-        sphere.add(equator);
+        // --- ТРИ ПЛОСКОСТИ (очень яркие, плотные) ---
+        const planeGeom = new THREE.PlaneGeometry(2.4, 2.4);
 
-        const meridianPoints1 = [];
-        const meridianPoints2 = [];
-        for (let i = 0; i <= segments; i++) {
-            const angle = (i / segments) * Math.PI * 2;
-            meridianPoints1.push(new THREE.Vector3(0, Math.cos(angle) * sphereRadius, Math.sin(angle) * sphereRadius));
-            meridianPoints2.push(new THREE.Vector3(Math.cos(angle) * sphereRadius, Math.sin(angle) * sphereRadius, 0));
-        }
-        const meridianGeom1 = new THREE.BufferGeometry().setFromPoints(meridianPoints1);
-        const meridianGeom2 = new THREE.BufferGeometry().setFromPoints(meridianPoints2);
-        const meridian1 = new THREE.LineLoop(meridianGeom1, circleMat);
-        const meridian2 = new THREE.LineLoop(meridianGeom2, circleMat);
-        sphere.add(meridian1);
-        sphere.add(meridian2);
+        // 1. КРАСНАЯ — вертикальная, вращается вокруг Y
+        const redMat = new THREE.MeshPhongMaterial({
+            color: 0xFF3333,
+            emissive: 0x661111,
+            transparent: true,
+            opacity: 0.9,        // почти непрозрачная
+            side: THREE.DoubleSide,
+            emissiveIntensity: 1.2
+        });
+        const redPlane = new THREE.Mesh(planeGeom, redMat);
+        redPlane.position.set(0, 0, 0);
+        redPlane.rotation.y = 0; // нормаль Z
+        scene.add(redPlane);
 
-        // --- Плоскости (исправленная ориентация) ---
-        // Плоскость чуть больше диаметра, чтобы выходила за сферу (нагляднее)
-        const planeGeom = new THREE.PlaneGeometry(2.2, 2.2);
-
-        // Синяя плоскость (нормаль по X) -> лежит в плоскости YZ (вертикальная)
+        // 2. СИНЯЯ — вертикальная, вращается вокруг Y (изначально нормаль X)
         const blueMat = new THREE.MeshPhongMaterial({
             color: 0x3366FF,
-            emissive: 0x112244,
+            emissive: 0x113366,
             transparent: true,
-            opacity: 0.45, // чуть плотнее для видимости
+            opacity: 0.9,
             side: THREE.DoubleSide,
-            emissiveIntensity: 0.5
+            emissiveIntensity: 1.2
         });
         const bluePlane = new THREE.Mesh(planeGeom, blueMat);
         bluePlane.position.set(0, 0, 0);
         bluePlane.rotation.y = Math.PI / 2; // нормаль X
         scene.add(bluePlane);
 
-        // Красная плоскость (нормаль по Z) -> лежит в плоскости XY (вертикальная)
-        const redMat = new THREE.MeshPhongMaterial({
-            color: 0xFF3333,
-            emissive: 0x331111,
+        // 3. ЖЁЛТАЯ — горизонтальная, вращается вокруг X
+        const yellowMat = new THREE.MeshPhongMaterial({
+            color: 0xFFD700,
+            emissive: 0x664411,
             transparent: true,
-            opacity: 0.45,
+            opacity: 0.9,
             side: THREE.DoubleSide,
-            emissiveIntensity: 0.5
+            emissiveIntensity: 1.2
         });
-        const redPlane = new THREE.Mesh(planeGeom, redMat);
-        redPlane.position.set(0, 0, 0);
-        redPlane.rotation.y = 0; // нормаль Z (исходная ориентация)
-        scene.add(redPlane);
+        const yellowPlane = new THREE.Mesh(planeGeom, yellowMat);
+        yellowPlane.position.set(0, 0, 0);
+        yellowPlane.rotation.x = Math.PI / 2; // горизонталь (нормаль Y)
+        scene.add(yellowPlane);
 
-        // Добавляем контуры плоскостей (чтобы лучше видеть их границы)
-        function addEdges(planeMesh, colorHex) {
-            const edges = new THREE.EdgesGeometry(planeMesh.geometry);
-            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: colorHex }));
-            planeMesh.add(line);
+        // Яркие контуры плоскостей
+        function addGlowingEdges(mesh, color) {
+            const edges = new THREE.EdgesGeometry(mesh.geometry);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: color, linewidth: 2 }));
+            mesh.add(line);
         }
-        addEdges(bluePlane, 0x88aaff);
-        addEdges(redPlane, 0xff8888);
+        addGlowingEdges(redPlane, 0xff8888);
+        addGlowingEdges(bluePlane, 0x88aaff);
+        addGlowingEdges(yellowPlane, 0xffd966);
 
-        // Линия пересечения плоскостей (ось Y) с подсветкой
-        const axisPoints = [
+        // Окружности пересечения со сферой (привязаны к плоскостям) — делаем их ярче
+        function createIntersectionCircle(radius, color) {
+            const points = [];
+            for (let i = 0; i <= 80; i++) {
+                const angle = (i / 80) * Math.PI * 2;
+                points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, 0));
+            }
+            const geom = new THREE.BufferGeometry().setFromPoints(points);
+            const mat = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+            return new THREE.LineLoop(geom, mat);
+        }
+
+        const redCircle = createIntersectionCircle(sphereRadius, 0xff8888);
+        redPlane.add(redCircle);
+        const blueCircle = createIntersectionCircle(sphereRadius, 0x88aaff);
+        bluePlane.add(blueCircle);
+        const yellowCircle = createIntersectionCircle(sphereRadius, 0xffd966);
+        yellowPlane.add(yellowCircle);
+
+        // --- ЛИНИИ ПЕРЕСЕЧЕНИЙ (сделаем их толще и ярче) ---
+
+        // Красная ∩ Синяя = ось Y (фиолетовая)
+        const axisYGeom = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(0, -1.3, 0),
             new THREE.Vector3(0, 1.3, 0)
-        ];
-        const axisGeom = new THREE.BufferGeometry().setFromPoints(axisPoints);
-        const axisLine = new THREE.Line(axisGeom, new THREE.LineBasicMaterial({ color: 0xffdd99 }));
-        scene.add(axisLine);
+        ]);
+        const axisYLine = new THREE.Line(axisYGeom, new THREE.LineBasicMaterial({ color: 0xcc88ff, linewidth: 3 }));
+        scene.add(axisYLine);
+        // Добавим свечение
+        const glowYGeom = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, -1.3, 0),
+            new THREE.Vector3(0, 1.3, 0)
+        ]);
+        const glowYLine = new THREE.Line(glowYGeom, new THREE.LineBasicMaterial({ color: 0xffaaff, opacity: 0.5, transparent: true }));
+        scene.add(glowYLine);
 
-        // Маленькие сферы на концах оси
-        const sphereCapGeom = new THREE.SphereGeometry(0.04, 8, 8);
-        const capMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0x442200 });
-        const capTop = new THREE.Mesh(sphereCapGeom, capMat);
-        capTop.position.set(0, 1.3, 0);
-        scene.add(capTop);
-        const capBottom = new THREE.Mesh(sphereCapGeom, capMat);
-        capBottom.position.set(0, -1.3, 0);
-        scene.add(capBottom);
+        // Красная ∩ Жёлтая и Синяя ∩ Жёлтая (динамические линии)
+        const lineRYGeom = new THREE.BufferGeometry();
+        const lineBYGeom = new THREE.BufferGeometry();
+        
+        const lineRY = new THREE.Line(lineRYGeom, new THREE.LineBasicMaterial({ color: 0xffaa66, linewidth: 3 })); // оранжевая
+        const lineBY = new THREE.Line(lineBYGeom, new THREE.LineBasicMaterial({ color: 0xaaff66, linewidth: 3 })); // салатовая
+        
+        // Добавим свечение для них (полупрозрачные копии)
+        const glowRYGeom = new THREE.BufferGeometry();
+        const glowBYGeom = new THREE.BufferGeometry();
+        const glowRY = new THREE.Line(glowRYGeom, new THREE.LineBasicMaterial({ color: 0xffaa66, opacity: 0.4, transparent: true }));
+        const glowBY = new THREE.Line(glowBYGeom, new THREE.LineBasicMaterial({ color: 0xaaff66, opacity: 0.4, transparent: true }));
+        
+        scene.add(lineRY);
+        scene.add(lineBY);
+        scene.add(glowRY);
+        scene.add(glowBY);
 
-        // --- Частицы внутри сферы (подчёркивают объём) ---
-        const particleCount = 300;
-        const particleGeom = new THREE.BufferGeometry();
-        const particlePositions = new Float32Array(particleCount * 3);
-        for (let i = 0; i < particleCount; i++) {
-            const r = sphereRadius * Math.cbrt(Math.random()); // равномерно по объёму
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            particlePositions[i*3] = r * Math.sin(phi) * Math.cos(theta);
-            particlePositions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
-            particlePositions[i*3+2] = r * Math.cos(phi);
-        }
-        particleGeom.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-        const particleMat = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.02, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending });
-        const particles = new THREE.Points(particleGeom, particleMat);
-        scene.add(particles);
+        // Точка пересечения всех трёх в центре
+        const centerSphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.06, 10, 10),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xaaaaaa })
+        );
+        scene.add(centerSphere);
 
-        // --- Интерфейс и логика процентов ---
-        const tiltInput = document.getElementById('tilt');
-        const angleValue = document.getElementById('angle-value');
-        const bluePercentSpan = document.getElementById('blue-percent');
-        const redPercentSpan = document.getElementById('red-percent');
-        const angleDisplaySpan = document.getElementById('angle-display');
+        // --- Ползунки и обновление ---
+        const redSlider = document.getElementById('red-slider');
+        const blueSlider = document.getElementById('blue-slider');
+        const yellowSlider = document.getElementById('yellow-slider');
+        const redVal = document.getElementById('red-val');
+        const blueVal = document.getElementById('blue-val');
+        const yellowVal = document.getElementById('yellow-val');
+        const redAngleDisplay = document.getElementById('red-angle-display');
+        const blueAngleDisplay = document.getElementById('blue-angle-display');
+        const yellowAngleDisplay = document.getElementById('yellow-angle-display');
 
-        function updateTilt() {
-            const alphaDeg = parseFloat(tiltInput.value);
-            angleValue.textContent = alphaDeg + '°';
-
-            // Поворачиваем красную плоскость вокруг Y (в радианах)
-            const alphaRad = THREE.MathUtils.degToRad(alphaDeg);
-            redPlane.rotation.y = alphaRad; // при 0 нормаль Z, при 90 нормаль X
-
-            // Вычисляем угол между нормалями:
-            // Синяя нормаль = (1,0,0)
-            // Красная нормаль = (sin(alphaRad), 0, cos(alphaRad))
-            const dot = Math.sin(alphaRad); // скалярное произведение
-            // Угол между нормалями в градусах (от 0 до 180)
-            let angleBetween = Math.acos(Math.min(1, Math.max(-1, dot))) * 180 / Math.PI;
+        function updateFromSliders() {
+            const redDeg = parseFloat(redSlider.value);
+            const blueDeg = parseFloat(blueSlider.value);
+            const yellowDeg = parseFloat(yellowSlider.value);
             
-            // Проценты: синий занимает долю, пропорциональную углу
-            let bluePct = (angleBetween / 180) * 100;
-            // Коррекция границ
-            if (bluePct < 0) bluePct = 0;
-            if (bluePct > 100) bluePct = 100;
-            const redPct = 100 - bluePct;
+            redVal.textContent = redDeg + '°';
+            blueVal.textContent = blueDeg + '°';
+            yellowVal.textContent = yellowDeg + '°';
+            redAngleDisplay.textContent = redDeg + '°';
+            blueAngleDisplay.textContent = blueDeg + '°';
+            yellowAngleDisplay.textContent = yellowDeg + '°';
 
-            bluePercentSpan.textContent = bluePct.toFixed(1) + '%';
-            redPercentSpan.textContent = redPct.toFixed(1) + '%';
-            angleDisplaySpan.textContent = angleBetween.toFixed(1) + '°';
+            // Повороты
+            redPlane.rotation.y = THREE.MathUtils.degToRad(redDeg);
+            bluePlane.rotation.y = THREE.MathUtils.degToRad(90 + blueDeg);
+            yellowPlane.rotation.x = THREE.MathUtils.degToRad(90 + yellowDeg);
+
+            // Вычисляем нормали
+            const nRed = new THREE.Vector3(Math.sin(redPlane.rotation.y), 0, Math.cos(redPlane.rotation.y));
+            const nBlue = new THREE.Vector3(Math.cos(bluePlane.rotation.y), 0, -Math.sin(bluePlane.rotation.y));
+            const yRot = yellowPlane.rotation.x;
+            const nYellow = new THREE.Vector3(0, Math.cos(yRot), Math.sin(yRot));
+
+            // Линии пересечений
+            const dirRY = new THREE.Vector3().crossVectors(nRed, nYellow).normalize();
+            const dirBY = new THREE.Vector3().crossVectors(nBlue, nYellow).normalize();
+
+            const len = 1.3;
+            const pointsRY = [
+                new THREE.Vector3(0,0,0).clone().addScaledVector(dirRY, len),
+                new THREE.Vector3(0,0,0).clone().addScaledVector(dirRY, -len)
+            ];
+            const pointsBY = [
+                new THREE.Vector3(0,0,0).clone().addScaledVector(dirBY, len),
+                new THREE.Vector3(0,0,0).clone().addScaledVector(dirBY, -len)
+            ];
+
+            lineRY.geometry.dispose();
+            lineRY.geometry = new THREE.BufferGeometry().setFromPoints(pointsRY);
+            lineBY.geometry.dispose();
+            lineBY.geometry = new THREE.BufferGeometry().setFromPoints(pointsBY);
+
+            glowRY.geometry.dispose();
+            glowRY.geometry = new THREE.BufferGeometry().setFromPoints(pointsRY);
+            glowBY.geometry.dispose();
+            glowBY.geometry = new THREE.BufferGeometry().setFromPoints(pointsBY);
         }
 
-        tiltInput.addEventListener('input', updateTilt);
-        updateTilt(); // инициализация
+        redSlider.addEventListener('input', updateFromSliders);
+        blueSlider.addEventListener('input', updateFromSliders);
+        yellowSlider.addEventListener('input', updateFromSliders);
+        updateFromSliders();
+
+        // --- Кнопка скрытия/показа панели ---
+        const toggleBtn = document.getElementById('toggle-panel');
+        const controlsPanel = document.getElementById('controls');
+        toggleBtn.addEventListener('click', () => {
+            controlsPanel.classList.toggle('hidden');
+            toggleBtn.classList.toggle('hidden-panel');
+            toggleBtn.textContent = controlsPanel.classList.contains('hidden') ? '⚙️' : '✕';
+        });
 
         // --- Анимация ---
         function animate() {
             requestAnimationFrame(animate);
-            controls.update(); // для плавного damping
-            stars.rotation.y += 0.0002; // медленно вращаем звёзды
+            controls.update();
+            stars.rotation.y += 0.0002;
             renderer.render(scene, camera);
         }
         animate();
 
-        // --- Обработка изменения размера окна ---
-        window.addEventListener('resize', onWindowResize);
-        function onWindowResize() {
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        });
     </script>
 </body>
 </html>
