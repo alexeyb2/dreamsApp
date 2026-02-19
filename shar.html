@@ -1,1 +1,403 @@
-.
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Баланс синего и красного в сфере</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+            border: 1px solid #444;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border-left: 4px solid #3366FF;
+            border-right: 4px solid #FF3333;
+        }
+        #balance {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .blue-text { color: #6699ff; }
+        .red-text { color: #ff6666; }
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 30, 0.85);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 50px;
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            border: 1px solid #555;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            z-index: 20;
+            font-size: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            border-bottom: 2px solid #3366FF;
+            border-top: 2px solid #FF3333;
+        }
+        #controls label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #controls input {
+            width: 300px;
+            cursor: pointer;
+            accent-color: #ff3366;
+        }
+        #angle-value {
+            min-width: 60px;
+            text-align: center;
+            font-weight: bold;
+            color: #ffaa66;
+        }
+        @media (max-width: 700px) {
+            #controls { flex-direction: column; gap: 15px; width: 90%; padding: 20px; border-radius: 30px; }
+            #controls input { width: 100%; }
+            #info { font-size: 14px; padding: 10px 18px; }
+        }
+        #instruction {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 20px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div style="display: flex; gap: 30px; align-items: center;">
+            <span><span class="blue-text">●</span> Синий: <span id="blue-percent" class="blue-text">50.0%</span></span>
+            <span style="font-size: 20px;">⚖️</span>
+            <span><span class="red-text">●</span> Красный: <span id="red-percent" class="red-text">50.0%</span></span>
+        </div>
+        <div style="text-align: center; font-size: 14px; margin-top: 5px; color: #ccc;">
+            Угол между плоскостями: <span id="angle-display">90.0°</span>
+        </div>
+    </div>
+
+    <div id="controls">
+        <label>
+            <span style="color:#6699ff;">◀ Синий перекос</span>
+            <input type="range" id="tilt" min="-80" max="80" value="0" step="1">
+            <span style="color:#ff6666;">Красный перекос ▶</span>
+        </label>
+        <div id="angle-value">0°</div>
+    </div>
+
+    <div id="instruction">🖱️ Мышь: вращение / колесо: зум</div>
+
+    <!-- Подключаем Three.js и OrbitControls -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Инициализация сцены, камеры, рендерера ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a20); // темно-синий, космический
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(3, 2, 4);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = false; // не нужны тени
+        renderer.setClearColor(0x0a0a20);
+        document.body.appendChild(renderer.domElement);
+
+        // --- Орбитальное управление ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = false;
+        controls.enableZoom = true;
+        controls.rotateSpeed = 0.8;
+        controls.maxDistance = 8;
+        controls.minDistance = 1.5;
+
+        // --- Освещение ---
+        // Мягкий рассеянный свет
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+
+        // Основной направленный свет
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(1, 2, 1);
+        scene.add(dirLight);
+
+        // Заполняющий свет сзади
+        const backLight = new THREE.PointLight(0x4466aa, 0.5);
+        backLight.position.set(-2, 1, -2);
+        scene.add(backLight);
+
+        // Подсветка снизу
+        const bottomLight = new THREE.PointLight(0xaa66aa, 0.4);
+        bottomLight.position.set(0, -2, 1);
+        scene.add(bottomLight);
+
+        // Добавим звезды (частицы) для атмосферы
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 800;
+        const starPositions = new Float32Array(starsCount * 3);
+        for (let i = 0; i < starsCount; i++) {
+            const r = 5 + Math.random() * 10;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            starPositions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+            starPositions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+            starPositions[i*3+2] = r * Math.cos(phi);
+        }
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starsMaterial = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.05, transparent: true, opacity: 0.6 });
+        const stars = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(stars);
+
+        // --- Создание объектов сцены ---
+
+        // 1. Прозрачная сфера с тонким каркасом (линии)
+        const sphereRadius = 1;
+        const sphereGeom = new THREE.SphereGeometry(sphereRadius, 64, 32);
+        
+        // Полупрозрачная поверхность с легким свечением
+        const sphereMat = new THREE.MeshPhongMaterial({
+            color: 0x3a6ea5,
+            emissive: 0x112233,
+            transparent: true,
+            opacity: 0.15,
+            side: THREE.DoubleSide,
+            wireframe: false
+        });
+        const sphere = new THREE.Mesh(sphereGeom, sphereMat);
+        scene.add(sphere);
+
+        // Добавим красивый каркас из линий (параллели и меридианы)
+        const edges = new THREE.EdgesGeometry(sphereGeom);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x88ccff, opacity: 0.3, transparent: true });
+        const wireframeSphere = new THREE.LineSegments(edges, lineMat);
+        sphere.add(wireframeSphere); // привяжем к сфере, чтобы вращалась вместе (хотя сфера не вращается)
+
+        // Дополнительные тонкие линии экватора и меридианов для красоты (можно сделать через Torus, но проще так)
+        // Для лучшего эффекта добавим светящиеся обручи
+        const hoopMaterial = new THREE.LineBasicMaterial({ color: 0x44aaff, opacity: 0.2, transparent: true });
+        const hoopGeom = new THREE.TorusGeometry(sphereRadius, 0.005, 16, 100, Math.PI);
+        const hoopX = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(hoopGeom.vertices), hoopMaterial);
+        hoopX.rotation.x = Math.PI/2;
+        sphere.add(hoopX);
+        const hoopY = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(hoopGeom.vertices), hoopMaterial);
+        hoopY.rotation.z = Math.PI/2;
+        sphere.add(hoopY);
+        const hoopZ = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(hoopGeom.vertices), hoopMaterial);
+        sphere.add(hoopZ);
+
+        // 2. Плоскости
+        // Синяя плоскость (фиксированная) - вертикальная, нормаль по X (плоскость YZ)
+        const planeGeom = new THREE.PlaneGeometry(2.2, 2.2); // чуть больше диаметра, чтобы края выходили за сферу
+        
+        // Синяя
+        const blueMat = new THREE.MeshPhongMaterial({
+            color: 0x3366FF,
+            emissive: 0x112244,
+            transparent: true,
+            opacity: 0.35,
+            side: THREE.DoubleSide,
+            emissiveIntensity: 0.6
+        });
+        const bluePlane = new THREE.Mesh(planeGeom, blueMat);
+        bluePlane.position.set(0, 0, 0);
+        // нормаль по X -> поворот: изначально PlaneGeometry смотрит по Z, повернем вокруг Y на 90°
+        bluePlane.rotation.y = Math.PI / 2; // теперь нормаль по X
+        scene.add(bluePlane);
+
+        // Красная плоскость (будет вращаться)
+        const redMat = new THREE.MeshPhongMaterial({
+            color: 0xFF3333,
+            emissive: 0x331111,
+            transparent: true,
+            opacity: 0.35,
+            side: THREE.DoubleSide,
+            emissiveIntensity: 0.6
+        });
+        const redPlane = new THREE.Mesh(planeGeom, redMat);
+        redPlane.position.set(0, 0, 0);
+        // начальное положение: нормаль по Z (перпендикулярно синей)
+        redPlane.rotation.x = 0; // оставляем как есть, PlaneGeometry по умолчанию смотрит по Z
+        // но нам нужно, чтобы плоскость была вертикальной (ось Y вверх). По умолчанию PlaneGeometry лежит в XY, т.е. горизонтально? Нет, стандартная плоскость в three.js лежит в плоскости XY (нормаль Z). Чтобы она была вертикальна (ось Y вверх), нужно повернуть вокруг X на -90°? Давайте проверим: 
+        // Нам нужно, чтобы плоскость была вертикальной, т.е. ее нормаль должна лежать в горизонтальной плоскости. Исходно PlaneGeometry имеет нормаль (0,0,1), лежит в XY (горизонтально). Чтобы сделать ее вертикальной (нормаль горизонтальна), нужно повернуть вокруг X на 90°, тогда нормаль станет (0,1,0) - это вертикальная нормаль, не то. Нам нужна вертикальная плоскость, например, чтобы нормаль была по X или Z, а ось Y была вверх. Для этого достаточно повернуть плоскость вокруг Y на нужный угол. Исходная (нормаль Z) лежит в XY (горизонтально). Чтобы она стала вертикальной (например, нормаль Z, но при этом плоскость вертикальна), нужно чтобы ее локальные оси: Y осталась Y, а X стала Z? Давайте просто: мы хотим плоскость, которая проходит через ось Y. Для этого её нормаль должна быть горизонтальна. Исходная плоскость с нормалью Z лежит горизонтально (пол). Чтобы получить вертикальную плоскость с нормалью Z, достаточно повернуть её вокруг X на 90°? Тогда нормаль станет Y? Нет. Проще создать плоскость с нужной ориентацией через вращение. Стандартный подход: для вертикальной плоскости с нормалью (nx, 0, nz) можно использовать PlaneGeometry и повернуть вокруг Y, но при этом нужно убедиться, что ось Y остаётся вертикалью. Если мы повернём стандартную плоскость (нормаль Z) вокруг оси Y, то её нормаль будет (sin(angle), 0, cos(angle)) - это горизонтальная нормаль, но сама плоскость при этом будет наклонена? Она будет вертикальна, так как вращение вокруг Y не меняет вертикальную ориентацию: локальная ось Y остаётся Y, а локальная X поворачивается в горизонтальной плоскости. Таким образом, стандартная плоскость (нормаль Z) после поворота вокруг Y на угол φ имеет нормаль (sin φ, 0, cos φ) и остаётся вертикальной (ось Y вертикальна). Идеально! Значит, для красной плоскости мы будем менять rotation.y.
+        redPlane.rotation.y = 0; // при 0 нормаль (0,0,1) - это вертикальная плоскость (YZ? нет, при нормали Z плоскость содержит оси X и Y? Подождите: нормаль (0,0,1) означает, что плоскость ориентирована так, что её локальные оси: X и Y лежат в плоскости, а нормаль по Z. Если мы не меняли ничего, то плоскость лежит в XY (горизонтально). Чтобы она стала вертикальной с нормалью Z, нужно чтобы локальный X и Y лежали в вертикальной плоскости. Но в three.js стандартная плоскость лежит в XY, поэтому её нормаль Z. Если мы повернём её вокруг Y на 0, она останется горизонтальной. Нам нужно поднять её, чтобы она стала вертикальной. Правильно: чтобы получить вертикальную плоскость с нормалью Z, нужно повернуть стандартную плоскость вокруг X на 90°, тогда её нормаль станет Y? Это запутанно.
+
+        // Давайте поступим проще: создадим плоскость, которая изначально вертикальна и имеет нормаль по Z. Для этого можно повернуть стандартную плоскость вокруг X на -90° (или 90°). Проверим: стандартная плоскость (нормаль Z) лежит в XY. Поворот вокруг X на -90°: ось Y перейдёт в Z, ось Z в -Y. Тогда нормаль из (0,0,1) станет (0,-1,0)? Не то. Поворот вокруг X на 90°: Y-> -Z, Z-> Y, нормаль станет (0,1,0) - вертикальная нормаль. Не подходит.
+
+        // Лучше использовать BufferGeometry и задать вершины вручную, но это долго. Ещё проще: использовать цилиндр или что-то, но нам нужны плоскости.
+
+        // Вспомним, что в Three.js PlaneGeometry по умолчанию создает плоскость в плоскости XY (лицом по +Z). Чтобы получить плоскость, которая стоит вертикально и содержит ось Y, мы можем повернуть её вокруг X на 90°, тогда она будет лежать в YZ (нормаль X). Или повернуть вокруг Y на 90°, затем вокруг X на 90°? Давайте сделаем так: 
+        // - Для синей (нормаль X): повернуть вокруг Y на 90° (уже сделано) -> получаем плоскость в YZ (нормаль X), всё верно.
+        // - Для красной (нормаль Z): хотим плоскость в XY? Но XY горизонтальна. Нам нужна вертикальная плоскость с нормалью Z, то есть плоскость, которая содержит ось Y и перпендикулярна оси X? Нормаль Z означает, что плоскость параллельна осям X и Y, то есть горизонтальна. Это не то. Мы хотим, чтобы плоскости пересекались по вертикальной оси. Для этого нормали должны быть горизонтальны. Синяя имеет нормаль X, значит её плоскость содержит оси Y и Z (вертикальная). Красная должна иметь нормаль Z, значит её плоскость должна содержать оси Y и X, но это горизонтальная плоскость! Ошибка. Чтобы обе плоскости были вертикальны и пересекались по вертикальной оси, их нормали должны лежать в горизонтальной плоскости и быть перпендикулярны. Например, нормаль X и нормаль Z дают плоскости: X-нормаль -> плоскость YZ (вертикальная, содержит Y и Z); Z-нормаль -> плоскость XY (горизонтальная, содержит X и Y). Они не обе вертикальны. Для двух вертикальных плоскостей, пересекающихся по вертикали, нормали должны быть, например, (1,0,0) и (0,1,0)? Но (0,1,0) - вертикальная нормаль, тогда плоскость будет горизонтальна. Так не получится.
+
+        // Правильно: вертикальная плоскость – это плоскость, содержащая вертикальную ось Y. Её нормаль перпендикулярна Y, т.е. лежит в горизонтальной плоскости (xz). Таким образом, нормаль может быть (cos φ, 0, sin φ). Две такие плоскости с нормалями (1,0,0) и (0,0,1) являются вертикальными и перпендикулярными. Проверим: нормаль (1,0,0) -> плоскость содержит оси Y и Z (вертикальная). нормаль (0,0,1) -> плоскость содержит оси X и Y (вертикальная). Отлично! Значит, нам нужна плоскость с нормалью (0,0,1), которая содержит оси X и Y. Как получить такую плоскость из PlaneGeometry? Стандартная PlaneGeometry имеет нормаль (0,0,1) и содержит оси X и Y. Но она лежит в плоскости XY, т.е. горизонтально, если оси X и Y направлены стандартно. Однако в трёхмерном пространстве оси X и Y определяют горизонтальную плоскость. Чтобы эта плоскость стала вертикальной, нужно поменять назначение осей: нам нужно, чтобы в локальных координатах плоскость содержала оси, соответствующие мировым X и Y. Если мы оставим стандартную плоскость как есть, она будет горизонтальна. Но мы можем повернуть её так, чтобы её локальная ось X совпала с мировой X, а локальная ось Y совпала с мировой Y, но при этом нормаль осталась (0,0,1) в мировых? Это невозможно без вращения, потому что нормаль определяет ориентацию. Если мы повернём плоскость так, чтобы её нормаль стала (0,0,1) в мировых, то её локальные оси X и Y будут лежать в плоскости, перпендикулярной (0,0,1), то есть в плоскости XY. Но чтобы эта плоскость была вертикальна, нужно чтобы её локальные оси X и Y лежали в вертикальной плоскости. Для нормали (0,0,1) плоскость всегда горизонтальна (содержит X и Y). Поэтому для вертикальной плоскости с нормалью (0,0,1) не существует, так как нормаль Z определяет горизонталь.
+
+        // Итак, чтобы получить вертикальную плоскость, нормаль должна лежать в горизонтальной плоскости. Например, нормаль (1,0,0) или (0,0,1) не подходит для вертикальной, т.к. (0,0,1) – это вертикальная нормаль? Нет, в трёхмерном пространстве оси: X вправо, Y вверх, Z на нас. Тогда горизонтальная плоскость – это XZ (Y=const). Вертикальная плоскость – содержит Y и какую-то горизонтальную ось. Её нормаль перпендикулярна Y, т.е. лежит в XZ. Нормаль (1,0,0) направлена по X, она горизонтальна – значит, плоскость с такой нормалью содержит Y и Z – вертикальна. Нормаль (0,0,1) направлена по Z, тоже горизонтальна – плоскость содержит Y и X – вертикальна. Так что обе нормали горизонтальны. А стандартная PlaneGeometry имеет нормаль (0,0,1) и лежит в плоскости XY. Но в стандартной ориентации осей: X вправо, Y вверх, Z на нас. Тогда плоскость XY – это горизонтальная плоскость (Y вертикаль, X горизонталь – но вместе они образуют вертикальную плоскость? Нет, XY – это плоскость, где Z=0, она вертикальна, если смотреть вдоль Z? Давайте представим: ось Y направлена вверх, ось X вправо. Тогда плоскость XY – это плоскость, содержащая эти две оси. Она вертикальна, потому что содержит вертикальную ось Y. Пример: стена, идущая слева направо и вверх. Это вертикальная плоскость. Действительно, плоскость XY вертикальна (как стена). А плоскость XZ горизонтальна (пол). Плоскость YZ тоже вертикальна (стена спереди-назад). Так что стандартная PlaneGeometry с нормалью Z (0,0,1) создаёт плоскость, лежащую в XY, т.е. вертикальную плоскость, если смотреть вдоль Z. Всё верно! Раньшe я перепутал: в трёхмерной графике часто считают Y вверх, X вправо, Z вглубь. Тогда плоскость XY – это вертикальная плоскость (как доска). Плоскость XZ – горизонтальная. Плоскость YZ – тоже вертикальная. Таким образом, для вертикальной плоскости с нормалью X (1,0,0) нужно, чтобы плоскость лежала в YZ. Для этого надо повернуть стандартную плоскость (XY) вокруг Y на 90°? Если повернуть вокруг Y, то из XY получится ZY? Поворот вокруг Y на 90°: X переходит в Z, Z в -X. Исходная плоскость XY после поворота станет плоскостью ZY (нормаль -X). Нормаль станет (-1,0,0). Чтобы получить нормаль (1,0,0), нужно повернуть на -90°. Итак:
+        // - Синяя плоскость: нормаль (1,0,0) -> лежит в YZ. Поворачиваем стандартную плоскость вокруг Y на -90°.
+        // - Красная плоскость: нормаль (0,0,1) -> лежит в XY. Это стандартная ориентация, поворот не нужен (или поворот 0).
+        // Но нам нужно, чтобы красная плоскость была повернута относительно синей. Изначально они перпендикулярны при таких ориентациях. Отлично!
+
+        // Переопределим:
+        // Синяя: rotation.y = -Math.PI/2 (нормаль X)
+        bluePlane.rotation.y = -Math.PI/2;
+        // Красная: rotation.y = 0 (нормаль Z) - это вертикальная плоскость XY.
+        // Проверим визуально: синяя должна быть видна как вертикальная плоскость, перпендикулярная красной.
+
+        // Но для красоты добавим границы плоскостей (линии)
+        function addPlaneEdges(planeMesh, color) {
+            const edges = new THREE.EdgesGeometry(planeMesh.geometry);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: color, linewidth: 1 })); // linewidth не везде поддерживается
+            // line.material.linewidth = 2; // может не работать в WebGL
+            planeMesh.add(line);
+        }
+        addPlaneEdges(bluePlane, 0x88aaff);
+        addPlaneEdges(redPlane, 0xff8888);
+
+        // Добавим линию пересечения плоскостей (ось Y) - толстая светящаяся
+        const axisLineGeom = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, -1.2, 0),
+            new THREE.Vector3(0, 1.2, 0)
+        ]);
+        const axisLineMat = new THREE.LineBasicMaterial({ color: 0xffdd99, opacity: 0.8, transparent: true });
+        const axisLine = new THREE.Line(axisLineGeom, axisLineMat);
+        scene.add(axisLine);
+
+        // Добавим точки на концах оси для красоты
+        const pointGeom = new THREE.SphereGeometry(0.03, 8, 8);
+        const pointMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0x442200 });
+        const pointTop = new THREE.Mesh(pointGeom, pointMat);
+        pointTop.position.set(0, 1.2, 0);
+        scene.add(pointTop);
+        const pointBottom = new THREE.Mesh(pointGeom, pointMat);
+        pointBottom.position.set(0, -1.2, 0);
+        scene.add(pointBottom);
+
+        // --- Частицы внутри сферы для подчёркивания объёма ---
+        const particleCount = 400;
+        const particleGeom = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        const particleColors = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            // равномерно в шаре
+            const r = sphereRadius * Math.cbrt(Math.random()); // для равномерной плотности
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            particlePositions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+            particlePositions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+            particlePositions[i*3+2] = r * Math.cos(phi);
+            
+            // цвет в зависимости от положения: смесь синего и красного
+            const mix = (particlePositions[i*3] + 1) / 2; // простой градиент по X
+            particleColors[i*3] = mix; // r
+            particleColors[i*3+1] = 0.2;
+            particleColors[i*3+2] = 1 - mix; // b
+        }
+        particleGeom.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        particleGeom.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+        const particleMat = new THREE.PointsMaterial({ size: 0.02, vertexColors: true, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+        const particles = new THREE.Points(particleGeom, particleMat);
+        scene.add(particles);
+
+        // --- Элементы интерфейса ---
+        const tiltInput = document.getElementById('tilt');
+        const angleValue = document.getElementById('angle-value');
+        const bluePercentSpan = document.getElementById('blue-percent');
+        const redPercentSpan = document.getElementById('red-percent');
+        const angleDisplaySpan = document.getElementById('angle-display');
+
+        // Функция обновления угла и процентов
+        function updateTilt() {
+            const alphaDeg = parseFloat(tiltInput.value); // угол отклонения от перпендикуляра (в градусах)
+            angleValue.textContent = alphaDeg + '°';
+            
+            // Поворачиваем красную плоскость вокруг Y. При alpha=0 она перпендикулярна синей (нормаль Z)
+            // При alpha>0 вращаем в сторону оси X (к синей), при alpha<0 в сторону -X.
+            redPlane.rotation.y = THREE.MathUtils.degToRad(alphaDeg); // при alpha=0 нормаль Z, при alpha=90 нормаль X (совпадение), при alpha=-90 нормаль -X (тоже совпадение)
+            
+            // Вычисляем угол между нормалями (синяя нормаль X, красная нормаль после поворота)
+            const alphaRad = THREE.MathUtils.degToRad(alphaDeg);
+            // Нормаль красной: (sin(alpha), 0, cos(alpha))
+            const dot = Math.sin(alphaRad); // (1,0,0) dot (sin,0,cos) = sin
+            // Угол между нормалями (0..180)
+            let angleBetween = Math.acos(dot) * 180 / Math.PI; // в градусах
+            // Из-за погрешности может быть NaN при dot за пределами [-1,1]
+            if (isNaN(angleBetween)) angleBetween = (dot > 0) ? 0 : 180;
+            
+            // Проценты: синий = (angleBetween/180)*100, красный = 100-синий
+            let bluePct = (angleBetween / 180) * 100;
+            // Корректировка для крайних случаев
+            if (bluePct < 0) bluePct = 0;
+            if (bluePct > 100) bluePct = 100;
+            const redPct = 100 - bluePct;
+            
+            bluePercentSpan.textContent = bluePct.toFixed(1) + '%';
+            redPercentSpan.textContent = redPct.toFixed(1) + '%';
+            angleDisplaySpan.textContent = angleBetween.toFixed(1) + '°';
+        }
+
+        tiltInput.addEventListener('input', updateTilt);
+        updateTilt(); // начальное обновление
+
+        // --- Анимация ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Немного вращаем звезды для эффекта
+            stars.rotation.y += 0.0001;
+            stars.rotation.x += 0.00005;
+
+            controls.update(); // для плавности damping
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // --- Обработка ресайза ---
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Небольшой хак: чтобы линии плоскостей были видны четко, включим рендеринг ребер после всего
+        // Но уже добавили EdgesGeometry как дочерние элементы.
+    </script>
+</body>
+</html>
