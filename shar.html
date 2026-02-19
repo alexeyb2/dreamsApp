@@ -3,47 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Три чистых плоскости внутри шара</title>
+    <title>Три плоскости чистых цветов внутри шара</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a20; }
-        /* Панель выбора цвета вверху */
-        #color-panel {
+        
+        /* Верхняя панель с кнопками (как в удачной версии) */
+        #top-panel {
             position: absolute;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 20px;
-            background: rgba(0,0,0,0.6);
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(8px);
-            padding: 12px 24px;
-            border-radius: 60px;
+            padding: 15px 25px;
+            border-radius: 70px;
             border: 1px solid #444;
             z-index: 30;
             box-shadow: 0 4px 20px rgba(0,0,0,0.7);
         }
         .color-btn {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
+            padding: 12px 24px;
+            border-radius: 50px;
             border: 3px solid white;
             cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             font-weight: bold;
             font-size: 20px;
+            text-align: center;
+            min-width: 100px;
+            transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 0 15px currentColor;
-            transition: transform 0.2s;
         }
-        .color-btn:hover { transform: scale(1.1); }
-        .color-btn span { font-size: 14px; margin-top: 2px; }
+        .color-btn:hover { transform: scale(1.05); }
+        .color-btn span { 
+            display: block; 
+            font-size: 16px; 
+            margin-top: 4px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            padding: 2px 0;
+        }
         #btn-red { background: #ff0000; color: white; text-shadow: 0 0 5px black; }
         #btn-blue { background: #0000ff; color: white; text-shadow: 0 0 5px black; }
         #btn-yellow { background: #ffff00; color: black; text-shadow: 0 0 5px white; }
 
-        /* Панель слайдера (появляется при клике) */
+        /* Панель с ползунком (появляется при клике) */
         #slider-panel {
             position: absolute;
             bottom: 40px;
@@ -60,38 +65,40 @@
             display: none;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
-            min-width: 280px;
+            gap: 15px;
+            min-width: 300px;
             border-top: 4px solid;
             border-bottom: 4px solid;
         }
         #slider-panel.active { display: flex; }
-        #slider-panel .slider-container {
+        #current-color-title {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .slider-container {
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 8px;
         }
-        #slider-panel input {
+        .slider-container input {
             width: 100%;
             cursor: pointer;
-            height: 10px;
-            border-radius: 10px;
+            height: 12px;
+            border-radius: 20px;
         }
-        #slider-panel .angle-value {
-            font-size: 18px;
-            font-weight: bold;
-        }
-        #current-color-title {
+        #slider-value {
             font-size: 22px;
             font-weight: bold;
-            margin-bottom: 5px;
+            color: #ffaa66;
         }
 
         @media (max-width: 700px) {
-            .color-btn { width: 60px; height: 60px; font-size: 18px; }
-            #color-panel { gap: 10px; padding: 10px 15px; }
+            #top-panel { gap: 8px; padding: 10px 15px; }
+            .color-btn { padding: 8px 12px; font-size: 16px; min-width: 70px; }
+            .color-btn span { font-size: 14px; }
             #slider-panel { width: 85%; padding: 20px; }
         }
 
@@ -110,19 +117,19 @@
     </style>
 </head>
 <body>
-    <!-- Верхние цветные кнопки -->
-    <div id="color-panel">
-        <div class="color-btn" id="btn-red" data-color="red">🔴<span id="red-angle">0°</span></div>
-        <div class="color-btn" id="btn-blue" data-color="blue">🔵<span id="blue-angle">0°</span></div>
-        <div class="color-btn" id="btn-yellow" data-color="yellow">🟡<span id="yellow-angle">0°</span></div>
+    <!-- Верхние кнопки (цветные, с процентами) -->
+    <div id="top-panel">
+        <div class="color-btn" id="btn-red">🔴 КРАСНЫЙ<span id="red-angle">0°</span></div>
+        <div class="color-btn" id="btn-blue">🔵 СИНИЙ<span id="blue-angle">0°</span></div>
+        <div class="color-btn" id="btn-yellow">🟡 ЖЁЛТЫЙ<span id="yellow-angle">0°</span></div>
     </div>
 
-    <!-- Панель с ползунком (изначально скрыта) -->
+    <!-- Панель с ползунком (скрыта по умолчанию) -->
     <div id="slider-panel">
         <div id="current-color-title"></div>
         <div class="slider-container">
             <input type="range" id="color-slider" min="-80" max="80" value="0" step="1">
-            <span class="angle-value" id="slider-value">0°</span>
+            <span id="slider-value">0°</span>
         </div>
     </div>
 
@@ -141,7 +148,7 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- Инициализация ---
+        // --- Инициализация сцены ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a0a20);
 
@@ -166,7 +173,7 @@
         controls.minDistance = 2.2;
         controls.target.set(0, 0, 0);
 
-        // --- Освещение (очень яркое) ---
+        // --- Освещение (яркое) ---
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
@@ -181,16 +188,16 @@
 
         const sphereRadius = 1;
 
-        // --- Шар: только тонкий каркас (белый) ---
+        // --- Шар: только тонкий белый каркас ---
         const sphereGeom = new THREE.SphereGeometry(sphereRadius, 48, 24);
         const edges = new THREE.EdgesGeometry(sphereGeom);
         const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3, transparent: true });
         const wireframeSphere = new THREE.LineSegments(edges, lineMat);
-        scene.add(wireframeSphere); // добавляем прямо в сцену, без лишней обертки
+        scene.add(wireframeSphere);
 
         // --- ТРИ ПЛОСКОСТИ (чистые цвета, почти непрозрачные) ---
 
-        // Красная (🔴) #ff0000 — вертикальная, вращается вокруг Y
+        // Красная (#ff0000) — вертикальная, вращается вокруг Y
         const redMat = new THREE.MeshPhongMaterial({
             color: 0xff0000,
             emissive: 0x440000,
@@ -203,7 +210,7 @@
         redPlane.rotation.y = 0; // нормаль Z
         scene.add(redPlane);
 
-        // Синяя (🔵) #0000ff — вертикальная, вращается вокруг Y
+        // Синяя (#0000ff) — вертикальная, вращается вокруг Y
         const blueMat = new THREE.MeshPhongMaterial({
             color: 0x0000ff,
             emissive: 0x000044,
@@ -216,7 +223,7 @@
         bluePlane.rotation.y = Math.PI / 2; // нормаль X
         scene.add(bluePlane);
 
-        // Жёлтая (🟡) #ffff00 — горизонтальная, вращается вокруг X
+        // Жёлтая (#ffff00) — горизонтальная, вращается вокруг X
         const yellowMat = new THREE.MeshPhongMaterial({
             color: 0xffff00,
             emissive: 0x444400,
@@ -229,7 +236,7 @@
         yellowPlane.rotation.x = Math.PI / 2; // нормаль Y
         scene.add(yellowPlane);
 
-        // Контуры плоскостей (белые, чтобы выделить границы)
+        // Белые контуры плоскостей (чтобы лучше видеть границы)
         function addEdges(mesh, color) {
             const edges = new THREE.EdgesGeometry(mesh.geometry);
             const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: color }));
@@ -249,7 +256,7 @@
         const axisYLine = new THREE.Line(axisYGeom, new THREE.LineBasicMaterial({ color: 0xff88ff, linewidth: 3 }));
         scene.add(axisYLine);
 
-        // Красная ∩ Жёлтая и Синяя ∩ Жёлтая (динамические)
+        // Красная ∩ Жёлтая и Синяя ∩ Жёлтая (динамические линии)
         const lineRYGeom = new THREE.BufferGeometry();
         const lineBYGeom = new THREE.BufferGeometry();
         const lineRY = new THREE.Line(lineRYGeom, new THREE.LineBasicMaterial({ color: 0xffaa66, linewidth: 3 })); // оранжевая
@@ -257,43 +264,45 @@
         scene.add(lineRY);
         scene.add(lineBY);
 
-        // Точка пересечения всех трёх
+        // Точка пересечения всех трёх плоскостей
         const centerPoint = new THREE.Mesh(
             new THREE.SphereGeometry(0.07, 10, 10),
             new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xaaaaaa })
         );
         scene.add(centerPoint);
 
-        // --- Состояние углов и управление ---
+        // --- Состояние углов ---
         const angles = {
             red: 0,
             blue: 0,
             yellow: 0
         };
 
-        // Обновление отображения углов на кнопках
+        // Обновление текста на кнопках
         function updateAngleDisplays() {
             document.getElementById('red-angle').textContent = angles.red + '°';
             document.getElementById('blue-angle').textContent = angles.blue + '°';
             document.getElementById('yellow-angle').textContent = angles.yellow + '°';
         }
 
-        // Поворот плоскостей в соответствии с углами
+        // Поворот плоскостей и обновление динамических линий
         function applyRotations() {
             redPlane.rotation.y = THREE.MathUtils.degToRad(angles.red);
             bluePlane.rotation.y = THREE.MathUtils.degToRad(90 + angles.blue);
             yellowPlane.rotation.x = THREE.MathUtils.degToRad(90 + angles.yellow);
 
-            // Обновление динамических линий пересечений
+            // Нормали после поворота
             const nRed = new THREE.Vector3(Math.sin(redPlane.rotation.y), 0, Math.cos(redPlane.rotation.y));
             const nBlue = new THREE.Vector3(Math.cos(bluePlane.rotation.y), 0, -Math.sin(bluePlane.rotation.y));
             const yRot = yellowPlane.rotation.x;
             const nYellow = new THREE.Vector3(0, Math.cos(yRot), Math.sin(yRot));
 
+            // Направления линий пересечений
             const dirRY = new THREE.Vector3().crossVectors(nRed, nYellow).normalize();
             const dirBY = new THREE.Vector3().crossVectors(nBlue, nYellow).normalize();
             const len = 1.3;
-            
+
+            // Обновляем геометрию линий
             lineRY.geometry.dispose();
             lineRY.geometry = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0,0,0).clone().addScaledVector(dirRY, len),
@@ -306,20 +315,18 @@
             ]);
         }
 
-        // --- Логика интерфейса ---
-        const colorButtons = {
-            red: document.getElementById('btn-red'),
-            blue: document.getElementById('btn-blue'),
-            yellow: document.getElementById('btn-yellow')
-        };
+        // --- Интерфейс: работа с кнопками и ползунком ---
+        const btnRed = document.getElementById('btn-red');
+        const btnBlue = document.getElementById('btn-blue');
+        const btnYellow = document.getElementById('btn-yellow');
         const sliderPanel = document.getElementById('slider-panel');
         const currentColorTitle = document.getElementById('current-color-title');
         const colorSlider = document.getElementById('color-slider');
         const sliderValue = document.getElementById('slider-value');
 
-        let activeColor = null;
+        let activeColor = null; // 'red', 'blue', 'yellow' или null
 
-        // Функция открытия панели для цвета
+        // Функция открытия панели для конкретного цвета
         function openPanel(color) {
             activeColor = color;
             // Устанавливаем заголовок и цвет ползунка
@@ -333,19 +340,43 @@
                 currentColorTitle.innerHTML = '🟡 ЖЁЛТАЯ';
                 colorSlider.style.accentColor = '#ffff00';
             }
-            // Устанавливаем значение ползунка
+            // Устанавливаем значение ползунка из текущего угла
             colorSlider.value = angles[color];
             sliderValue.textContent = angles[color] + '°';
             // Показываем панель
             sliderPanel.classList.add('active');
         }
 
-        // Обработчики кликов на цветные кнопки
-        colorButtons.red.addEventListener('click', () => openPanel('red'));
-        colorButtons.blue.addEventListener('click', () => openPanel('blue'));
-        colorButtons.yellow.addEventListener('click', () => openPanel('yellow'));
+        // Закрытие панели
+        function closePanel() {
+            sliderPanel.classList.remove('active');
+            activeColor = null;
+        }
 
-        // Обработчик изменения ползунка
+        // Обработчики кликов на кнопки
+        btnRed.addEventListener('click', () => {
+            if (activeColor === 'red') {
+                closePanel();
+            } else {
+                openPanel('red');
+            }
+        });
+        btnBlue.addEventListener('click', () => {
+            if (activeColor === 'blue') {
+                closePanel();
+            } else {
+                openPanel('blue');
+            }
+        });
+        btnYellow.addEventListener('click', () => {
+            if (activeColor === 'yellow') {
+                closePanel();
+            } else {
+                openPanel('yellow');
+            }
+        });
+
+        // Обработка ползунка
         colorSlider.addEventListener('input', (e) => {
             if (!activeColor) return;
             const val = parseInt(e.target.value);
@@ -354,42 +385,6 @@
             updateAngleDisplays();
             applyRotations();
         });
-
-        // Если кликнуть вне панели (например, на сцену), можно скрывать панель, но пока оставим так,
-        // чтобы можно было закрыть повторным кликом на тот же цвет (логично)
-        // Добавим возможность закрыть панель повторным кликом на активный цвет
-        function setupCloseOnSameColor() {
-            const btnRed = colorButtons.red;
-            const btnBlue = colorButtons.blue;
-            const btnYellow = colorButtons.yellow;
-
-            btnRed.addEventListener('click', (e) => {
-                if (activeColor === 'red') {
-                    sliderPanel.classList.remove('active');
-                    activeColor = null;
-                } else {
-                    openPanel('red');
-                }
-            });
-            btnBlue.addEventListener('click', (e) => {
-                if (activeColor === 'blue') {
-                    sliderPanel.classList.remove('active');
-                    activeColor = null;
-                } else {
-                    openPanel('blue');
-                }
-            });
-            btnYellow.addEventListener('click', (e) => {
-                if (activeColor === 'yellow') {
-                    sliderPanel.classList.remove('active');
-                    activeColor = null;
-                } else {
-                    openPanel('yellow');
-                }
-            });
-        }
-        // Переназначаем обработчики
-        setupCloseOnSameColor();
 
         // Инициализация
         updateAngleDisplays();
