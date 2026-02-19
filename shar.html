@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Баланс красного и синего (инь-ян слайдер)</title>
+    <title>Баланс: независимые панели красного и синего</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a20; }
         
@@ -76,50 +76,32 @@
             margin-bottom: 5px;
         }
 
-        /* Специальный балансер для красного/синего */
-        #balance-custom {
+        /* Кастомные слайдеры для красного и синего */
+        .custom-slider {
             width: 100%;
             height: 60px;
-            display: flex;
             border-radius: 40px;
             overflow: hidden;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
             position: relative;
             cursor: grab;
             user-select: none;
-            touch-action: none; /* чтобы предотвратить прокрутку при касании */
+            touch-action: none;
         }
-        #balance-red-part, #balance-blue-part {
+        .custom-slider .fill {
             height: 100%;
+            width: 50%;
+            background: currentColor;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
             font-weight: bold;
+            color: white;
+            text-shadow: 0 0 5px #000;
             transition: width 0.05s linear;
         }
-        #balance-red-part {
-            background: #ff0000;
-            color: #0000ff; /* синий текст на красном */
-            text-shadow: 0 0 5px #ffffff;
-        }
-        #balance-blue-part {
-            background: #0000ff;
-            color: #ff0000; /* красный текст на синем */
-            text-shadow: 0 0 5px #ffffff;
-        }
-        #balance-divider {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: white;
-            box-shadow: 0 0 10px cyan;
-            transform: translateX(-50%);
-            pointer-events: none;
-            z-index: 2;
-        }
-        #balance-thumb {
+        .custom-slider .thumb {
             position: absolute;
             top: 50%;
             transform: translate(-50%, -50%);
@@ -138,9 +120,7 @@
             touch-action: none;
             border: 2px solid #333;
         }
-        #balance-thumb:active {
-            cursor: grabbing;
-        }
+        .custom-slider .thumb:active { cursor: grabbing; }
 
         /* Обычный слайдер для жёлтого */
         .yellow-slider-container {
@@ -164,7 +144,7 @@
             .color-btn { padding: 8px 12px; font-size: 16px; min-width: 70px; }
             .color-btn span { font-size: 16px; }
             .slider-panel { width: 85%; padding: 20px; }
-            #balance-thumb { width: 40px; height: 40px; font-size: 24px; }
+            .custom-slider .thumb { width: 40px; height: 40px; font-size: 24px; }
         }
 
         #instruction {
@@ -188,15 +168,22 @@
         <div class="color-btn" id="btn-yellow">🟡<span id="yellow-pct">50%</span></div>
     </div>
 
-    <!-- Панель баланса красный/синий (кастомный слайдер) -->
-    <div id="balance-panel" class="slider-panel" style="border-top-color: #ff0000; border-bottom-color: #0000ff;">
-        <div class="panel-title" style="color:#ff8888;">🔴🔵 БАЛАНС</div>
-        <div id="balance-custom">
-            <div id="balance-red-part">50%</div>
-            <div id="balance-blue-part">50%</div>
-            <div id="balance-thumb" draggable="false">☯</div>
+    <!-- Панель красного (кастомный слайдер) -->
+    <div id="red-panel" class="slider-panel" style="border-top-color: #ff0000; border-bottom-color: #ff0000;">
+        <div class="panel-title" style="color:#ff8888;">🔴 КРАСНЫЙ</div>
+        <div id="red-custom" class="custom-slider" style="background: #330000;">
+            <div id="red-fill" class="fill" style="background: #ff0000; width:50%;">50%</div>
+            <div id="red-thumb" class="thumb" draggable="false">🔴</div>
         </div>
-        <div style="font-size: 14px; color: #ccc;">Перетаскивайте символ инь-ян</div>
+    </div>
+
+    <!-- Панель синего (кастомный слайдер) -->
+    <div id="blue-panel" class="slider-panel" style="border-top-color: #0000ff; border-bottom-color: #0000ff;">
+        <div class="panel-title" style="color:#8888ff;">🔵 СИНИЙ</div>
+        <div id="blue-custom" class="custom-slider" style="background: #000033;">
+            <div id="blue-fill" class="fill" style="background: #0000ff; width:50%;">50%</div>
+            <div id="blue-thumb" class="thumb" draggable="false">🔵</div>
+        </div>
     </div>
 
     <!-- Панель жёлтого (обычный слайдер) -->
@@ -344,17 +331,13 @@
         scene.add(centerPoint);
 
         // --- Состояние ---
-        let redAngle = 0;      // угол поворота красной плоскости вокруг Y
-        let yellowAngle = 0;   // угол поворота жёлтой вокруг X
-
-        // Процент красного (0..100) определяется положением слайдера
+        // Проценты: redPercent и bluePercent, сумма = 100
         let redPercent = 50;
+        let bluePercent = 50;
+        let yellowAngle = 0;   // угол поворота жёлтой вокруг X
 
         // Функция обновления процентов на кнопках и панелях
         function updateUI() {
-            // Вычисляем проценты для отображения
-            let bluePercent = 100 - redPercent;
-            
             // Обновляем кнопки
             document.getElementById('red-pct').textContent = redPercent.toFixed(1) + '%';
             document.getElementById('blue-pct').textContent = bluePercent.toFixed(1) + '%';
@@ -365,26 +348,28 @@
             if (yellowPct > 100) yellowPct = 100;
             document.getElementById('yellow-pct').textContent = yellowPct.toFixed(1) + '%';
 
-            // Обновляем балансер
-            document.getElementById('balance-red-part').textContent = redPercent.toFixed(1) + '%';
-            document.getElementById('balance-blue-part').textContent = bluePercent.toFixed(1) + '%';
-            
-            // Обновляем ширину частей
-            document.getElementById('balance-red-part').style.width = redPercent + '%';
-            document.getElementById('balance-blue-part').style.width = bluePercent + '%';
-            
-            // Позиционируем ползунок (значок) по центру между частями
-            // Он должен находиться на границе раздела, т.е. на расстоянии redPercent% от левого края
-            const thumb = document.getElementById('balance-thumb');
-            thumb.style.left = redPercent + '%';
+            // Обновляем панель красного
+            const redFill = document.getElementById('red-fill');
+            redFill.style.width = redPercent + '%';
+            redFill.textContent = redPercent.toFixed(1) + '%';
+            document.getElementById('red-thumb').style.left = redPercent + '%';
+
+            // Обновляем панель синего
+            const blueFill = document.getElementById('blue-fill');
+            blueFill.style.width = bluePercent + '%';
+            blueFill.textContent = bluePercent.toFixed(1) + '%';
+            document.getElementById('blue-thumb').style.left = bluePercent + '%';
         }
 
         // Поворот плоскостей и обновление линий
         function applyRotations() {
             // Преобразуем redPercent в угол: при 0% -> -80°, 50% -> 0°, 100% -> +80°
-            redAngle = (redPercent - 50) * 1.6;
+            let redAngle = (redPercent - 50) * 1.6;
             redPlane.rotation.y = THREE.MathUtils.degToRad(redAngle);
             
+            // Синяя плоскость неподвижна (она всегда под 90° относительно начального положения красной)
+            // Но для визуализации пересечений мы используем её фиксированную нормаль
+
             yellowPlane.rotation.x = THREE.MathUtils.degToRad(90 + yellowAngle);
 
             // Нормали
@@ -416,92 +401,92 @@
         const btnRed = document.getElementById('btn-red');
         const btnBlue = document.getElementById('btn-blue');
         const btnYellow = document.getElementById('btn-yellow');
-        const balancePanel = document.getElementById('balance-panel');
+        const redPanel = document.getElementById('red-panel');
+        const bluePanel = document.getElementById('blue-panel');
         const yellowPanel = document.getElementById('yellow-panel');
         const yellowSlider = document.getElementById('yellow-slider');
 
         let activePanel = null;
 
-        function showBalancePanel() {
-            if (activePanel === 'balance') {
-                balancePanel.classList.remove('active');
+        function showPanel(panel) {
+            if (activePanel === panel) {
+                panel.classList.remove('active');
                 activePanel = null;
             } else {
-                if (activePanel === 'yellow') yellowPanel.classList.remove('active');
-                balancePanel.classList.add('active');
-                activePanel = 'balance';
+                if (activePanel) activePanel.classList.remove('active');
+                panel.classList.add('active');
+                activePanel = panel;
             }
         }
 
-        function showYellowPanel() {
-            if (activePanel === 'yellow') {
-                yellowPanel.classList.remove('active');
-                activePanel = null;
-            } else {
-                if (activePanel === 'balance') balancePanel.classList.remove('active');
-                yellowPanel.classList.add('active');
-                activePanel = 'yellow';
-            }
-        }
+        btnRed.addEventListener('click', () => showPanel(redPanel));
+        btnBlue.addEventListener('click', () => showPanel(bluePanel));
+        btnYellow.addEventListener('click', () => showPanel(yellowPanel));
 
-        btnRed.addEventListener('click', showBalancePanel);
-        btnBlue.addEventListener('click', showBalancePanel);
-        btnYellow.addEventListener('click', showYellowPanel);
+        // --- Кастомный слайдер для красного ---
+        const redCustom = document.getElementById('red-custom');
+        const redThumb = document.getElementById('red-thumb');
+        let isDraggingRed = false;
 
-        // --- Кастомный слайдер (перетаскивание) ---
-        const balanceCustom = document.getElementById('balance-custom');
-        const thumb = document.getElementById('balance-thumb');
-        let isDragging = false;
-
-        function handleDragStart(e) {
+        function handleRedStart(e) {
             e.preventDefault();
-            isDragging = true;
+            isDraggingRed = true;
         }
-
-        function handleDragMove(e) {
-            if (!isDragging) return;
+        function handleRedMove(e) {
+            if (!isDraggingRed) return;
             e.preventDefault();
-            
-            // Получаем координаты касания/мыши относительно контейнера
-            const rect = balanceCustom.getBoundingClientRect();
-            let clientX;
-            if (e.touches) {
-                clientX = e.touches[0].clientX;
-            } else {
-                clientX = e.clientX;
-            }
-            
-            let x = clientX - rect.left;
-            // Ограничиваем в пределах контейнера
-            x = Math.max(0, Math.min(rect.width, x));
-            
-            // Новый процент красного
-            let newRedPercent = (x / rect.width) * 100;
-            
-            // Округляем до десятых
-            redPercent = Math.round(newRedPercent * 10) / 10;
-            
+            const rect = redCustom.getBoundingClientRect();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+            let newPercent = (x / rect.width) * 100;
+            // Ограничиваем и обновляем redPercent, bluePercent = 100 - redPercent
+            redPercent = Math.round(newPercent * 10) / 10;
+            bluePercent = 100 - redPercent;
             applyRotations();
         }
-
-        function handleDragEnd(e) {
+        function handleRedEnd(e) {
             e.preventDefault();
-            isDragging = false;
+            isDraggingRed = false;
         }
+        redThumb.addEventListener('mousedown', handleRedStart);
+        window.addEventListener('mousemove', handleRedMove);
+        window.addEventListener('mouseup', handleRedEnd);
+        redThumb.addEventListener('touchstart', handleRedStart, { passive: false });
+        window.addEventListener('touchmove', handleRedMove, { passive: false });
+        window.addEventListener('touchend', handleRedEnd);
+        redThumb.addEventListener('dragstart', (e) => e.preventDefault());
 
-        // Мышь
-        thumb.addEventListener('mousedown', handleDragStart);
-        window.addEventListener('mousemove', handleDragMove);
-        window.addEventListener('mouseup', handleDragEnd);
+        // --- Кастомный слайдер для синего ---
+        const blueCustom = document.getElementById('blue-custom');
+        const blueThumb = document.getElementById('blue-thumb');
+        let isDraggingBlue = false;
 
-        // Тач
-        thumb.addEventListener('touchstart', handleDragStart, { passive: false });
-        window.addEventListener('touchmove', handleDragMove, { passive: false });
-        window.addEventListener('touchend', handleDragEnd);
-        window.addEventListener('touchcancel', handleDragEnd);
-
-        // Предотвращаем выделение текста при перетаскивании
-        thumb.addEventListener('dragstart', (e) => e.preventDefault());
+        function handleBlueStart(e) {
+            e.preventDefault();
+            isDraggingBlue = true;
+        }
+        function handleBlueMove(e) {
+            if (!isDraggingBlue) return;
+            e.preventDefault();
+            const rect = blueCustom.getBoundingClientRect();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+            let newPercent = (x / rect.width) * 100;
+            bluePercent = Math.round(newPercent * 10) / 10;
+            redPercent = 100 - bluePercent;
+            applyRotations();
+        }
+        function handleBlueEnd(e) {
+            e.preventDefault();
+            isDraggingBlue = false;
+        }
+        blueThumb.addEventListener('mousedown', handleBlueStart);
+        window.addEventListener('mousemove', handleBlueMove);
+        window.addEventListener('mouseup', handleBlueEnd);
+        blueThumb.addEventListener('touchstart', handleBlueStart, { passive: false });
+        window.addEventListener('touchmove', handleBlueMove, { passive: false });
+        window.addEventListener('touchend', handleBlueEnd);
+        blueThumb.addEventListener('dragstart', (e) => e.preventDefault());
 
         // --- Обычный слайдер для жёлтого ---
         yellowSlider.addEventListener('input', (e) => {
@@ -510,8 +495,8 @@
         });
 
         // Инициализация
-        updateUI();
         applyRotations();
+        updateUI();
 
         // Анимация
         function animate() {
