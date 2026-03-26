@@ -1,0 +1,472 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AR Жёлтый шар - луч к пальцу</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 30px;
+            width: fit-content;
+            margin: 0 auto;
+            backdrop-filter: blur(5px);
+            pointer-events: none;
+            z-index: 10;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        #status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            color: #ffcc00;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: monospace;
+            pointer-events: none;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+        }
+        @media (max-width: 768px) {
+            #info { font-size: 12px; bottom: 15px; padding: 6px 16px; }
+        }
+        .instruction {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.5);
+            color: #ffdd88;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            pointer-events: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        ✨ Жёлтый шар на расстоянии 1 метр | Нажми и тяни — появится жёлтый луч от шара к пальцу ✨
+    </div>
+    <div id="status">
+        📷 AR режим активен
+    </div>
+    <div class="instruction">
+        👆 Нажми на экран → луч | Двигай палец → луч следует | Отпусти → луч исчезает
+    </div>
+
+    <!-- Подключаем Three.js и вспомогательные модули -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- Инициализация сцены, камеры, рендерера ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510); // временный фон, пока камера не загрузится
+
+        // Камера: поле зрения 75°, соотношение сторон будет обновлено, ближняя/дальняя плоскости
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 100);
+        camera.position.set(0, 0, 0);
+        camera.lookAt(0, 0, -1);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true; // тени для объёмности
+        document.body.appendChild(renderer.domElement);
+
+        // --- Освещение для реалистичного шара ---
+        // Ambient light
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        // Основной направленный свет
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(1, 2, 1);
+        dirLight.castShadow = true;
+        dirLight.receiveShadow = false;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        scene.add(dirLight);
+        // Заполняющий свет сзади
+        const backLight = new THREE.PointLight(0x4466cc, 0.4);
+        backLight.position.set(0, 1, 1);
+        scene.add(backLight);
+        // Тёплый свет спереди снизу
+        const fillLight = new THREE.PointLight(0xffaa66, 0.3);
+        fillLight.position.set(0, -0.5, 1);
+        scene.add(fillLight);
+        
+        // --- Жёлтый шар (радиус 0.12 м, расстояние 1 метр от камеры) ---
+        const sphereGeometry = new THREE.SphereGeometry(0.12, 64, 64);
+        const sphereMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffcc33,
+            emissive: 0x442200,
+            emissiveIntensity: 0.25,
+            metalness: 0.7,
+            roughness: 0.3,
+            flatShading: false
+        });
+        const yellowBall = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        // Позиция: 1 метр перед камерой (по оси Z, камера в начале координат)
+        yellowBall.position.set(0, 0, -1);
+        yellowBall.castShadow = true;
+        yellowBall.receiveShadow = false;
+        scene.add(yellowBall);
+        
+        // Добавим лёгкое свечение вокруг шара (маленькая частица или точечный свет)
+        const glowLight = new THREE.PointLight(0xffaa44, 0.6, 2.5);
+        glowLight.position.set(0, 0, -1);
+        scene.add(glowLight);
+        
+        // Опционально: маленькая вспомогательная сфера-аура (полупрозрачная) для красоты
+        const auraGeometry = new THREE.SphereGeometry(0.145, 32, 32);
+        const auraMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffaa55,
+            transparent: true,
+            opacity: 0.15,
+            side: THREE.BackSide
+        });
+        const aura = new THREE.Mesh(auraGeometry, auraMaterial);
+        aura.position.set(0, 0, -1);
+        scene.add(aura);
+        
+        // --- Переменные для луча (цилиндр) ---
+        let currentBeam = null;      // текущий объект луча (Mesh - цилиндр)
+        let isDragging = false;      // флаг нажатия/движения
+        
+        // Плоскость на которой будет лежать конечная точка луча (на том же расстоянии Z = -1, что и шар)
+        // Это даст эффект луча, идущего от шара к проекции пальца на этой плоскости.
+        const targetPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -1); // уравнение: z = -1
+        
+        // Вспомогательный объект для Raycaster
+        const raycaster = new THREE.Raycaster();
+        
+        // --- Функция создания цилиндра (луча) между двумя точками в пространстве ---
+        function createCylinderBetweenPoints(p1, p2, radius = 0.018, color = 0xffaa33) {
+            const start = new THREE.Vector3(p1.x, p1.y, p1.z);
+            const end = new THREE.Vector3(p2.x, p2.y, p2.z);
+            const direction = new THREE.Vector3().subVectors(end, start);
+            const length = direction.length();
+            
+            if (length < 0.001) return null; // слишком короткий луч не создаём
+            
+            // Цилиндрическая геометрия
+            const geometry = new THREE.CylinderGeometry(radius, radius, length, 12);
+            const material = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: 0xaa4400,
+                emissiveIntensity: 0.5,
+                metalness: 0.3,
+                roughness: 0.4
+            });
+            const cylinder = new THREE.Mesh(geometry, material);
+            
+            // Позиционирование: центр цилиндра в середине отрезка
+            const center = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+            cylinder.position.copy(center);
+            
+            // Поворот: направление Y цилиндра должно совпадать с direction
+            cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
+            
+            return cylinder;
+        }
+        
+        // --- Обновление луча (удаляет старый и создаёт новый) ---
+        function updateBeam(p1, p2) {
+            // Удаляем предыдущий луч
+            if (currentBeam) {
+                scene.remove(currentBeam);
+                if (currentBeam.geometry) currentBeam.geometry.dispose();
+                if (currentBeam.material) currentBeam.material.dispose();
+                currentBeam = null;
+            }
+            // Если точки корректны и не совпадают
+            if (p1 && p2 && p1.distanceTo(p2) > 0.005) {
+                const newBeam = createCylinderBetweenPoints(p1, p2, 0.022, 0xffcc44);
+                if (newBeam) {
+                    currentBeam = newBeam;
+                    scene.add(currentBeam);
+                }
+            }
+        }
+        
+        // --- Удаление луча ---
+        function removeBeam() {
+            if (currentBeam) {
+                scene.remove(currentBeam);
+                if (currentBeam.geometry) currentBeam.geometry.dispose();
+                if (currentBeam.material) currentBeam.material.dispose();
+                currentBeam = null;
+            }
+        }
+        
+        // --- Преобразование координат касания (клика) в точку пересечения с плоскостью Z = -1 ---
+        function getIntersectionPointOnPlane(clientX, clientY, targetPlane, camera, rendererDomElement) {
+            // Получаем размеры canvas и нормализованные координаты мыши/пальца (-1 до +1)
+            const rect = rendererDomElement.getBoundingClientRect();
+            const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+            
+            // Устанавливаем луч из камеры через точку на экране
+            raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+            
+            // Вычисляем пересечение с плоскостью
+            const intersectionPoint = new THREE.Vector3();
+            if (raycaster.ray.intersectPlane(targetPlane, intersectionPoint)) {
+                return intersectionPoint;
+            }
+            return null;
+        }
+        
+        // --- Обработчики событий (touch + mouse) ---
+        function onPointerStart(event) {
+            event.preventDefault();
+            // Получаем координаты (для touch или mouse)
+            let clientX, clientY;
+            if (event.touches) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+            
+            const hitPoint = getIntersectionPointOnPlane(clientX, clientY, targetPlane, camera, renderer.domElement);
+            if (hitPoint) {
+                isDragging = true;
+                // Создаём луч от шара до точки касания на плоскости
+                updateBeam(yellowBall.position, hitPoint);
+            } else {
+                isDragging = false;
+            }
+        }
+        
+        function onPointerMove(event) {
+            if (!isDragging) return;
+            event.preventDefault();
+            
+            let clientX, clientY;
+            if (event.touches) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+            
+            const hitPoint = getIntersectionPointOnPlane(clientX, clientY, targetPlane, camera, renderer.domElement);
+            if (hitPoint) {
+                updateBeam(yellowBall.position, hitPoint);
+            } else {
+                // Если точка не найдена (редко), но всё же удаляем луч
+                removeBeam();
+            }
+        }
+        
+        function onPointerEnd(event) {
+            event.preventDefault();
+            isDragging = false;
+            removeBeam();
+        }
+        
+        // Добавляем слушатели для сенсорного экрана и мыши (для ПК)
+        const canvasElement = renderer.domElement;
+        
+        // Touch события
+        canvasElement.addEventListener('touchstart', onPointerStart, { passive: false });
+        canvasElement.addEventListener('touchmove', onPointerMove, { passive: false });
+        canvasElement.addEventListener('touchend', onPointerEnd);
+        canvasElement.addEventListener('touchcancel', onPointerEnd);
+        
+        // Mouse события (для тестирования на компьютере)
+        canvasElement.addEventListener('mousedown', onPointerStart);
+        window.addEventListener('mousemove', (event) => {
+            if (isDragging) {
+                onPointerMove(event);
+            }
+        });
+        window.addEventListener('mouseup', onPointerEnd);
+        
+        // Предотвращаем контекстное меню на canvas
+        canvasElement.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // --- Настройка AR-фона: видео с камеры устройства ---
+        let videoTexture = null;
+        let videoElement = null;
+        
+        async function initCameraBackground() {
+            try {
+                // Запрашиваем доступ к камере (задняя/фронтальная - предпочтительно окружающая среда)
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: "environment" } }, // предпочитаем заднюю камеру для AR
+                    audio: false
+                });
+                
+                videoElement = document.createElement('video');
+                videoElement.srcObject = stream;
+                videoElement.playsInline = true;
+                videoElement.autoplay = true;
+                videoElement.muted = true;
+                videoElement.loop = false;
+                
+                // Запускаем видео
+                await videoElement.play();
+                
+                // Создаём текстуру из видео
+                videoTexture = new THREE.VideoTexture(videoElement);
+                videoTexture.minFilter = THREE.LinearFilter;
+                videoTexture.magFilter = THREE.LinearFilter;
+                videoTexture.format = THREE.RGBFormat;
+                
+                // Устанавливаем фон сцены как видео текстуру (эффект AR)
+                scene.background = videoTexture;
+                
+                // Обновляем статус
+                const statusDiv = document.getElementById('status');
+                if (statusDiv) statusDiv.innerHTML = "📹 AR режим | Камера активна";
+                
+                // Небольшая анимация для шара: добавляем лёгкое мерцание (необязательно)
+                console.log("AR фон активирован, камера работает");
+            } catch (err) {
+                console.warn("Не удалось получить доступ к камере:", err);
+                // Если камера не доступна, используем тёмный градиентный фон или сетку, но AR эффект имитируем
+                scene.background = new THREE.Color(0x102020);
+                const statusDiv = document.getElementById('status');
+                if (statusDiv) {
+                    statusDiv.innerHTML = "⚠️ Камера недоступна | Симуляция AR";
+                    statusDiv.style.backgroundColor = "rgba(0,0,0,0.7)";
+                }
+                // Добавим вспомогательную сетку и лёгкую текстуру пола для визуального контекста
+                const gridHelper = new THREE.GridHelper(4, 20, 0x88aaff, 0x335588);
+                gridHelper.position.y = -0.5;
+                gridHelper.position.z = -1.2;
+                scene.add(gridHelper);
+                
+                const axesHelper = new THREE.AxesHelper(1);
+                axesHelper.material.transparent = true;
+                axesHelper.material.opacity = 0.2;
+                scene.add(axesHelper);
+            }
+        }
+        
+        // --- Анимация и вспомогательный эффект свечения шара ---
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.012;
+            
+            // Лёгкое динамическое свечение шара (пульсация)
+            if (glowLight) {
+                const intensity = 0.55 + Math.sin(time * 3) * 0.15;
+                glowLight.intensity = intensity;
+            }
+            // Аура слегка пульсирует
+            if (aura) {
+                const scale = 1 + Math.sin(time * 4) * 0.02;
+                aura.scale.set(scale, scale, scale);
+            }
+            
+            // Если видео текстура активна, обновляем её (видео само обновляется, но для уверенности)
+            if (videoTexture && videoElement && videoElement.readyState >= videoElement.HAVE_CURRENT_DATA) {
+                videoTexture.needsUpdate = true;
+            }
+            
+            // Рендерим сцену
+            renderer.render(scene, camera);
+        }
+        
+        // Запуск анимации
+        animate();
+        
+        // Инициализация камеры (AR фон) после загрузки страницы, но не блокируем сцену
+        initCameraBackground().catch(err => {
+            console.error("Ошибка инициализации камеры:", err);
+            scene.background = new THREE.Color(0x0a1030);
+        });
+        
+        // Обработка изменения размеров окна (адаптация камеры и рендерера)
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Небольшая инструкция в консоль
+        console.log('AR приложение запущено. Жёлтый шар на расстоянии 1 метр. Нажмите на экран, чтобы появился луч от шара к пальцу.');
+        
+        // Добавим маленькую звездную пыльцу или частицы? Необязательно, но для эффекта доп. реальности — добавим несколько плавающих частиц вокруг шара (декоративно)
+        const particleCount = 180;
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            // Разброс вокруг шара в радиусе 0.35 м, но в области Z около -1
+            particlePositions[i*3] = (Math.random() - 0.5) * 0.8;
+            particlePositions[i*3+1] = (Math.random() - 0.5) * 0.8;
+            particlePositions[i*3+2] = -1 + (Math.random() - 0.5) * 0.5;
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xffaa55,
+            size: 0.008,
+            transparent: true,
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending
+        });
+        const particles = new THREE.Points(particlesGeometry, particleMaterial);
+        scene.add(particles);
+        
+        // Анимация частиц: лёгкое вращение и мерцание
+        function animateParticles() {
+            requestAnimationFrame(animateParticles);
+            particles.rotation.y += 0.002;
+            particles.rotation.x = Math.sin(Date.now() * 0.0005) * 0.1;
+            // Динамическая прозрачность
+            const opacity = 0.35 + Math.sin(Date.now() * 0.003) * 0.1;
+            particleMaterial.opacity = opacity;
+        }
+        animateParticles();
+        
+        // Добавляем приятный эффект: маленький луч-индикатор при касании? Не требуется, но сделаем чтобы отобразить что палец активен.
+        // Дополнительно, можно создать кружок под курсором, но это опционально, так как основное требование выполнено.
+        
+        // Убедимся, что при старте нет луча
+        removeBeam();
+        
+        // Выводим предупреждение о необходимости разрешения камеры для полного AR опыта
+        setTimeout(() => {
+            if (!videoTexture) {
+                const statusDiv = document.getElementById('status');
+                if (statusDiv) statusDiv.innerHTML = "📷 Нажмите для разрешения камеры | AR режим";
+                // Повторная попытка запросить камеру по взаимодействию? Некоторые браузеры требуют жест.
+                // Но мы уже вызвали при загрузке, если не сработало - ничего страшного, симуляция.
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
