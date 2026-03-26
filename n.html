@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AR Жёлтый шар - обойди и луч к пальцу (iOS/Android)</title>
+    <title>AR Жёлтый шар — закреплён в мире, луч к пальцу</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
         }
         #info {
             position: absolute;
@@ -17,7 +17,7 @@
             right: 0;
             text-align: center;
             color: white;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.7);
             padding: 10px 20px;
             border-radius: 30px;
             width: fit-content;
@@ -53,48 +53,36 @@
             pointer-events: none;
             font-weight: bold;
         }
-        .control-btn {
+        .fallback-message {
             position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #ffaa33;
-            color: #1e2a2e;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
+            bottom: 100px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: #ffaa66;
+            padding: 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
             z-index: 20;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
-            font-family: inherit;
-            transition: transform 0.1s ease;
-            white-space: nowrap;
-        }
-        .control-btn:active {
-            transform: scale(0.97);
-        }
-        .hidden {
-            display: none;
-        }
-        @media (max-width: 600px) {
-            .control-btn { font-size: 14px; padding: 10px 20px; bottom: 70px; }
+            backdrop-filter: blur(4px);
         }
     </style>
 </head>
 <body>
     <div id="info">
-        🔆 Жёлтый шар в центре | Поворачивайте телефон, чтобы обойти его | Нажмите на экран → луч от шара к пальцу
+        🔆 Жёлтый шар зафиксирован в 1 метре перед вами | Нажмите на экран → луч от шара к пальцу
     </div>
     <div id="status">
-        📷 Ожидание камеры и гироскопа
+        📱 Ожидание AR
     </div>
     <div class="instruction">
         👆 Нажми и держи → жёлтый луч | Веди пальцем → луч следует | Отпусти → луч исчезает
     </div>
-    <button id="enable-gyro" class="control-btn">🧭 Разрешить движение телефона</button>
-    <button id="enable-camera" class="control-btn hidden">📷 Включить камеру (AR фон)</button>
+    <div class="fallback-message" id="fallbackMsg" style="display: none;">
+        ⚠️ Ваш браузер не поддерживает WebXR для AR. Попробуйте в Safari на iOS с HTTPS.
+    </div>
 
     <script type="importmap">
         {
@@ -106,19 +94,19 @@
 
     <script type="module">
         import * as THREE from 'three';
+        import { ARButton } from 'https://unpkg.com/three@0.128.0/examples/jsm/webxr/ARButton.js';
 
-        // --- Инициализация сцены, камеры, рендерера ---
+        // --- Сцена, камера, рендерер ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x102030); // временный фон
+        scene.background = new THREE.Color(0x050510);
 
-        // Камера: будет вращаться вокруг шара (0,0,0)
+        // Камера будет управляться WebXR
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 100);
-        camera.position.set(0, 0, 2.5);
-        camera.lookAt(0, 0, 0);
-
+        
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.xr.enabled = true;
         document.body.appendChild(renderer.domElement);
 
         // --- Освещение ---
@@ -134,64 +122,74 @@
         const backLight = new THREE.PointLight(0x6688ff, 0.4);
         backLight.position.set(-1, 1, -2);
         scene.add(backLight);
-        
-        // --- Жёлтый шар (в центре) ---
-        const sphereGeometry = new THREE.SphereGeometry(0.22, 64, 64);
-        const sphereMaterial = new THREE.MeshStandardMaterial({
-            color: 0xffcc33,
-            emissive: 0x442200,
-            emissiveIntensity: 0.3,
-            metalness: 0.7,
-            roughness: 0.3
-        });
-        const yellowBall = new THREE.Mesh(sphereGeometry, sphereMaterial);
-        yellowBall.position.set(0, 0, 0);
-        yellowBall.castShadow = true;
-        scene.add(yellowBall);
-        
-        // Свечение шара
-        const glowLight = new THREE.PointLight(0xffaa44, 0.8, 2.5);
-        glowLight.position.set(0, 0, 0);
-        scene.add(glowLight);
-        
-        // Аура
-        const auraGeo = new THREE.SphereGeometry(0.28, 32, 32);
-        const auraMat = new THREE.MeshBasicMaterial({
-            color: 0xffaa55,
-            transparent: true,
-            opacity: 0.2,
-            side: THREE.BackSide
-        });
-        const aura = new THREE.Mesh(auraGeo, auraMat);
-        scene.add(aura);
-        
-        // Декоративные частицы
-        const particleCount = 400;
-        const particlesGeo = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        for (let i = 0; i < particleCount; i++) {
-            const radius = 0.3 + Math.random() * 0.6;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            positions[i*3] = radius * Math.sin(phi) * Math.cos(theta);
-            positions[i*3+1] = radius * Math.sin(phi) * Math.sin(theta);
-            positions[i*3+2] = radius * Math.cos(phi);
+
+        // --- Жёлтый шар (будет добавлен при старте сессии) ---
+        let yellowBall = null;
+        let glowLight = null;
+        let aura = null;
+        let particles = null;
+
+        function createBallAtPosition(x, y, z) {
+            const sphereGeometry = new THREE.SphereGeometry(0.12, 64, 64);
+            const sphereMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffcc33,
+                emissive: 0x442200,
+                emissiveIntensity: 0.3,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+            const ball = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            ball.position.set(x, y, z);
+            ball.castShadow = true;
+            return ball;
         }
-        particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const particleMat = new THREE.PointsMaterial({
-            color: 0xffaa55,
-            size: 0.012,
-            transparent: true,
-            opacity: 0.5,
-            blending: THREE.AdditiveBlending
-        });
-        const particles = new THREE.Points(particlesGeo, particleMat);
-        scene.add(particles);
-        
-        // --- Луч (цилиндр) ---
+
+        function createGlowAtPosition(x, y, z) {
+            const light = new THREE.PointLight(0xffaa44, 0.8, 2.5);
+            light.position.set(x, y, z);
+            return light;
+        }
+
+        function createAuraAtPosition(x, y, z) {
+            const geo = new THREE.SphereGeometry(0.145, 32, 32);
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0xffaa55,
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.BackSide
+            });
+            const auraMesh = new THREE.Mesh(geo, mat);
+            auraMesh.position.set(x, y, z);
+            return auraMesh;
+        }
+
+        function createParticlesAround(position) {
+            const count = 300;
+            const geometry = new THREE.BufferGeometry();
+            const positionsArray = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                const radius = 0.2 + Math.random() * 0.4;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                positionsArray[i*3] = position.x + radius * Math.sin(phi) * Math.cos(theta);
+                positionsArray[i*3+1] = position.y + radius * Math.sin(phi) * Math.sin(theta);
+                positionsArray[i*3+2] = position.z + radius * Math.cos(phi);
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(positionsArray, 3));
+            const material = new THREE.PointsMaterial({
+                color: 0xffaa55,
+                size: 0.008,
+                transparent: true,
+                opacity: 0.5,
+                blending: THREE.AdditiveBlending
+            });
+            return new THREE.Points(geometry, material);
+        }
+
+        // --- Луч ---
         let currentBeam = null;
         let isDragging = false;
-        
+
         function createCylBetween(p1, p2, radius = 0.022, color = 0xffaa44) {
             const start = new THREE.Vector3(p1.x, p1.y, p1.z);
             const end = new THREE.Vector3(p2.x, p2.y, p2.z);
@@ -213,7 +211,7 @@
             cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), direction.clone().normalize());
             return cylinder;
         }
-        
+
         function updateBeam(p1, p2) {
             if (currentBeam) {
                 scene.remove(currentBeam);
@@ -222,14 +220,14 @@
                 currentBeam = null;
             }
             if (p1 && p2 && p1.distanceTo(p2) > 0.01) {
-                const newBeam = createCylBetween(p1, p2, 0.025, 0xffcc55);
+                const newBeam = createCylBetween(p1, p2, 0.022, 0xffcc55);
                 if (newBeam) {
                     currentBeam = newBeam;
                     scene.add(currentBeam);
                 }
             }
         }
-        
+
         function removeBeam() {
             if (currentBeam) {
                 scene.remove(currentBeam);
@@ -238,21 +236,24 @@
                 currentBeam = null;
             }
         }
-        
-        // --- Получение точки в пространстве по касанию (луч из камеры, фиксированная дистанция) ---
-        function getTouchPointInWorld(clientX, clientY, distanceFromCamera = 2.5) {
+
+        // --- Получение точки касания в мировых координатах (hit-test) ---
+        // Для простоты используем луч на фиксированное расстояние, но можно добавить hit-test.
+        // Используем метод getTouchPointInWorld.
+        function getTouchPointInWorld(clientX, clientY, distance = 2.0) {
             const rect = renderer.domElement.getBoundingClientRect();
             const x = ((clientX - rect.left) / rect.width) * 2 - 1;
             const y = -((clientY - rect.top) / rect.height) * 2 + 1;
             
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
-            const point = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(distanceFromCamera));
+            const point = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(distance));
             return point;
         }
-        
-        // --- Обработчики касаний ---
+
+        // --- Обработчики касаний (работают только в AR-сессии) ---
         function onPointerStart(event) {
+            if (!renderer.xr.isPresenting) return;
             event.preventDefault();
             let clientX, clientY;
             if (event.touches) {
@@ -263,14 +264,14 @@
                 clientY = event.clientY;
             }
             const touchPoint = getTouchPointInWorld(clientX, clientY, 2.2);
-            if (touchPoint) {
+            if (touchPoint && yellowBall) {
                 isDragging = true;
                 updateBeam(yellowBall.position, touchPoint);
             }
         }
-        
+
         function onPointerMove(event) {
-            if (!isDragging) return;
+            if (!isDragging || !renderer.xr.isPresenting) return;
             event.preventDefault();
             let clientX, clientY;
             if (event.touches) {
@@ -281,183 +282,144 @@
                 clientY = event.clientY;
             }
             const touchPoint = getTouchPointInWorld(clientX, clientY, 2.2);
-            if (touchPoint) {
+            if (touchPoint && yellowBall) {
                 updateBeam(yellowBall.position, touchPoint);
             } else {
                 removeBeam();
             }
         }
-        
+
         function onPointerEnd(event) {
+            if (!renderer.xr.isPresenting) return;
             event.preventDefault();
             isDragging = false;
             removeBeam();
         }
-        
-        // Слушатели событий
+
+        // Добавляем слушатели
         const canvasEl = renderer.domElement;
         canvasEl.addEventListener('touchstart', onPointerStart, { passive: false });
         canvasEl.addEventListener('touchmove', onPointerMove, { passive: false });
         canvasEl.addEventListener('touchend', onPointerEnd);
         canvasEl.addEventListener('touchcancel', onPointerEnd);
-        
         canvasEl.addEventListener('mousedown', onPointerStart);
         window.addEventListener('mousemove', (e) => {
-            if (isDragging) onPointerMove(e);
+            if (isDragging && renderer.xr.isPresenting) onPointerMove(e);
         });
         window.addEventListener('mouseup', onPointerEnd);
         canvasEl.addEventListener('contextmenu', (e) => e.preventDefault());
-        
-        // --- Управление камерой через гироскоп (обход шара) ---
-        let orientationEnabled = false;
-        let targetRotationX = 0; // горизонталь (yaw)
-        let targetRotationY = 0; // вертикаль (pitch)
-        let currentRotationX = 0;
-        let currentRotationY = 0;
-        const radius = 2.5; // расстояние от шара
-        
-        function updateCameraFromOrientation() {
-            // Плавное сглаживание
-            currentRotationX += (targetRotationX - currentRotationX) * 0.1;
-            currentRotationY += (targetRotationY - currentRotationY) * 0.1;
+
+        // --- Создание и размещение шара при старте AR-сессии ---
+        // Мы хотим разместить шар в 1 метре перед камерой в момент старта.
+        // Для этого в обработчике sessionstart получаем позицию камеры и смещаем.
+        let ballPlaced = false;
+
+        renderer.xr.addEventListener('sessionstart', () => {
+            // Получаем текущее положение камеры и направление взгляда
+            const cameraPosition = new THREE.Vector3();
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldPosition(cameraPosition);
+            camera.getWorldDirection(cameraDirection);
             
-            const x = radius * Math.sin(currentRotationX) * Math.cos(currentRotationY);
-            const y = radius * Math.sin(currentRotationY);
-            const z = radius * Math.cos(currentRotationX) * Math.cos(currentRotationY);
-            camera.position.set(x, y, z);
-            camera.lookAt(0, 0, 0);
-        }
-        
-        function handleOrientation(event) {
-            if (!orientationEnabled) return;
-            // Альфа (компас), бета (вперед-назад), гамма (влево-вправо)
-            let alpha = event.alpha;    // 0-360
-            let beta = event.beta;      // -180..180
-            let gamma = event.gamma;    // -90..90
+            // Шар на расстоянии 1 метр от камеры
+            const ballPos = cameraPosition.clone().add(cameraDirection.multiplyScalar(1.0));
             
-            if (beta === null || gamma === null) return;
-            
-            // Преобразуем в радианы
-            let yaw = (gamma || 0) * Math.PI / 180;   // поворот влево-вправо
-            let pitch = (beta || 0) * Math.PI / 180;   // наклон вперед-назад
-            
-            // Ограничиваем pitch, чтобы не уходить за пределы
-            pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
-            
-            targetRotationX = yaw;
-            targetRotationY = pitch;
-        }
-        
-        // Кнопка разрешения гироскопа (для iOS)
-        const gyroBtn = document.getElementById('enable-gyro');
-        const cameraBtn = document.getElementById('enable-camera');
-        const statusDiv = document.getElementById('status');
-        
-        gyroBtn.addEventListener('click', () => {
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                // iOS
-                DeviceOrientationEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            window.addEventListener('deviceorientation', handleOrientation);
-                            orientationEnabled = true;
-                            gyroBtn.style.display = 'none';
-                            statusDiv.innerHTML = "🧭 Движение телефона активно | Теперь включите камеру";
-                            cameraBtn.classList.remove('hidden');
-                        } else {
-                            alert("Не удалось получить доступ к движению телефона.");
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        alert("Ошибка запроса разрешения.");
-                    });
-            } else {
-                // Android и другие
-                window.addEventListener('deviceorientation', handleOrientation);
-                orientationEnabled = true;
-                gyroBtn.style.display = 'none';
-                statusDiv.innerHTML = "🧭 Движение телефона активно | Теперь включите камеру";
-                cameraBtn.classList.remove('hidden');
+            if (yellowBall) {
+                scene.remove(yellowBall);
+                if (glowLight) scene.remove(glowLight);
+                if (aura) scene.remove(aura);
+                if (particles) scene.remove(particles);
             }
+            
+            yellowBall = createBallAtPosition(ballPos.x, ballPos.y, ballPos.z);
+            glowLight = createGlowAtPosition(ballPos.x, ballPos.y, ballPos.z);
+            aura = createAuraAtPosition(ballPos.x, ballPos.y, ballPos.z);
+            particles = createParticlesAround(ballPos);
+            
+            scene.add(yellowBall);
+            scene.add(glowLight);
+            scene.add(aura);
+            scene.add(particles);
+            
+            ballPlaced = true;
+            document.getElementById('status').innerHTML = '🌟 AR активен | Шар в 1 метре перед вами';
         });
-        
-        // --- Видео фон (камера) ---
-        let videoTexture = null;
-        let videoElement = null;
-        
-        cameraBtn.addEventListener('click', async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { ideal: "environment" } },
-                    audio: false
-                });
-                videoElement = document.createElement('video');
-                videoElement.srcObject = stream;
-                videoElement.playsInline = true;
-                videoElement.autoplay = true;
-                videoElement.muted = true;
-                await videoElement.play();
-                
-                videoTexture = new THREE.VideoTexture(videoElement);
-                videoTexture.minFilter = THREE.LinearFilter;
-                videoTexture.magFilter = THREE.LinearFilter;
-                scene.background = videoTexture;
-                
-                cameraBtn.style.display = 'none';
-                statusDiv.innerHTML = "📹 AR фон активен | Поворачивайте телефон, чтобы обойти шар";
-            } catch (err) {
-                console.warn("Камера не доступна:", err);
-                statusDiv.innerHTML = "⚠️ Камера недоступна, но гироскоп работает";
-                cameraBtn.style.display = 'none';
-                // Добавим сетку и оси для ориентира
-                const gridHelper = new THREE.GridHelper(4, 20, 0x88aaff, 0x335588);
-                gridHelper.position.y = -0.6;
-                scene.add(gridHelper);
-                const axesHelper = new THREE.AxesHelper(2);
-                axesHelper.material.transparent = true;
-                axesHelper.material.opacity = 0.2;
-                scene.add(axesHelper);
-            }
+
+        renderer.xr.addEventListener('sessionend', () => {
+            ballPlaced = false;
+            removeBeam();
+            isDragging = false;
+            document.getElementById('status').innerHTML = '⏸ AR завершён';
         });
-        
-        // --- Анимация и обновление камеры ---
+
+        // --- Анимация (пульсация, частицы) ---
         let time = 0;
         function animate() {
             requestAnimationFrame(animate);
             time += 0.016;
             
-            glowLight.intensity = 0.7 + Math.sin(time * 3) * 0.2;
-            aura.scale.setScalar(1 + Math.sin(time * 4) * 0.02);
-            particles.rotation.y = time * 0.15;
-            particles.rotation.x = Math.sin(time * 0.4) * 0.1;
-            
-            if (videoTexture && videoElement && videoElement.readyState >= videoElement.HAVE_CURRENT_DATA) {
-                videoTexture.needsUpdate = true;
+            if (yellowBall && glowLight) {
+                glowLight.intensity = 0.7 + Math.sin(time * 3) * 0.2;
+                if (aura) aura.scale.setScalar(1 + Math.sin(time * 4) * 0.02);
+                if (particles) {
+                    particles.rotation.y = time * 0.15;
+                    particles.rotation.x = Math.sin(time * 0.4) * 0.1;
+                }
             }
             
-            updateCameraFromOrientation();
             renderer.render(scene, camera);
         }
         animate();
+
+        // --- WebXR кнопка ---
+        const arButton = ARButton.createButton(renderer, {
+            requiredFeatures: ['hit-test'],
+            optionalFeatures: ['dom-overlay'],
+            domOverlay: { root: document.body }
+        });
         
-        // --- Обработка изменения размера окна ---
+        // Стилизуем и добавляем кнопку на страницу
+        const customContainer = document.createElement('div');
+        customContainer.style.position = 'absolute';
+        customContainer.style.bottom = '30px';
+        customContainer.style.left = '0';
+        customContainer.style.right = '0';
+        customContainer.style.display = 'flex';
+        customContainer.style.justifyContent = 'center';
+        customContainer.style.zIndex = '20';
+        document.body.appendChild(customContainer);
+        customContainer.appendChild(arButton);
+        
+        // Стилизуем кнопку
+        arButton.style.backgroundColor = '#ffaa33';
+        arButton.style.color = '#1e2a2e';
+        arButton.style.border = 'none';
+        arButton.style.padding = '12px 24px';
+        arButton.style.borderRadius = '40px';
+        arButton.style.fontSize = '18px';
+        arButton.style.fontWeight = 'bold';
+        arButton.style.cursor = 'pointer';
+        arButton.style.fontFamily = 'inherit';
+        arButton.style.boxShadow = '0 2px 20px rgba(0,0,0,0.3)';
+        
+        // Обработка отсутствия поддержки WebXR
+        if (!navigator.xr) {
+            document.getElementById('fallbackMsg').style.display = 'block';
+            arButton.disabled = true;
+            arButton.style.opacity = '0.5';
+            document.getElementById('status').innerHTML = '❌ WebXR не поддерживается';
+        } else {
+            console.log('WebXR доступен');
+        }
+        
+        // Адаптация под размер окна
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
         
-        // Проверка поддержки DeviceOrientation
-        if (!window.DeviceOrientationEvent) {
-            statusDiv.innerHTML = "❌ Гироскоп не поддерживается браузером";
-            gyroBtn.disabled = true;
-            gyroBtn.style.opacity = '0.5';
-        } else {
-            console.log("DeviceOrientation доступен");
-        }
-        
-        console.log("AR-подобное приложение запущено. Используйте гироскоп для обхода шара.");
+        console.log('AR приложение готово. Для работы необходим HTTPS и разрешение на камеру.');
     </script>
 </body>
 </html>
