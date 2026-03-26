@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AR Жёлтый шар + Луч к пальцу</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        }
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            z-index: 20;
+        }
+        .ar-btn {
+            background: #ffaa33;
+            color: #1e2a2e;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
+        }
+        .ar-btn:active {
+            transform: scale(0.97);
+        }
+        .info {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 12px;
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            font-size: 14px;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            color: #ffcc00;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: monospace;
+            z-index: 20;
+            pointer-events: none;
+        }
+        @media (max-width: 600px) {
+            .ar-btn { font-size: 16px; padding: 10px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="status" id="status">📱 Проверка платформы...</div>
+    <div class="controls" id="controls">
+        <button class="ar-btn" id="arButton">🔍 Запуск AR...</button>
+    </div>
+    <div class="info" id="info">
+        ⚡ На Android: шар фиксируется, луч по нажатию<br>
+        🍎 На iOS: откроется AR Quick Look (шар без луча)
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { ARButton } from 'https://unpkg.com/three@0.128.0/examples/jsm/webxr/ARButton.js';
+
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
+        
+        const statusDiv = document.getElementById('status');
+        const controlsDiv = document.getElementById('controls');
+        const infoDiv = document.getElementById('info');
+        const btn = document.getElementById('arButton');
+        
+        // --- Если iOS: показываем Quick Look AR (шар, но без луча) ---
+        if (isIOS) {
+            statusDiv.innerHTML = '🍎 iOS: AR Quick Look (шар фиксируется)';
+            infoDiv.innerHTML = '📍 Жёлтый шар откроется в AR. Обойдите его, луч недоступен в Quick Look.';
+            
+            // Создаём ссылку на USDZ-файл (нужен реальный хост с https)
+            // Здесь я использую публичный пример Apple, но вы можете заменить на свой .usdz с жёлтым шаром.
+            // Чтобы сгенерировать свой .usdz: используйте инструмент Reality Converter от Apple или онлайн-конвертер.
+            const usdzURL = 'https://developer.apple.com/augmented-reality/quick-look/models/teapot/teapot.usdz'; // пример
+            // В идеале вам нужно разместить свой yellow_ball.usdz на HTTPS-сервере.
+            
+            btn.textContent = '🍎 Открыть жёлтый шар в AR (Quick Look)';
+            btn.onclick = () => {
+                // Создаём временную ссылку с атрибутом rel="ar"
+                const arLink = document.createElement('a');
+                arLink.href = usdzURL;
+                arLink.setAttribute('rel', 'ar');
+                arLink.innerHTML = '<img src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\'%3E%3C/svg%3E" style="display:none">';
+                document.body.appendChild(arLink);
+                arLink.click();
+                document.body.removeChild(arLink);
+            };
+            return; // Завершаем, не создаём WebXR сцену
+        }
+        
+        // --- Для Android и других с поддержкой WebXR ---
+        if (!isAndroid && !isIOS) {
+            statusDiv.innerHTML = '⚠️ Неизвестная платформа, пробуем WebXR...';
+        }
+        
+        // --- Полноценная WebXR сцена (работает на Android Chrome) ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 100);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        // Освещение
+        const ambient = new THREE.AmbientLight(0x404060);
+        scene.add(ambient);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(2, 3, 2);
+        scene.add(dirLight);
+        const fillLight = new THREE.PointLight(0xffaa66, 0.5);
+        fillLight.position.set(1, 1, 2);
+        scene.add(fillLight);
+        
+        let yellowBall, glowLight, aura, particles;
+        
+        function createBallAtPosition(x, y, z) {
+            const geometry = new THREE.SphereGeometry(0.12, 64, 64);
+            const material = new THREE.MeshStandardMaterial({ color: 0xffcc33, emissive: 0x442200, emissiveIntensity: 0.3 });
+            const ball = new THREE.Mesh(geometry, material);
+            ball.position.set(x, y, z);
+            return ball;
+        }
+        
+        function createGlowAtPosition(x, y, z) {
+            const light = new THREE.PointLight(0xffaa44, 0.8, 2.5);
+            light.position.set(x, y, z);
+            return light;
+        }
+        
+        function createAuraAtPosition(x, y, z) {
+            const geo = new THREE.SphereGeometry(0.145, 32, 32);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xffaa55, transparent: true, opacity: 0.2, side: THREE.BackSide });
+            const auraMesh = new THREE.Mesh(geo, mat);
+            auraMesh.position.set(x, y, z);
+            return auraMesh;
+        }
+        
+        function createParticlesAround(pos) {
+            const count = 300;
+            const geom = new THREE.BufferGeometry();
+            const positionsArray = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                const radius = 0.2 + Math.random() * 0.4;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                positionsArray[i*3] = pos.x + radius * Math.sin(phi) * Math.cos(theta);
+                positionsArray[i*3+1] = pos.y + radius * Math.sin(phi) * Math.sin(theta);
+                positionsArray[i*3+2] = pos.z + radius * Math.cos(phi);
+            }
+            geom.setAttribute('position', new THREE.BufferAttribute(positionsArray, 3));
+            const mat = new THREE.PointsMaterial({ color: 0xffaa55, size: 0.008, transparent: true, blending: THREE.AdditiveBlending });
+            return new THREE.Points(geom, mat);
+        }
+        
+        let currentBeam = null;
+        let isDragging = false;
+        
+        function createCylBetween(p1, p2, radius = 0.022, color = 0xffaa44) {
+            const start = new THREE.Vector3(p1.x, p1.y, p1.z);
+            const end = new THREE.Vector3(p2.x, p2.y, p2.z);
+            const direction = new THREE.Vector3().subVectors(end, start);
+            const length = direction.length();
+            if (length < 0.005) return null;
+            const geometry = new THREE.CylinderGeometry(radius, radius, length, 12);
+            const material = new THREE.MeshStandardMaterial({ color, emissive: 0xaa4400, emissiveIntensity: 0.5 });
+            const cylinder = new THREE.Mesh(geometry, material);
+            const center = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+            cylinder.position.copy(center);
+            cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), direction.clone().normalize());
+            return cylinder;
+        }
+        
+        function updateBeam(p1, p2) {
+            if (currentBeam) scene.remove(currentBeam);
+            if (p1 && p2 && p1.distanceTo(p2) > 0.01) {
+                currentBeam = createCylBetween(p1, p2, 0.022, 0xffcc55);
+                if (currentBeam) scene.add(currentBeam);
+            } else {
+                currentBeam = null;
+            }
+        }
+        
+        function getTouchPointInWorld(clientX, clientY, distance = 2.0) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -((clientY - rect.top) / rect.height) * 2 + 1;
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+            return raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(distance));
+        }
+        
+        function onPointerStart(e) {
+            if (!renderer.xr.isPresenting) return;
+            e.preventDefault();
+            let cx, cy;
+            if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+            else { cx = e.clientX; cy = e.clientY; }
+            const point = getTouchPointInWorld(cx, cy, 2.2);
+            if (point && yellowBall) {
+                isDragging = true;
+                updateBeam(yellowBall.position, point);
+            }
+        }
+        
+        function onPointerMove(e) {
+            if (!isDragging || !renderer.xr.isPresenting) return;
+            e.preventDefault();
+            let cx, cy;
+            if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+            else { cx = e.clientX; cy = e.clientY; }
+            const point = getTouchPointInWorld(cx, cy, 2.2);
+            if (point && yellowBall) updateBeam(yellowBall.position, point);
+            else if (currentBeam) { scene.remove(currentBeam); currentBeam = null; }
+        }
+        
+        function onPointerEnd(e) {
+            if (!renderer.xr.isPresenting) return;
+            e.preventDefault();
+            isDragging = false;
+            if (currentBeam) { scene.remove(currentBeam); currentBeam = null; }
+        }
+        
+        const canvas = renderer.domElement;
+        canvas.addEventListener('touchstart', onPointerStart, { passive: false });
+        canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+        canvas.addEventListener('touchend', onPointerEnd);
+        canvas.addEventListener('mousedown', onPointerStart);
+        window.addEventListener('mousemove', (e) => { if (isDragging) onPointerMove(e); });
+        window.addEventListener('mouseup', onPointerEnd);
+        
+        // Создание шара при старте сессии
+        renderer.xr.addEventListener('sessionstart', () => {
+            const camPos = new THREE.Vector3();
+            const camDir = new THREE.Vector3();
+            camera.getWorldPosition(camPos);
+            camera.getWorldDirection(camDir);
+            const ballPos = camPos.clone().add(camDir.multiplyScalar(1.0));
+            
+            if (yellowBall) scene.remove(yellowBall);
+            if (glowLight) scene.remove(glowLight);
+            if (aura) scene.remove(aura);
+            if (particles) scene.remove(particles);
+            
+            yellowBall = createBallAtPosition(ballPos.x, ballPos.y, ballPos.z);
+            glowLight = createGlowAtPosition(ballPos.x, ballPos.y, ballPos.z);
+            aura = createAuraAtPosition(ballPos.x, ballPos.y, ballPos.z);
+            particles = createParticlesAround(ballPos);
+            
+            scene.add(yellowBall);
+            scene.add(glowLight);
+            scene.add(aura);
+            scene.add(particles);
+            
+            statusDiv.innerHTML = '✅ AR активен | Шар закреплён в мире';
+        });
+        
+        renderer.xr.addEventListener('sessionend', () => {
+            isDragging = false;
+            if (currentBeam) { scene.remove(currentBeam); currentBeam = null; }
+            statusDiv.innerHTML = '⏸ AR завершён';
+        });
+        
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016;
+            if (glowLight) glowLight.intensity = 0.7 + Math.sin(time * 3) * 0.2;
+            if (aura) aura.scale.setScalar(1 + Math.sin(time * 4) * 0.02);
+            if (particles) {
+                particles.rotation.y = time * 0.15;
+                particles.rotation.x = Math.sin(time * 0.4) * 0.1;
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        // Создаём и добавляем кнопку WebXR
+        const webxrBtn = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+        webxrBtn.textContent = '🚀 Запустить AR (WebXR)';
+        webxrBtn.className = 'ar-btn';
+        webxrBtn.style.display = 'block';
+        controlsDiv.innerHTML = '';
+        controlsDiv.appendChild(webxrBtn);
+        
+        // Если WebXR недоступен
+        if (!navigator.xr) {
+            statusDiv.innerHTML = '❌ WebXR не поддерживается браузером. Попробуйте Android Chrome.';
+            webxrBtn.disabled = true;
+            webxrBtn.style.opacity = 0.5;
+        }
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        statusDiv.innerHTML = '📱 Нажмите кнопку для входа в AR';
+    </script>
+</body>
+</html>
