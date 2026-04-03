@@ -3,153 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>U-Sin Balance Prototype</title>
+    <title>U-Sin God Mode</title>
     <style>
         body {
-            background: #121212;
-            color: #eee;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f0f;
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
-            user-select: none;
+            overflow: hidden;
+            touch-action: none;
         }
 
-        .stage {
-            position: relative;
-            width: 320px;
-            height: 400px;
+        .world {
             display: flex;
-            justify-content: space-around;
+            gap: 15px;
             align-items: flex-end;
-            padding-bottom: 50px;
-            background: radial-gradient(circle, #222 0%, #121212 100%);
-            border-radius: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            height: 350px;
+            padding: 20px;
+            background: #1a1a1a;
+            border-radius: 20px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
         }
 
-        .element-group {
+        .element-column {
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 80px;
+            width: 55px;
+            height: 100%;
         }
 
-        .icon { font-size: 40px; margin-bottom: 10px; transition: transform 0.2s; }
-        
-        /* Визуальные шкалы */
-        .bar-container {
-            width: 20px;
-            height: 200px;
-            background: #333;
+        .bar-wrapper {
+            width: 100%;
+            height: 250px;
+            background: #252525;
             border-radius: 10px;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
+            border: 1px solid #333;
         }
 
-        .bar {
+        .bar-fill {
             position: absolute;
             bottom: 0;
             width: 100%;
-            transition: height 0.3s ease, background 0.3s;
+            height: 50%;
+            transition: height 0.4s cubic-bezier(0.17, 0.67, 0.83, 0.67), background 0.3s;
         }
 
-        /* Цвета стихий */
-        #fire-bar { background: linear-gradient(to top, #ff4d4d, #ff944d); height: 50%; }
-        #wood-bar { background: linear-gradient(to top, #2d6a4f, #52b788); height: 20%; }
-        #water-bar { background: linear-gradient(to top, #0077b6, #00b4d8); height: 30%; }
+        .icon { font-size: 30px; margin-bottom: 10px; z-index: 10; }
+        .label { font-size: 10px; color: #666; margin-top: 8px; text-transform: uppercase; }
 
-        .controls {
+        /* Цвета шкал */
+        .wood .bar-fill { background: linear-gradient(to top, #1b4332, #52b788); }
+        .fire .bar-fill { background: linear-gradient(to top, #780000, #ff4d4d); }
+        .earth .bar-fill { background: linear-gradient(to top, #7e6325, #ffcc00); }
+        .metal .bar-fill { background: linear-gradient(to top, #4a4e69, #adc178); color: #fff; } /* Металл в У-син часто белый/желтый */
+        .metal .bar-fill { background: linear-gradient(to top, #444, #e0e0e0); }
+        .water .bar-fill { background: linear-gradient(to top, #003049, #3399ff); }
+
+        .hint {
             margin-top: 30px;
-            width: 280px;
             text-align: center;
+            color: #888;
+            max-width: 300px;
+            font-size: 14px;
         }
-
-        input[type=range] {
-            width: 100%;
-            cursor: pointer;
-        }
-
-        .label { font-size: 14px; color: #888; margin-top: 5px; }
-        .status { margin-top: 15px; font-weight: bold; color: #ffcc00; height: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="stage">
-        <!-- ОГОНЬ (Слева) -->
-        <div class="element-group">
-            <div class="icon" id="fire-icon">🔥</div>
-            <div class="bar-container">
-                <div id="fire-bar" class="bar"></div>
-            </div>
-            <div class="label">Огонь</div>
-        </div>
+    <h2 id="status">Баланс Стихий</h2>
 
-        <!-- ДЕРЕВО (Центр) -->
-        <div class="element-group">
-            <div class="icon" id="wood-icon">🌴</div>
-            <div class="bar-container">
-                <div id="wood-bar" class="bar"></div>
-            </div>
+    <div class="world">
+        <div class="element-column wood" onclick="change('wood', 80)">
+            <div class="icon">🌴</div>
+            <div class="bar-wrapper"><div id="wood-bar" class="bar-fill"></div></div>
             <div class="label">Дерево</div>
         </div>
-
-        <!-- ВОДА (Справа) -->
-        <div class="element-group">
-            <div class="icon" id="water-icon">🫧</div>
-            <div class="bar-container">
-                <div id="water-bar" class="bar"></div>
-            </div>
+        <div class="element-column fire" onclick="change('fire', 80)">
+            <div class="icon">🔥</div>
+            <div class="bar-wrapper"><div id="fire-bar" class="bar-fill"></div></div>
+            <div class="label">Огонь</div>
+        </div>
+        <div class="element-column earth" onclick="change('earth', 80)">
+            <div class="icon">🌐</div>
+            <div class="bar-wrapper"><div id="earth-bar" class="bar-fill"></div></div>
+            <div class="label">Земля</div>
+        </div>
+        <div class="element-column metal" onclick="change('metal', 80)">
+            <div class="icon">⚔️</div>
+            <div class="bar-wrapper"><div id="metal-bar" class="bar-fill"></div></div>
+            <div class="label">Металл</div>
+        </div>
+        <div class="element-column water" onclick="change('water', 80)">
+            <div class="icon">🫧</div>
+            <div class="bar-wrapper"><div id="water-bar" class="bar-fill"></div></div>
             <div class="label">Вода</div>
         </div>
     </div>
 
-    <div class="controls">
-        <div class="status" id="status-text">Баланс соблюден</div>
-        <input type="range" id="water-slider" min="0" max="100" value="30">
-        <div class="label">Управляй уровнем ВОДЫ пальцем</div>
-    </div>
+    <p class="hint">Нажимай на верхнюю часть любой шкалы, чтобы усилить стихию и увидеть цепную реакцию.</p>
 
     <script>
-        const slider = document.getElementById('water-slider');
-        const waterBar = document.getElementById('water-bar');
-        const fireBar = document.getElementById('fire-bar');
-        const woodBar = document.getElementById('wood-bar');
-        const statusText = document.getElementById('status-text');
+        // Начальные значения
+        let levels = { wood: 40, fire: 40, earth: 40, metal: 40, water: 40 };
 
-        slider.addEventListener('input', (e) => {
-            const waterVal = parseInt(e.target.value);
-            
-            // 1. Уровень воды
-            waterBar.style.height = waterVal + '%';
-
-            // 2. Логика Дерева: Вода питает дерево (до определенного момента)
-            let woodVal = waterVal * 1.2; 
-            if (woodVal > 100) woodVal = 100;
-            woodBar.style.height = woodVal + '%';
-
-            // 3. Логика Огня: Вода тушит огонь
-            // Чем выше вода, тем ниже огонь
-            let fireVal = 100 - (waterVal * 1.5);
-            if (fireVal < 0) fireVal = 0;
-            fireBar.style.height = fireVal + '%';
-
-            // 4. Текстовые подсказки
-            if (waterVal > 80) {
-                statusText.innerText = "⚠️ Наводнение! Огонь погас.";
-                statusText.style.color = "#3399ff";
-            } else if (waterVal < 10) {
-                statusText.innerText = "🔥 Засуха! Огонь слишком сильный.";
-                statusText.style.color = "#ff4d4d";
-            } else {
-                statusText.innerText = "🌱 Жизнь процветает";
-                statusText.style.color = "#52b788";
+        function updateUI() {
+            for (let el in levels) {
+                document.getElementById(el + '-bar').style.height = levels[el] + '%';
             }
-        });
+        }
+
+        function change(el, val) {
+            // 1. Увеличиваем выбранную стихию
+            levels[el] = 90;
+
+            // 2. Логика цепной реакции (У-син)
+            if (el === 'water') {
+                levels.wood += 30;  // Вода кормит Дерево
+                levels.fire -= 50;  // Вода тушит Огонь
+            }
+            if (el === 'fire') {
+                levels.earth += 30; // Огонь создает Землю
+                levels.metal -= 50; // Огонь плавит Металл
+            }
+            if (el === 'wood') {
+                levels.fire += 30;  // Дерево питает Огонь
+                levels.earth -= 50; // Дерево истощает Землю
+            }
+            if (el === 'earth') {
+                levels.metal += 30; // Земля рождает Металл
+                levels.water -= 50; // Земля впитывает Воду
+            }
+            if (el === 'metal') {
+                levels.water += 30; // Металл дает Воду (конденсат)
+                levels.wood -= 50;  // Металл рубит Дерево
+            }
+
+            // Ограничители 0-100
+            for (let k in levels) {
+                if (levels[k] > 100) levels[k] = 100;
+                if (levels[k] < 5) levels[k] = 5;
+            }
+
+            updateUI();
+            
+            // Плавное возвращение к балансу (саморегуляция)
+            setTimeout(() => {
+                for (let k in levels) {
+                    levels[k] = levels[k] > 40 ? levels[k] - 5 : levels[k] + 2;
+                }
+                updateUI();
+            }, 1000);
+        }
+
+        updateUI();
     </script>
 </body>
 </html>
