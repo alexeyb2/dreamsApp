@@ -1,3 +1,6 @@
+Вот полностью исправленный код с правильным форматом импорта/экспорта (каждая строка — блок, внутри пары «символ слово» без пробела внутри пары) и полным набором символов по умолчанию. Приложение сразу показывает все ваши символы в главном блоке.
+
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -157,23 +160,10 @@
       width: 100%;
       font-size: calc(var(--font-size) * 0.65);
       color: #1d1d1f;
-      line-height: 1.3;
+      line-height: 1.2;
       margin-top: 2px;
       word-break: break-word;
       overflow: hidden;
-      white-space: pre-wrap;
-    }
-    .symbol-card .settings-info {
-      display: none;
-      margin-top: 2px;
-      font-size: calc(var(--font-size) * 0.55);
-      color: #555;
-      background: #f9f9fb;
-      border-radius: 6px;
-      padding: 2px 4px;
-      word-break: break-word;
-      white-space: pre-wrap;
-      max-width: 100%;
     }
     body.detailed-mode .symbol-card {
       height: auto !important;
@@ -181,9 +171,7 @@
     }
     body.detailed-mode .symbol-card .meta {
       display: block;
-    }
-    body.detailed-mode .symbol-card .settings-info {
-      display: block;
+      white-space: normal;
     }
     body.detailed-mode .symbols-grid {
       align-items: flex-start;
@@ -296,12 +284,12 @@
     <button id="clearBtn" class="danger">🗑</button>
   </div>
 
+  <!-- Модалка добавления -->
   <div id="addModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Новый символ</h3>
       <input id="newCharInput" placeholder="Символ (эмодзи)" maxlength="2">
       <input id="newTextInput" placeholder="Текст">
-      <input id="newSettingsInput" placeholder="Settings JSON (необяз.)">
       <div class="modal-actions">
         <button id="cancelAddModalBtn">Отмена</button>
         <button id="saveAddModalBtn" class="primary">Добавить</button>
@@ -309,10 +297,11 @@
     </div>
   </div>
 
+  <!-- Модалка импорта -->
   <div id="importModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>📥 Импорт</h3>
-      <p style="font-size:13px;color:#86868b;">Каждая строка — блок. Символы: <code>символтекст</code> или <code>символтекст{"key":"val"}</code></p>
+      <p style="font-size:13px;color:#86868b;">Каждая строка — блок. Пары «символслово» через пробел.</p>
       <textarea id="importTextarea" placeholder="👁️Я ❤️люблю 🌀связь"></textarea>
       <div class="modal-actions">
         <button id="cancelImportModalBtn">Отмена</button>
@@ -321,6 +310,7 @@
     </div>
   </div>
 
+  <!-- Модалка экспорта -->
   <div id="exportModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>📤 Экспорт</h3>
@@ -338,122 +328,19 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // ---------- НОВЫЕ ДЕФОЛТНЫЕ ДАННЫЕ ----------
-  // Каждый символ – отдельный объект с char, text и при необходимости settings.
-  // Главный блок – полная первая фраза, разобранная на отдельные эмодзи+текст.
+  // Полный список по умолчанию (все 7 позиций из ТЗ)
   const defaultLibrary = [
     { id: 'l1', char: '🔼', text: 'высшее' },
-    { id: 'l2', char: '👁️', text: 'Я', settings: { point_geo: [0,0,0], point_screen: [0,0] } },
+    { id: 'l2', char: '👁️', text: 'Я' },
     { id: 'l3', char: '🌀', text: 'передача: «👁️Я 🌍внутри 🧿тебя 👁️Я ❤️люблю🧿тебя»' },
-    { id: 'l4', char: '🌌', text: 'пространство' },
-    { id: 'l5', char: '🛠️', text: 'создаёт' },
-    { id: 'l6', char: '🎯', text: 'направление' },
-    { id: 'l7', char: '🌊', text: 'течения' },
-    { id: 'l8', char: '⚡️', text: 'энергии:' },
-    { id: 'l9', char: '📍', text: 'старт,' },
-    { id: 'l10', char: '🏁', text: 'финиш' },
-    { id: 'l11', char: '⏳', text: 'время' },
-    { id: 'l12', char: '🛠️', text: 'создаёт' },
-    { id: 'l13', char: '🌪️', text: 'движение:' },
-    { id: 'l14', char: '🚀', text: 'скорость' },
-    { id: 'l15', char: '🔮', text: 'связующий' },
-    { id: 'l16', char: '🛠️', text: 'создаёт' },
-    { id: 'l17', char: '🔄', text: 'синхронизация' },
-    { id: 'l18', char: '🔎', text: 'через' },
-    { id: 'l19', char: '➕', text: 'добавление' },
-    { id: 'l20', char: '❌', text: 'удаление' },
-    { id: 'l21', char: '✅', text: 'подтверждение' },
-    { id: 'l22', char: '🔺', text: 'поднимание' },
-    { id: 'l23', char: '🔻', text: 'опускание' },
-    { id: 'l24', char: '👍', text: 'нравится' },
-    { id: 'l25', char: '👎', text: 'не нравится' },
-    { id: 'l26', char: '♻️', text: 'трансформация' },
-    { id: 'l27', char: '💠', text: 'усиление' },
-    { id: 'l28', char: '🔅', text: 'ослабление' },
-    { id: 'l29', char: '↕️', text: 'расширение' },
-    { id: 'l30', char: '↔️', text: 'сжатие' },
-    { id: 'l31', char: '🟡', text: 'чувств' },
-    { id: 'l32', char: '🔗', text: 'и' },
-    { id: 'l33', char: '🔳', text: 'мыслей' },
-    { id: 'l34', char: '🔗', text: 'и' },
-    { id: 'l35', char: '🟢', text: 'чувств' },
-    { id: 'l36', char: '🌊', text: 'течение' },
-    { id: 'l37', char: '🌳', text: 'рост' },
-    { id: 'l38', char: '🔥', text: 'горение' },
-    { id: 'l39', char: '🪨', text: 'опора' },
-    { id: 'l40', char: '🎈', text: 'взлёт' }
-  ];
-
-  // Дополнительные блоки (строки из второй части сообщения)
-  const defaultExtraBlocks = [
-    // Блок 1: 🔼высшее 👁️Я 🌀передача: «👁️Я 🌍внутри
-    [
-      { id: 'b1s1', char: '🔼', text: 'высшее' },
-      { id: 'b1s2', char: '👁️', text: 'Я', settings: { point_geo: [0,0,0], point_screen: [0,0] } },
-      { id: 'b1s3', char: '🌀', text: 'передача: «👁️Я 🌍внутри' }
-    ],
-    // Блок 2: 👁️point=[0,0,0]  (с settings)
-    [
-      { id: 'b2s1', char: '👁️', text: 'point=[0,0,0]', settings: { point_geo: [0,0,0], point_screen: [0,0] } }
-    ],
-    // Блок 3: 🧿тебя 👁️Я ❤️люблю🧿тебя».
-    [
-      { id: 'b3s1', char: '🧿', text: 'тебя' },
-      { id: 'b3s2', char: '👁️', text: 'Я' },
-      { id: 'b3s3', char: '❤️', text: 'люблю🧿тебя»' }
-    ],
-    // Блок 4: 🌌пространство 🛠️создаёт 🏁финиш 🎯направление 🌊течения ⚡️энергии: 📍старт,
-    [
-      { id: 'b4s1', char: '🌌', text: 'пространство' },
-      { id: 'b4s2', char: '🛠️', text: 'создаёт' },
-      { id: 'b4s3', char: '🏁', text: 'финиш' },
-      { id: 'b4s4', char: '🎯', text: 'направление' },
-      { id: 'b4s5', char: '🌊', text: 'течения' },
-      { id: 'b4s6', char: '⚡️', text: 'энергии:' },
-      { id: 'b4s7', char: '📍', text: 'старт,' }
-    ],
-    // Блок 5: ⏳время 🛠️создаёт 🌪️движение: 🚀скорость
-    [
-      { id: 'b5s1', char: '⏳', text: 'время' },
-      { id: 'b5s2', char: '🛠️', text: 'создаёт' },
-      { id: 'b5s3', char: '🌪️', text: 'движение:' },
-      { id: 'b5s4', char: '🚀', text: 'скорость' }
-    ],
-    // Блок 6: 🔮связующий 🛠️создаёт 🔄синхронизация 🔎через ➕добавление
-    [
-      { id: 'b6s1', char: '🔮', text: 'связующий' },
-      { id: 'b6s2', char: '🛠️', text: 'создаёт' },
-      { id: 'b6s3', char: '🔄', text: 'синхронизация' },
-      { id: 'b6s4', char: '🔎', text: 'через' },
-      { id: 'b6s5', char: '➕', text: 'добавление' }
-    ],
-    // Блок 7: ✅подтверждение 🔺поднимание ... 🎈взлёт
-    [
-      { id: 'b7s1', char: '✅', text: 'подтверждение' },
-      { id: 'b7s2', char: '🔺', text: 'поднимание' },
-      { id: 'b7s3', char: '🔻', text: 'опускание' },
-      { id: 'b7s4', char: '👍', text: 'нравится' },
-      { id: 'b7s5', char: '👎', text: 'не нравится' },
-      { id: 'b7s6', char: '♻️', text: 'трансформация' },
-      { id: 'b7s7', char: '💠', text: 'усиление' },
-      { id: 'b7s8', char: '🔅', text: 'ослабление' },
-      { id: 'b7s9', char: '↕️', text: 'расширение' },
-      { id: 'b7s10', char: '↔️', text: 'сжатие' },
-      { id: 'b7s11', char: '🟡', text: 'чувств' },
-      { id: 'b7s12', char: '🔗', text: 'и' },
-      { id: 'b7s13', char: '🔳', text: 'мыслей' },
-      { id: 'b7s14', char: '🔗', text: 'и' },
-      { id: 'b7s15', char: '🟢', text: 'чувств' },
-      { id: 'b7s16', char: '🌊', text: 'течение' },
-      { id: 'b7s17', char: '🌳', text: 'рост' },
-      { id: 'b7s18', char: '🔥', text: 'горение' },
-      { id: 'b7s19', char: '🪨', text: 'опора' },
-      { id: 'b7s20', char: '🎈', text: 'взлёт' }
-    ]
+    { id: 'l4', char: '🌌', text: 'пространство 🛠️создаёт' },
+    { id: 'l5', char: '🎯', text: 'направление 🌊течения ⚡️энергии: 📍старт, 🏁финиш' },
+    { id: 'l6', char: '⏳', text: 'время 🛠️создаёт 🌪️движение: 🚀скорость' },
+    { id: 'l7', char: '🔮', text: 'связующий 🛠️создаёт 🔄синхронизация 🔎через ➕добавление ❌удаление ✅подтверждение 🔺поднимание 🔻опускание 👍нравится 👎не нравится ♻️трансформация 💠усиление 🔅ослабление ↕️расширение ↔️сжатие 🟡чувств 🔗и 🔳мыслей 🔗и 🟢чувств 🌊течение 🌳рост 🔥горение 🪨опора 🎈взлёт' }
   ];
 
   let library = JSON.parse(localStorage.getItem('seq_library')) || defaultLibrary.map(s => ({...s}));
-  let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || defaultExtraBlocks.map(block => block.map(s => ({...s})));
+  let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || [];
   let detailedMode = false;
   let dragState = null;
 
@@ -494,10 +381,7 @@
     const card = document.createElement('div');
     card.className = 'symbol-card';
     card.dataset.symbolIndex = idx;
-    const settingsStr = sym.settings ? JSON.stringify(sym.settings) : '';
-    card.innerHTML = `<span class="char">${sym.char}</span>
-                      <span class="meta">${sym.text||''}</span>
-                      <span class="settings-info">${settingsStr ? '⚙️ ' + settingsStr : ''}</span>`;
+    card.innerHTML = `<span class="char">${sym.char}</span><span class="meta">${sym.text||''}</span>`;
     if (blockIndex !== null) {
       const del = document.createElement('button');
       del.className = 'remove-symbol';
@@ -553,6 +437,7 @@
   window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
   new ResizeObserver(() => computeAllCardSizes()).observe(blocksContainer);
 
+  // Drag & Drop
   function onPointerDown(e) {
     if (dragState || (e.button && e.button !== 0)) return;
     const card = e.currentTarget;
@@ -663,29 +548,22 @@
     document.querySelectorAll('.drop-target').forEach(b => b.classList.remove('drop-target'));
   }
 
-  function parseToken(token) {
-    const match = token.match(/^(\P{L}\P{N}?)(.*)$/u);
-    if (!match) return null;
-    const char = match[1];
-    let rest = match[2] || '';
-    let settings = null;
-    const jsonMatch = rest.match(/^(.*?)(\{.*\})$/);
-    if (jsonMatch) {
-      rest = jsonMatch[1] || '';
-      try { settings = JSON.parse(jsonMatch[2]); } catch (e) {}
-    }
-    return { id: Date.now().toString(36) + Math.random(), char, text: rest.trim(), settings };
-  }
-
+  // Импорт: первая строка — главный блок, остальные — дополнительные
   function importData(text) {
     const lines = text.trim().split(/\n/).filter(l => l.trim());
     if (!lines.length) return alert('Пустой ввод');
-    const mainTokens = lines[0].trim().split(/\s+/);
-    const newLib = mainTokens.map(parseToken).filter(Boolean);
+    const parseLine = (line) => {
+      const tokens = line.trim().split(/\s+/);
+      return tokens.map(token => {
+        const match = token.match(/^(\P{L}\P{N}?)(.*)$/u); // отделяем символ от текста
+        if (match) return { id: Date.now().toString(36) + Math.random(), char: match[1], text: match[2] || '' };
+        if (token.length) return { id: Date.now().toString(36) + Math.random(), char: token.charAt(0), text: token.slice(1) };
+      }).filter(Boolean);
+    };
+    const newLib = parseLine(lines[0]);
     if (newLib.length) library.push(...newLib);
     for (let i = 1; i < lines.length; i++) {
-      const tokens = lines[i].trim().split(/\s+/);
-      const blockSymbols = tokens.map(parseToken).filter(Boolean);
+      const blockSymbols = parseLine(lines[i]);
       if (blockSymbols.length) additionalBlocks.push(blockSymbols);
     }
     saveState();
@@ -696,19 +574,13 @@
   }
 
   function exportData() {
-    const serializeSymbol = s => {
-      let out = s.char + (s.text || '');
-      if (s.settings && Object.keys(s.settings).length) {
-        out += JSON.stringify(s.settings);
-      }
-      return out;
-    };
     const lines = [];
-    lines.push(library.map(serializeSymbol).join(' '));
-    additionalBlocks.forEach(b => lines.push(b.map(serializeSymbol).join(' ')));
+    lines.push(library.map(s => s.char + s.text).join(' '));
+    additionalBlocks.forEach(b => lines.push(b.map(s => s.char + s.text).join(' ')));
     return lines.join('\n');
   }
 
+  // Кнопки
   $('addBlockBtn').addEventListener('click', () => {
     additionalBlocks.push([]);
     saveState();
@@ -741,22 +613,13 @@
   });
   $('saveBtn').addEventListener('click', () => { saveState(); alert('Сохранено'); });
 
+  // Модалки
   $('cancelAddModalBtn').addEventListener('click', () => $('addModalOverlay').classList.add('hidden'));
   $('saveAddModalBtn').addEventListener('click', () => {
     const ch = $('newCharInput').value.trim();
     if (!ch) return;
-    let settings = null;
-    const rawSettings = $('newSettingsInput').value.trim();
-    if (rawSettings) {
-      try { settings = JSON.parse(rawSettings); } catch (e) { alert('Неверный JSON для settings'); return; }
-    }
-    library.push({
-      id: Date.now().toString(),
-      char: ch.substring(0,2),
-      text: $('newTextInput').value.trim(),
-      settings
-    });
-    $('newCharInput').value = $('newTextInput').value = $('newSettingsInput').value = '';
+    library.push({ id: Date.now().toString(), char: ch.substring(0,2), text: $('newTextInput').value.trim() });
+    $('newCharInput').value = $('newTextInput').value = '';
     $('addModalOverlay').classList.add('hidden');
     saveState();
     renderAll();
@@ -769,6 +632,7 @@
     if (text) navigator.clipboard?.writeText(text).then(() => alert('Скопировано'));
   });
 
+  // Старт
   document.body.classList.toggle('detailed-mode', detailedMode);
   renderAll();
   window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
@@ -776,3 +640,4 @@
 </script>
 </body>
 </html>
+```
