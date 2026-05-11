@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Редактор символов</title>
+  <title>Редактор символов — Telegram Mini App</title>
   <style>
     * {
       margin: 0;
@@ -106,6 +106,7 @@
       overflow: hidden;
       flex: 1 1 auto;
       min-height: 120px;
+      transition: all 0.2s;
     }
     .block-header {
       display: flex;
@@ -119,6 +120,17 @@
       letter-spacing: 0.04em;
       flex-shrink: 0;
     }
+    .block-delete {
+      background: none;
+      border: none;
+      color: #ff3b30;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+      touch-action: manipulation;
+    }
+    .block-delete:active { transform: scale(0.9); }
     .symbols-grid {
       flex: 1;
       display: flex;
@@ -220,6 +232,31 @@
       box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
     }
 
+    /* Корзина (trash zone) */
+    .trash-zone {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ff3b30;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      box-shadow: 0 4px 16px rgba(255,59,48,0.4);
+    }
+    .trash-zone.active {
+      opacity: 1;
+    }
+
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -258,6 +295,7 @@
       justify-content: flex-end;
     }
     .hidden { display: none !important; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   </style>
 </head>
 <body>
@@ -282,6 +320,12 @@
     <button id="clearBtn" class="danger">🗑</button>
   </div>
 
+  <!-- Корзина для удаления перетаскиванием -->
+  <div class="trash-zone" id="trashZone">
+    <span>🗑️</span> Отпустите, чтобы удалить
+  </div>
+
+  <!-- Модалки -->
   <div id="addModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Новый символ</h3>
@@ -293,7 +337,6 @@
       </div>
     </div>
   </div>
-
   <div id="importModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>📥 Импорт</h3>
@@ -305,7 +348,6 @@
       </div>
     </div>
   </div>
-
   <div id="exportModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>📤 Экспорт</h3>
@@ -323,35 +365,29 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // Исходная фраза (полностью в новом формате)
+  // Обновлённая фраза
   const phrase = `🔼:высшее 👁️:Я 🌀:передача:👁️Я 🌍:внутри 🧿:тебя 👁️:Я ❤️:люблю 🧿:тебя
 🌌:пространство 🛠️:создаёт 🎯:направление 🌊:течения ⚡️:энергии: 📍:старт 🏁:финиш 
 ⏳:время 🛠️:создаёт 🌪️:движение: 🚀:скорость 
 🔮:связующий 🛠️:создаёт 🔄:синхронизация 🔎:через 
 🔳:мыслей ➕:добавление ❌:удаление ✅:подтверждение ♻️:трансформация 🔗:и
 🟡:чувств 🔺:поднимание 🔻:опускание 👍:нравится 👎:не_нравится  💠:усиление 🔅:ослабление ↕️:расширение ↔️:сжатие  
-  🔗:и 🟢:чувств 🌊:течение 🌳:рост 🔥:горение 🪨:опора 🎈:взлёт.`
+ 🔗:и 🛠️:создаёт  🌊:течение 🌳:рост 🔥:горение 🪨:опора 🎈:взлёт.`;
 
-  // Улучшенный парсер строки (блока) в массив символов
   function parseLine(line) {
     const symbols = [];
     const tokens = line.trim().split(/\s+/);
-    
     for (const token of tokens) {
       if (!token) continue;
-      
       const colonIndex = token.indexOf(':');
       let char, text;
       if (colonIndex > 0) {
-        // Всё до первого двоеточия — символ, после — текст
         char = token.substring(0, colonIndex);
         text = token.substring(colonIndex + 1);
       } else {
-        // На случай, если двоеточия нет — весь токен становится символом
         char = token;
         text = '';
       }
-      
       if (char) {
         symbols.push({
           id: Date.now().toString(36) + Math.random().toString(36),
@@ -366,15 +402,10 @@
   function parsePhrase(phraseText) {
     const lines = phraseText.split(/\n/).filter(line => line.trim());
     const result = { library: [], blocks: [] };
-    
-    if (lines.length > 0) {
-      result.library = parseLine(lines[0]);
-    }
+    if (lines.length > 0) result.library = parseLine(lines[0]);
     for (let i = 1; i < lines.length; i++) {
       const symbols = parseLine(lines[i]);
-      if (symbols.length > 0) {
-        result.blocks.push(symbols);
-      }
+      if (symbols.length > 0) result.blocks.push(symbols);
     }
     return result;
   }
@@ -384,6 +415,7 @@
   let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || defaultData.blocks;
   let detailedMode = false;
   let dragState = null;
+  const trashZone = document.getElementById('trashZone');
 
   const $ = id => document.getElementById(id);
   const blocksContainer = $('blocksContainer');
@@ -412,9 +444,23 @@
     wrapper.className = 'block';
     wrapper.dataset.type = type;
     if (blockIndex !== null) wrapper.dataset.blockIndex = blockIndex;
-    wrapper.innerHTML = `<div class="block-header">${title} <span style="font-size:10px;">${symbols.length} симв.</span></div><div class="symbols-grid"></div>`;
+    const headerHtml = `${title} <span style="font-size:10px;">${symbols.length} симв.</span>`;
+    const deleteButton = blockIndex !== null ? `<button class="block-delete" data-delete-block="${blockIndex}">✕</button>` : '';
+    wrapper.innerHTML = `<div class="block-header">${headerHtml}${deleteButton}</div><div class="symbols-grid"></div>`;
     const grid = wrapper.querySelector('.symbols-grid');
     symbols.forEach((sym, idx) => grid.appendChild(createCard(sym, idx, blockIndex)));
+
+    // Обработчик удаления блока
+    if (blockIndex !== null) {
+      wrapper.querySelector('.block-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Удалить этот блок?')) {
+          additionalBlocks.splice(blockIndex, 1);
+          saveState();
+          renderAll();
+        }
+      });
+    }
     return wrapper;
   }
 
@@ -478,7 +524,7 @@
   window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
   new ResizeObserver(() => computeAllCardSizes()).observe(blocksContainer);
 
-  // Drag & Drop (без изменений)
+  // Drag & Drop с удалением вне блоков
   function onPointerDown(e) {
     if (dragState || (e.button && e.button !== 0)) return;
     const card = e.currentTarget;
@@ -520,9 +566,12 @@
     dragState.ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
     clearHighlights();
     const el = getElementUnderPoint(e.clientX, e.clientY);
-    if (el) {
-      const block = el.closest('.block');
-      if (block) block.classList.add('drop-target');
+    const blockUnder = el?.closest('.block');
+    if (blockUnder) {
+      blockUnder.classList.add('drop-target');
+      trashZone.classList.remove('active');
+    } else {
+      trashZone.classList.add('active');
     }
   }
 
@@ -533,10 +582,23 @@
     dragState.ghost.remove();
     dragState.sourceCard.classList.remove('dragging');
     clearHighlights();
+    trashZone.classList.remove('active');
 
     const targetEl = getElementUnderPoint(e.clientX, e.clientY);
     const targetBlock = targetEl?.closest('.block');
-    if (!targetBlock) { dragState = null; return; }
+
+    // Если отпустили вне блоков — удаляем символ
+    if (!targetBlock) {
+      if (dragState.type === 'main') {
+        library.splice(dragState.symbolIndex, 1);
+      } else {
+        additionalBlocks[dragState.blockIndex].splice(dragState.symbolIndex, 1);
+      }
+      saveState();
+      renderAll();
+      dragState = null;
+      return;
+    }
 
     const targetType = targetBlock.dataset.type;
     const targetBlockIndex = targetType === 'block' ? +targetBlock.dataset.blockIndex : null;
@@ -557,7 +619,7 @@
         const moved = {...dragState.sym};
         library.splice(dragState.symbolIndex, 1);
         additionalBlocks[targetBlockIndex].splice(insertIndex, 0, moved);
-      }
+      } // Главный блок сам в себя — ничего
     } else {
       const srcIdx = dragState.blockIndex;
       if (targetType === 'block' && targetBlockIndex !== null) {
