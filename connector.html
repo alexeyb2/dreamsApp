@@ -146,7 +146,7 @@
       align-content: flex-start;
       justify-content: flex-start;
       padding: 4px;
-      gap: 4px;
+      gap: var(--grid-gap, 4px);
       overflow: hidden;
       min-height: 0;
     }
@@ -182,15 +182,32 @@
       text-align: center;
       width: 100%;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
       font-size: calc(var(--font-size) * 0.7);
       color: var(--text);
       line-height: 1.2;
       margin-top: 2px;
+      word-break: break-word;
+      white-space: normal;
+      max-height: 100%;
     }
-    body.detailed-mode .symbol-card .meta { display: block; }
-    body.detailed-mode .symbol-card .char { margin-bottom: 1px; }
+    /* Detailed mode */
+    body.detailed-mode .symbol-card {
+      height: auto !important;
+      min-height: var(--card-size, 52px);
+    }
+    body.detailed-mode .symbol-card .meta {
+      display: block;
+      white-space: normal;
+      word-break: break-word;
+      overflow: visible;
+    }
+    body.detailed-mode .symbol-card .char {
+      margin-bottom: 2px;
+    }
+    body.detailed-mode .symbols-grid {
+      align-content: flex-start;
+      align-items: flex-start;
+    }
 
     .remove-symbol {
       position: absolute;
@@ -317,6 +334,7 @@
       <button id="addBlockBtn" class="primary" style="flex:1;">+ Блок</button>
       <button id="addSymbolBtn" style="flex:1;">+ Символ</button>
       <button id="importBtn" style="flex:1;">📥 Импорт</button>
+      <button id="exportBtn" style="flex:1;">📤 Экспорт</button>
       <button id="clearBtn" style="background:#ff3b30; color:white; border-radius:20px; padding:10px;">🗑</button>
     </div>
 
@@ -342,6 +360,19 @@
         <div class="modal-actions">
           <button id="cancelImportModalBtn">Отмена</button>
           <button id="saveImportModalBtn" class="primary">Импортировать</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно экспорта -->
+    <div id="exportModalOverlay" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>📤 Экспорт</h3>
+        <p style="font-size:13px;color:var(--hint);">Каждая строка — отдельный блок. Символы внутри блока разделены пробелом.</p>
+        <textarea id="exportTextarea" readonly></textarea>
+        <div class="modal-actions">
+          <button id="cancelExportModalBtn">Закрыть</button>
+          <button id="copyExportBtn" class="primary">Копировать</button>
         </div>
       </div>
     </div>
@@ -373,6 +404,7 @@
       const addBlockBtn = document.getElementById('addBlockBtn');
       const addSymbolBtn = document.getElementById('addSymbolBtn');
       const importBtn = document.getElementById('importBtn');
+      const exportBtn = document.getElementById('exportBtn');
       const toggleModeBtn = document.getElementById('toggleModeBtn');
       const copyBtn = document.getElementById('copyBtn');
       const saveBtn = document.getElementById('saveBtn');
@@ -389,6 +421,11 @@
       const importTextarea = document.getElementById('importTextarea');
       const cancelImportModalBtn = document.getElementById('cancelImportModalBtn');
       const saveImportModalBtn = document.getElementById('saveImportModalBtn');
+
+      const exportModalOverlay = document.getElementById('exportModalOverlay');
+      const exportTextarea = document.getElementById('exportTextarea');
+      const cancelExportModalBtn = document.getElementById('cancelExportModalBtn');
+      const copyExportBtn = document.getElementById('copyExportBtn');
 
       function saveState() {
         try {
@@ -616,24 +653,18 @@
 
       // ═══════════ Импорт списка ═══════════
       function importSymbols(rawText) {
-        // Разделитель — только пробелы (и переносы строк тоже считаются разделителями)
         const tokens = rawText.trim().split(/\s+/);
         const newSymbols = [];
         for (let i = 0; i < tokens.length; i++) {
           const token = tokens[i];
           if (!token) continue;
-          // Проверяем, содержит ли токен эмодзи или символ + слово слитно?
-          // Формат: эмодзи_слово, например "❤️любовь"
-          // Разделим эмодзи и текст: ищем первый непробельный символ как эмодзи
-          const match = token.match(/^(\P{L}\P{N}?)(.*)$/u); // эмодзи + всё остальное
+          // отделяем эмодзи/символ от текста
+          const match = token.match(/^(\P{L}\P{N}?)(.*)$/u);
           if (match) {
             const char = match[1];
             const text = match[2] || '';
-            if (char) {
-              newSymbols.push({ id: 'imp_'+Date.now()+'_'+i, char, text });
-            }
+            if (char) newSymbols.push({ id: 'imp_'+Date.now()+'_'+i, char, text });
           } else {
-            // На случай обычного текста — используем первый символ как эмодзи
             const char = token.charAt(0);
             const text = token.slice(1);
             newSymbols.push({ id: 'imp_'+Date.now()+'_'+i, char, text });
@@ -651,6 +682,23 @@
         }
       }
 
+      // ═══════════ Экспорт ═══════════
+      function exportData() {
+        const lines = [];
+        // Главный блок
+        lines.push(library.map(s => s.char + s.text).join(' '));
+        // Дополнительные блоки
+        additionalBlocks.forEach(block => {
+          lines.push(block.map(s => s.char + s.text).join(' '));
+        });
+        return lines.join('\n');
+      }
+
+      function openExportModal() {
+        exportTextarea.value = exportData();
+        exportModalOverlay.classList.remove('hidden');
+      }
+
       // ═══════════ Кнопки ═══════════
       addBlockBtn.addEventListener('click', () => {
         additionalBlocks.push([]);
@@ -666,6 +714,8 @@
         importModalOverlay.classList.remove('hidden');
         importTextarea.focus();
       });
+
+      exportBtn.addEventListener('click', openExportModal);
 
       toggleModeBtn.addEventListener('click', () => {
         detailedMode = !detailedMode;
@@ -715,6 +765,19 @@
       });
       importModalOverlay.addEventListener('click', (e) => {
         if (e.target === importModalOverlay) importModalOverlay.classList.add('hidden');
+      });
+
+      // Модалка экспорта
+      cancelExportModalBtn.addEventListener('click', () => exportModalOverlay.classList.add('hidden'));
+      copyExportBtn.addEventListener('click', () => {
+        const text = exportTextarea.value;
+        if (!text) return;
+        navigator.clipboard?.writeText(text).then(() => {
+          alert('Экспортировано в буфер обмена');
+        }).catch(() => alert('Не удалось скопировать'));
+      });
+      exportModalOverlay.addEventListener('click', (e) => {
+        if (e.target === exportModalOverlay) exportModalOverlay.classList.add('hidden');
       });
 
       // Старт
