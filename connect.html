@@ -323,7 +323,7 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // Исходная фраза (уже с новым форматом 👁️:Я)
+  // Исходная фраза (полностью в новом формате)
   const phrase = `🔼:высшее 👁️:Я 🌀:передача: «👁️Я 🌍внутри 
 🧿:тебя 👁️:Я ❤️:люблю🧿:тебя».
 
@@ -339,33 +339,24 @@
     
     for (const token of tokens) {
       if (!token) continue;
-      let char, text;
       
-      // Проверяем новый формат: символ:слово (есть двоеточие)
       const colonIndex = token.indexOf(':');
+      let char, text;
       if (colonIndex > 0) {
         // Всё до первого двоеточия — символ, после — текст
         char = token.substring(0, colonIndex);
         text = token.substring(colonIndex + 1);
       } else {
-        // Старый формат без двоеточия: отделяем эмодзи от остального текста
-        const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F?|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|[\u2000-\u2BFF]|[\u3000-\u303F]|[\uFE00-\uFEFF]|[\U0001F000-\U0001FFFF])(.*)$/u;
-        const match = token.match(emojiRegex);
-        if (match) {
-          char = match[1];
-          text = match[2] || '';
-        } else {
-          // Если эмодзи не найден, используем первый символ как символ
-          char = token.charAt(0);
-          text = token.slice(1);
-        }
+        // На случай, если двоеточия нет — весь токен становится символом
+        char = token;
+        text = '';
       }
       
       if (char) {
         symbols.push({
           id: Date.now().toString(36) + Math.random().toString(36),
           char: char,
-          text: text || ''
+          text: text
         });
       }
     }
@@ -611,7 +602,6 @@
 
   function exportData() {
     const lines = [];
-    // Экспорт в новом формате символ:слово
     lines.push(library.map(s => s.char + ':' + s.text).join(' '));
     additionalBlocks.forEach(b => lines.push(b.map(s => s.char + ':' + s.text).join(' ')));
     return lines.join('\n');
