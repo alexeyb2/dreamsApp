@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>DreamSApp</title>
+  <title>Редактор символов</title>
   <style>
     * {
       margin: 0;
@@ -282,7 +282,6 @@
     <button id="clearBtn" class="danger">🗑</button>
   </div>
 
-  <!-- Модалка добавления -->
   <div id="addModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Новый символ</h3>
@@ -295,12 +294,11 @@
     </div>
   </div>
 
-  <!-- Модалка импорта -->
   <div id="importModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>📥 Импорт</h3>
-      <p style="font-size:13px;color:#86868b;">Каждая строка — блок. Пары «символслово» через пробел.</p>
-      <textarea id="importTextarea" placeholder="👁️Я ❤️люблю 🌀связь"></textarea>
+      <p style="font-size:13px;color:#86868b;">Каждая строка — блок. Пары «символ:слово» через пробел.</p>
+      <textarea id="importTextarea" placeholder="👁️:Я ❤️:люблю 🌀:связь"></textarea>
       <div class="modal-actions">
         <button id="cancelImportModalBtn">Отмена</button>
         <button id="saveImportModalBtn" class="primary">Импортировать</button>
@@ -308,7 +306,6 @@
     </div>
   </div>
 
-  <!-- Модалка экспорта -->
   <div id="exportModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>📤 Экспорт</h3>
@@ -326,81 +323,72 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // Исходная фраза для парсинга
-  const phrase = `🔼высшее 👁️Я 🌀передача: «👁️Я 🌍внутри 🧿тебя 👁️Я ❤️люблю🧿тебя».
-🌌пространство 🛠️создаёт 
-🎯направление 🌊течения ⚡️энергии: 📍старт, 🏁финиш 
-⏳время 🛠️создаёт 🌪️движение: 🚀скорость 
-🔮связующий 🛠️создаёт 🔄синхронизация 🔎через 
-🔳мысли ➕добавление ♻️трансформация ❌удаление ✅подтверждение 🔗и
-🟡чувств🔺поднимание 🔻опускание 👍нравится 👎не нравится  💠усиление 🔅ослабление ↕️расширение ↔️сжатие 
-🛠️создаёт 🌊течение 🌳рост 🔥горение 🪨опора 🎈взлёт.`;
+  // Исходная фраза (уже с новым форматом 👁️:Я)
+  const phrase = `🔼:высшее 👁️:Я 🌀:передача: «👁️Я 🌍внутри 
+🧿:тебя 👁️:Я ❤️:люблю🧿:тебя».
 
-  // Функция парсинга строки в символы
+🌌:пространство 🛠️:создаёт 
+🎯:направление 🌊:течения ⚡️:энергии: 📍:старт, 🏁:финиш 
+⏳:время 🛠️:создаёт 🌪️:движение: 🚀:скорость 
+🔮:связующий 🛠️:создаёт 🔄:синхронизация 🔎:через ➕:добавление ❌:удаление ✅:подтверждение 🔺:поднимание 🔻:опускание 👍:нравится 👎:не нравится ♻️:трансформация 💠:усиление 🔅:ослабление ↕️:расширение ↔️:сжатие 🟡:чувств 🔗:и 🔳:мыслей 🔗:и 🟢:чувств 🌊:течение 🌳:рост 🔥:горение 🪨:опора 🎈:взлёт.`
+
+  // Улучшенный парсер строки (блока) в массив символов
   function parseLine(line) {
     const symbols = [];
-    // Разбиваем строку на токены по пробелам
     const tokens = line.trim().split(/\s+/);
     
     for (const token of tokens) {
       if (!token) continue;
+      let char, text;
       
-      // Ищем эмодзи в начале токена (эмодзи могут быть составными)
-      const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F?|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|[\u2000-\u2BFF]|[\u3000-\u303F]|[\uFE00-\uFEFF]|[\U0001F000-\U0001FFFF])(.*)$/u;
-      const match = token.match(emojiRegex);
-      
-      if (match) {
-        const char = match[1];
-        const text = match[2] || '';
-        if (char) {
-          symbols.push({
-            id: Date.now().toString(36) + Math.random().toString(36),
-            char: char,
-            text: text
-          });
-        }
+      // Проверяем новый формат: символ:слово (есть двоеточие)
+      const colonIndex = token.indexOf(':');
+      if (colonIndex > 0) {
+        // Всё до первого двоеточия — символ, после — текст
+        char = token.substring(0, colonIndex);
+        text = token.substring(colonIndex + 1);
       } else {
-        // Если эмодзи не найден, используем первый символ как символ
-        const char = token.charAt(0);
-        const text = token.slice(1);
+        // Старый формат без двоеточия: отделяем эмодзи от остального текста
+        const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F?|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|[\u2000-\u2BFF]|[\u3000-\u303F]|[\uFE00-\uFEFF]|[\U0001F000-\U0001FFFF])(.*)$/u;
+        const match = token.match(emojiRegex);
+        if (match) {
+          char = match[1];
+          text = match[2] || '';
+        } else {
+          // Если эмодзи не найден, используем первый символ как символ
+          char = token.charAt(0);
+          text = token.slice(1);
+        }
+      }
+      
+      if (char) {
         symbols.push({
           id: Date.now().toString(36) + Math.random().toString(36),
           char: char,
-          text: text
+          text: text || ''
         });
       }
     }
     return symbols;
   }
 
-  // Парсим фразу на блоки
   function parsePhrase(phraseText) {
-    // Разбиваем на строки
     const lines = phraseText.split(/\n/).filter(line => line.trim());
-    const result = {
-      library: [],
-      blocks: []
-    };
+    const result = { library: [], blocks: [] };
     
-    // Первая строка — главный блок
     if (lines.length > 0) {
       result.library = parseLine(lines[0]);
     }
-    
-    // Остальные строки — дополнительные блоки
     for (let i = 1; i < lines.length; i++) {
       const symbols = parseLine(lines[i]);
       if (symbols.length > 0) {
         result.blocks.push(symbols);
       }
     }
-    
     return result;
   }
 
-  // Парсим фразу по умолчанию
   const defaultData = parsePhrase(phrase);
-  
   let library = JSON.parse(localStorage.getItem('seq_library')) || defaultData.library;
   let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || defaultData.blocks;
   let detailedMode = false;
@@ -422,7 +410,7 @@
     blocksContainer.innerHTML = '';
     blocksContainer.appendChild(createBlock('main', 'Главный блок', library, null));
     additionalBlocks.forEach((block, idx) => {
-      blocksContainer.appendChild(createBlock('block', 'Блок ' + (idx+1), block, idx));
+      blocksContainer.appendChild(createBlock('block', `Блок ${idx+1}`, block, idx));
     });
     updateResult();
     requestAnimationFrame(computeAllCardSizes);
@@ -499,7 +487,7 @@
   window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
   new ResizeObserver(() => computeAllCardSizes()).observe(blocksContainer);
 
-  // Drag & Drop
+  // Drag & Drop (без изменений)
   function onPointerDown(e) {
     if (dragState || (e.button && e.button !== 0)) return;
     const card = e.currentTarget;
@@ -610,7 +598,6 @@
     document.querySelectorAll('.drop-target').forEach(b => b.classList.remove('drop-target'));
   }
 
-  // Импорт: первая строка — главный блок, остальные — дополнительные
   function importData(text) {
     const parsed = parsePhrase(text);
     if (parsed.library.length) library.push(...parsed.library);
@@ -624,8 +611,9 @@
 
   function exportData() {
     const lines = [];
-    lines.push(library.map(s => s.char + s.text).join(' '));
-    additionalBlocks.forEach(b => lines.push(b.map(s => s.char + s.text).join(' ')));
+    // Экспорт в новом формате символ:слово
+    lines.push(library.map(s => s.char + ':' + s.text).join(' '));
+    additionalBlocks.forEach(b => lines.push(b.map(s => s.char + ':' + s.text).join(' ')));
     return lines.join('\n');
   }
 
@@ -681,7 +669,6 @@
     if (text) navigator.clipboard?.writeText(text).then(() => alert('Скопировано'));
   });
 
-  // Старт
   document.body.classList.toggle('detailed-mode', detailedMode);
   renderAll();
   window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
