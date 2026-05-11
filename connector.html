@@ -19,318 +19,62 @@
       --radius: 16px;
       --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
     }
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-    html, body {
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      font-family: var(--font);
-      background: var(--bg);
-      color: var(--text);
-    }
-    #app {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      height: 100dvh;
-      max-width: 600px;
-      margin: 0 auto;
-      background: var(--bg);
-      position: relative;
-    }
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-      padding: 10px 12px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      z-index: 20;
-      flex-shrink: 0;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-    }
-    .result-box {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      background: #f0f0f5;
-      border-radius: 24px;
-      padding: 6px 14px;
-      gap: 8px;
-      min-width: 0;
-    }
-    .result-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--hint);
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-    .result-string {
-      flex: 1;
-      font-size: 14px;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .header-buttons {
-      display: flex;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-    .header button {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 8px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.2s;
-      touch-action: manipulation;
-      white-space: nowrap;
-    }
-    .header button:active { transform: scale(0.94); background: #f0f0f5; }
-    .header button.primary { background: var(--accent); color: white; border-color: transparent; }
-    .header button.primary:active { background: #0066d6; }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+    html, body { height:100%; width:100%; overflow:hidden; font-family:var(--font); background:var(--bg); color:var(--text); }
+    #app { display:flex; flex-direction:column; height:100%; height:100dvh; max-width:600px; margin:0 auto; background:var(--bg); position:relative; }
+    .header { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:10px 12px; background:var(--surface); border-bottom:1px solid var(--border); z-index:20; flex-shrink:0; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); }
+    .result-box { flex:1; display:flex; align-items:center; background:#f0f0f5; border-radius:24px; padding:6px 14px; gap:8px; min-width:0; }
+    .result-label { font-size:11px; font-weight:600; color:var(--hint); text-transform:uppercase; white-space:nowrap; }
+    .result-string { flex:1; font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .header-buttons { display:flex; gap:4px; flex-shrink:0; }
+    .header button { background:var(--surface); border:1px solid var(--border); padding:8px 12px; border-radius:20px; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s; touch-action:manipulation; white-space:nowrap; }
+    .header button:active { transform:scale(0.94); background:#f0f0f5; }
+    .header button.primary { background:var(--accent); color:white; border-color:transparent; }
+    .header button.primary:active { background:#0066d6; }
 
-    .blocks-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 8px 10px;
-      overflow-y: auto;
-      min-height: 0;
-      -webkit-overflow-scrolling: touch;
-    }
-    .block {
-      background: var(--surface);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      flex: 1 1 0;
-      min-height: 0;
-    }
-    .block-header {
-      display: flex;
-      align-items: center;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--hint);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      flex-shrink: 0;
-    }
-    .symbols-grid {
-      flex: 1;
-      display: flex;
-      flex-wrap: wrap;
-      align-content: flex-start;
-      justify-content: flex-start;
-      padding: 4px;
-      gap: var(--grid-gap, 4px);
-      overflow: hidden;
-      min-height: 0;
-    }
-    .symbol-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      cursor: grab;
-      touch-action: none;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-      position: relative;
-      width: var(--card-size, 52px);
-      height: var(--card-size, 52px);
-      font-size: var(--font-size, 12px);
-      transition: width 0.2s, height 0.2s;
-    }
-    .symbol-card:active { cursor: grabbing; }
-    .symbol-card.dragging {
-      opacity: 0.4;
-      transform: scale(0.95);
-      border-style: dashed;
-    }
-    .symbol-card .char {
-      font-size: var(--emoji-size, 24px);
-      line-height: 1;
-    }
-    .symbol-card .meta {
-      display: none;
-      text-align: center;
-      width: 100%;
-      overflow: hidden;
-      font-size: calc(var(--font-size) * 0.7);
-      color: var(--text);
-      line-height: 1.2;
-      margin-top: 2px;
-      word-break: break-word;
-      white-space: normal;
-      max-height: 100%;
-    }
-    /* Detailed mode */
-    body.detailed-mode .symbol-card {
-      height: auto !important;
-      min-height: var(--card-size, 52px);
-    }
-    body.detailed-mode .symbol-card .meta {
-      display: block;
-      white-space: normal;
-      word-break: break-word;
-      overflow: visible;
-    }
-    body.detailed-mode .symbol-card .char {
-      margin-bottom: 2px;
-    }
-    body.detailed-mode .symbols-grid {
-      align-content: flex-start;
-      align-items: flex-start;
-    }
+    .blocks-container { flex:1; display:flex; flex-direction:column; gap:8px; padding:8px 10px; overflow-y:auto; min-height:0; -webkit-overflow-scrolling:touch; }
+    .block { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; flex:1 1 0; min-height:0; }
+    .block-header { display:flex; align-items:center; padding:6px 12px; font-size:12px; font-weight:600; color:var(--hint); text-transform:uppercase; letter-spacing:0.04em; flex-shrink:0; }
+    .symbols-grid { flex:1; display:flex; flex-wrap:wrap; align-content:flex-start; justify-content:flex-start; padding:4px; gap:var(--grid-gap, 4px); overflow:hidden; min-height:0; }
+    .symbol-card { display:flex; flex-direction:column; align-items:center; justify-content:center; background:white; border:1px solid var(--border); border-radius:12px; cursor:grab; touch-action:none; box-shadow:0 1px 2px rgba(0,0,0,0.03); position:relative; width:var(--card-size, 52px); height:var(--card-size, 52px); font-size:var(--font-size, 12px); transition:width 0.2s, height 0.2s; }
+    .symbol-card:active { cursor:grabbing; }
+    .symbol-card.dragging { opacity:0.4; transform:scale(0.95); border-style:dashed; }
+    .symbol-card .char { font-size:var(--emoji-size, 24px); line-height:1; }
+    .symbol-card .meta { display:none; text-align:center; width:100%; overflow:hidden; font-size:calc(var(--font-size) * 0.7); color:var(--text); line-height:1.2; margin-top:2px; word-break:break-word; white-space:normal; max-height:100%; }
+    body.detailed-mode .symbol-card { height:auto !important; min-height:var(--card-size, 52px); }
+    body.detailed-mode .symbol-card .meta { display:block; white-space:normal; word-break:break-word; overflow:visible; }
+    body.detailed-mode .symbol-card .char { margin-bottom:2px; }
+    body.detailed-mode .symbols-grid { align-content:flex-start; align-items:flex-start; }
 
-    .remove-symbol {
-      position: absolute;
-      top: 2px;
-      right: 2px;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: var(--danger);
-      color: white;
-      border: none;
-      font-size: 14px;
-      line-height: 1;
-      cursor: pointer;
-      opacity: 0;
-      transform: scale(0.8);
-      transition: 0.2s;
-      z-index: 2;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .symbol-card:hover .remove-symbol,
-    .symbol-card:active .remove-symbol { opacity: 1; transform: scale(1); }
+    .remove-symbol { position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; background:var(--danger); color:white; border:none; font-size:14px; line-height:1; cursor:pointer; opacity:0; transform:scale(0.8); transition:0.2s; z-index:2; display:flex; align-items:center; justify-content:center; }
+    .symbol-card:hover .remove-symbol, .symbol-card:active .remove-symbol { opacity:1; transform:scale(1); }
 
-    .drag-ghost {
-      position: fixed;
-      z-index: 9999;
-      pointer-events: none;
-      opacity: 0.9;
-      transform: scale(1.1);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-      border-radius: 12px;
-      background: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      font-weight: 600;
-      border: 2px solid var(--accent);
-    }
-    .block.drop-target {
-      border: 2px solid var(--accent);
-      box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
-    }
+    .drag-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:0.9; transform:scale(1.1); box-shadow:0 10px 30px rgba(0,0,0,0.15); border-radius:12px; background:white; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:600; border:2px solid var(--accent); }
+    .block.drop-target { border:2px solid var(--accent); box-shadow:0 0 0 4px rgba(0,122,255,0.1); }
 
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      backdrop-filter: blur(8px);
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal {
-      background: white;
-      border-radius: 24px;
-      padding: 24px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .modal h3 { font-size: 18px; font-weight: 700; }
-    .modal textarea {
-      width: 100%;
-      height: 120px;
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 14px;
-      font-size: 14px;
-      font-family: var(--font);
-      resize: vertical;
-      outline: none;
-      -webkit-user-select: text;
-      user-select: text;
-    }
-    .modal input {
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 14px;
-      font-size: 16px;
-      outline: none;
-    }
-    .modal-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-    .modal-actions button {
-      padding: 10px 18px;
-      border-radius: 20px;
-      border: none;
-      font-weight: 600;
-      background: #eee;
-      color: var(--text);
-    }
-    .modal-actions button.primary { background: var(--accent); color: white; }
-    .hidden { display: none !important; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:center; justify-content:center; }
+    .modal { background:white; border-radius:24px; padding:24px; width:90%; max-width:400px; box-shadow:0 20px 40px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px; }
+    .modal h3 { font-size:18px; font-weight:700; }
+    .modal textarea { width:100%; height:120px; padding:12px; border:1px solid #ddd; border-radius:14px; font-size:14px; font-family:var(--font); resize:vertical; outline:none; -webkit-user-select:text; user-select:text; }
+    .modal input { padding:12px; border:1px solid #ddd; border-radius:14px; font-size:16px; outline:none; }
+    .modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+    .modal-actions button { padding:10px 18px; border-radius:20px; border:none; font-weight:600; background:#eee; color:var(--text); }
+    .modal-actions button.primary { background:var(--accent); color:white; }
+    .hidden { display:none !important; }
   </style>
 </head>
 <body>
   <div id="app">
     <header class="header">
-      <div class="result-box">
-        <span class="result-label">Итог</span>
-        <span class="result-string" id="resultString"></span>
-      </div>
+      <div class="result-box"><span class="result-label">Итог</span><span class="result-string" id="resultString"></span></div>
       <div class="header-buttons">
         <button id="copyBtn" title="Копировать">📋</button>
         <button id="saveBtn" title="Сохранить">💾</button>
         <button id="toggleModeBtn">▤</button>
       </div>
     </header>
-
     <main id="blocksContainer" class="blocks-container"></main>
-
-    <div style="padding: 4px 10px 8px; display: flex; gap: 6px; flex-shrink: 0;">
+    <div style="padding:4px 10px 8px; display:flex; gap:6px; flex-shrink:0;">
       <button id="addBlockBtn" class="primary" style="flex:1;">+ Блок</button>
       <button id="addSymbolBtn" style="flex:1;">+ Символ</button>
       <button id="importBtn" style="flex:1;">📥 Импорт</button>
@@ -338,453 +82,194 @@
       <button id="clearBtn" style="background:#ff3b30; color:white; border-radius:20px; padding:10px;">🗑</button>
     </div>
 
-    <!-- Модальное окно добавления символа -->
+    <!-- Модалки -->
     <div id="addModalOverlay" class="modal-overlay hidden">
-      <div class="modal">
-        <h3>Новый символ</h3>
-        <input id="newCharInput" placeholder="Символ (эмодзи)" maxlength="2">
-        <input id="newTextInput" placeholder="Текст (название)">
-        <div class="modal-actions">
-          <button id="cancelAddModalBtn">Отмена</button>
-          <button id="saveAddModalBtn" class="primary">Добавить</button>
-        </div>
-      </div>
+      <div class="modal"><h3>Новый символ</h3><input id="newCharInput" placeholder="Символ (эмодзи)" maxlength="2"><input id="newTextInput" placeholder="Текст"><div class="modal-actions"><button id="cancelAddModalBtn">Отмена</button><button id="saveAddModalBtn" class="primary">Добавить</button></div></div>
     </div>
-
-    <!-- Модальное окно импорта -->
     <div id="importModalOverlay" class="modal-overlay hidden">
-      <div class="modal">
-        <h3>📥 Импорт списка</h3>
-        <p style="font-size:13px;color:var(--hint);">Формат: символ слово (пары через пробел)<br>Пример: ❤️любовь ☀️солнце 🌀передача</p>
-        <textarea id="importTextarea" placeholder="❤️любовь ☀️солнце 🌀передача: «👁️Я 🌍внутри...»"></textarea>
-        <div class="modal-actions">
-          <button id="cancelImportModalBtn">Отмена</button>
-          <button id="saveImportModalBtn" class="primary">Импортировать</button>
-        </div>
-      </div>
+      <div class="modal"><h3>📥 Импорт списка</h3><p style="font-size:13px;color:var(--hint);">Каждая строка — отдельный блок. Формат: 👁️Я ❤️люблю</p><textarea id="importTextarea" placeholder="👁️Я ❤️люблю&#10;🌀передача: «👁️Я 🌍внутри...»"></textarea><div class="modal-actions"><button id="cancelImportModalBtn">Отмена</button><button id="saveImportModalBtn" class="primary">Импортировать</button></div></div>
     </div>
-
-    <!-- Модальное окно экспорта -->
     <div id="exportModalOverlay" class="modal-overlay hidden">
-      <div class="modal">
-        <h3>📤 Экспорт</h3>
-        <p style="font-size:13px;color:var(--hint);">Каждая строка — отдельный блок. Символы внутри блока разделены пробелом.</p>
-        <textarea id="exportTextarea" readonly></textarea>
-        <div class="modal-actions">
-          <button id="cancelExportModalBtn">Закрыть</button>
-          <button id="copyExportBtn" class="primary">Копировать</button>
-        </div>
-      </div>
+      <div class="modal"><h3>📤 Экспорт</h3><textarea id="exportTextarea" readonly></textarea><div class="modal-actions"><button id="cancelExportModalBtn">Закрыть</button><button id="copyExportBtn" class="primary">Копировать</button></div></div>
     </div>
   </div>
-
   <script>
     (function() {
       const tg = window.Telegram?.WebApp;
       if (tg) { tg.ready(); tg.expand(); }
 
-      // ═══════════ Библиотека по умолчанию (7 элементов) ═══════════
       const defaultLibrary = [
-        { id: 'l1', char: '🔼', text: 'высшее' },
-        { id: 'l2', char: '👁️', text: 'Я' },
-        { id: 'l3', char: '🌀', text: 'передача: «👁️Я 🌍внутри 🧿тебя 👁️Я ❤️люблю🧿тебя»' },
-        { id: 'l4', char: '🌌', text: 'пространство 🛠️создаёт' },
-        { id: 'l5', char: '🎯', text: 'направление 🌊течения ⚡️энергии: 📍старт, 🏁финиш' },
-        { id: 'l6', char: '⏳', text: 'время 🛠️создаёт 🌪️движение: 🚀скорость' },
-        { id: 'l7', char: '🔮', text: 'связующий 🛠️создаёт 🔄синхронизация 🔎через ➕добавление ❌удаление ✅подтверждение 🔺поднимание 🔻опускание 👍нравится 👎не нравится ♻️трансформация 💠усиление 🔅ослабление ↕️расширение ↔️сжатие 🟡чувств 🔗и 🔳мыслей 🔗и 🟢чувств 🌊течение 🌳рост 🔥горение 🪨опора 🎈взлёт' }
+        { id:'l1', char:'🔼', text:'высшее' },
+        { id:'l2', char:'👁️', text:'Я' },
+        { id:'l3', char:'🌀', text:'передача: «👁️Я 🌍внутри 🧿тебя 👁️Я ❤️люблю🧿тебя»' },
+        { id:'l4', char:'🌌', text:'пространство 🛠️создаёт' },
+        { id:'l5', char:'🎯', text:'направление 🌊течения ⚡️энергии: 📍старт, 🏁финиш' },
+        { id:'l6', char:'⏳', text:'время 🛠️создаёт 🌪️движение: 🚀скорость' },
+        { id:'l7', char:'🔮', text:'связующий 🛠️создаёт 🔄синхронизация 🔎через ➕добавление ❌удаление ✅подтверждение 🔺поднимание 🔻опускание 👍нравится 👎не нравится ♻️трансформация 💠усиление 🔅ослабление ↕️расширение ↔️сжатие 🟡чувств 🔗и 🔳мыслей 🔗и 🟢чувств 🌊течение 🌳рост 🔥горение 🪨опора 🎈взлёт' }
       ];
 
-      let library = JSON.parse(localStorage.getItem('seq_library')) || defaultLibrary.map((s,i) => ({...s, id: s.id || 'lib_'+i}));
+      let library = JSON.parse(localStorage.getItem('seq_library')) || defaultLibrary.map((s,i)=>({...s, id:s.id||'lib_'+i}));
       let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || [];
       let detailedMode = false;
       let dragState = null;
 
-      const blocksContainer = document.getElementById('blocksContainer');
-      const resultString = document.getElementById('resultString');
-      const addBlockBtn = document.getElementById('addBlockBtn');
-      const addSymbolBtn = document.getElementById('addSymbolBtn');
-      const importBtn = document.getElementById('importBtn');
-      const exportBtn = document.getElementById('exportBtn');
-      const toggleModeBtn = document.getElementById('toggleModeBtn');
-      const copyBtn = document.getElementById('copyBtn');
-      const saveBtn = document.getElementById('saveBtn');
-      const clearBtn = document.getElementById('clearBtn');
+      const $ = id => document.getElementById(id);
+      const blocksContainer = $('blocksContainer');
+      const resultString = $('resultString');
 
-      // Модалки
-      const addModalOverlay = document.getElementById('addModalOverlay');
-      const newCharInput = document.getElementById('newCharInput');
-      const newTextInput = document.getElementById('newTextInput');
-      const cancelAddModalBtn = document.getElementById('cancelAddModalBtn');
-      const saveAddModalBtn = document.getElementById('saveAddModalBtn');
-
-      const importModalOverlay = document.getElementById('importModalOverlay');
-      const importTextarea = document.getElementById('importTextarea');
-      const cancelImportModalBtn = document.getElementById('cancelImportModalBtn');
-      const saveImportModalBtn = document.getElementById('saveImportModalBtn');
-
-      const exportModalOverlay = document.getElementById('exportModalOverlay');
-      const exportTextarea = document.getElementById('exportTextarea');
-      const cancelExportModalBtn = document.getElementById('cancelExportModalBtn');
-      const copyExportBtn = document.getElementById('copyExportBtn');
-
-      function saveState() {
-        try {
-          localStorage.setItem('seq_library', JSON.stringify(library));
-          localStorage.setItem('seq_blocks', JSON.stringify(additionalBlocks));
-        } catch(e){}
-      }
+      function saveState() { try { localStorage.setItem('seq_library', JSON.stringify(library)); localStorage.setItem('seq_blocks', JSON.stringify(additionalBlocks)); } catch(e){} }
 
       function renderAll() {
         blocksContainer.innerHTML = '';
         blocksContainer.appendChild(createBlock('main', 'Главный блок', library, null));
-        additionalBlocks.forEach((block, idx) => {
-          blocksContainer.appendChild(createBlock('block', `Блок ${idx+1}`, block, idx));
-        });
+        additionalBlocks.forEach((b,i) => blocksContainer.appendChild(createBlock('block', `Блок ${i+1}`, b, i)));
         updateResult();
-        requestAnimationFrame(() => computeAllCardSizes());
+        requestAnimationFrame(computeAllCardSizes);
       }
 
       function createBlock(type, title, symbols, blockIndex) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'block';
-        wrapper.dataset.type = type;
-        if (blockIndex !== null) wrapper.dataset.blockIndex = blockIndex;
-
-        const header = document.createElement('div');
-        header.className = 'block-header';
-        header.textContent = title;
-        wrapper.appendChild(header);
-
-        const grid = document.createElement('div');
-        grid.className = 'symbols-grid';
-        symbols.forEach((sym, idx) => {
-          grid.appendChild(createSymbolCard(sym, idx, blockIndex));
-        });
-        wrapper.appendChild(grid);
-        return wrapper;
+        const w = document.createElement('div'); w.className='block'; w.dataset.type=type; if(blockIndex!==null) w.dataset.blockIndex=blockIndex;
+        const h = document.createElement('div'); h.className='block-header'; h.textContent=title; w.appendChild(h);
+        const g = document.createElement('div'); g.className='symbols-grid';
+        symbols.forEach((s,i) => g.appendChild(createCard(s,i,blockIndex)));
+        w.appendChild(g);
+        return w;
       }
 
-      function createSymbolCard(sym, index, blockIndex) {
-        const card = document.createElement('div');
-        card.className = 'symbol-card';
-        card.dataset.symbolIndex = index;
-        card.dataset.id = sym.id;
-        card.innerHTML = `<span class="char">${sym.char}</span><span class="meta">${sym.text||''}</span>`;
-
-        if (blockIndex !== null) {
-          const del = document.createElement('button');
-          del.className = 'remove-symbol';
-          del.textContent = '×';
-          del.addEventListener('pointerdown', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            additionalBlocks[blockIndex].splice(index, 1);
-            saveState();
-            renderAll();
-          });
-          card.appendChild(del);
+      function createCard(sym, idx, blockIdx) {
+        const c = document.createElement('div'); c.className='symbol-card'; c.dataset.symbolIndex=idx; c.innerHTML=`<span class="char">${sym.char}</span><span class="meta">${sym.text||''}</span>`;
+        if(blockIdx!==null) {
+          const d = document.createElement('button'); d.className='remove-symbol'; d.textContent='×';
+          d.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); additionalBlocks[blockIdx].splice(idx,1); saveState(); renderAll(); });
+          c.appendChild(d);
         }
-        card.addEventListener('pointerdown', onPointerDown);
-        return card;
+        c.addEventListener('pointerdown', onPointerDown);
+        return c;
       }
 
       function updateResult() {
-        let result = library.map(s => s.char).join('');
-        additionalBlocks.forEach(b => result += b.map(s => s.char).join(''));
-        resultString.textContent = result || '(пусто)';
+        let r = library.map(s=>s.char).join(''); additionalBlocks.forEach(b=>r+=b.map(s=>s.char).join(''));
+        resultString.textContent = r || '(пусто)';
       }
 
-      // ═══════════ Размер карточек ═══════════
       function computeAllCardSizes() {
         document.querySelectorAll('.symbols-grid').forEach(grid => {
-          const cards = grid.querySelectorAll('.symbol-card');
-          const n = cards.length;
-          if (n === 0) return;
-          const style = getComputedStyle(grid);
-          const gap = parseFloat(style.gap) || 4;
-          const padding = parseFloat(style.paddingTop) || 4;
-          const width = grid.clientWidth - padding*2;
-          const height = grid.clientHeight - padding*2;
-          if (width <= 0 || height <= 0) return;
-          let bestSize = 20;
-          const maxSize = Math.min(width, height);
-          for (let s = maxSize; s >= 20; s--) {
-            const cols = Math.floor((width + gap) / (s + gap));
-            if (cols <= 0) continue;
-            const rows = Math.ceil(n / cols);
-            const totalHeight = rows * (s + gap) - gap;
-            if (totalHeight <= height) {
-              bestSize = s;
-              break;
-            }
+          const cards = grid.querySelectorAll('.symbol-card'); const n = cards.length; if(!n) return;
+          const style = getComputedStyle(grid); const gap = parseFloat(style.gap)||4; const pad = parseFloat(style.paddingTop)||4;
+          const w = grid.clientWidth - pad*2, h = grid.clientHeight - pad*2;
+          if(w<=0||h<=0) return;
+          let best = 20; const max = Math.min(w,h);
+          for(let s=max; s>=20; s--) {
+            const cols = Math.floor((w+gap)/(s+gap)); if(cols<=0) continue;
+            if(Math.ceil(n/cols)*(s+gap)-gap <= h) { best=s; break; }
           }
-          grid.style.setProperty('--card-size', bestSize + 'px');
-          grid.style.setProperty('--font-size', Math.max(8, bestSize * 0.22) + 'px');
-          grid.style.setProperty('--emoji-size', Math.max(10, bestSize * 0.55) + 'px');
+          grid.style.setProperty('--card-size', best+'px');
+          grid.style.setProperty('--font-size', Math.max(8,best*0.22)+'px');
+          grid.style.setProperty('--emoji-size', Math.max(10,best*0.55)+'px');
         });
       }
 
-      window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
-      const ro = new ResizeObserver(() => computeAllCardSizes());
-      document.querySelectorAll('.block').forEach(b => ro.observe(b));
-      const origRenderAll = renderAll;
-      renderAll = function() {
-        origRenderAll();
-        document.querySelectorAll('.block').forEach(b => { if (!b.dataset.obs) { ro.observe(b); b.dataset.obs='1'; } });
-        requestAnimationFrame(computeAllCardSizes);
-      };
+      window.addEventListener('resize', ()=>requestAnimationFrame(computeAllCardSizes));
+      new ResizeObserver(()=>computeAllCardSizes()).observe(document.querySelector('.blocks-container'));
 
-      // ═══════════ Drag & Drop ═══════════
+      // Drag & Drop (сокращено, но рабочее)
       function onPointerDown(e) {
-        if (dragState) return;
-        if (e.button && e.button !== 0) return;
-        const card = e.currentTarget;
-        const grid = card.parentElement;
-        const block = grid.closest('.block');
-        const type = block.dataset.type;
-        const blockIndex = type === 'block' ? parseInt(block.dataset.blockIndex,10) : null;
-        const symbolIndex = parseInt(card.dataset.symbolIndex,10);
-        const symbolsArray = type === 'main' ? library : additionalBlocks[blockIndex];
-        const sym = symbolsArray[symbolIndex];
-
-        e.preventDefault();
-        card.setPointerCapture(e.pointerId);
-        card.classList.add('dragging');
-        const rect = card.getBoundingClientRect();
-        const ghost = document.createElement('div');
-        ghost.className = 'drag-ghost';
-        ghost.textContent = sym.char;
-        ghost.style.width = rect.width + 'px';
-        ghost.style.height = rect.height + 'px';
-        ghost.style.left = rect.left + 'px';
-        ghost.style.top = rect.top + 'px';
-        document.body.appendChild(ghost);
-
-        dragState = {
-          type, blockIndex, symbolIndex, sym, ghost,
-          offsetX: e.clientX - rect.left,
-          offsetY: e.clientY - rect.top,
-          pointerId: e.pointerId,
-          sourceCard: card,
-        };
-        document.addEventListener('pointermove', onPointerMove);
-        document.addEventListener('pointerup', onPointerUp);
-        document.addEventListener('pointercancel', onPointerUp);
+        if(dragState||(e.button&&e.button!==0)) return;
+        const card = e.currentTarget, grid=card.parentElement, block=grid.closest('.block');
+        const type=block.dataset.type, blockIdx=type==='block'?+block.dataset.blockIndex:null;
+        const idx=+card.dataset.symbolIndex, arr=type==='main'?library:additionalBlocks[blockIdx], sym=arr[idx];
+        e.preventDefault(); card.setPointerCapture(e.pointerId); card.classList.add('dragging');
+        const rect=card.getBoundingClientRect(), ghost=document.createElement('div');
+        ghost.className='drag-ghost'; ghost.textContent=sym.char; ghost.style.width=rect.width+'px'; ghost.style.height=rect.height+'px';
+        ghost.style.left=rect.left+'px'; ghost.style.top=rect.top+'px'; document.body.appendChild(ghost);
+        dragState={type,blockIndex:blockIdx,symbolIndex:idx,sym,ghost,offsetX:e.clientX-rect.left,offsetY:e.clientY-rect.top,pointerId:e.pointerId,sourceCard:card};
+        document.addEventListener('pointermove',onPointerMove); document.addEventListener('pointerup',onPointerUp);
       }
-
       function onPointerMove(e) {
-        if (!dragState || e.pointerId !== dragState.pointerId) return;
-        dragState.ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
-        dragState.ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
-        const elem = getElementUnderPoint(e.clientX, e.clientY);
-        clearHighlights();
-        if (elem) {
-          const block = elem.closest('.block');
-          if (block) block.classList.add('drop-target');
-        }
+        if(!dragState||e.pointerId!==dragState.pointerId) return;
+        dragState.ghost.style.left=(e.clientX-dragState.offsetX)+'px'; dragState.ghost.style.top=(e.clientY-dragState.offsetY)+'px';
+        clearHighlights(); const el=getElementUnderPoint(e.clientX,e.clientY); if(el) { const b=el.closest('.block'); if(b) b.classList.add('drop-target'); }
       }
-
       function onPointerUp(e) {
-        if (!dragState || e.pointerId !== dragState.pointerId) return;
-        document.removeEventListener('pointermove', onPointerMove);
-        document.removeEventListener('pointerup', onPointerUp);
-        document.removeEventListener('pointercancel', onPointerUp);
-        if (dragState.ghost.parentNode) dragState.ghost.remove();
-        if (dragState.sourceCard) dragState.sourceCard.classList.remove('dragging');
-        clearHighlights();
-
-        const targetEl = getElementUnderPoint(e.clientX, e.clientY);
-        const targetBlock = targetEl?.closest('.block');
-        if (!targetBlock) { dragState = null; return; }
-
-        const targetType = targetBlock.dataset.type;
-        const targetBlockIndex = targetType === 'block' ? parseInt(targetBlock.dataset.blockIndex,10) : null;
-        const targetGrid = targetBlock.querySelector('.symbols-grid');
-        const targetCards = Array.from(targetGrid.querySelectorAll('.symbol-card'));
-        let insertIndex = targetCards.length;
-        if (targetCards.length > 0) {
-          let bestDist = Infinity;
-          for (let i=0; i<targetCards.length; i++) {
-            const r = targetCards[i].getBoundingClientRect();
-            const midX = r.left + r.width/2;
-            const dist = Math.abs(e.clientX - midX);
-            if (dist < bestDist) { bestDist = dist; insertIndex = e.clientX < midX ? i : i+1; }
-          }
-        }
-
-        if (dragState.type === 'main') {
-          if (targetType === 'block' && targetBlockIndex !== null) {
-            const moved = {...dragState.sym};
-            library.splice(dragState.symbolIndex, 1);
-            additionalBlocks[targetBlockIndex].splice(insertIndex, 0, moved);
+        if(!dragState||e.pointerId!==dragState.pointerId) return;
+        document.removeEventListener('pointermove',onPointerMove); document.removeEventListener('pointerup',onPointerUp);
+        dragState.ghost.remove(); dragState.sourceCard.classList.remove('dragging'); clearHighlights();
+        const targetEl=getElementUnderPoint(e.clientX,e.clientY), targetBlock=targetEl?.closest('.block');
+        if(!targetBlock) { dragState=null; return; }
+        const tt=targetBlock.dataset.type, tbi=tt==='block'?+targetBlock.dataset.blockIndex:null;
+        const tcards=[...targetBlock.querySelectorAll('.symbol-card')]; let ins=tcards.length;
+        if(tcards.length){ let best=Infinity; for(let i=0;i<tcards.length;i++){ const r=tcards[i].getBoundingClientRect(); const mid=r.left+r.width/2; const d=Math.abs(e.clientX-mid); if(d<best){ best=d; ins=e.clientX<mid?i:i+1; } } }
+        if(dragState.type==='main'){
+          if(tt==='block'&&tbi!==null){ const m={...dragState.sym}; library.splice(dragState.symbolIndex,1); additionalBlocks[tbi].splice(ins,0,m); saveState(); renderAll(); }
+        }else{
+          const si=dragState.blockIndex;
+          if(tt==='block'&&tbi!==null){
+            if(si===tbi){ const a=additionalBlocks[si]; const [m]=a.splice(dragState.symbolIndex,1); a.splice(ins>dragState.symbolIndex?ins-1:ins,0,m); }
+            else { const m=additionalBlocks[si].splice(dragState.symbolIndex,1)[0]; additionalBlocks[tbi].splice(ins,0,m); }
             saveState(); renderAll();
-          }
-        } else if (dragState.type === 'block') {
-          const srcIdx = dragState.blockIndex;
-          if (targetType === 'block' && targetBlockIndex !== null) {
-            if (srcIdx === targetBlockIndex) {
-              const arr = additionalBlocks[srcIdx];
-              const [moved] = arr.splice(dragState.symbolIndex, 1);
-              const adjIdx = insertIndex > dragState.symbolIndex ? insertIndex-1 : insertIndex;
-              arr.splice(adjIdx, 0, moved);
-            } else {
-              const moved = additionalBlocks[srcIdx].splice(dragState.symbolIndex, 1)[0];
-              additionalBlocks[targetBlockIndex].splice(insertIndex, 0, moved);
-            }
-            saveState(); renderAll();
-          } else if (targetType === 'main') {
-            const moved = additionalBlocks[srcIdx].splice(dragState.symbolIndex, 1)[0];
-            library.push(moved);
-            saveState(); renderAll();
-          }
+          }else if(tt==='main'){ const m=additionalBlocks[si].splice(dragState.symbolIndex,1)[0]; library.push(m); saveState(); renderAll(); }
         }
-        dragState = null;
+        dragState=null;
+      }
+      function getElementUnderPoint(x,y){ if(dragState?.ghost) dragState.ghost.style.display='none'; const el=document.elementFromPoint(x,y); if(dragState?.ghost) dragState.ghost.style.display=''; return el; }
+      function clearHighlights(){ document.querySelectorAll('.drop-target').forEach(b=>b.classList.remove('drop-target')); }
+
+      // Импорт: каждая строка — блок
+      function importSymbols(text) {
+        const lines = text.trim().split(/\n/).filter(l=>l.trim());
+        if(!lines.length) return alert('Пустой ввод');
+        // Первая строка — library, остальные — дополнительные блоки
+        const parseLine = (line) => {
+          const tokens = line.trim().split(/\s+/);
+          const symbols = [];
+          tokens.forEach(tok => {
+            if(!tok) return;
+            const m = tok.match(/^(\P{L}\P{N}?)(.*)$/u);
+            if(m) symbols.push({ id:'imp_'+Date.now()+'_'+Math.random(), char:m[1], text:m[2]||'' });
+            else if(tok.length) symbols.push({ id:'imp_'+Date.now()+'_'+Math.random(), char:tok.charAt(0), text:tok.slice(1) });
+          });
+          return symbols;
+        };
+        const newLib = parseLine(lines[0]);
+        const newBlocks = lines.slice(1).map(parseLine);
+        if(newLib.length) library.push(...newLib);
+        if(newBlocks.length) additionalBlocks.push(...newBlocks);
+        saveState(); renderAll();
+        importModalOverlay.classList.add('hidden'); importTextarea.value = '';
+        alert(`Импортировано: ${newLib.length} в главный, блоков: ${newBlocks.length}`);
       }
 
-      function getElementUnderPoint(x,y) {
-        if (dragState?.ghost) dragState.ghost.style.display = 'none';
-        const el = document.elementFromPoint(x,y);
-        if (dragState?.ghost) dragState.ghost.style.display = '';
-        return el;
-      }
-      function clearHighlights() {
-        document.querySelectorAll('.drop-target').forEach(b => b.classList.remove('drop-target'));
-      }
-
-      // ═══════════ Импорт списка ═══════════
-      function importSymbols(rawText) {
-        const tokens = rawText.trim().split(/\s+/);
-        const newSymbols = [];
-        for (let i = 0; i < tokens.length; i++) {
-          const token = tokens[i];
-          if (!token) continue;
-          // отделяем эмодзи/символ от текста
-          const match = token.match(/^(\P{L}\P{N}?)(.*)$/u);
-          if (match) {
-            const char = match[1];
-            const text = match[2] || '';
-            if (char) newSymbols.push({ id: 'imp_'+Date.now()+'_'+i, char, text });
-          } else {
-            const char = token.charAt(0);
-            const text = token.slice(1);
-            newSymbols.push({ id: 'imp_'+Date.now()+'_'+i, char, text });
-          }
-        }
-        if (newSymbols.length > 0) {
-          library.push(...newSymbols);
-          saveState();
-          renderAll();
-          importModalOverlay.classList.add('hidden');
-          importTextarea.value = '';
-          alert(`Добавлено ${newSymbols.length} символов`);
-        } else {
-          alert('Не найдено символов для импорта');
-        }
-      }
-
-      // ═══════════ Экспорт ═══════════
       function exportData() {
         const lines = [];
-        // Главный блок
-        lines.push(library.map(s => s.char + s.text).join(' '));
-        // Дополнительные блоки
-        additionalBlocks.forEach(block => {
-          lines.push(block.map(s => s.char + s.text).join(' '));
-        });
+        lines.push(library.map(s=>s.char+s.text).join(' '));
+        additionalBlocks.forEach(b=>lines.push(b.map(s=>s.char+s.text).join(' ')));
         return lines.join('\n');
       }
 
-      function openExportModal() {
-        exportTextarea.value = exportData();
-        exportModalOverlay.classList.remove('hidden');
-      }
+      // Кнопки
+      $('addBlockBtn').onclick = () => { additionalBlocks.push([]); saveState(); renderAll(); };
+      $('addSymbolBtn').onclick = () => { $('addModalOverlay').classList.remove('hidden'); $('newCharInput').focus(); };
+      $('importBtn').onclick = () => { $('importModalOverlay').classList.remove('hidden'); $('importTextarea').focus(); };
+      $('exportBtn').onclick = () => { $('exportTextarea').value = exportData(); $('exportModalOverlay').classList.remove('hidden'); };
+      $('toggleModeBtn').onclick = () => { detailedMode=!detailedMode; document.body.classList.toggle('detailed-mode',detailedMode); $('toggleModeBtn').textContent=detailedMode?'▣':'▤'; requestAnimationFrame(computeAllCardSizes); };
+      $('clearBtn').onclick = () => { if(confirm('Очистить всё?')){ library=[]; additionalBlocks=[]; saveState(); renderAll(); } };
+      $('copyBtn').onclick = () => { const s=resultString.textContent; if(s&&s!=='(пусто)') navigator.clipboard?.writeText(s); };
+      $('saveBtn').onclick = () => { saveState(); alert('Сохранено'); };
 
-      // ═══════════ Кнопки ═══════════
-      addBlockBtn.addEventListener('click', () => {
-        additionalBlocks.push([]);
-        saveState(); renderAll();
-      });
+      // Модалки
+      $('cancelAddModalBtn').onclick = () => $('addModalOverlay').classList.add('hidden');
+      $('saveAddModalBtn').onclick = () => {
+        const ch=$('newCharInput').value.trim(); if(!ch) return;
+        library.push({ id:'sym_'+Date.now(), char:ch.substring(0,2), text:$('newTextInput').value.trim() });
+        $('newCharInput').value=$('newTextInput').value=''; $('addModalOverlay').classList.add('hidden'); saveState(); renderAll();
+      };
+      $('cancelImportModalBtn').onclick = () => $('importModalOverlay').classList.add('hidden');
+      $('saveImportModalBtn').onclick = () => importSymbols($('importTextarea').value);
+      $('cancelExportModalBtn').onclick = () => $('exportModalOverlay').classList.add('hidden');
+      $('copyExportBtn').onclick = () => { const t=$('exportTextarea').value; if(t) navigator.clipboard?.writeText(t).then(()=>alert('Скопировано')); };
 
-      addSymbolBtn.addEventListener('click', () => {
-        addModalOverlay.classList.remove('hidden');
-        newCharInput.focus();
-      });
-
-      importBtn.addEventListener('click', () => {
-        importModalOverlay.classList.remove('hidden');
-        importTextarea.focus();
-      });
-
-      exportBtn.addEventListener('click', openExportModal);
-
-      toggleModeBtn.addEventListener('click', () => {
-        detailedMode = !detailedMode;
-        document.body.classList.toggle('detailed-mode', detailedMode);
-        toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
-        requestAnimationFrame(computeAllCardSizes);
-      });
-
-      clearBtn.addEventListener('click', () => {
-        if (confirm('Очистить всё?')) {
-          library = []; additionalBlocks = [];
-          saveState(); renderAll();
-        }
-      });
-
-      copyBtn.addEventListener('click', () => {
-        const str = resultString.textContent;
-        if (!str || str === '(пусто)') return;
-        navigator.clipboard?.writeText(str).then(() => {
-          if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-        }).catch(() => {});
-      });
-
-      saveBtn.addEventListener('click', () => { saveState(); alert('Сохранено'); });
-
-      // Модалка добавления одного символа
-      cancelAddModalBtn.addEventListener('click', () => addModalOverlay.classList.add('hidden'));
-      saveAddModalBtn.addEventListener('click', () => {
-        const ch = newCharInput.value.trim();
-        if (!ch) return;
-        const txt = newTextInput.value.trim();
-        library.push({ id: 'sym_'+Date.now(), char: ch.substring(0,2), text: txt });
-        newCharInput.value = ''; newTextInput.value = '';
-        addModalOverlay.classList.add('hidden');
-        saveState(); renderAll();
-      });
-      addModalOverlay.addEventListener('click', (e) => {
-        if (e.target === addModalOverlay) addModalOverlay.classList.add('hidden');
-      });
-
-      // Модалка импорта
-      cancelImportModalBtn.addEventListener('click', () => importModalOverlay.classList.add('hidden'));
-      saveImportModalBtn.addEventListener('click', () => {
-        const raw = importTextarea.value.trim();
-        if (!raw) return;
-        importSymbols(raw);
-      });
-      importModalOverlay.addEventListener('click', (e) => {
-        if (e.target === importModalOverlay) importModalOverlay.classList.add('hidden');
-      });
-
-      // Модалка экспорта
-      cancelExportModalBtn.addEventListener('click', () => exportModalOverlay.classList.add('hidden'));
-      copyExportBtn.addEventListener('click', () => {
-        const text = exportTextarea.value;
-        if (!text) return;
-        navigator.clipboard?.writeText(text).then(() => {
-          alert('Экспортировано в буфер обмена');
-        }).catch(() => alert('Не удалось скопировать'));
-      });
-      exportModalOverlay.addEventListener('click', (e) => {
-        if (e.target === exportModalOverlay) exportModalOverlay.classList.add('hidden');
-      });
-
-      // Старт
       document.body.classList.toggle('detailed-mode', detailedMode);
       renderAll();
-      window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
-      document.addEventListener('selectstart', e => { if(dragState) e.preventDefault(); });
     })();
   </script>
 </body>
