@@ -45,7 +45,6 @@
       background: var(--bg);
       position: relative;
     }
-    /* Header */
     .header {
       display: flex;
       align-items: center;
@@ -109,7 +108,6 @@
     .header button.primary { background: var(--accent); color: white; border-color: transparent; }
     .header button.primary:active { background: #0066d6; }
 
-    /* Main area */
     .blocks-container {
       flex: 1;
       display: flex;
@@ -218,7 +216,6 @@
     .symbol-card:hover .remove-symbol,
     .symbol-card:active .remove-symbol { opacity: 1; transform: scale(1); }
 
-    /* Drag ghost */
     .drag-ghost {
       position: fixed;
       z-index: 9999;
@@ -240,7 +237,6 @@
       box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
     }
 
-    /* Modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -256,11 +252,25 @@
       border-radius: 24px;
       padding: 24px;
       width: 90%;
-      max-width: 350px;
+      max-width: 400px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.2);
       display: flex;
       flex-direction: column;
       gap: 12px;
+    }
+    .modal h3 { font-size: 18px; font-weight: 700; }
+    .modal textarea {
+      width: 100%;
+      height: 120px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      font-size: 14px;
+      font-family: var(--font);
+      resize: vertical;
+      outline: none;
+      -webkit-user-select: text;
+      user-select: text;
     }
     .modal input {
       padding: 12px;
@@ -306,18 +316,32 @@
     <div style="padding: 4px 10px 8px; display: flex; gap: 6px; flex-shrink: 0;">
       <button id="addBlockBtn" class="primary" style="flex:1;">+ Блок</button>
       <button id="addSymbolBtn" style="flex:1;">+ Символ</button>
+      <button id="importBtn" style="flex:1;">📥 Импорт</button>
       <button id="clearBtn" style="background:#ff3b30; color:white; border-radius:20px; padding:10px;">🗑</button>
     </div>
 
-    <!-- Modal add symbol -->
-    <div id="modalOverlay" class="modal-overlay hidden">
+    <!-- Модальное окно добавления символа -->
+    <div id="addModalOverlay" class="modal-overlay hidden">
       <div class="modal">
         <h3>Новый символ</h3>
         <input id="newCharInput" placeholder="Символ (эмодзи)" maxlength="2">
         <input id="newTextInput" placeholder="Текст (название)">
         <div class="modal-actions">
-          <button id="cancelModalBtn">Отмена</button>
-          <button id="saveModalBtn" class="primary">Добавить</button>
+          <button id="cancelAddModalBtn">Отмена</button>
+          <button id="saveAddModalBtn" class="primary">Добавить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно импорта -->
+    <div id="importModalOverlay" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>📥 Импорт списка</h3>
+        <p style="font-size:13px;color:var(--hint);">Формат: символ слово (пары через пробел)<br>Пример: ❤️любовь ☀️солнце 🌀передача</p>
+        <textarea id="importTextarea" placeholder="❤️любовь ☀️солнце 🌀передача: «👁️Я 🌍внутри...»"></textarea>
+        <div class="modal-actions">
+          <button id="cancelImportModalBtn">Отмена</button>
+          <button id="saveImportModalBtn" class="primary">Импортировать</button>
         </div>
       </div>
     </div>
@@ -328,7 +352,7 @@
       const tg = window.Telegram?.WebApp;
       if (tg) { tg.ready(); tg.expand(); }
 
-      // ═══════════ Полная библиотека по умолчанию (7 элементов) ═══════════
+      // ═══════════ Библиотека по умолчанию (7 элементов) ═══════════
       const defaultLibrary = [
         { id: 'l1', char: '🔼', text: 'высшее' },
         { id: 'l2', char: '👁️', text: 'Я' },
@@ -348,15 +372,23 @@
       const resultString = document.getElementById('resultString');
       const addBlockBtn = document.getElementById('addBlockBtn');
       const addSymbolBtn = document.getElementById('addSymbolBtn');
+      const importBtn = document.getElementById('importBtn');
       const toggleModeBtn = document.getElementById('toggleModeBtn');
       const copyBtn = document.getElementById('copyBtn');
       const saveBtn = document.getElementById('saveBtn');
       const clearBtn = document.getElementById('clearBtn');
-      const modalOverlay = document.getElementById('modalOverlay');
+
+      // Модалки
+      const addModalOverlay = document.getElementById('addModalOverlay');
       const newCharInput = document.getElementById('newCharInput');
       const newTextInput = document.getElementById('newTextInput');
-      const cancelModalBtn = document.getElementById('cancelModalBtn');
-      const saveModalBtn = document.getElementById('saveModalBtn');
+      const cancelAddModalBtn = document.getElementById('cancelAddModalBtn');
+      const saveAddModalBtn = document.getElementById('saveAddModalBtn');
+
+      const importModalOverlay = document.getElementById('importModalOverlay');
+      const importTextarea = document.getElementById('importTextarea');
+      const cancelImportModalBtn = document.getElementById('cancelImportModalBtn');
+      const saveImportModalBtn = document.getElementById('saveImportModalBtn');
 
       function saveState() {
         try {
@@ -372,9 +404,7 @@
           blocksContainer.appendChild(createBlock('block', `Блок ${idx+1}`, block, idx));
         });
         updateResult();
-        requestAnimationFrame(() => {
-          computeAllCardSizes();
-        });
+        requestAnimationFrame(() => computeAllCardSizes());
       }
 
       function createBlock(type, title, symbols, blockIndex) {
@@ -427,20 +457,18 @@
         resultString.textContent = result || '(пусто)';
       }
 
-      // ═══════════ Автоматический расчёт размера карточек ═══════════
+      // ═══════════ Размер карточек ═══════════
       function computeAllCardSizes() {
         document.querySelectorAll('.symbols-grid').forEach(grid => {
           const cards = grid.querySelectorAll('.symbol-card');
           const n = cards.length;
           if (n === 0) return;
-
           const style = getComputedStyle(grid);
           const gap = parseFloat(style.gap) || 4;
           const padding = parseFloat(style.paddingTop) || 4;
           const width = grid.clientWidth - padding*2;
           const height = grid.clientHeight - padding*2;
           if (width <= 0 || height <= 0) return;
-
           let bestSize = 20;
           const maxSize = Math.min(width, height);
           for (let s = maxSize; s >= 20; s--) {
@@ -485,7 +513,6 @@
         e.preventDefault();
         card.setPointerCapture(e.pointerId);
         card.classList.add('dragging');
-
         const rect = card.getBoundingClientRect();
         const ghost = document.createElement('div');
         ghost.className = 'drag-ghost';
@@ -587,27 +614,73 @@
         document.querySelectorAll('.drop-target').forEach(b => b.classList.remove('drop-target'));
       }
 
+      // ═══════════ Импорт списка ═══════════
+      function importSymbols(rawText) {
+        // Разделитель — только пробелы (и переносы строк тоже считаются разделителями)
+        const tokens = rawText.trim().split(/\s+/);
+        const newSymbols = [];
+        for (let i = 0; i < tokens.length; i++) {
+          const token = tokens[i];
+          if (!token) continue;
+          // Проверяем, содержит ли токен эмодзи или символ + слово слитно?
+          // Формат: эмодзи_слово, например "❤️любовь"
+          // Разделим эмодзи и текст: ищем первый непробельный символ как эмодзи
+          const match = token.match(/^(\P{L}\P{N}?)(.*)$/u); // эмодзи + всё остальное
+          if (match) {
+            const char = match[1];
+            const text = match[2] || '';
+            if (char) {
+              newSymbols.push({ id: 'imp_'+Date.now()+'_'+i, char, text });
+            }
+          } else {
+            // На случай обычного текста — используем первый символ как эмодзи
+            const char = token.charAt(0);
+            const text = token.slice(1);
+            newSymbols.push({ id: 'imp_'+Date.now()+'_'+i, char, text });
+          }
+        }
+        if (newSymbols.length > 0) {
+          library.push(...newSymbols);
+          saveState();
+          renderAll();
+          importModalOverlay.classList.add('hidden');
+          importTextarea.value = '';
+          alert(`Добавлено ${newSymbols.length} символов`);
+        } else {
+          alert('Не найдено символов для импорта');
+        }
+      }
+
       // ═══════════ Кнопки ═══════════
       addBlockBtn.addEventListener('click', () => {
         additionalBlocks.push([]);
         saveState(); renderAll();
       });
+
       addSymbolBtn.addEventListener('click', () => {
-        modalOverlay.classList.remove('hidden');
+        addModalOverlay.classList.remove('hidden');
         newCharInput.focus();
       });
+
+      importBtn.addEventListener('click', () => {
+        importModalOverlay.classList.remove('hidden');
+        importTextarea.focus();
+      });
+
       toggleModeBtn.addEventListener('click', () => {
         detailedMode = !detailedMode;
         document.body.classList.toggle('detailed-mode', detailedMode);
         toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
         requestAnimationFrame(computeAllCardSizes);
       });
+
       clearBtn.addEventListener('click', () => {
         if (confirm('Очистить всё?')) {
           library = []; additionalBlocks = [];
           saveState(); renderAll();
         }
       });
+
       copyBtn.addEventListener('click', () => {
         const str = resultString.textContent;
         if (!str || str === '(пусто)') return;
@@ -615,20 +688,33 @@
           if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
         }).catch(() => {});
       });
+
       saveBtn.addEventListener('click', () => { saveState(); alert('Сохранено'); });
 
-      cancelModalBtn.addEventListener('click', () => modalOverlay.classList.add('hidden'));
-      saveModalBtn.addEventListener('click', () => {
+      // Модалка добавления одного символа
+      cancelAddModalBtn.addEventListener('click', () => addModalOverlay.classList.add('hidden'));
+      saveAddModalBtn.addEventListener('click', () => {
         const ch = newCharInput.value.trim();
         if (!ch) return;
         const txt = newTextInput.value.trim();
         library.push({ id: 'sym_'+Date.now(), char: ch.substring(0,2), text: txt });
         newCharInput.value = ''; newTextInput.value = '';
-        modalOverlay.classList.add('hidden');
+        addModalOverlay.classList.add('hidden');
         saveState(); renderAll();
       });
-      modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) modalOverlay.classList.add('hidden');
+      addModalOverlay.addEventListener('click', (e) => {
+        if (e.target === addModalOverlay) addModalOverlay.classList.add('hidden');
+      });
+
+      // Модалка импорта
+      cancelImportModalBtn.addEventListener('click', () => importModalOverlay.classList.add('hidden'));
+      saveImportModalBtn.addEventListener('click', () => {
+        const raw = importTextarea.value.trim();
+        if (!raw) return;
+        importSymbols(raw);
+      });
+      importModalOverlay.addEventListener('click', (e) => {
+        if (e.target === importModalOverlay) importModalOverlay.classList.add('hidden');
       });
 
       // Старт
