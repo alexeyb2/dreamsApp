@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
+  <meta name="telegram-webapp-theme-color" content="#f5f5f7">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>Редактор символов — Цепочка блоков</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      background: #f5f5f7;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 10px 12px;
+      background: #fff;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      z-index: 20;
+      flex-shrink: 0;
+    }
+    .result-box {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: #f0f0f5;
+      border-radius: 20px;
+      padding: 6px 12px;
+      gap: 8px;
+      min-width: 0;
+    }
+    .result-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #86868b;
+      text-transform: uppercase;
+    }
+    .result-string {
+      flex: 1;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-buttons {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    button {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.08);
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1d1d1f;
+      cursor: pointer;
+      transition: all 0.2s;
+      touch-action: manipulation;
+      white-space: nowrap;
+    }
+    button:active { transform: scale(0.94); background: #f0f0f5; }
+    button.primary { background: #007aff; color: #fff; border-color: transparent; }
+    button.primary:active { background: #0066d6; }
+    button.danger { background: #ff3b30; color: #fff; border-color: transparent; }
+
+    .blocks-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      min-height: 0;
+    }
+    .chain-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      gap: 0;
+    }
+    .block-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    .connector-line {
+      width: 2px;
+      height: 24px;
+      background: #c7c7cc;
+      position: relative;
+    }
+    .connector-line::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      border-left: 2px solid #c7c7cc;
+      border-bottom: 2px solid #c7c7cc;
+      transform: translateX(-50%) rotate(-45deg);
+    }
+    .block {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      width: 100%;
+      min-height: 120px;
+      transition: all 0.2s;
+      margin: 0;
+    }
+    .block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #86868b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+    .block-title {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .block-delete {
+      background: none;
+      border: none;
+      color: #ff3b30;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+      touch-action: manipulation;
+    }
+    .block-delete:active { transform: scale(0.9); }
+    .symbols-grid {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      justify-content: flex-start;
+      padding: 4px;
+      gap: 4px;
+      overflow: hidden;
+    }
+    .symbol-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px;
+      cursor: grab;
+      touch-action: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      position: relative;
+      width: var(--card-size);
+      height: var(--card-size);
+      font-size: var(--font-size);
+    }
+    .symbol-card:active { cursor: grabbing; }
+    .symbol-card.dragging { opacity: 0.4; transform: scale(0.95); border-style: dashed; }
+    .symbol-card .char {
+      font-size: var(--emoji-size);
+      line-height: 1;
+      transition: font-size 0.2s;
+    }
+    .symbol-card .meta {
+      display: none;
+      text-align: center;
+      width: 100%;
+      font-size: calc(var(--font-size) * 0.65);
+      color: #1d1d1f;
+      line-height: 1.2;
+      margin-top: 2px;
+      word-break: break-word;
+      overflow: hidden;
+    }
+    body.detailed-mode .symbol-card {
+      height: auto !important;
+      min-height: var(--card-size);
+    }
+    body.detailed-mode .symbol-card .meta {
+      display: block;
+      white-space: normal;
+    }
+    body.detailed-mode .symbols-grid {
+      align-items: flex-start;
+    }
+
+    .remove-symbol {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ff3b30;
+      color: #fff;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: 0.2s;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .symbol-card:hover .remove-symbol {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .drag-ghost {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.9;
+      transform: scale(1.1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      border-radius: 12px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      border: 2px solid #007aff;
+    }
+    .block.drop-target {
+      border: 2px solid #007aff;
+      box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 24px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .modal h3 { font-size: 18px; font-weight: 700; }
+    .modal textarea, .modal input {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header class="header">
+    <div class="result-box">
+      <span class="result-label">Итог</span>
+      <span class="result-string" id="resultString"></span>
+    </div>
+    <div class="header-buttons">
+      <button id="copyBtn">📋</button>
+      <button id="saveBtn">💾</button>
+      <button id="toggleModeBtn">▤</button>
+    </div>
+  </header>
+  <div class="blocks-wrapper" id="blocksWrapper">
+    <div class="chain-container" id="chainContainer"></div>
+  </div>
+  <div style="padding:4px 10px 8px; display:flex; gap:6px; flex-shrink:0;">
+    <button id="addBlockBtn" class="primary" style="flex:1;">+ Блок</button>
+    <button id="addSymbolBtn" style="flex:1;">+ Символ</button>
+    <button id="importBtn" style="flex:1;">📥 Импорт</button>
+    <button id="exportBtn" style="flex:1;">📤 Экспорт</button>
+    <button id="clearBtn" class="danger">🗑</button>
+  </div>
+
+  <div id="addModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Новый символ</h3>
+      <input id="newCharInput" placeholder="Символ (эмодзи)" maxlength="2">
+      <input id="newTextInput" placeholder="Текст">
+      <div class="modal-actions">
+        <button id="cancelAddModalBtn">Отмена</button>
+        <button id="saveAddModalBtn" class="primary">Добавить</button>
+      </div>
+    </div>
+  </div>
+  <div id="importModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>📥 Импорт</h3>
+      <p style="font-size:13px;color:#86868b;">Каждая строка — блок. Пары «символ:слово» через пробел.</p>
+      <textarea id="importTextarea" placeholder="👁️:Я ❤️:люблю 🌀:связь"></textarea>
+      <div class="modal-actions">
+        <button id="cancelImportModalBtn">Отмена</button>
+        <button id="saveImportModalBtn" class="primary">Импортировать</button>
+      </div>
+    </div>
+  </div>
+  <div id="exportModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>📤 Экспорт</h3>
+      <textarea id="exportTextarea" readonly></textarea>
+      <div class="modal-actions">
+        <button id="cancelExportModalBtn">Закрыть</button>
+        <button id="copyExportBtn" class="primary">Копировать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  const phrase = `🔼:высшее 👁️:Я 🌀:передача:👁️Я 🌍:внутри 🧿:тебя 👁️:Я ❤️:люблю 🧿:тебя
+🌌:пространство 🛠️:создаёт 🎯:направление 🌊:течения ⚡️:энергии: 📍:старт 🏁:финиш 
+⏳:время 🛠️:создаёт 🌪️:движение: 🚀:скорость 
+🔮:связующий 🛠️:создаёт 🔄:синхронизация 🔎:через 
+🔳:мыслей ➕:добавление ❌:удаление ✅:подтверждение ♻️:трансформация 🔗:и
+🟡:чувств 🔺:поднимание 🔻:опускание 👍:нравится 👎:не_нравится  💠:усиление 🔅:ослабление ↕️:расширение ↔️:сжатие  
+ 🔗:и 🛠️:создаёт  🌊:течение 🌳:рост 🔥:горение 🪨:опора 🎈:взлёт.`;
+
+  function parseLine(line) {
+    const symbols = [];
+    const tokens = line.trim().split(/\s+/);
+    for (const token of tokens) {
+      if (!token) continue;
+      const colonIndex = token.indexOf(':');
+      let char, text;
+      if (colonIndex > 0) {
+        char = token.substring(0, colonIndex);
+        text = token.substring(colonIndex + 1);
+      } else {
+        char = token;
+        text = '';
+      }
+      if (char) {
+        symbols.push({
+          id: Date.now().toString(36) + Math.random().toString(36),
+          char: char,
+          text: text
+        });
+      }
+    }
+    return symbols;
+  }
+
+  function parsePhrase(phraseText) {
+    const lines = phraseText.split(/\n/).filter(line => line.trim());
+    const result = { library: [], blocks: [] };
+    if (lines.length > 0) result.library = parseLine(lines[0]);
+    for (let i = 1; i < lines.length; i++) {
+      const symbols = parseLine(lines[i]);
+      if (symbols.length > 0) result.blocks.push(symbols);
+    }
+    return result;
+  }
+
+  const defaultData = parsePhrase(phrase);
+  let library = JSON.parse(localStorage.getItem('seq_library')) || defaultData.library;
+  let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || defaultData.blocks;
+  let detailedMode = false;
+  let dragState = null;
+
+  const $ = id => document.getElementById(id);
+  const chainContainer = $('chainContainer');
+  const resultString = $('resultString');
+  const toggleModeBtn = $('toggleModeBtn');
+
+  function saveState() {
+    try {
+      localStorage.setItem('seq_library', JSON.stringify(library));
+      localStorage.setItem('seq_blocks', JSON.stringify(additionalBlocks));
+    } catch(e) {}
+  }
+
+  function renderAll() {
+    chainContainer.innerHTML = '';
+    // Главный блок
+    chainContainer.appendChild(createBlockElement('main', library, null, true));
+    // Дополнительные блоки с соединителями
+    additionalBlocks.forEach((block, idx) => {
+      const connector = document.createElement('div');
+      connector.className = 'block-connector';
+      connector.innerHTML = '<div class="connector-line"></div>';
+      chainContainer.appendChild(connector);
+      chainContainer.appendChild(createBlockElement('block', block, idx, false));
+    });
+    updateResult();
+    requestAnimationFrame(computeAllCardSizes);
+  }
+
+  function getBlockTitle(symbols) {
+    if (symbols.length > 0) {
+      const first = symbols[0];
+      return `${first.char}: ${first.text}`;
+    }
+    return 'Пустой блок';
+  }
+
+  function createBlockElement(type, symbols, blockIndex, isMain) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'block';
+    wrapper.dataset.type = type;
+    if (blockIndex !== null && type === 'block') wrapper.dataset.blockIndex = blockIndex;
+    
+    const titleText = getBlockTitle(symbols);
+    const headerHtml = `
+      <div class="block-header">
+        <span class="block-title">${titleText} <span style="font-size:10px;color:#86868b;">(${symbols.length})</span></span>
+        ${!isMain ? `<button class="block-delete">✕</button>` : ''}
+      </div>
+      <div class="symbols-grid"></div>
+    `;
+    wrapper.innerHTML = headerHtml;
+    const grid = wrapper.querySelector('.symbols-grid');
+    symbols.forEach((sym, idx) => grid.appendChild(createCard(sym, idx, blockIndex, type)));
+
+    if (!isMain && blockIndex !== null) {
+      wrapper.querySelector('.block-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Удалить этот блок?')) {
+          additionalBlocks.splice(blockIndex, 1);
+          saveState();
+          renderAll();
+        }
+      });
+    }
+    return wrapper;
+  }
+
+  function createCard(sym, idx, blockIndex, type) {
+    const card = document.createElement('div');
+    card.className = 'symbol-card';
+    card.dataset.symbolIndex = idx;
+    card.innerHTML = `<span class="char">${sym.char}</span><span class="meta">${sym.text||''}</span>`;
+    if (type === 'block' && blockIndex !== null) {
+      const del = document.createElement('button');
+      del.className = 'remove-symbol';
+      del.textContent = '×';
+      del.addEventListener('pointerdown', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (confirm(`Удалить символ «${sym.char}»?`)) {
+          additionalBlocks[blockIndex].splice(idx, 1);
+          saveState();
+          renderAll();
+        }
+      });
+      card.appendChild(del);
+    }
+    card.addEventListener('pointerdown', onPointerDown);
+    return card;
+  }
+
+  function updateResult() {
+    let str = library.map(s => s.char).join('');
+    additionalBlocks.forEach(b => str += b.map(s => s.char).join(''));
+    resultString.textContent = str || '(пусто)';
+  }
+
+  function computeAllCardSizes() {
+    document.querySelectorAll('.symbols-grid').forEach(grid => {
+      const cards = grid.querySelectorAll('.symbol-card');
+      const n = cards.length;
+      if (!n) return;
+      const style = getComputedStyle(grid);
+      const gap = parseFloat(style.gap) || 4;
+      const pad = parseFloat(style.paddingTop) || 4;
+      const w = grid.clientWidth - pad * 2;
+      const h = grid.clientHeight - pad * 2;
+      if (w <= 0 || h <= 0) return;
+      let bestSize = 20;
+      const max = Math.min(w, h);
+      for (let s = max; s >= 20; s--) {
+        const cols = Math.floor((w + gap) / (s + gap));
+        if (cols <= 0) continue;
+        const rows = Math.ceil(n / cols);
+        const totalHeight = rows * (s + gap) - gap;
+        if (totalHeight <= h) {
+          bestSize = s;
+          break;
+        }
+      }
+      grid.style.setProperty('--card-size', bestSize + 'px');
+      grid.style.setProperty('--font-size', Math.max(8, bestSize * 0.22) + 'px');
+      grid.style.setProperty('--emoji-size', Math.max(10, bestSize * 0.55) + 'px');
+    });
+  }
+
+  window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
+  new ResizeObserver(() => computeAllCardSizes()).observe(chainContainer);
+
+  // Drag & Drop (без изменений в логике, только адаптация к новой структуре)
+  function onPointerDown(e) {
+    if (dragState || (e.button && e.button !== 0)) return;
+    const card = e.currentTarget;
+    const grid = card.parentElement;
+    const blockEl = grid.closest('.block');
+    const type = blockEl.dataset.type;
+    const blockIndex = type === 'block' ? +blockEl.dataset.blockIndex : null;
+    const symbolIndex = +card.dataset.symbolIndex;
+    const arr = type === 'main' ? library : additionalBlocks[blockIndex];
+    const sym = arr[symbolIndex];
+
+    e.preventDefault();
+    card.setPointerCapture(e.pointerId);
+    card.classList.add('dragging');
+    const rect = card.getBoundingClientRect();
+    const ghost = document.createElement('div');
+    ghost.className = 'drag-ghost';
+    ghost.textContent = sym.char;
+    ghost.style.width = rect.width + 'px';
+    ghost.style.height = rect.height + 'px';
+    ghost.style.left = rect.left + 'px';
+    ghost.style.top = rect.top + 'px';
+    document.body.appendChild(ghost);
+
+    dragState = {
+      type, blockIndex, symbolIndex, sym, ghost,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      pointerId: e.pointerId,
+      sourceCard: card
+    };
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+  }
+
+  function onPointerMove(e) {
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    dragState.ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
+    dragState.ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
+    clearHighlights();
+    const el = getElementUnderPoint(e.clientX, e.clientY);
+    const blockUnder = el?.closest('.block');
+    if (blockUnder) {
+      blockUnder.classList.add('drop-target');
+    }
+  }
+
+  function onPointerUp(e) {
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    dragState.ghost.remove();
+    dragState.sourceCard.classList.remove('dragging');
+    clearHighlights();
+
+    const targetEl = getElementUnderPoint(e.clientX, e.clientY);
+    const targetBlock = targetEl?.closest('.block');
+    if (!targetBlock) {
+      dragState = null;
+      return;
+    }
+
+    const targetType = targetBlock.dataset.type;
+    const targetBlockIndex = targetType === 'block' ? +targetBlock.dataset.blockIndex : null;
+    const targetCards = [...targetBlock.querySelectorAll('.symbol-card')];
+    let insertIndex = targetCards.length;
+    if (targetCards.length) {
+      let bestDist = Infinity;
+      for (let i = 0; i < targetCards.length; i++) {
+        const r = targetCards[i].getBoundingClientRect();
+        const mid = r.left + r.width / 2;
+        const dist = Math.abs(e.clientX - mid);
+        if (dist < bestDist) { bestDist = dist; insertIndex = e.clientX < mid ? i : i + 1; }
+      }
+    }
+
+    if (dragState.type === 'main') {
+      if (targetType === 'block' && targetBlockIndex !== null) {
+        const moved = {...dragState.sym};
+        library.splice(dragState.symbolIndex, 1);
+        additionalBlocks[targetBlockIndex].splice(insertIndex, 0, moved);
+      }
+    } else {
+      const srcIdx = dragState.blockIndex;
+      if (targetType === 'block' && targetBlockIndex !== null) {
+        if (srcIdx === targetBlockIndex) {
+          const arr = additionalBlocks[srcIdx];
+          const [moved] = arr.splice(dragState.symbolIndex, 1);
+          arr.splice(insertIndex > dragState.symbolIndex ? insertIndex - 1 : insertIndex, 0, moved);
+        } else {
+          const moved = additionalBlocks[srcIdx].splice(dragState.symbolIndex, 1)[0];
+          additionalBlocks[targetBlockIndex].splice(insertIndex, 0, moved);
+        }
+      } else if (targetType === 'main') {
+        const moved = additionalBlocks[srcIdx].splice(dragState.symbolIndex, 1)[0];
+        library.push(moved);
+      }
+    }
+    saveState();
+    renderAll();
+    dragState = null;
+  }
+
+  function getElementUnderPoint(x, y) {
+    if (dragState?.ghost) dragState.ghost.style.display = 'none';
+    const el = document.elementFromPoint(x, y);
+    if (dragState?.ghost) dragState.ghost.style.display = '';
+    return el;
+  }
+  function clearHighlights() {
+    document.querySelectorAll('.drop-target').forEach(b => b.classList.remove('drop-target'));
+  }
+
+  function importData(text) {
+    const parsed = parsePhrase(text);
+    if (parsed.library.length) library.push(...parsed.library);
+    if (parsed.blocks.length) additionalBlocks.push(...parsed.blocks);
+    saveState();
+    renderAll();
+    importModalOverlay.classList.add('hidden');
+    importTextarea.value = '';
+    alert('Импортировано');
+  }
+
+  function exportData() {
+    const lines = [];
+    lines.push(library.map(s => s.char + ':' + s.text).join(' '));
+    additionalBlocks.forEach(b => lines.push(b.map(s => s.char + ':' + s.text).join(' ')));
+    return lines.join('\n');
+  }
+
+  // Кнопки
+  $('addBlockBtn').addEventListener('click', () => {
+    additionalBlocks.push([]);
+    saveState();
+    renderAll();
+  });
+  $('addSymbolBtn').addEventListener('click', () => {
+    $('addModalOverlay').classList.remove('hidden');
+    $('newCharInput').focus();
+  });
+  $('importBtn').addEventListener('click', () => {
+    $('importModalOverlay').classList.remove('hidden');
+    $('importTextarea').focus();
+  });
+  $('exportBtn').addEventListener('click', () => {
+    $('exportTextarea').value = exportData();
+    $('exportModalOverlay').classList.remove('hidden');
+  });
+  toggleModeBtn.addEventListener('click', () => {
+    detailedMode = !detailedMode;
+    document.body.classList.toggle('detailed-mode', detailedMode);
+    toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
+    requestAnimationFrame(computeAllCardSizes);
+  });
+  $('clearBtn').addEventListener('click', () => {
+    if (confirm('Очистить всё?')) { library = []; additionalBlocks = []; saveState(); renderAll(); }
+  });
+  $('copyBtn').addEventListener('click', () => {
+    const str = resultString.textContent;
+    if (str && str !== '(пусто)') navigator.clipboard?.writeText(str);
+  });
+  $('saveBtn').addEventListener('click', () => { saveState(); alert('Сохранено'); });
+
+  // Модалки
+  $('cancelAddModalBtn').addEventListener('click', () => $('addModalOverlay').classList.add('hidden'));
+  $('saveAddModalBtn').addEventListener('click', () => {
+    const ch = $('newCharInput').value.trim();
+    if (!ch) return;
+    library.push({ id: Date.now().toString(), char: ch.substring(0,2), text: $('newTextInput').value.trim() });
+    $('newCharInput').value = $('newTextInput').value = '';
+    $('addModalOverlay').classList.add('hidden');
+    saveState();
+    renderAll();
+  });
+  $('cancelImportModalBtn').addEventListener('click', () => $('importModalOverlay').classList.add('hidden'));
+  $('saveImportModalBtn').addEventListener('click', () => importData($('importTextarea').value));
+  $('cancelExportModalBtn').addEventListener('click', () => $('exportModalOverlay').classList.add('hidden'));
+  $('copyExportBtn').addEventListener('click', () => {
+    const text = $('exportTextarea').value;
+    if (text) navigator.clipboard?.writeText(text).then(() => alert('Скопировано'));
+  });
+
+  document.body.classList.toggle('detailed-mode', detailedMode);
+  renderAll();
+  window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
+})();
+</script>
+</body>
+</html>
