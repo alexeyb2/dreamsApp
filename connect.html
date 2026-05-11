@@ -105,11 +105,12 @@
       flex-direction: column;
       overflow: hidden;
       flex: 1 1 auto;
-      min-height: 100px;
+      min-height: 120px;
     }
     .block-header {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       padding: 6px 12px;
       font-size: 11px;
       font-weight: 600;
@@ -325,19 +326,82 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // Полный список по умолчанию (все 7 позиций из ТЗ)
-  const defaultLibrary = [
-    { id: 'l1', char: '🔼', text: 'высшее' },
-    { id: 'l2', char: '👁️', text: 'Я' },
-    { id: 'l3', char: '🌀', text: 'передача: «👁️Я 🌍внутри 🧿тебя 👁️Я ❤️люблю🧿тебя»' },
-    { id: 'l4', char: '🌌', text: 'пространство 🛠️создаёт' },
-    { id: 'l5', char: '🎯', text: 'направление 🌊течения ⚡️энергии: 📍старт, 🏁финиш' },
-    { id: 'l6', char: '⏳', text: 'время 🛠️создаёт 🌪️движение: 🚀скорость' },
-    { id: 'l7', char: '🔮', text: 'связующий 🛠️создаёт 🔄синхронизация 🔎через ➕добавление ❌удаление ✅подтверждение 🔺поднимание 🔻опускание 👍нравится 👎не нравится ♻️трансформация 💠усиление 🔅ослабление ↕️расширение ↔️сжатие 🟡чувств 🔗и 🔳мыслей 🔗и 🟢чувств 🌊течение 🌳рост 🔥горение 🪨опора 🎈взлёт' }
-  ];
+  // Исходная фраза для парсинга
+  const phrase = `🔼высшее 👁️Я 🌀передача: «👁️Я 🌍внутри 
+🧿тебя 👁️Я ❤️люблю🧿тебя».
 
-  let library = JSON.parse(localStorage.getItem('seq_library')) || defaultLibrary.map(s => ({...s}));
-  let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || [];
+🌌пространство 🛠️создаёт 
+🎯направление 🌊течения ⚡️энергии: 📍старт, 🏁финиш 
+⏳время 🛠️создаёт 🌪️движение: 🚀скорость 
+🔮связующий 🛠️создаёт 🔄синхронизация 🔎через ➕добавление ❌удаление ✅подтверждение 🔺поднимание 🔻опускание 👍нравится 👎не нравится ♻️трансформация 💠усиление 🔅ослабление ↕️расширение ↔️сжатие 🟡чувств 🔗и 🔳мыслей 🔗и 🟢чувств 🌊течение 🌳рост 🔥горение 🪨опора 🎈взлёт.`;
+
+  // Функция парсинга строки в символы
+  function parseLine(line) {
+    const symbols = [];
+    // Разбиваем строку на токены по пробелам
+    const tokens = line.trim().split(/\s+/);
+    
+    for (const token of tokens) {
+      if (!token) continue;
+      
+      // Ищем эмодзи в начале токена (эмодзи могут быть составными)
+      const emojiRegex = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F?|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|[\u2000-\u2BFF]|[\u3000-\u303F]|[\uFE00-\uFEFF]|[\U0001F000-\U0001FFFF])(.*)$/u;
+      const match = token.match(emojiRegex);
+      
+      if (match) {
+        const char = match[1];
+        const text = match[2] || '';
+        if (char) {
+          symbols.push({
+            id: Date.now().toString(36) + Math.random().toString(36),
+            char: char,
+            text: text
+          });
+        }
+      } else {
+        // Если эмодзи не найден, используем первый символ как символ
+        const char = token.charAt(0);
+        const text = token.slice(1);
+        symbols.push({
+          id: Date.now().toString(36) + Math.random().toString(36),
+          char: char,
+          text: text
+        });
+      }
+    }
+    return symbols;
+  }
+
+  // Парсим фразу на блоки
+  function parsePhrase(phraseText) {
+    // Разбиваем на строки
+    const lines = phraseText.split(/\n/).filter(line => line.trim());
+    const result = {
+      library: [],
+      blocks: []
+    };
+    
+    // Первая строка — главный блок
+    if (lines.length > 0) {
+      result.library = parseLine(lines[0]);
+    }
+    
+    // Остальные строки — дополнительные блоки
+    for (let i = 1; i < lines.length; i++) {
+      const symbols = parseLine(lines[i]);
+      if (symbols.length > 0) {
+        result.blocks.push(symbols);
+      }
+    }
+    
+    return result;
+  }
+
+  // Парсим фразу по умолчанию
+  const defaultData = parsePhrase(phrase);
+  
+  let library = JSON.parse(localStorage.getItem('seq_library')) || defaultData.library;
+  let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || defaultData.blocks;
   let detailedMode = false;
   let dragState = null;
 
@@ -368,7 +432,7 @@
     wrapper.className = 'block';
     wrapper.dataset.type = type;
     if (blockIndex !== null) wrapper.dataset.blockIndex = blockIndex;
-    wrapper.innerHTML = `<div class="block-header">${title}</div><div class="symbols-grid"></div>`;
+    wrapper.innerHTML = `<div class="block-header">${title} <span style="font-size:10px;">${symbols.length} симв.</span></div><div class="symbols-grid"></div>`;
     const grid = wrapper.querySelector('.symbols-grid');
     symbols.forEach((sym, idx) => grid.appendChild(createCard(sym, idx, blockIndex)));
     return wrapper;
@@ -547,22 +611,9 @@
 
   // Импорт: первая строка — главный блок, остальные — дополнительные
   function importData(text) {
-    const lines = text.trim().split(/\n/).filter(l => l.trim());
-    if (!lines.length) return alert('Пустой ввод');
-    const parseLine = (line) => {
-      const tokens = line.trim().split(/\s+/);
-      return tokens.map(token => {
-        const match = token.match(/^(\P{L}\P{N}?)(.*)$/u); // отделяем символ от текста
-        if (match) return { id: Date.now().toString(36) + Math.random(), char: match[1], text: match[2] || '' };
-        if (token.length) return { id: Date.now().toString(36) + Math.random(), char: token.charAt(0), text: token.slice(1) };
-      }).filter(Boolean);
-    };
-    const newLib = parseLine(lines[0]);
-    if (newLib.length) library.push(...newLib);
-    for (let i = 1; i < lines.length; i++) {
-      const blockSymbols = parseLine(lines[i]);
-      if (blockSymbols.length) additionalBlocks.push(blockSymbols);
-    }
+    const parsed = parsePhrase(text);
+    if (parsed.library.length) library.push(...parsed.library);
+    if (parsed.blocks.length) additionalBlocks.push(...parsed.blocks);
     saveState();
     renderAll();
     importModalOverlay.classList.add('hidden');
