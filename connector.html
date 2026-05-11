@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
+    <meta name="telegram-webapp-theme-color" content="#f5f5f7">
+    <title>Блоки символов — Редактор</title>
+    <style>
+        :root {
+            --tg-theme-bg: #f5f5f7;
+            --tg-theme-secondary-bg: #ffffff;
+            --tg-theme-text: #1d1d1f;
+            --tg-theme-hint: #86868b;
+            --tg-theme-link: #007aff;
+            --tg-theme-button: #007aff;
+            --tg-theme-button-text: #ffffff;
+            --tg-theme-destructive: #ff3b30;
+            --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+            --radius: 16px;
+            --radius-sm: 12px;
+            --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --transition: 0.25s cubic-bezier(0.2, 0.9, 0.4, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: var(--font);
+            background: var(--tg-theme-bg);
+            color: var(--tg-theme-text);
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            height: 100dvh;
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--tg-theme-bg);
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--tg-theme-secondary-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            z-index: 20;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+        }
+        .header button {
+            background: var(--tg-theme-secondary-bg);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 10px 16px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--tg-theme-text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all var(--transition);
+            white-space: nowrap;
+            letter-spacing: -0.01em;
+            touch-action: manipulation;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .header button:active {
+            transform: scale(0.94);
+            background: #f0f0f5;
+        }
+        .header button.primary {
+            background: var(--tg-theme-button);
+            color: var(--tg-theme-button-text);
+            border-color: transparent;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+        .header button.primary:active {
+            background: #0066d6;
+        }
+        .mode-toggle {
+            font-size: 15px;
+            padding: 10px 14px;
+        }
+
+        /* Main area */
+        .blocks-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 8px 10px;
+            gap: 8px;
+            overflow-y: auto;
+            min-height: 0;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Block wrapper */
+        .block {
+            background: var(--tg-theme-secondary-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex: 1 1 0;
+            min-height: 0;
+            transition: all var(--transition);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+        .block-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--tg-theme-hint);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
+        }
+        .block-header .title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .block-header .badge {
+            background: #e9e9ef;
+            color: var(--tg-theme-hint);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .symbols-row {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex: 1;
+            scrollbar-width: thin;
+            scrollbar-color: #c0c0c0 transparent;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-x;
+            min-height: 0;
+        }
+        .symbols-row::-webkit-scrollbar {
+            height: 4px;
+        }
+        .symbols-row::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .symbols-row::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border-radius: 4px;
+        }
+
+        /* Symbol card */
+        .symbol-card {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--tg-theme-secondary-bg);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: var(--radius-sm);
+            padding: 6px;
+            cursor: grab;
+            transition: transform 0.2s ease, box-shadow 0.2s;
+            touch-action: none;
+            position: relative;
+            min-width: 52px;
+            min-height: 52px;
+            box-shadow: var(--shadow-sm);
+        }
+        .symbol-card:active {
+            cursor: grabbing;
+        }
+        .symbol-card.dragging {
+            opacity: 0.4;
+            transform: scale(0.9);
+            border-style: dashed;
+        }
+        .symbol-card .char {
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1.2;
+            transition: font-size 0.2s;
+        }
+        .symbol-card .meta {
+            display: none;
+            text-align: center;
+            margin-top: 2px;
+        }
+        .symbol-card .name {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--tg-theme-text);
+            line-height: 1.2;
+        }
+        .symbol-card .desc {
+            font-size: 8px;
+            color: var(--tg-theme-hint);
+            line-height: 1.2;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        /* Detailed mode */
+        body.detailed-mode .symbol-card {
+            min-width: 80px;
+            min-height: 80px;
+            padding: 8px;
+            border-radius: 16px;
+        }
+        body.detailed-mode .symbol-card .char {
+            font-size: 26px;
+            margin-bottom: 2px;
+        }
+        body.detailed-mode .symbol-card .meta {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+
+        .remove-symbol {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--tg-theme-destructive);
+            color: white;
+            border: none;
+            font-size: 14px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.2s;
+            z-index: 2;
+            box-shadow: 0 2px 6px rgba(255, 59, 48, 0.3);
+        }
+        .symbol-card:hover .remove-symbol,
+        .symbol-card:active .remove-symbol {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Drag ghost */
+        .drag-ghost {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0.9;
+            transform: scale(1.1);
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--radius-sm);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 600;
+            width: 52px;
+            height: 52px;
+            border: 2px solid var(--tg-theme-link);
+            transition: none;
+        }
+
+        /* Drop zone highlight */
+        .block.drop-target {
+            border: 2px solid var(--tg-theme-link);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+            background: #f0f5ff;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            width: 90%;
+            max-width: 340px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .modal h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .modal input {
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 14px;
+            font-size: 16px;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .modal input:focus {
+            border-color: var(--tg-theme-link);
+        }
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .modal-actions button {
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            background: #eee;
+            color: var(--tg-theme-text);
+        }
+        .modal-actions button.primary {
+            background: var(--tg-theme-button);
+            color: white;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <button id="addBlockBtn" class="primary">+ Блок</button>
+            <button id="addSymbolBtn">+ Символ</button>
+            <button id="toggleModeBtn" class="mode-toggle" title="Режим отображения">▤</button>
+        </header>
+
+        <main id="blocksContainer" class="blocks-container">
+            <!-- Динамически заполняется -->
+        </main>
+
+        <!-- Модальное окно добавления символа -->
+        <div id="modalOverlay" class="modal-overlay hidden">
+            <div class="modal">
+                <h3>Новый символ</h3>
+                <input type="text" id="newChar" placeholder="Символ" maxlength="2" autocomplete="off">
+                <input type="text" id="newName" placeholder="Название">
+                <input type="text" id="newDesc" placeholder="Описание (кратко)">
+                <div class="modal-actions">
+                    <button id="cancelModalBtn">Отмена</button>
+                    <button id="saveModalBtn" class="primary">Добавить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // Telegram WebApp
+            const tg = window.Telegram?.WebApp;
+            if (tg) {
+                tg.ready();
+                tg.expand();
+            }
+
+            // ─── Состояние ────────────────────
+            // Библиотека символов (главный блок)
+            let library = [
+                { id: 'l1', char: 'А', name: 'А', desc: 'первая буква' },
+                { id: 'l2', char: 'Б', name: 'Б', desc: 'вторая буква' },
+                { id: 'l3', char: 'В', name: 'В', desc: 'третья' },
+                { id: 'l4', char: '😊', name: 'Улыбка', desc: 'смайлик' },
+                { id: 'l5', char: '🔥', name: 'Огонь', desc: 'пламя' },
+                { id: 'l6', char: '⭐', name: 'Звезда', desc: 'сияние' },
+                { id: 'l7', char: '7', name: 'Семь', desc: 'цифра' },
+                { id: 'l8', char: '?', name: 'Вопрос', desc: 'знак' },
+            ];
+
+            // Дополнительные блоки: массив массивов объектов символов
+            let additionalBlocks = [
+                // [{ id, char, name, desc }]
+            ];
+
+            // Режим отображения
+            let detailedMode = false;
+
+            // Drag state
+            let dragState = null;
+            // { type: 'library'|'block', blockIndex: number|null, symbolIndex: number|null, symbolData: object, ghostEl, offsetX, offsetY, startX, startY, pointerId }
+
+            // ─── DOM элементы ────────────────
+            const blocksContainer = document.getElementById('blocksContainer');
+            const addBlockBtn = document.getElementById('addBlockBtn');
+            const addSymbolBtn = document.getElementById('addSymbolBtn');
+            const toggleModeBtn = document.getElementById('toggleModeBtn');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const newCharInput = document.getElementById('newChar');
+            const newNameInput = document.getElementById('newName');
+            const newDescInput = document.getElementById('newDesc');
+            const cancelModalBtn = document.getElementById('cancelModalBtn');
+            const saveModalBtn = document.getElementById('saveModalBtn');
+
+            // ─── Функции рендеринга ──────────
+            function renderAllBlocks() {
+                blocksContainer.innerHTML = '';
+
+                // Главный блок (библиотека)
+                const mainBlock = createBlockElement('main', '📚 Главный блок', library, null);
+                blocksContainer.appendChild(mainBlock);
+
+                // Дополнительные блоки
+                additionalBlocks.forEach((blockSymbols, idx) => {
+                    const block = createBlockElement(`block-${idx}`, `Блок ${idx+1}`, blockSymbols, idx);
+                    blocksContainer.appendChild(block);
+                });
+            }
+
+            function createBlockElement(blockId, title, symbols, blockIndex) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'block';
+                wrapper.dataset.blockId = blockId;
+                if (blockIndex !== null) wrapper.dataset.blockIndex = blockIndex;
+
+                wrapper.innerHTML = `
+                    <div class="block-header">
+                        <span class="title">${title} <span class="badge">${symbols.length}</span></span>
+                    </div>
+                    <div class="symbols-row" data-block="${blockId}">
+                        ${symbols.map((sym, idx) => {
+                            return `
+                                <div class="symbol-card" 
+                                    data-symbol-index="${idx}" 
+                                    data-block-id="${blockId}" 
+                                    data-symbol-id="${sym.id || ''}">
+                                    <span class="char">${sym.char}</span>
+                                    <div class="meta">
+                                        <span class="name">${sym.name}</span>
+                                        <span class="desc">${sym.desc}</span>
+                                    </div>
+                                    ${blockIndex !== null ? '<button class="remove-symbol">×</button>' : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+
+                // Назначаем обработчики на карточки
+                const cards = wrapper.querySelectorAll('.symbol-card');
+                cards.forEach(card => {
+                    card.addEventListener('pointerdown', onSymbolPointerDown);
+                    // Кнопка удаления (только для дополнительных блоков)
+                    const removeBtn = card.querySelector('.remove-symbol');
+                    if (removeBtn) {
+                        removeBtn.addEventListener('pointerdown', (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const index = parseInt(card.dataset.symbolIndex, 10);
+                            const bIdx = parseInt(wrapper.dataset.blockIndex, 10);
+                            removeSymbolFromBlock(bIdx, index);
+                        });
+                    }
+                });
+
+                return wrapper;
+            }
+
+            function removeSymbolFromBlock(blockIdx, symbolIdx) {
+                if (blockIdx === null || blockIdx < 0 || blockIdx >= additionalBlocks.length) return;
+                additionalBlocks[blockIdx].splice(symbolIdx, 1);
+                renderAllBlocks();
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            }
+
+            // ─── Добавление блока ──────────────
+            function addNewBlock() {
+                additionalBlocks.push([]);
+                renderAllBlocks();
+                // Плавно скроллим вниз
+                setTimeout(() => {
+                    blocksContainer.scrollTop = blocksContainer.scrollHeight;
+                }, 50);
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            }
+
+            // ─── Добавление символа в библиотеку ──
+            function openAddSymbolModal() {
+                modalOverlay.classList.remove('hidden');
+                newCharInput.focus();
+            }
+
+            function closeModal() {
+                modalOverlay.classList.add('hidden');
+                newCharInput.value = '';
+                newNameInput.value = '';
+                newDescInput.value = '';
+            }
+
+            function saveNewSymbol() {
+                const char = newCharInput.value.trim();
+                if (!char) {
+                    alert('Введите символ');
+                    return;
+                }
+                const name = newNameInput.value.trim() || char;
+                const desc = newDescInput.value.trim() || '';
+                const newSym = {
+                    id: 'sym_' + Date.now(),
+                    char: char.substring(0, 2),
+                    name: name,
+                    desc: desc
+                };
+                library.push(newSym);
+                renderAllBlocks();
+                closeModal();
+                if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }
+
+            // ─── Перетаскивание (Pointer Events) ──
+            function onSymbolPointerDown(e) {
+                if (dragState) return;
+                if (e.button && e.button !== 0) return;
+
+                const card = e.currentTarget;
+                const blockId = card.dataset.blockId;
+                const symbolIndex = parseInt(card.dataset.symbolIndex, 10);
+                let symbolData;
+                let type, blockIndex = null;
+
+                if (blockId === 'main') {
+                    type = 'library';
+                    symbolData = library[symbolIndex];
+                } else {
+                    type = 'block';
+                    blockIndex = parseInt(card.closest('.block').dataset.blockIndex, 10);
+                    symbolData = additionalBlocks[blockIndex][symbolIndex];
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+                card.setPointerCapture(e.pointerId);
+
+                // Создаём ghost
+                const ghost = document.createElement('div');
+                ghost.className = 'drag-ghost';
+                ghost.textContent = symbolData.char;
+                const rect = card.getBoundingClientRect();
+                ghost.style.width = rect.width + 'px';
+                ghost.style.height = rect.height + 'px';
+                ghost.style.left = rect.left + 'px';
+                ghost.style.top = rect.top + 'px';
+                document.body.appendChild(ghost);
+
+                card.classList.add('dragging');
+
+                dragState = {
+                    type,
+                    blockIndex,
+                    symbolIndex,
+                    symbolData,
+                    ghostEl: ghost,
+                    offsetX: e.clientX - rect.left,
+                    offsetY: e.clientY - rect.top,
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    pointerId: e.pointerId,
+                    sourceCard: card,
+                };
+
+                document.addEventListener('pointermove', onPointerMove);
+                document.addEventListener('pointerup', onPointerUp);
+                document.addEventListener('pointercancel', onPointerUp);
+                document.addEventListener('lostpointercapture', onPointerUp);
+            }
+
+            function onPointerMove(e) {
+                if (!dragState || e.pointerId !== dragState.pointerId) return;
+                e.preventDefault();
+
+                const ghost = dragState.ghostEl;
+                ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
+                ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
+
+                // Подсветка блока под курсором
+                const elemBelow = getElementUnderPoint(e.clientX, e.clientY);
+                clearDropHighlights();
+                if (elemBelow) {
+                    const block = elemBelow.closest('.block');
+                    if (block) {
+                        block.classList.add('drop-target');
+                    }
+                }
+            }
+
+            function onPointerUp(e) {
+                if (!dragState || (e.pointerId !== dragState.pointerId && e.pointerId !== undefined)) return;
+
+                document.removeEventListener('pointermove', onPointerMove);
+                document.removeEventListener('pointerup', onPointerUp);
+                document.removeEventListener('pointercancel', onPointerUp);
+                document.removeEventListener('lostpointercapture', onPointerUp);
+
+                const ghost = dragState.ghostEl;
+                if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+                if (dragState.sourceCard) dragState.sourceCard.classList.remove('dragging');
+                clearDropHighlights();
+
+                const clientX = e.clientX;
+                const clientY = e.clientY;
+                const elemBelow = getElementUnderPoint(clientX, clientY);
+                const targetBlock = elemBelow?.closest('.block');
+                const state = dragState;
+                dragState = null;
+
+                if (!targetBlock) return; // Мимо
+
+                const targetBlockId = targetBlock.dataset.blockId;
+                // Определяем индекс вставки внутри строки символов целевого блока
+                const row = targetBlock.querySelector('.symbols-row');
+                let insertIndex = null;
+                if (row) {
+                    const cards = Array.from(row.querySelectorAll('.symbol-card'));
+                    if (cards.length === 0) {
+                        insertIndex = 0;
+                    } else {
+                        // Найти ближайшую позицию по X
+                        let bestIdx = cards.length;
+                        let bestDist = Infinity;
+                        for (let i = 0; i < cards.length; i++) {
+                            const r = cards[i].getBoundingClientRect();
+                            const midX = r.left + r.width / 2;
+                            const dist = Math.abs(clientX - midX);
+                            if (dist < bestDist) {
+                                bestDist = dist;
+                                bestIdx = clientX < midX ? i : i + 1;
+                            }
+                        }
+                        insertIndex = Math.max(0, Math.min(cards.length, bestIdx));
+                    }
+                }
+
+                // Выполняем действие в зависимости от источника и цели
+                if (state.type === 'library') {
+                    // Из библиотеки можно только в дополнительные блоки
+                    if (targetBlockId !== 'main' && targetBlock.dataset.blockIndex !== undefined) {
+                        const targetBlockIdx = parseInt(targetBlock.dataset.blockIndex, 10);
+                        const symCopy = { ...state.symbolData }; // копируем
+                        if (insertIndex !== null && insertIndex >= 0 && insertIndex <= additionalBlocks[targetBlockIdx].length) {
+                            additionalBlocks[targetBlockIdx].splice(insertIndex, 0, symCopy);
+                        } else {
+                            additionalBlocks[targetBlockIdx].push(symCopy);
+                        }
+                        renderAllBlocks();
+                        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    }
+                } else if (state.type === 'block') {
+                    const sourceBlockIdx = state.blockIndex;
+                    // Если цель — тот же блок (перемещение внутри)
+                    if (targetBlockId !== 'main' && targetBlock.dataset.blockIndex !== undefined) {
+                        const targetBlockIdx = parseInt(targetBlock.dataset.blockIndex, 10);
+                        if (sourceBlockIdx === targetBlockIdx) {
+                            // Перемещение внутри одного блока
+                            const blockSymbols = additionalBlocks[sourceBlockIdx];
+                            if (state.symbolIndex === insertIndex || state.symbolIndex === insertIndex - 1) {
+                                // ничего не делаем
+                            } else {
+                                const [moved] = blockSymbols.splice(state.symbolIndex, 1);
+                                const adjustedIdx = insertIndex > state.symbolIndex ? insertIndex - 1 : insertIndex;
+                                blockSymbols.splice(adjustedIdx, 0, moved);
+                                renderAllBlocks();
+                                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                            }
+                        } else {
+                            // Перетаскивание между разными дополнительными блоками
+                            const moved = additionalBlocks[sourceBlockIdx].splice(state.symbolIndex, 1)[0];
+                            if (insertIndex !== null) {
+                                additionalBlocks[targetBlockIdx].splice(insertIndex, 0, moved);
+                            } else {
+                                additionalBlocks[targetBlockIdx].push(moved);
+                            }
+                            renderAllBlocks();
+                            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                        }
+                    } else if (targetBlockId === 'main') {
+                        // Перенос из доп.блока обратно в библиотеку — удаляем символ (или игнорируем)
+                        // По ТЗ нельзя добавлять в главный, поэтому лучше удалить? Сделаем удаление.
+                        additionalBlocks[sourceBlockIdx].splice(state.symbolIndex, 1);
+                        renderAllBlocks();
+                        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                    }
+                }
+            }
+
+            function getElementUnderPoint(x, y) {
+                if (dragState?.ghostEl) dragState.ghostEl.style.display = 'none';
+                const el = document.elementFromPoint(x, y);
+                if (dragState?.ghostEl) dragState.ghostEl.style.display = '';
+                return el;
+            }
+
+            function clearDropHighlights() {
+                document.querySelectorAll('.block.drop-target').forEach(b => b.classList.remove('drop-target'));
+            }
+
+            // ─── Режим отображения ──────────────
+            function toggleMode() {
+                detailedMode = !detailedMode;
+                document.body.classList.toggle('detailed-mode', detailedMode);
+                toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
+                // Перерендерим, чтобы обновить размеры?
+                // Можно просто переключить класс, карточки уже имеют meta.
+                // Но если меняется размер карточек, может понадобиться обновить расположение.
+                // Так как CSS меняет min-width/height, рендер обновится сам.
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('soft');
+            }
+
+            // ─── Инициализация ──────────────────
+            function init() {
+                renderAllBlocks();
+                document.body.classList.toggle('detailed-mode', detailedMode);
+                toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
+
+                addBlockBtn.addEventListener('click', addNewBlock);
+                addSymbolBtn.addEventListener('click', openAddSymbolModal);
+                toggleModeBtn.addEventListener('click', toggleMode);
+
+                cancelModalBtn.addEventListener('click', closeModal);
+                saveModalBtn.addEventListener('click', saveNewSymbol);
+                modalOverlay.addEventListener('click', (e) => {
+                    if (e.target === modalOverlay) closeModal();
+                });
+
+                // Закрытие модалки по Esc
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && !modalOverlay.classList.contains('hidden')) {
+                        closeModal();
+                    }
+                });
+
+                // Глобальная отмена выделения при перетаскивании
+                document.addEventListener('selectstart', (e) => {
+                    if (dragState) e.preventDefault();
+                });
+
+                // Адаптивное сжатие блоков обеспечивается CSS flex: 1 1 0
+            }
+
+            init();
+            console.log('🧩 Редактор блоков символов запущен');
+        })();
+    </script>
+</body>
+</html>
