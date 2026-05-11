@@ -1,11 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
-  <title>Редактор блоков — Символы</title>
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>Редактор символов — Telegram Mini App</title>
   <style>
     :root {
       --bg: #f5f5f7;
@@ -19,7 +19,6 @@
       --radius: 16px;
       --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
     }
-
     * {
       margin: 0;
       padding: 0;
@@ -28,7 +27,6 @@
       -webkit-user-select: none;
       user-select: none;
     }
-
     html, body {
       height: 100%;
       width: 100%;
@@ -37,7 +35,6 @@
       background: var(--bg);
       color: var(--text);
     }
-
     #app {
       display: flex;
       flex-direction: column;
@@ -48,7 +45,6 @@
       background: var(--bg);
       position: relative;
     }
-
     /* Header */
     .header {
       display: flex;
@@ -63,7 +59,7 @@
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
     }
-    .header .result-box {
+    .result-box {
       flex: 1;
       display: flex;
       align-items: center;
@@ -87,7 +83,6 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      letter-spacing: -0.01em;
     }
     .header-buttons {
       display: flex;
@@ -114,7 +109,7 @@
     .header button.primary { background: var(--accent); color: white; border-color: transparent; }
     .header button.primary:active { background: #0066d6; }
 
-    /* Main blocks area */
+    /* Main area */
     .blocks-container {
       flex: 1;
       display: flex;
@@ -125,7 +120,6 @@
       min-height: 0;
       -webkit-overflow-scrolling: touch;
     }
-
     .block {
       background: var(--surface);
       border-radius: var(--radius);
@@ -152,12 +146,12 @@
       display: flex;
       flex-wrap: wrap;
       align-content: flex-start;
+      justify-content: flex-start;
       padding: 4px;
-      gap: var(--grid-gap, 4px);
+      gap: 4px;
       overflow: hidden;
       min-height: 0;
     }
-
     .symbol-card {
       display: flex;
       flex-direction: column;
@@ -167,14 +161,13 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       cursor: grab;
-      transition: transform 0.1s;
       touch-action: none;
       box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-      overflow: hidden;
       position: relative;
-      width: var(--card-size);
-      height: var(--card-size);
-      font-size: var(--font-size);
+      width: var(--card-size, 52px);
+      height: var(--card-size, 52px);
+      font-size: var(--font-size, 12px);
+      transition: width 0.2s, height 0.2s;
     }
     .symbol-card:active { cursor: grabbing; }
     .symbol-card.dragging {
@@ -183,9 +176,8 @@
       border-style: dashed;
     }
     .symbol-card .char {
-      font-size: var(--emoji-size);
+      font-size: var(--emoji-size, 24px);
       line-height: 1;
-      transition: font-size 0.2s;
     }
     .symbol-card .meta {
       display: none;
@@ -194,12 +186,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: calc(var(--font-size) * 0.65);
+      font-size: calc(var(--font-size) * 0.7);
       color: var(--text);
       line-height: 1.2;
-      margin-top: 1px;
+      margin-top: 2px;
     }
-    /* Detailed mode */
     body.detailed-mode .symbol-card .meta { display: block; }
     body.detailed-mode .symbol-card .char { margin-bottom: 1px; }
 
@@ -259,7 +250,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      animation: fadeIn 0.2s;
     }
     .modal {
       background: white;
@@ -338,7 +328,7 @@
       const tg = window.Telegram?.WebApp;
       if (tg) { tg.ready(); tg.expand(); }
 
-      // ═══════════ Библиотека по умолчанию ═══════════
+      // ═══════════ Полная библиотека по умолчанию (7 элементов) ═══════════
       const defaultLibrary = [
         { id: 'l1', char: '🔼', text: 'высшее' },
         { id: 'l2', char: '👁️', text: 'Я' },
@@ -349,13 +339,11 @@
         { id: 'l7', char: '🔮', text: 'связующий 🛠️создаёт 🔄синхронизация 🔎через ➕добавление ❌удаление ✅подтверждение 🔺поднимание 🔻опускание 👍нравится 👎не нравится ♻️трансформация 💠усиление 🔅ослабление ↕️расширение ↔️сжатие 🟡чувств 🔗и 🔳мыслей 🔗и 🟢чувств 🌊течение 🌳рост 🔥горение 🪨опора 🎈взлёт' }
       ];
 
-      // Состояние
       let library = JSON.parse(localStorage.getItem('seq_library')) || defaultLibrary.map((s,i) => ({...s, id: s.id || 'lib_'+i}));
       let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || [];
       let detailedMode = false;
       let dragState = null;
 
-      // DOM
       const blocksContainer = document.getElementById('blocksContainer');
       const resultString = document.getElementById('resultString');
       const addBlockBtn = document.getElementById('addBlockBtn');
@@ -370,7 +358,6 @@
       const cancelModalBtn = document.getElementById('cancelModalBtn');
       const saveModalBtn = document.getElementById('saveModalBtn');
 
-      // Сохранение в localStorage
       function saveState() {
         try {
           localStorage.setItem('seq_library', JSON.stringify(library));
@@ -378,17 +365,16 @@
         } catch(e){}
       }
 
-      // Рендер всех блоков
       function renderAll() {
         blocksContainer.innerHTML = '';
-        // Главный блок
         blocksContainer.appendChild(createBlock('main', 'Главный блок', library, null));
-        // Дополнительные блоки
         additionalBlocks.forEach((block, idx) => {
           blocksContainer.appendChild(createBlock('block', `Блок ${idx+1}`, block, idx));
         });
         updateResult();
-        computeAllCardSizes();
+        requestAnimationFrame(() => {
+          computeAllCardSizes();
+        });
       }
 
       function createBlock(type, title, symbols, blockIndex) {
@@ -404,13 +390,10 @@
 
         const grid = document.createElement('div');
         grid.className = 'symbols-grid';
-        grid.dataset.block = type === 'main' ? 'main' : 'block';
-        wrapper.appendChild(grid);
-
         symbols.forEach((sym, idx) => {
-          const card = createSymbolCard(sym, idx, blockIndex);
-          grid.appendChild(card);
+          grid.appendChild(createSymbolCard(sym, idx, blockIndex));
         });
+        wrapper.appendChild(grid);
         return wrapper;
       }
 
@@ -421,7 +404,6 @@
         card.dataset.id = sym.id;
         card.innerHTML = `<span class="char">${sym.char}</span><span class="meta">${sym.text||''}</span>`;
 
-        // Кнопка удаления только в доп.блоках
         if (blockIndex !== null) {
           const del = document.createElement('button');
           del.className = 'remove-symbol';
@@ -435,24 +417,19 @@
           });
           card.appendChild(del);
         }
-
         card.addEventListener('pointerdown', onPointerDown);
         return card;
       }
 
-      // Обновление итоговой строки
       function updateResult() {
-        let result = '';
-        result += library.map(s => s.char).join('');
-        additionalBlocks.forEach(block => { result += block.map(s => s.char).join(''); });
+        let result = library.map(s => s.char).join('');
+        additionalBlocks.forEach(b => result += b.map(s => s.char).join(''));
         resultString.textContent = result || '(пусто)';
       }
 
-      // ═══════════ Автоматический размер карточек ═══════════
+      // ═══════════ Автоматический расчёт размера карточек ═══════════
       function computeAllCardSizes() {
         document.querySelectorAll('.symbols-grid').forEach(grid => {
-          const block = grid.closest('.block');
-          if (!block) return;
           const cards = grid.querySelectorAll('.symbol-card');
           const n = cards.length;
           if (n === 0) return;
@@ -464,8 +441,7 @@
           const height = grid.clientHeight - padding*2;
           if (width <= 0 || height <= 0) return;
 
-          // Ищем максимальный размер карточки, чтобы все влезли
-          let bestSize = 20; // минимальный размер
+          let bestSize = 20;
           const maxSize = Math.min(width, height);
           for (let s = maxSize; s >= 20; s--) {
             const cols = Math.floor((width + gap) / (s + gap));
@@ -478,39 +454,25 @@
             }
           }
           grid.style.setProperty('--card-size', bestSize + 'px');
-          const fontSize = Math.max(8, bestSize * 0.22);
-          grid.style.setProperty('--font-size', fontSize + 'px');
-          const emojiSize = Math.max(10, bestSize * 0.55);
-          grid.style.setProperty('--emoji-size', emojiSize + 'px');
+          grid.style.setProperty('--font-size', Math.max(8, bestSize * 0.22) + 'px');
+          grid.style.setProperty('--emoji-size', Math.max(10, bestSize * 0.55) + 'px');
         });
       }
 
-      window.addEventListener('resize', () => {
-        requestAnimationFrame(computeAllCardSizes);
-      });
-      // Наблюдатель за изменением размеров блоков
-      const resizeObserver = new ResizeObserver(() => {
-        computeAllCardSizes();
-      });
-      document.querySelectorAll('.block').forEach(b => resizeObserver.observe(b));
-      // При добавлении блоков переподключаем
-      const origRender = renderAll;
+      window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
+      const ro = new ResizeObserver(() => computeAllCardSizes());
+      document.querySelectorAll('.block').forEach(b => ro.observe(b));
+      const origRenderAll = renderAll;
       renderAll = function() {
-        origRender();
-        document.querySelectorAll('.block').forEach(b => {
-          if (!b.dataset.observed) {
-            resizeObserver.observe(b);
-            b.dataset.observed = '1';
-          }
-        });
-        computeAllCardSizes();
+        origRenderAll();
+        document.querySelectorAll('.block').forEach(b => { if (!b.dataset.obs) { ro.observe(b); b.dataset.obs='1'; } });
+        requestAnimationFrame(computeAllCardSizes);
       };
 
-      // ═══════════ Перетаскивание ═══════════
+      // ═══════════ Drag & Drop ═══════════
       function onPointerDown(e) {
         if (dragState) return;
         if (e.button && e.button !== 0) return;
-
         const card = e.currentTarget;
         const grid = card.parentElement;
         const block = grid.closest('.block');
@@ -535,17 +497,12 @@
         document.body.appendChild(ghost);
 
         dragState = {
-          type,
-          blockIndex,
-          symbolIndex,
-          sym,
-          ghost,
+          type, blockIndex, symbolIndex, sym, ghost,
           offsetX: e.clientX - rect.left,
           offsetY: e.clientY - rect.top,
           pointerId: e.pointerId,
           sourceCard: card,
         };
-
         document.addEventListener('pointermove', onPointerMove);
         document.addEventListener('pointerup', onPointerUp);
         document.addEventListener('pointercancel', onPointerUp);
@@ -555,7 +512,6 @@
         if (!dragState || e.pointerId !== dragState.pointerId) return;
         dragState.ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
         dragState.ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
-
         const elem = getElementUnderPoint(e.clientX, e.clientY);
         clearHighlights();
         if (elem) {
@@ -569,38 +525,30 @@
         document.removeEventListener('pointermove', onPointerMove);
         document.removeEventListener('pointerup', onPointerUp);
         document.removeEventListener('pointercancel', onPointerUp);
-
-        const ghost = dragState.ghost;
-        if (ghost.parentNode) ghost.remove();
+        if (dragState.ghost.parentNode) dragState.ghost.remove();
         if (dragState.sourceCard) dragState.sourceCard.classList.remove('dragging');
         clearHighlights();
 
         const targetEl = getElementUnderPoint(e.clientX, e.clientY);
         const targetBlock = targetEl?.closest('.block');
-        const targetGrid = targetBlock?.querySelector('.symbols-grid');
-        if (!targetBlock || !targetGrid) { dragState = null; return; }
+        if (!targetBlock) { dragState = null; return; }
 
         const targetType = targetBlock.dataset.type;
         const targetBlockIndex = targetType === 'block' ? parseInt(targetBlock.dataset.blockIndex,10) : null;
+        const targetGrid = targetBlock.querySelector('.symbols-grid');
         const targetCards = Array.from(targetGrid.querySelectorAll('.symbol-card'));
         let insertIndex = targetCards.length;
-
         if (targetCards.length > 0) {
           let bestDist = Infinity;
           for (let i=0; i<targetCards.length; i++) {
             const r = targetCards[i].getBoundingClientRect();
             const midX = r.left + r.width/2;
             const dist = Math.abs(e.clientX - midX);
-            if (dist < bestDist) {
-              bestDist = dist;
-              insertIndex = e.clientX < midX ? i : i+1;
-            }
+            if (dist < bestDist) { bestDist = dist; insertIndex = e.clientX < midX ? i : i+1; }
           }
         }
 
-        // Выполняем перемещение
         if (dragState.type === 'main') {
-          // Из главного блока можно только в доп.блоки
           if (targetType === 'block' && targetBlockIndex !== null) {
             const moved = {...dragState.sym};
             library.splice(dragState.symbolIndex, 1);
@@ -608,22 +556,20 @@
             saveState(); renderAll();
           }
         } else if (dragState.type === 'block') {
-          const sourceIdx = dragState.blockIndex;
+          const srcIdx = dragState.blockIndex;
           if (targetType === 'block' && targetBlockIndex !== null) {
-            if (sourceIdx === targetBlockIndex) {
-              // внутри одного блока
-              const arr = additionalBlocks[sourceIdx];
+            if (srcIdx === targetBlockIndex) {
+              const arr = additionalBlocks[srcIdx];
               const [moved] = arr.splice(dragState.symbolIndex, 1);
               const adjIdx = insertIndex > dragState.symbolIndex ? insertIndex-1 : insertIndex;
               arr.splice(adjIdx, 0, moved);
             } else {
-              const moved = additionalBlocks[sourceIdx].splice(dragState.symbolIndex, 1)[0];
+              const moved = additionalBlocks[srcIdx].splice(dragState.symbolIndex, 1)[0];
               additionalBlocks[targetBlockIndex].splice(insertIndex, 0, moved);
             }
             saveState(); renderAll();
           } else if (targetType === 'main') {
-            // перенос обратно в библиотеку
-            const moved = additionalBlocks[sourceIdx].splice(dragState.symbolIndex, 1)[0];
+            const moved = additionalBlocks[srcIdx].splice(dragState.symbolIndex, 1)[0];
             library.push(moved);
             saveState(); renderAll();
           }
@@ -641,34 +587,27 @@
         document.querySelectorAll('.drop-target').forEach(b => b.classList.remove('drop-target'));
       }
 
-      // ═══════════ Кнопки управления ═══════════
+      // ═══════════ Кнопки ═══════════
       addBlockBtn.addEventListener('click', () => {
         additionalBlocks.push([]);
-        saveState();
-        renderAll();
+        saveState(); renderAll();
       });
-
       addSymbolBtn.addEventListener('click', () => {
         modalOverlay.classList.remove('hidden');
         newCharInput.focus();
       });
-
       toggleModeBtn.addEventListener('click', () => {
         detailedMode = !detailedMode;
         document.body.classList.toggle('detailed-mode', detailedMode);
         toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
-        computeAllCardSizes();
+        requestAnimationFrame(computeAllCardSizes);
       });
-
       clearBtn.addEventListener('click', () => {
         if (confirm('Очистить всё?')) {
-          library = [];
-          additionalBlocks = [];
-          saveState();
-          renderAll();
+          library = []; additionalBlocks = [];
+          saveState(); renderAll();
         }
       });
-
       copyBtn.addEventListener('click', () => {
         const str = resultString.textContent;
         if (!str || str === '(пусто)') return;
@@ -676,13 +615,8 @@
           if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
         }).catch(() => {});
       });
+      saveBtn.addEventListener('click', () => { saveState(); alert('Сохранено'); });
 
-      saveBtn.addEventListener('click', () => {
-        saveState();
-        alert('Сохранено');
-      });
-
-      // Modal
       cancelModalBtn.addEventListener('click', () => modalOverlay.classList.add('hidden'));
       saveModalBtn.addEventListener('click', () => {
         const ch = newCharInput.value.trim();
@@ -691,17 +625,16 @@
         library.push({ id: 'sym_'+Date.now(), char: ch.substring(0,2), text: txt });
         newCharInput.value = ''; newTextInput.value = '';
         modalOverlay.classList.add('hidden');
-        saveState();
-        renderAll();
+        saveState(); renderAll();
       });
       modalOverlay.addEventListener('click', (e) => {
         if (e.target === modalOverlay) modalOverlay.classList.add('hidden');
       });
 
-      // Запуск
+      // Старт
       document.body.classList.toggle('detailed-mode', detailedMode);
       renderAll();
-      window.addEventListener('resize', computeAllCardSizes);
+      window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
       document.addEventListener('selectstart', e => { if(dragState) e.preventDefault(); });
     })();
   </script>
