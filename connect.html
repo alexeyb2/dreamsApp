@@ -120,6 +120,11 @@
       letter-spacing: 0.04em;
       flex-shrink: 0;
     }
+    .block-title {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
     .block-delete {
       background: none;
       border: none;
@@ -294,7 +299,6 @@
     <button id="clearBtn" class="danger">🗑</button>
   </div>
 
-  <!-- Модалки -->
   <div id="addModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Новый символ</h3>
@@ -334,8 +338,8 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // Обновлённая фраза
-  const phrase = `🔼:высшее 👁️:Я 🌀:передача 👁️:Я 🌍:внутри 🧿:тебя 👁️:Я ❤️:люблю 🧿:тебя
+  // Исходная фраза
+  const phrase = `🔼:высшее 👁️:Я 🌀:передача:👁️Я 🌍:внутри 🧿:тебя 👁️:Я ❤️:люблю 🧿:тебя
 🌌:пространство 🛠️:создаёт 🎯:направление 🌊:течения ⚡️:энергии: 📍:старт 🏁:финиш 
 ⏳:время 🛠️:создаёт 🌪️:движение: 🚀:скорость 
 🔮:связующий 🛠️:создаёт 🔄:синхронизация 🔎:через 
@@ -399,22 +403,35 @@
 
   function renderAll() {
     blocksContainer.innerHTML = '';
-    blocksContainer.appendChild(createBlock('main', 'Главный блок', library, null));
+    blocksContainer.appendChild(createBlock('main', library, null));
     additionalBlocks.forEach((block, idx) => {
-      blocksContainer.appendChild(createBlock('block', `Блок ${idx+1}`, block, idx));
+      blocksContainer.appendChild(createBlock('block', block, idx));
     });
     updateResult();
     requestAnimationFrame(computeAllCardSizes);
   }
 
-  function createBlock(type, title, symbols, blockIndex) {
+  // Генерация названия блока по первому элементу
+  function getBlockTitle(symbols) {
+    if (symbols.length > 0) {
+      const first = symbols[0];
+      return `${first.char}: ${first.text}`;
+    }
+    return 'Пустой блок';
+  }
+
+  function createBlock(type, symbols, blockIndex) {
     const wrapper = document.createElement('div');
     wrapper.className = 'block';
     wrapper.dataset.type = type;
     if (blockIndex !== null) wrapper.dataset.blockIndex = blockIndex;
-    const headerHtml = `${title} <span style="font-size:10px;">${symbols.length} симв.</span>`;
-    const deleteButton = blockIndex !== null ? `<button class="block-delete" data-delete-block="${blockIndex}">✕</button>` : '';
-    wrapper.innerHTML = `<div class="block-header">${headerHtml}${deleteButton}</div><div class="symbols-grid"></div>`;
+
+    const titleText = getBlockTitle(symbols);
+    const headerHtml = `
+      <span class="block-title">${titleText} <span style="font-size:10px;color:#86868b;">(${symbols.length})</span></span>
+      ${blockIndex !== null ? `<button class="block-delete">✕</button>` : ''}
+    `;
+    wrapper.innerHTML = `<div class="block-header">${headerHtml}</div><div class="symbols-grid"></div>`;
     const grid = wrapper.querySelector('.symbols-grid');
     symbols.forEach((sym, idx) => grid.appendChild(createCard(sym, idx, blockIndex)));
 
@@ -443,7 +460,6 @@
       del.addEventListener('pointerdown', e => {
         e.stopPropagation();
         e.preventDefault();
-        // Подтверждение удаления
         if (confirm(`Удалить символ «${sym.char}»?`)) {
           additionalBlocks[blockIndex].splice(idx, 1);
           saveState();
@@ -552,8 +568,6 @@
 
     const targetEl = getElementUnderPoint(e.clientX, e.clientY);
     const targetBlock = targetEl?.closest('.block');
-
-    // Если отпустили вне блоков — отменяем (ничего не делаем)
     if (!targetBlock) {
       dragState = null;
       return;
