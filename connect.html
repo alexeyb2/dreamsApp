@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Редактор символов — Telegram Mini App</title>
+  <title>Редактор символов</title>
   <style>
     * {
       margin: 0;
@@ -232,31 +232,6 @@
       box-shadow: 0 0 0 4px rgba(0,122,255,0.1);
     }
 
-    /* Корзина (trash zone) */
-    .trash-zone {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #ff3b30;
-      color: #fff;
-      padding: 10px 24px;
-      border-radius: 30px;
-      font-size: 14px;
-      font-weight: 600;
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s;
-      box-shadow: 0 4px 16px rgba(255,59,48,0.4);
-    }
-    .trash-zone.active {
-      opacity: 1;
-    }
-
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -295,7 +270,6 @@
       justify-content: flex-end;
     }
     .hidden { display: none !important; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   </style>
 </head>
 <body>
@@ -318,11 +292,6 @@
     <button id="importBtn" style="flex:1;">📥 Импорт</button>
     <button id="exportBtn" style="flex:1;">📤 Экспорт</button>
     <button id="clearBtn" class="danger">🗑</button>
-  </div>
-
-  <!-- Корзина для удаления перетаскиванием -->
-  <div class="trash-zone" id="trashZone">
-    <span>🗑️</span> Отпустите, чтобы удалить
   </div>
 
   <!-- Модалки -->
@@ -415,7 +384,6 @@
   let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || defaultData.blocks;
   let detailedMode = false;
   let dragState = null;
-  const trashZone = document.getElementById('trashZone');
 
   const $ = id => document.getElementById(id);
   const blocksContainer = $('blocksContainer');
@@ -450,7 +418,6 @@
     const grid = wrapper.querySelector('.symbols-grid');
     symbols.forEach((sym, idx) => grid.appendChild(createCard(sym, idx, blockIndex)));
 
-    // Обработчик удаления блока
     if (blockIndex !== null) {
       wrapper.querySelector('.block-delete').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -476,9 +443,12 @@
       del.addEventListener('pointerdown', e => {
         e.stopPropagation();
         e.preventDefault();
-        additionalBlocks[blockIndex].splice(idx, 1);
-        saveState();
-        renderAll();
+        // Подтверждение удаления
+        if (confirm(`Удалить символ «${sym.char}»?`)) {
+          additionalBlocks[blockIndex].splice(idx, 1);
+          saveState();
+          renderAll();
+        }
       });
       card.appendChild(del);
     }
@@ -524,7 +494,7 @@
   window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
   new ResizeObserver(() => computeAllCardSizes()).observe(blocksContainer);
 
-  // Drag & Drop с удалением вне блоков
+  // Drag & Drop без удаления вне блоков
   function onPointerDown(e) {
     if (dragState || (e.button && e.button !== 0)) return;
     const card = e.currentTarget;
@@ -569,9 +539,6 @@
     const blockUnder = el?.closest('.block');
     if (blockUnder) {
       blockUnder.classList.add('drop-target');
-      trashZone.classList.remove('active');
-    } else {
-      trashZone.classList.add('active');
     }
   }
 
@@ -582,20 +549,12 @@
     dragState.ghost.remove();
     dragState.sourceCard.classList.remove('dragging');
     clearHighlights();
-    trashZone.classList.remove('active');
 
     const targetEl = getElementUnderPoint(e.clientX, e.clientY);
     const targetBlock = targetEl?.closest('.block');
 
-    // Если отпустили вне блоков — удаляем символ
+    // Если отпустили вне блоков — отменяем (ничего не делаем)
     if (!targetBlock) {
-      if (dragState.type === 'main') {
-        library.splice(dragState.symbolIndex, 1);
-      } else {
-        additionalBlocks[dragState.blockIndex].splice(dragState.symbolIndex, 1);
-      }
-      saveState();
-      renderAll();
       dragState = null;
       return;
     }
@@ -619,7 +578,7 @@
         const moved = {...dragState.sym};
         library.splice(dragState.symbolIndex, 1);
         additionalBlocks[targetBlockIndex].splice(insertIndex, 0, moved);
-      } // Главный блок сам в себя — ничего
+      }
     } else {
       const srcIdx = dragState.blockIndex;
       if (targetType === 'block' && targetBlockIndex !== null) {
