@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Символьные кубики — Мозаика</title>
+  <title>Символьные кубики — Мозаика с перетаскиванием</title>
   <style>
     * {
       margin: 0;
@@ -95,6 +95,7 @@
       align-content: flex-start;
       overflow: hidden;
       background: #000;
+      touch-action: none;
     }
 
     .cube {
@@ -102,13 +103,17 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(255,255,255,0.2);
-      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.25);
+      cursor: grab;
       position: relative;
       transition: 0.1s;
       font-family: inherit;
     }
-    .cube:active { filter: brightness(0.9); }
+    .cube:active { cursor: grabbing; }
+    .cube.dragging {
+      opacity: 0.4;
+      transform: scale(0.95);
+    }
     .cube .cube-char {
       font-size: var(--emoji-size);
       line-height: 1;
@@ -128,7 +133,6 @@
       display: block;
     }
     body.detailed-mode .cube {
-      /* высота авто, но сохраняем ширину */
       height: auto !important;
       min-height: var(--cube-size);
     }
@@ -154,6 +158,22 @@
       display: flex;
     }
 
+    .drag-ghost {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0.9;
+      transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+      background: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: inherit;
+      border: 2px solid #fff;
+      border-radius: 4px;
+    }
+
     /* Модальные окна */
     .modal-overlay {
       position: fixed;
@@ -175,6 +195,35 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+    /* Экспорт на весь экран */
+    .export-fullscreen {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+    }
+    .export-fullscreen textarea {
+      flex: 1;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    .export-fullscreen .switch-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
     }
     .modal h3 { font-size: 17px; font-weight: 700; }
     .modal textarea, .modal input {
@@ -237,15 +286,19 @@
       </div>
     </div>
   </div>
-  <div id="exportModalOverlay" class="modal-overlay hidden">
-    <div class="modal">
+
+  <!-- Экспорт на весь экран -->
+  <div id="exportFullscreen" class="export-fullscreen hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
       <h3>📤 Экспорт</h3>
-      <textarea id="exportTextarea" readonly></textarea>
-      <div class="modal-actions">
-        <button id="cancelExportModalBtn">Закрыть</button>
-        <button id="copyExportBtn" class="primary">Копировать</button>
-      </div>
+      <button id="closeExportBtn" style="background:none; border:none; font-size:20px;">✕</button>
     </div>
+    <div class="switch-row">
+      <label><input type="radio" name="exportMode" value="withWords" checked> Со словами</label>
+      <label><input type="radio" name="exportMode" value="symbolsOnly"> Только символы</label>
+    </div>
+    <textarea id="exportTextareaFull" readonly></textarea>
+    <button id="copyExportFullBtn" class="primary" style="align-self:flex-end;">Копировать</button>
   </div>
 </div>
 
@@ -254,7 +307,6 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // Исходная фраза
   const phrase = `🔼:высшее 👁️:Я 🌀:передача:👁️Я 🌍:внутри 🧿:тебя 👁️:Я ❤️:люблю 🧿:тебя
 🌌:пространство 🛠️:создаёт 🎯:направление 🌊:течения ⚡️:энергии: 📍:старт 🏁:финиш 
 ⏳:время 🛠️:создаёт 🌪️:движение: 🚀:скорость 
@@ -297,22 +349,16 @@
   let library = JSON.parse(localStorage.getItem('seq_library')) || defaultData.library;
   let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || defaultData.blocks;
   let detailedMode = false;
+  let dragState = null;
 
   const $ = id => document.getElementById(id);
   const cubesField = $('cubesField');
   const resultString = $('resultString');
   const toggleModeBtn = $('toggleModeBtn');
 
-  // Цвета для блоков
   const blockColors = [
-    '#e74c3c', // красный
-    '#f39c12', // оранжевый
-    '#9b59b6', // фиолетовый
-    '#2ecc71', // зелёный
-    '#3498db', // синий
-    '#1abc9c', // бирюзовый
-    '#e67e22', // морковный
-    '#34495e', // тёмно-серый
+    '#e74c3c', '#f39c12', '#9b59b6', '#2ecc71',
+    '#3498db', '#1abc9c', '#e67e22', '#34495e'
   ];
 
   function saveState() {
@@ -322,16 +368,24 @@
     } catch(e) {}
   }
 
+  // Подготовка данных кубиков в единый массив с мета-информацией о блоке
+  function flattenBlocks() {
+    const result = [];
+    library.forEach((sym, idx) => result.push({ ...sym, blockType: 'main', blockIndex: 0, symbolIndex: idx }));
+    additionalBlocks.forEach((block, blockIdx) => {
+      block.forEach((sym, symIdx) => result.push({ ...sym, blockType: 'block', blockIndex: blockIdx + 1, symbolIndex: symIdx }));
+    });
+    return result;
+  }
+
   function renderAll() {
     cubesField.innerHTML = '';
-    const allBlocks = [library, ...additionalBlocks];
-    const totalSymbols = allBlocks.reduce((sum, b) => sum + b.length, 0);
-    if (totalSymbols === 0) {
+    const allSymbols = flattenBlocks();
+    if (allSymbols.length === 0) {
       updateResult();
       return;
     }
 
-    // Вычисляем размер кубика
     const fieldWidth = cubesField.clientWidth;
     const fieldHeight = cubesField.clientHeight;
     if (fieldWidth <= 0 || fieldHeight <= 0) return;
@@ -341,7 +395,7 @@
     for (let s = maxSize; s >= 20; s--) {
       const cols = Math.floor(fieldWidth / s);
       if (cols === 0) continue;
-      const rows = Math.ceil(totalSymbols / cols);
+      const rows = Math.ceil(allSymbols.length / cols);
       if (rows * s <= fieldHeight) {
         bestSize = s;
         break;
@@ -352,47 +406,47 @@
     const emojiSize = Math.max(10, cubeSize * 0.5);
     const textSize = Math.max(6, cubeSize * 0.18);
 
-    let globalIdx = 0;
-    for (let blockIdx = 0; blockIdx < allBlocks.length; blockIdx++) {
-      const blockSymbols = allBlocks[blockIdx];
-      const color = blockColors[blockIdx % blockColors.length];
-      const isMain = (blockIdx === 0);
+    allSymbols.forEach((sym, globalIndex) => {
+      const cube = document.createElement('div');
+      cube.className = 'cube';
+      const color = blockColors[(sym.blockIndex) % blockColors.length];
+      cube.style.backgroundColor = color;
+      cube.style.width = cubeSize + 'px';
+      cube.style.height = cubeSize + 'px';
+      cube.style.setProperty('--cube-size', cubeSize + 'px');
+      cube.style.setProperty('--emoji-size', emojiSize + 'px');
+      cube.style.setProperty('--text-size', textSize + 'px');
 
-      for (const sym of blockSymbols) {
-        const cube = document.createElement('div');
-        cube.className = 'cube';
-        if (!isMain) cube.classList.add('editable');
-        cube.style.width = cubeSize + 'px';
-        cube.style.height = cubeSize + 'px';
-        cube.style.backgroundColor = color;
-        cube.style.setProperty('--cube-size', cubeSize + 'px');
-        cube.style.setProperty('--emoji-size', emojiSize + 'px');
-        cube.style.setProperty('--text-size', textSize + 'px');
+      cube.innerHTML = `
+        <span class="cube-char">${sym.char}</span>
+        <span class="cube-text">${sym.text||''}</span>
+      `;
 
-        cube.innerHTML = `
-          <span class="cube-char">${sym.char}</span>
-          <span class="cube-text">${sym.text||''}</span>
-        `;
+      cube.dataset.blockType = sym.blockType;
+      cube.dataset.blockIndex = sym.blockIndex;
+      cube.dataset.symbolIndex = sym.symbolIndex;
+      cube.dataset.globalIndex = globalIndex;
 
-        if (!isMain) {
-          const delBtn = document.createElement('button');
-          delBtn.className = 'delete-cube';
-          delBtn.textContent = '✕';
-          delBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (confirm(`Удалить символ «${sym.char}»?`)) {
-              additionalBlocks[blockIdx-1].splice(globalIdx - library.length, 1);
-              saveState();
-              renderAll();
-            }
-          });
-          cube.appendChild(delBtn);
-        }
-
-        cubesField.appendChild(cube);
-        globalIdx++;
+      if (sym.blockType === 'block') {
+        cube.classList.add('editable');
+        const delBtn = document.createElement('button');
+        delBtn.className = 'delete-cube';
+        delBtn.textContent = '✕';
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (confirm(`Удалить символ «${sym.char}»?`)) {
+            const blockIdx = sym.blockIndex - 1;
+            additionalBlocks[blockIdx].splice(sym.symbolIndex, 1);
+            saveState();
+            renderAll();
+          }
+        });
+        cube.appendChild(delBtn);
       }
-    }
+
+      cube.addEventListener('pointerdown', onCubePointerDown);
+      cubesField.appendChild(cube);
+    });
 
     updateResult();
   }
@@ -406,7 +460,93 @@
   window.addEventListener('resize', () => requestAnimationFrame(renderAll));
   new ResizeObserver(() => renderAll()).observe(cubesField);
 
-  // Кнопки управления
+  // ---- Drag & Drop ----
+  function onCubePointerDown(e) {
+    if (dragState) return;
+    if (e.button && e.button !== 0) return;
+    const cube = e.currentTarget;
+    if (e.target.classList.contains('delete-cube')) return;
+
+    e.preventDefault();
+    cube.setPointerCapture(e.pointerId);
+    const rect = cube.getBoundingClientRect();
+
+    const ghost = cube.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    ghost.style.width = rect.width + 'px';
+    ghost.style.height = rect.height + 'px';
+    ghost.style.left = rect.left + 'px';
+    ghost.style.top = rect.top + 'px';
+    document.body.appendChild(ghost);
+
+    cube.classList.add('dragging');
+
+    dragState = {
+      sourceCube: cube,
+      ghost,
+      blockType: cube.dataset.blockType,
+      blockIndex: parseInt(cube.dataset.blockIndex),
+      symbolIndex: parseInt(cube.dataset.symbolIndex),
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      pointerId: e.pointerId,
+    };
+
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+  }
+
+  function onPointerMove(e) {
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    dragState.ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
+    dragState.ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
+  }
+
+  function onPointerUp(e) {
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    dragState.ghost.remove();
+    if (dragState.sourceCube) dragState.sourceCube.classList.remove('dragging');
+
+    const targetEl = document.elementFromPoint(e.clientX, e.clientY);
+    const targetCube = targetEl?.closest('.cube');
+    if (!targetCube || targetCube === dragState.sourceCube) {
+      dragState = null;
+      return;
+    }
+
+    const srcType = dragState.blockType;
+    const srcBlockIdx = dragState.blockIndex;
+    const srcSymIdx = dragState.symbolIndex;
+
+    const tgtType = targetCube.dataset.blockType;
+    const tgtBlockIdx = parseInt(targetCube.dataset.blockIndex);
+    let tgtSymIdx = parseInt(targetCube.dataset.symbolIndex);
+
+    // Извлекаем символ из источника
+    let movedSym;
+    if (srcType === 'main') {
+      movedSym = library.splice(srcSymIdx, 1)[0];
+    } else {
+      const realBlockIdx = srcBlockIdx - 1;
+      movedSym = additionalBlocks[realBlockIdx].splice(srcSymIdx, 1)[0];
+    }
+
+    // Вставляем в цель
+    if (tgtType === 'main') {
+      library.splice(tgtSymIdx, 0, movedSym);
+    } else {
+      const realTgtBlockIdx = tgtBlockIdx - 1;
+      additionalBlocks[realTgtBlockIdx].splice(tgtSymIdx, 0, movedSym);
+    }
+
+    saveState();
+    renderAll();
+    dragState = null;
+  }
+
+  // ---- Кнопки ----
   $('addBlockBtn').addEventListener('click', () => {
     additionalBlocks.push([]);
     saveState();
@@ -420,10 +560,7 @@
     $('importModalOverlay').classList.remove('hidden');
     $('importTextarea').focus();
   });
-  $('exportBtn').addEventListener('click', () => {
-    $('exportTextarea').value = exportData();
-    $('exportModalOverlay').classList.remove('hidden');
-  });
+  $('exportBtn').addEventListener('click', () => openExportFullscreen());
   toggleModeBtn.addEventListener('click', () => {
     detailedMode = !detailedMode;
     document.body.classList.toggle('detailed-mode', detailedMode);
@@ -466,18 +603,36 @@
     $('importTextarea').value = '';
     alert('Импортировано');
   });
-  $('cancelExportModalBtn').addEventListener('click', () => $('exportModalOverlay').classList.add('hidden'));
-  $('copyExportBtn').addEventListener('click', () => {
-    const text = $('exportTextarea').value;
+
+  // Экспорт fullscreen
+  function openExportFullscreen() {
+    $('exportFullscreen').classList.remove('hidden');
+    updateExportText();
+  }
+  function closeExportFullscreen() {
+    $('exportFullscreen').classList.add('hidden');
+  }
+  function updateExportText() {
+    const withWords = document.querySelector('input[name="exportMode"]:checked').value === 'withWords';
+    const lines = [];
+    if (withWords) {
+      lines.push(library.map(s => s.char + ':' + s.text).join(' '));
+      additionalBlocks.forEach(b => lines.push(b.map(s => s.char + ':' + s.text).join(' ')));
+    } else {
+      lines.push(library.map(s => s.char).join(' '));
+      additionalBlocks.forEach(b => lines.push(b.map(s => s.char).join(' ')));
+    }
+    $('exportTextareaFull').value = lines.join('\n');
+  }
+
+  document.querySelectorAll('input[name="exportMode"]').forEach(radio => {
+    radio.addEventListener('change', updateExportText);
+  });
+  $('closeExportBtn').addEventListener('click', closeExportFullscreen);
+  $('copyExportFullBtn').addEventListener('click', () => {
+    const text = $('exportTextareaFull').value;
     if (text) navigator.clipboard?.writeText(text).then(() => alert('Скопировано'));
   });
-
-  function exportData() {
-    const lines = [];
-    lines.push(library.map(s => s.char + ':' + s.text).join(' '));
-    additionalBlocks.forEach(b => lines.push(b.map(s => s.char + ':' + s.text).join(' ')));
-    return lines.join('\n');
-  }
 
   // Запуск
   document.body.classList.toggle('detailed-mode', detailedMode);
