@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Мозаика блоков — плотное заполнение</title>
+  <title>Мозаика блоков — последовательное заполнение</title>
   <style>
     * {
       margin: 0;
@@ -88,39 +88,37 @@
     button.primary:active { background: #0066d6; }
     button.danger { background: #ff3b30; color: #fff; border-color: transparent; }
 
-    /* Вертикальная цепочка блоков */
-    .chain-field {
+    /* Мозаичное поле */
+    .mosaic-field {
       flex: 1;
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      align-content: flex-start;
       overflow: hidden;
     }
 
+    /* Блок – прямоугольная ячейка мозаики */
     .block {
       background: #fff;
-      border-bottom: 1px solid #d1d1d6;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      flex: 1 1 auto;
-      min-height: 0;
-    }
-    .block:last-child {
-      border-bottom: none;
+      border: 1px solid #d1d1d6;
+      margin: 0;
+      flex: none;
     }
 
     .block-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 2px 6px;
-      font-size: 10px;
+      padding: 2px 4px;
+      font-size: 9px;
       font-weight: 600;
       color: #86868b;
       background: #f9f9fb;
       border-bottom: 1px solid #e5e5ea;
       flex-shrink: 0;
-      letter-spacing: 0.02em;
     }
     .block-header .title-text {
       overflow: hidden;
@@ -188,9 +186,6 @@
     body.detailed-mode .symbol-card .meta {
       display: block;
       white-space: normal;
-    }
-    body.detailed-mode .symbols-grid {
-      align-items: flex-start;
     }
 
     .remove-symbol {
@@ -285,7 +280,7 @@
     </div>
   </header>
 
-  <main class="chain-field" id="chainField"></main>
+  <main class="mosaic-field" id="mosaicField"></main>
 
   <div style="padding:3px 8px 6px; display:flex; gap:5px; flex-shrink:0;">
     <button id="addBlockBtn" class="primary" style="flex:1;">+ Блок</button>
@@ -379,7 +374,7 @@
   let dragState = null;
 
   const $ = id => document.getElementById(id);
-  const chainField = $('chainField');
+  const mosaicField = $('mosaicField');
   const resultString = $('resultString');
   const toggleModeBtn = $('toggleModeBtn');
 
@@ -391,13 +386,13 @@
   }
 
   function renderAll() {
-    chainField.innerHTML = '';
-    chainField.appendChild(createBlock('main', library, null, true));
+    mosaicField.innerHTML = '';
+    mosaicField.appendChild(createBlock('main', library, null, true));
     additionalBlocks.forEach((block, idx) => {
-      chainField.appendChild(createBlock('block', block, idx, false));
+      mosaicField.appendChild(createBlock('block', block, idx, false));
     });
     updateResult();
-    requestAnimationFrame(computeGlobalCardSize);
+    requestAnimationFrame(computeLayout);
   }
 
   function getBlockTitle(symbols) {
@@ -468,59 +463,48 @@
     resultString.textContent = str || '(пусто)';
   }
 
-  // Глобальный подбор размера карточки, чтобы все блоки заполнили chainField без скролла
-  function computeGlobalCardSize() {
-    const field = chainField;
-    if (!field || field.clientHeight <= 0) return;
-
-    const blocks = field.querySelectorAll('.block');
-    if (blocks.length === 0) return;
+  function computeLayout() {
+    const field = mosaicField;
+    if (!field || field.clientWidth <= 0 || field.clientHeight <= 0) return;
 
     const fieldWidth = field.clientWidth;
     const fieldHeight = field.clientHeight;
-    const gap = 2; // gap в symbols-grid
-    const pad = 4; // суммарный горизонтальный паддинг (2+2)
-    const availableWidth = fieldWidth - pad;
-    const headerHeight = 20; // примерно высота заголовка блока
+    const gap = 2; // внутренний gap в symbols-grid
+    const headerHeight = 20; // примерно
+
+    // 1. Собираем все символы в один плоский список для глобального подсчёта
+    const allSymbolsCount = library.length + additionalBlocks.reduce((sum, b) => sum + b.length, 0);
+    if (allSymbolsCount === 0) return;
+
+    // 2. Глобальный подбор cardSize так, чтобы все блоки поместились в fieldHeight
+    // Используем упрощённый алгоритм: бинарный поиск cardSize
+    let low = 16;
+    let high = Math.min(fieldWidth, fieldHeight);
+    let bestSize = low;
 
     // Собираем количество символов в каждом блоке
-    const symbolCounts = [];
-    let totalSymbols = 0;
-    blocks.forEach(block => {
+    const blockSymbolCounts = [];
+    for (const block of document.querySelectorAll('.block')) {
       const cards = block.querySelectorAll('.symbol-card');
-      const n = cards.length;
-      symbolCounts.push(n);
-      totalSymbols += n;
-    });
+      blockSymbolCounts.push(cards.length);
+    }
 
-    if (totalSymbols === 0) return;
-
-    // Функция для расчёта суммарной высоты блоков при заданном размере карточки s
-    const getTotalHeight = (s) => {
-      if (s <= 0) return Infinity;
-      const cols = Math.floor((availableWidth + gap) / (s + gap));
-      if (cols <= 0) return Infinity;
+    const getTotalHeight = (size) => {
+      const maxCols = Math.floor((fieldWidth + gap) / (size + gap));
+      if (maxCols <= 0) return Infinity;
       let total = 0;
-      for (const n of symbolCounts) {
+      for (const n of blockSymbolCounts) {
         if (n === 0) continue;
+        const cols = Math.min(n, maxCols);
         const rows = Math.ceil(n / cols);
-        const blockHeight = headerHeight + rows * (s + gap) - gap;
-        total += blockHeight;
+        total += headerHeight + rows * (size + gap) - gap;
       }
       return total;
     };
 
-    // Бинарный поиск размера s, чтобы totalHeight ≈ fieldHeight
-    let low = 16;
-    let high = Math.min(fieldWidth, fieldHeight); // максимально возможный размер карточки
-    let bestSize = low;
-
-    // Проверяем, влезаем ли с минимальным размером
     if (getTotalHeight(low) > fieldHeight) {
-      // Даже с минимальным размером не влезает – придётся использовать скролл, но мы зададим минимальный
-      bestSize = low;
+      bestSize = low; // даже минимальный не влезает, придётся скроллить
     } else {
-      // Ищем максимальный размер, при котором суммарная высота <= fieldHeight
       for (let i = 0; i < 20; i++) {
         const mid = (low + high) / 2;
         const h = getTotalHeight(mid);
@@ -533,18 +517,32 @@
       }
     }
 
-    // Применяем размер ко всем сеткам
-    const fontSize = Math.max(7, bestSize * 0.22);
-    const emojiSize = Math.max(8, bestSize * 0.55);
-    document.querySelectorAll('.symbols-grid').forEach(grid => {
-      grid.style.setProperty('--card-size', bestSize + 'px');
-      grid.style.setProperty('--font-size', fontSize + 'px');
-      grid.style.setProperty('--emoji-size', emojiSize + 'px');
-    });
+    const cardSize = bestSize;
+    const maxCols = Math.floor((fieldWidth + gap) / (cardSize + gap));
+    const fontSize = Math.max(7, cardSize * 0.22);
+    const emojiSize = Math.max(8, cardSize * 0.55);
+
+    // 3. Применяем cardSize ко всем сеткам и вычисляем ширину блоков
+    const blocks = document.querySelectorAll('.block');
+    let idx = 0;
+    for (const block of blocks) {
+      const n = blockSymbolCounts[idx];
+      const cols = Math.min(n, maxCols) || 1; // если 0, то блок скрыт?
+      const blockWidth = cols * (cardSize + gap) - gap;
+      block.style.width = blockWidth + 'px';
+      block.style.height = 'auto'; // высота по содержимому
+      const grid = block.querySelector('.symbols-grid');
+      if (grid) {
+        grid.style.setProperty('--card-size', cardSize + 'px');
+        grid.style.setProperty('--font-size', fontSize + 'px');
+        grid.style.setProperty('--emoji-size', emojiSize + 'px');
+      }
+      idx++;
+    }
   }
 
-  window.addEventListener('resize', () => requestAnimationFrame(computeGlobalCardSize));
-  new ResizeObserver(() => computeGlobalCardSize()).observe(chainField);
+  window.addEventListener('resize', () => requestAnimationFrame(computeLayout));
+  new ResizeObserver(() => computeLayout()).observe(mosaicField);
 
   // Drag & Drop (без изменений)
   function onPointerDown(e) {
@@ -676,11 +674,11 @@
   $('addSymbolBtn').addEventListener('click', () => { $('addModalOverlay').classList.remove('hidden'); $('newCharInput').focus(); });
   $('importBtn').addEventListener('click', () => { $('importModalOverlay').classList.remove('hidden'); $('importTextarea').focus(); });
   $('exportBtn').addEventListener('click', () => { $('exportTextarea').value = exportData(); $('exportModalOverlay').classList.remove('hidden'); });
-  toggleModeBtn.addEventListener('click', () => {
+  toggleModeBtn.forEach('click', () => {
     detailedMode = !detailedMode;
     document.body.classList.toggle('detailed-mode', detailedMode);
     toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
-    requestAnimationFrame(computeGlobalCardSize);
+    requestAnimationFrame(computeLayout);
   });
   $('clearBtn').addEventListener('click', () => { if (confirm('Очистить всё?')) { library = []; additionalBlocks = []; saveState(); renderAll(); } });
   $('copyBtn').addEventListener('click', () => { const str = resultString.textContent; if (str && str !== '(пусто)') navigator.clipboard?.writeText(str); });
@@ -702,7 +700,7 @@
 
   document.body.classList.toggle('detailed-mode', detailedMode);
   renderAll();
-  window.addEventListener('resize', () => requestAnimationFrame(computeGlobalCardSize));
+  window.addEventListener('resize', () => requestAnimationFrame(computeLayout));
 })();
 </script>
 </body>
