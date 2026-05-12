@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Мозаика блоков</title>
+  <title>Мозаика блоков — плотное заполнение</title>
   <style>
     * {
       margin: 0;
@@ -88,34 +88,33 @@
     button.primary:active { background: #0066d6; }
     button.danger { background: #ff3b30; color: #fff; border-color: transparent; }
 
-    /* Мозаичное поле */
-    .mosaic-field {
+    /* Вертикальная цепочка блоков */
+    .chain-field {
       flex: 1;
       display: flex;
-      flex-wrap: wrap;
-      align-content: flex-start;
+      flex-direction: column;
       overflow: hidden;
-      border-top: 1px solid #d1d1d6;
-      border-left: 1px solid #d1d1d6;
     }
 
-    /* Блок – ячейка мозаики */
     .block {
       background: #fff;
-      border-right: 1px solid #d1d1d6;
       border-bottom: 1px solid #d1d1d6;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      min-width: 0;
+      flex: 1 1 auto;
       min-height: 0;
     }
+    .block:last-child {
+      border-bottom: none;
+    }
+
     .block-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 2px 4px;
-      font-size: 9px;
+      padding: 2px 6px;
+      font-size: 10px;
       font-weight: 600;
       color: #86868b;
       background: #f9f9fb;
@@ -190,6 +189,9 @@
       display: block;
       white-space: normal;
     }
+    body.detailed-mode .symbols-grid {
+      align-items: flex-start;
+    }
 
     .remove-symbol {
       position: absolute;
@@ -229,8 +231,8 @@
       border: 2px solid #007aff;
     }
     .block.drop-target {
-      border: 2px solid #007aff;
-      box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+      outline: 2px solid #007aff;
+      outline-offset: -2px;
     }
 
     .modal-overlay {
@@ -283,7 +285,7 @@
     </div>
   </header>
 
-  <main class="mosaic-field" id="mosaicField"></main>
+  <main class="chain-field" id="chainField"></main>
 
   <div style="padding:3px 8px 6px; display:flex; gap:5px; flex-shrink:0;">
     <button id="addBlockBtn" class="primary" style="flex:1;">+ Блок</button>
@@ -354,26 +356,20 @@
         char = token;
         text = '';
       }
-      if (char) {
-        symbols.push({
-          id: Date.now().toString(36) + Math.random().toString(36),
-          char: char,
-          text: text
-        });
-      }
+      if (char) symbols.push({ id: Date.now().toString(36) + Math.random().toString(36), char, text });
     }
     return symbols;
   }
 
   function parsePhrase(phraseText) {
-    const lines = phraseText.split(/\n/).filter(line => line.trim());
-    const result = { library: [], blocks: [] };
-    if (lines.length > 0) result.library = parseLine(lines[0]);
+    const lines = phraseText.split(/\n/).filter(l => l.trim());
+    const res = { library: [], blocks: [] };
+    if (lines.length > 0) res.library = parseLine(lines[0]);
     for (let i = 1; i < lines.length; i++) {
-      const symbols = parseLine(lines[i]);
-      if (symbols.length > 0) result.blocks.push(symbols);
+      const s = parseLine(lines[i]);
+      if (s.length) res.blocks.push(s);
     }
-    return result;
+    return res;
   }
 
   const defaultData = parsePhrase(phrase);
@@ -383,7 +379,7 @@
   let dragState = null;
 
   const $ = id => document.getElementById(id);
-  const mosaicField = $('mosaicField');
+  const chainField = $('chainField');
   const resultString = $('resultString');
   const toggleModeBtn = $('toggleModeBtn');
 
@@ -395,15 +391,13 @@
   }
 
   function renderAll() {
-    mosaicField.innerHTML = '';
-    // Главный блок
-    mosaicField.appendChild(createBlockElement('main', library, null, true));
-    // Дополнительные блоки
+    chainField.innerHTML = '';
+    chainField.appendChild(createBlock('main', library, null, true));
     additionalBlocks.forEach((block, idx) => {
-      mosaicField.appendChild(createBlockElement('block', block, idx, false));
+      chainField.appendChild(createBlock('block', block, idx, false));
     });
     updateResult();
-    requestAnimationFrame(computeAllCardSizes);
+    requestAnimationFrame(computeGlobalCardSize);
   }
 
   function getBlockTitle(symbols) {
@@ -414,21 +408,20 @@
     return 'Пусто';
   }
 
-  function createBlockElement(type, symbols, blockIndex, isMain) {
+  function createBlock(type, symbols, blockIndex, isMain) {
     const wrapper = document.createElement('div');
     wrapper.className = 'block';
     wrapper.dataset.type = type;
     if (blockIndex !== null && type === 'block') wrapper.dataset.blockIndex = blockIndex;
 
     const titleText = getBlockTitle(symbols);
-    const headerHtml = `
+    wrapper.innerHTML = `
       <div class="block-header">
         <span class="title-text">${titleText} (${symbols.length})</span>
         ${!isMain ? '<button class="block-delete">✕</button>' : ''}
       </div>
       <div class="symbols-grid"></div>
     `;
-    wrapper.innerHTML = headerHtml;
     const grid = wrapper.querySelector('.symbols-grid');
     symbols.forEach((sym, idx) => grid.appendChild(createCard(sym, idx, blockIndex, type)));
 
@@ -475,41 +468,85 @@
     resultString.textContent = str || '(пусто)';
   }
 
-  function computeAllCardSizes() {
-    const blocks = document.querySelectorAll('.block');
+  // Глобальный подбор размера карточки, чтобы все блоки заполнили chainField без скролла
+  function computeGlobalCardSize() {
+    const field = chainField;
+    if (!field || field.clientHeight <= 0) return;
+
+    const blocks = field.querySelectorAll('.block');
+    if (blocks.length === 0) return;
+
+    const fieldWidth = field.clientWidth;
+    const fieldHeight = field.clientHeight;
+    const gap = 2; // gap в symbols-grid
+    const pad = 4; // суммарный горизонтальный паддинг (2+2)
+    const availableWidth = fieldWidth - pad;
+    const headerHeight = 20; // примерно высота заголовка блока
+
+    // Собираем количество символов в каждом блоке
+    const symbolCounts = [];
+    let totalSymbols = 0;
     blocks.forEach(block => {
-      const grid = block.querySelector('.symbols-grid');
-      if (!grid) return;
-      const cards = grid.querySelectorAll('.symbol-card');
+      const cards = block.querySelectorAll('.symbol-card');
       const n = cards.length;
-      if (!n) return;
-      const style = getComputedStyle(grid);
-      const gap = parseFloat(style.gap) || 2;
-      const pad = parseFloat(style.paddingTop) || 2;
-      const w = grid.clientWidth - pad * 2;
-      const h = grid.clientHeight - pad * 2;
-      if (w <= 0 || h <= 0) return;
-      let bestSize = 16;
-      const max = Math.min(w, h);
-      for (let s = max; s >= 16; s--) {
-        const cols = Math.floor((w + gap) / (s + gap));
-        if (cols <= 0) continue;
+      symbolCounts.push(n);
+      totalSymbols += n;
+    });
+
+    if (totalSymbols === 0) return;
+
+    // Функция для расчёта суммарной высоты блоков при заданном размере карточки s
+    const getTotalHeight = (s) => {
+      if (s <= 0) return Infinity;
+      const cols = Math.floor((availableWidth + gap) / (s + gap));
+      if (cols <= 0) return Infinity;
+      let total = 0;
+      for (const n of symbolCounts) {
+        if (n === 0) continue;
         const rows = Math.ceil(n / cols);
-        if (rows * (s + gap) - gap <= h) {
-          bestSize = s;
-          break;
+        const blockHeight = headerHeight + rows * (s + gap) - gap;
+        total += blockHeight;
+      }
+      return total;
+    };
+
+    // Бинарный поиск размера s, чтобы totalHeight ≈ fieldHeight
+    let low = 16;
+    let high = Math.min(fieldWidth, fieldHeight); // максимально возможный размер карточки
+    let bestSize = low;
+
+    // Проверяем, влезаем ли с минимальным размером
+    if (getTotalHeight(low) > fieldHeight) {
+      // Даже с минимальным размером не влезает – придётся использовать скролл, но мы зададим минимальный
+      bestSize = low;
+    } else {
+      // Ищем максимальный размер, при котором суммарная высота <= fieldHeight
+      for (let i = 0; i < 20; i++) {
+        const mid = (low + high) / 2;
+        const h = getTotalHeight(mid);
+        if (h <= fieldHeight) {
+          bestSize = mid;
+          low = mid;
+        } else {
+          high = mid;
         }
       }
+    }
+
+    // Применяем размер ко всем сеткам
+    const fontSize = Math.max(7, bestSize * 0.22);
+    const emojiSize = Math.max(8, bestSize * 0.55);
+    document.querySelectorAll('.symbols-grid').forEach(grid => {
       grid.style.setProperty('--card-size', bestSize + 'px');
-      grid.style.setProperty('--font-size', Math.max(7, bestSize * 0.22) + 'px');
-      grid.style.setProperty('--emoji-size', Math.max(8, bestSize * 0.55) + 'px');
+      grid.style.setProperty('--font-size', fontSize + 'px');
+      grid.style.setProperty('--emoji-size', emojiSize + 'px');
     });
   }
 
-  window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
-  new ResizeObserver(() => computeAllCardSizes()).observe(mosaicField);
+  window.addEventListener('resize', () => requestAnimationFrame(computeGlobalCardSize));
+  new ResizeObserver(() => computeGlobalCardSize()).observe(chainField);
 
-  // Drag & Drop
+  // Drag & Drop (без изменений)
   function onPointerDown(e) {
     if (dragState || (e.button && e.button !== 0)) return;
     const card = e.currentTarget;
@@ -618,7 +655,6 @@
     document.querySelectorAll('.drop-target').forEach(b => b.classList.remove('drop-target'));
   }
 
-  // Импорт/Экспорт
   function importData(text) {
     const parsed = parsePhrase(text);
     if (parsed.library.length) library.push(...parsed.library);
@@ -636,7 +672,6 @@
     return lines.join('\n');
   }
 
-  // Кнопки
   $('addBlockBtn').addEventListener('click', () => { additionalBlocks.push([]); saveState(); renderAll(); });
   $('addSymbolBtn').addEventListener('click', () => { $('addModalOverlay').classList.remove('hidden'); $('newCharInput').focus(); });
   $('importBtn').addEventListener('click', () => { $('importModalOverlay').classList.remove('hidden'); $('importTextarea').focus(); });
@@ -645,13 +680,12 @@
     detailedMode = !detailedMode;
     document.body.classList.toggle('detailed-mode', detailedMode);
     toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
-    requestAnimationFrame(computeAllCardSizes);
+    requestAnimationFrame(computeGlobalCardSize);
   });
   $('clearBtn').addEventListener('click', () => { if (confirm('Очистить всё?')) { library = []; additionalBlocks = []; saveState(); renderAll(); } });
   $('copyBtn').addEventListener('click', () => { const str = resultString.textContent; if (str && str !== '(пусто)') navigator.clipboard?.writeText(str); });
   $('saveBtn').addEventListener('click', () => { saveState(); alert('Сохранено'); });
 
-  // Модалки
   $('cancelAddModalBtn').addEventListener('click', () => $('addModalOverlay').classList.add('hidden'));
   $('saveAddModalBtn').addEventListener('click', () => {
     const ch = $('newCharInput').value.trim();
@@ -668,7 +702,7 @@
 
   document.body.classList.toggle('detailed-mode', detailedMode);
   renderAll();
-  window.addEventListener('resize', () => requestAnimationFrame(computeAllCardSizes));
+  window.addEventListener('resize', () => requestAnimationFrame(computeGlobalCardSize));
 })();
 </script>
 </body>
