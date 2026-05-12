@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Редактор — Мозаика блоков</title>
+  <title>Мозаика блоков</title>
   <style>
     * {
       margin: 0;
@@ -36,9 +36,9 @@
       align-items: center;
       justify-content: space-between;
       gap: 6px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       background: #fff;
-      border-bottom: 1px solid rgba(0,0,0,0.1);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
       z-index: 20;
       flex-shrink: 0;
     }
@@ -47,20 +47,20 @@
       display: flex;
       align-items: center;
       background: #f0f0f5;
-      border-radius: 20px;
-      padding: 6px 12px;
-      gap: 8px;
+      border-radius: 18px;
+      padding: 4px 10px;
+      gap: 6px;
       min-width: 0;
     }
     .result-label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       color: #86868b;
       text-transform: uppercase;
     }
     .result-string {
       flex: 1;
-      font-size: 15px;
+      font-size: 14px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -73,9 +73,9 @@
     button {
       background: #fff;
       border: 1px solid rgba(0,0,0,0.1);
-      padding: 8px 12px;
-      border-radius: 20px;
-      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: 18px;
+      font-size: 12px;
       font-weight: 600;
       color: #1d1d1f;
       cursor: pointer;
@@ -88,29 +88,28 @@
     button.primary:active { background: #0066d6; }
     button.danger { background: #ff3b30; color: #fff; border-color: transparent; }
 
-    /* Единое мозаичное поле */
+    /* Мозаичное поле */
     .mosaic-field {
       flex: 1;
       display: flex;
       flex-wrap: wrap;
       align-content: flex-start;
       overflow: hidden;
-      min-height: 0;
+      border-top: 1px solid #d1d1d6;
+      border-left: 1px solid #d1d1d6;
     }
 
-    /* Блок (ячейка мозаики) */
+    /* Блок – ячейка мозаики */
     .block {
       background: #fff;
-      border: 1px solid #d1d1d6;
+      border-right: 1px solid #d1d1d6;
+      border-bottom: 1px solid #d1d1d6;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      /* Ширина и высота определяются содержимым и flex-базисом */
-      min-width: 60px;
-      min-height: 40px;
+      min-width: 0;
+      min-height: 0;
     }
-
-    /* Компактный заголовок блока */
     .block-header {
       display: flex;
       align-items: center;
@@ -119,7 +118,7 @@
       font-size: 9px;
       font-weight: 600;
       color: #86868b;
-      background: #f5f5f7;
+      background: #f9f9fb;
       border-bottom: 1px solid #e5e5ea;
       flex-shrink: 0;
       letter-spacing: 0.02em;
@@ -137,11 +136,9 @@
       cursor: pointer;
       padding: 0 2px;
       line-height: 1;
-      flex-shrink: 0;
     }
     .block-delete:active { transform: scale(0.9); }
 
-    /* Сетка символов внутри блока */
     .symbols-grid {
       flex: 1;
       display: flex;
@@ -152,7 +149,6 @@
       overflow: hidden;
     }
 
-    /* Карточка символа */
     .symbol-card {
       display: flex;
       flex-direction: column;
@@ -160,7 +156,7 @@
       justify-content: center;
       background: #fff;
       border: 1px solid #efeff1;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: grab;
       touch-action: none;
       position: relative;
@@ -184,6 +180,7 @@
       margin-top: 1px;
       word-break: break-word;
       overflow: hidden;
+      max-height: 100%;
     }
     body.detailed-mode .symbol-card {
       height: auto !important;
@@ -192,9 +189,6 @@
     body.detailed-mode .symbol-card .meta {
       display: block;
       white-space: normal;
-    }
-    body.detailed-mode .symbols-grid {
-      align-items: flex-start;
     }
 
     .remove-symbol {
@@ -217,10 +211,7 @@
       align-items: center;
       justify-content: center;
     }
-    .symbol-card:hover .remove-symbol {
-      opacity: 1;
-      transform: scale(1);
-    }
+    .symbol-card:hover .remove-symbol { opacity: 1; transform: scale(1); }
 
     .drag-ghost {
       position: fixed;
@@ -228,8 +219,8 @@
       pointer-events: none;
       opacity: 0.9;
       transform: scale(1.1);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-      border-radius: 4px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+      border-radius: 3px;
       background: #fff;
       display: flex;
       align-items: center;
@@ -239,10 +230,9 @@
     }
     .block.drop-target {
       border: 2px solid #007aff;
-      box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+      box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
     }
 
-    /* Модальные окна */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -255,31 +245,27 @@
     }
     .modal {
       background: #fff;
-      border-radius: 24px;
-      padding: 24px;
+      border-radius: 22px;
+      padding: 20px;
       width: 90%;
-      max-width: 400px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      max-width: 380px;
+      box-shadow: 0 16px 32px rgba(0,0,0,0.18);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
-    .modal h3 { font-size: 18px; font-weight: 700; }
+    .modal h3 { font-size: 17px; font-weight: 700; }
     .modal textarea, .modal input {
-      padding: 12px;
+      padding: 10px;
       border: 1px solid #ddd;
-      border-radius: 14px;
+      border-radius: 12px;
       font-size: 14px;
       outline: none;
       font-family: inherit;
       -webkit-user-select: text;
       user-select: text;
     }
-    .modal-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -297,10 +283,9 @@
     </div>
   </header>
 
-  <!-- Мозаичное поле -->
   <main class="mosaic-field" id="mosaicField"></main>
 
-  <div style="padding:4px 10px 8px; display:flex; gap:6px; flex-shrink:0;">
+  <div style="padding:3px 8px 6px; display:flex; gap:5px; flex-shrink:0;">
     <button id="addBlockBtn" class="primary" style="flex:1;">+ Блок</button>
     <button id="addSymbolBtn" style="flex:1;">+ Символ</button>
     <button id="importBtn" style="flex:1;">📥 Импорт</button>
@@ -411,9 +396,9 @@
 
   function renderAll() {
     mosaicField.innerHTML = '';
-    // Добавляем главный блок
+    // Главный блок
     mosaicField.appendChild(createBlockElement('main', library, null, true));
-    // Добавляем дополнительные блоки
+    // Дополнительные блоки
     additionalBlocks.forEach((block, idx) => {
       mosaicField.appendChild(createBlockElement('block', block, idx, false));
     });
@@ -491,7 +476,10 @@
   }
 
   function computeAllCardSizes() {
-    document.querySelectorAll('.symbols-grid').forEach(grid => {
+    const blocks = document.querySelectorAll('.block');
+    blocks.forEach(block => {
+      const grid = block.querySelector('.symbols-grid');
+      if (!grid) return;
       const cards = grid.querySelectorAll('.symbol-card');
       const n = cards.length;
       if (!n) return;
@@ -564,9 +552,7 @@
     clearHighlights();
     const el = getElementUnderPoint(e.clientX, e.clientY);
     const blockUnder = el?.closest('.block');
-    if (blockUnder) {
-      blockUnder.classList.add('drop-target');
-    }
+    if (blockUnder) blockUnder.classList.add('drop-target');
   }
 
   function onPointerUp(e) {
@@ -579,10 +565,7 @@
 
     const targetEl = getElementUnderPoint(e.clientX, e.clientY);
     const targetBlock = targetEl?.closest('.block');
-    if (!targetBlock) {
-      dragState = null;
-      return;
-    }
+    if (!targetBlock) { dragState = null; return; }
 
     const targetType = targetBlock.dataset.type;
     const targetBlockIndex = targetType === 'block' ? +targetBlock.dataset.blockIndex : null;
@@ -635,6 +618,7 @@
     document.querySelectorAll('.drop-target').forEach(b => b.classList.remove('drop-target'));
   }
 
+  // Импорт/Экспорт
   function importData(text) {
     const parsed = parsePhrase(text);
     if (parsed.library.length) library.push(...parsed.library);
@@ -645,7 +629,6 @@
     importTextarea.value = '';
     alert('Импортировано');
   }
-
   function exportData() {
     const lines = [];
     lines.push(library.map(s => s.char + ':' + s.text).join(' '));
@@ -654,36 +637,18 @@
   }
 
   // Кнопки
-  $('addBlockBtn').addEventListener('click', () => {
-    additionalBlocks.push([]);
-    saveState();
-    renderAll();
-  });
-  $('addSymbolBtn').addEventListener('click', () => {
-    $('addModalOverlay').classList.remove('hidden');
-    $('newCharInput').focus();
-  });
-  $('importBtn').addEventListener('click', () => {
-    $('importModalOverlay').classList.remove('hidden');
-    $('importTextarea').focus();
-  });
-  $('exportBtn').addEventListener('click', () => {
-    $('exportTextarea').value = exportData();
-    $('exportModalOverlay').classList.remove('hidden');
-  });
+  $('addBlockBtn').addEventListener('click', () => { additionalBlocks.push([]); saveState(); renderAll(); });
+  $('addSymbolBtn').addEventListener('click', () => { $('addModalOverlay').classList.remove('hidden'); $('newCharInput').focus(); });
+  $('importBtn').addEventListener('click', () => { $('importModalOverlay').classList.remove('hidden'); $('importTextarea').focus(); });
+  $('exportBtn').addEventListener('click', () => { $('exportTextarea').value = exportData(); $('exportModalOverlay').classList.remove('hidden'); });
   toggleModeBtn.addEventListener('click', () => {
     detailedMode = !detailedMode;
     document.body.classList.toggle('detailed-mode', detailedMode);
     toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
     requestAnimationFrame(computeAllCardSizes);
   });
-  $('clearBtn').addEventListener('click', () => {
-    if (confirm('Очистить всё?')) { library = []; additionalBlocks = []; saveState(); renderAll(); }
-  });
-  $('copyBtn').addEventListener('click', () => {
-    const str = resultString.textContent;
-    if (str && str !== '(пусто)') navigator.clipboard?.writeText(str);
-  });
+  $('clearBtn').addEventListener('click', () => { if (confirm('Очистить всё?')) { library = []; additionalBlocks = []; saveState(); renderAll(); } });
+  $('copyBtn').addEventListener('click', () => { const str = resultString.textContent; if (str && str !== '(пусто)') navigator.clipboard?.writeText(str); });
   $('saveBtn').addEventListener('click', () => { saveState(); alert('Сохранено'); });
 
   // Модалки
@@ -694,16 +659,12 @@
     library.push({ id: Date.now().toString(), char: ch.substring(0,2), text: $('newTextInput').value.trim() });
     $('newCharInput').value = $('newTextInput').value = '';
     $('addModalOverlay').classList.add('hidden');
-    saveState();
-    renderAll();
+    saveState(); renderAll();
   });
   $('cancelImportModalBtn').addEventListener('click', () => $('importModalOverlay').classList.add('hidden'));
   $('saveImportModalBtn').addEventListener('click', () => importData($('importTextarea').value));
   $('cancelExportModalBtn').addEventListener('click', () => $('exportModalOverlay').classList.add('hidden'));
-  $('copyExportBtn').addEventListener('click', () => {
-    const text = $('exportTextarea').value;
-    if (text) navigator.clipboard?.writeText(text).then(() => alert('Скопировано'));
-  });
+  $('copyExportBtn').addEventListener('click', () => { const text = $('exportTextarea').value; if (text) navigator.clipboard?.writeText(text).then(() => alert('Скопировано')); });
 
   document.body.classList.toggle('detailed-mode', detailedMode);
   renderAll();
