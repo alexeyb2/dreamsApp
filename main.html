@@ -5,207 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Символьные кубики — Управление блоками</title>
+  <title>Символьные кубики — Редактор свойств</title>
   <style>
     * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+      margin: 0; padding: 0; box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
-      -webkit-user-select: none;
-      user-select: none;
+      -webkit-user-select: none; user-select: none;
     }
     html, body {
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
+      height: 100%; width: 100%; overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #000;
     }
     #app {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      max-width: 600px;
-      margin: 0 auto;
-      background: #f5f5f7;
+      display: flex; flex-direction: column; height: 100%;
+      max-width: 600px; margin: 0 auto; background: #f5f5f7;
     }
     .header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      background: #fff;
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 10px; background: #fff;
       border-bottom: 1px solid rgba(0,0,0,0.1);
-      z-index: 20;
-      flex-shrink: 0;
+      z-index: 20; flex-shrink: 0;
     }
     .result-box {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      background: #f0f0f5;
-      border-radius: 18px;
-      padding: 4px 10px;
-      gap: 6px;
-      min-width: 0;
+      flex: 1; display: flex; align-items: center;
+      background: #f0f0f5; border-radius: 18px;
+      padding: 4px 10px; gap: 6px; min-width: 0;
     }
     .result-label { font-size: 11px; font-weight: 600; color: #86868b; text-transform: uppercase; }
     .result-string {
-      flex: 1;
-      font-size: 14px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      flex: 1; font-size: 14px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
     }
-    .header-buttons {
-      display: flex;
-      gap: 4px;
-      flex-shrink: 0;
-    }
+    .header-buttons { display: flex; gap: 4px; flex-shrink: 0; }
     button {
-      background: #fff;
-      border: 1px solid rgba(0,0,0,0.1);
-      padding: 6px 10px;
-      border-radius: 18px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #1d1d1f;
-      cursor: pointer;
-      transition: all 0.2s;
-      touch-action: manipulation;
-      white-space: nowrap;
+      background: #fff; border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 10px; border-radius: 18px; font-size: 12px;
+      font-weight: 600; color: #1d1d1f; cursor: pointer;
+      transition: all 0.2s; touch-action: manipulation; white-space: nowrap;
     }
     button:active { transform: scale(0.94); background: #f0f0f5; }
     button.primary { background: #007aff; color: #fff; border-color: transparent; }
     button.primary:active { background: #0066d6; }
     button.danger { background: #ff3b30; color: #fff; border-color: transparent; }
-    .active-indicator {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      border-radius: 4px;
-      margin-right: 4px;
-      border: 1px solid rgba(0,0,0,0.2);
-      vertical-align: middle;
-    }
 
     .cubes-field {
-      flex: 1;
-      display: flex;
-      flex-wrap: wrap;
-      align-content: flex-start;
-      overflow: hidden;
-      background: #000;
-      touch-action: none;
+      flex: 1; display: flex; flex-wrap: wrap;
+      align-content: flex-start; overflow: hidden;
+      background: #000; touch-action: none;
     }
     .cube {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(255,255,255,0.25);
-      cursor: pointer;
-      position: relative;
-      transition: 0.1s;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; border: 1px solid rgba(255,255,255,0.25);
+      cursor: pointer; position: relative; transition: 0.1s;
       font-family: inherit;
     }
     .cube.dragging { opacity: 0.4; transform: scale(0.95); }
     .cube .cube-char { font-size: var(--emoji-size); line-height: 1; }
     .cube .cube-text {
-      display: none;
-      font-size: var(--text-size);
-      color: #fff;
-      text-align: center;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 100%;
-      line-height: 1.2;
+      display: none; font-size: var(--text-size); color: #fff;
+      text-align: center; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; max-width: 100%; line-height: 1.2;
     }
     body.detailed-mode .cube .cube-text { display: block; }
     body.detailed-mode .cube { height: auto !important; min-height: var(--cube-size); }
 
     .cube .delete-cube {
-      position: absolute;
-      top: 1px;
-      right: 1px;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #ff3b30;
-      color: #fff;
-      border: none;
-      font-size: 14px;
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      justify-content: center;
+      position: absolute; top: 1px; right: 1px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #ff3b30; color: #fff; border: none;
+      font-size: 14px; cursor: pointer;
+      display: none; align-items: center; justify-content: center;
       z-index: 2;
     }
-    body.edit-mode .cube.editable .delete-cube { display: flex; }
+    body.edit-mode .cube .delete-cube { display: flex; }
 
     .drag-ghost {
-      position: fixed;
-      z-index: 9999;
-      pointer-events: none;
-      opacity: 0.9;
-      transform: scale(1.1);
+      position: fixed; z-index: 9999; pointer-events: none;
+      opacity: 0.9; transform: scale(1.1);
       box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-      background: inherit;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: inherit;
-      border: 2px solid #fff;
-      border-radius: 4px;
+      background: inherit; display: flex; align-items: center;
+      justify-content: center; font-size: inherit;
+      border: 2px solid #fff; border-radius: 4px;
     }
 
     .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      backdrop-filter: blur(8px);
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+      z-index: 100; display: flex; align-items: center; justify-content: center;
     }
     .modal {
-      background: #fff;
-      border-radius: 22px;
-      padding: 20px;
-      width: 90%;
-      max-width: 380px;
+      background: #fff; border-radius: 22px; padding: 20px;
+      width: 90%; max-width: 380px;
       box-shadow: 0 16px 32px rgba(0,0,0,0.18);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      display: flex; flex-direction: column; gap: 10px;
     }
+    .modal input {
+      padding: 10px; border: 1px solid #ddd; border-radius: 12px;
+      font-size: 14px; font-family: inherit; outline: none;
+    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
     .export-fullscreen {
-      position: fixed;
-      inset: 0;
-      background: #fff;
-      z-index: 200;
-      display: flex;
-      flex-direction: column;
-      padding: 16px;
-      gap: 12px;
+      position: fixed; inset: 0; background: #fff;
+      z-index: 200; display: flex; flex-direction: column;
+      padding: 16px; gap: 12px;
     }
     .export-fullscreen textarea {
-      flex: 1;
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ddd;
-      border-radius: 14px;
-      font-size: 14px;
-      font-family: inherit;
-      resize: none;
-      -webkit-user-select: text;
-      user-select: text;
+      flex: 1; width: 100%; padding: 12px;
+      border: 1px solid #ddd; border-radius: 14px;
+      font-size: 14px; font-family: inherit; resize: none;
+      -webkit-user-select: text; user-select: text;
     }
     .switch-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
     .hidden { display: none !important; }
+    .active-indicator {
+      display: inline-block; width: 12px; height: 12px;
+      border-radius: 4px; margin-right: 4px;
+      border: 1px solid rgba(0,0,0,0.2); vertical-align: middle;
+    }
   </style>
 </head>
 <body>
@@ -216,8 +133,8 @@
       <span class="result-string" id="resultString"></span>
     </div>
     <div class="header-buttons">
-      <button id="editModeBtn" title="Режим удаления">✎</button>
-      <button id="colorBtn" title="Сменить цвет активного блока">🎨</button>
+      <button id="editModeBtn" title="Редактировать">✎</button>
+      <button id="colorBtn" title="Цвет блока">🎨</button>
       <button id="copyBtn">📋</button>
       <button id="saveBtn">💾</button>
       <button id="toggleModeBtn">▤</button>
@@ -234,6 +151,7 @@
     <button id="clearBtn" class="danger">🗑</button>
   </div>
 
+  <!-- Модалка добавления символа -->
   <div id="addModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Добавить символ</h3>
@@ -250,6 +168,20 @@
     </div>
   </div>
 
+  <!-- Модалка редактирования символа -->
+  <div id="editModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Редактировать символ</h3>
+      <input id="editCharInput" placeholder="Символ" maxlength="2">
+      <input id="editTextInput" placeholder="Текст">
+      <div class="modal-actions">
+        <button id="cancelEditModalBtn">Отмена</button>
+        <button id="saveEditModalBtn" class="primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка импорта -->
   <div id="importModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>📥 Импорт</h3>
@@ -262,6 +194,7 @@
     </div>
   </div>
 
+  <!-- Экспорт fullscreen -->
   <div id="exportFullscreen" class="export-fullscreen hidden">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h3>📤 Экспорт</h3>
@@ -281,6 +214,7 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
+  // Базовая фраза
   const phrase = `🔼:высшее 👁️:Я 🌀:передача:👁️Я 🌍:внутри 🧿:тебя 👁️:Я ❤️:люблю 🧿:тебя
 🌌:пространство 🛠️:создаёт 🎯:направление 🌊:течения ⚡️:энергии: 📍:старт 🏁:финиш 
 ⏳:время 🛠️:создаёт 🌪️:движение: 🚀:скорость 
@@ -303,8 +237,8 @@
     return symbols;
   }
 
-  function parsePhrase(phraseText) {
-    const lines = phraseText.split(/\n/).filter(l => l.trim());
+  function parsePhrase(text) {
+    const lines = text.split(/\n/).filter(l => l.trim());
     const res = { library: [], blocks: [] };
     if (lines.length > 0) res.library = parseLine(lines[0]);
     for (let i = 1; i < lines.length; i++) {
@@ -322,17 +256,18 @@
     '#3498db', '#1abc9c', '#e67e22', '#34495e'
   ];
   let detailedMode = false;
-  let editMode = false; // режим удаления
-  let activeBlockIndex = 0; // 0 – главный, 1.. – доп.блок
+  let editMode = false;
+  let activeBlockIndex = 0; // 0 — главный, 1+ — дополнительные
   let dragState = null;
+
+  // Редактирование текущего элемента
+  let editingSymbol = { blockType: null, blockIndex: null, symbolIndex: null };
 
   const $ = id => document.getElementById(id);
   const cubesField = $('cubesField');
   const resultString = $('resultString');
   const toggleModeBtn = $('toggleModeBtn');
   const editModeBtn = $('editModeBtn');
-  const colorBtn = $('colorBtn');
-  const activeBlockLabel = $('activeBlockLabel');
 
   function saveState() {
     try {
@@ -346,33 +281,53 @@
     return blockColors[index % blockColors.length];
   }
 
-  function flattenBlocks() {
-    const result = [];
-    library.forEach((sym, idx) => result.push({ ...sym, blockType: 'main', blockIndex: 0, symbolIndex: idx }));
-    additionalBlocks.forEach((block, blockIdx) => {
-      block.forEach((sym, symIdx) => result.push({ ...sym, blockType: 'block', blockIndex: blockIdx + 1, symbolIndex: symIdx }));
-    });
-    return result;
+  function allBlocks() {
+    return [library, ...additionalBlocks];
   }
 
   function renderAll() {
     cubesField.innerHTML = '';
-    const allSymbols = flattenBlocks();
-    if (allSymbols.length === 0) {
-      updateResult();
-      return;
-    }
-
+    const blocks = allBlocks();
     const fieldWidth = cubesField.clientWidth;
     const fieldHeight = cubesField.clientHeight;
     if (fieldWidth <= 0 || fieldHeight <= 0) return;
+
+    // Сначала собираем все символы, вставляя пустые кубики для пустых блоков
+    const cubeEntries = [];
+    blocks.forEach((block, blockIndex) => {
+      if (block.length === 0) {
+        // Добавляем единственный кубик-заглушку
+        cubeEntries.push({
+          id: 'placeholder_' + blockIndex,
+          char: '?',
+          text: 'Пусто',
+          blockIndex,
+          symbolIndex: 0,
+          placeholder: true
+        });
+      } else {
+        block.forEach((sym, symIdx) => {
+          cubeEntries.push({
+            ...sym,
+            blockIndex,
+            symbolIndex: symIdx,
+            placeholder: false
+          });
+        });
+      }
+    });
+
+    if (cubeEntries.length === 0) {
+      updateResult();
+      return;
+    }
 
     let bestSize = 20;
     const maxSize = Math.min(fieldWidth, fieldHeight);
     for (let s = maxSize; s >= 20; s--) {
       const cols = Math.floor(fieldWidth / s);
       if (cols === 0) continue;
-      const rows = Math.ceil(allSymbols.length / cols);
+      const rows = Math.ceil(cubeEntries.length / cols);
       if (rows * s <= fieldHeight) { bestSize = s; break; }
     }
 
@@ -380,10 +335,10 @@
     const emojiSize = Math.max(10, cubeSize * 0.5);
     const textSize = Math.max(6, cubeSize * 0.18);
 
-    allSymbols.forEach((sym, globalIndex) => {
+    cubeEntries.forEach((entry, globalIndex) => {
       const cube = document.createElement('div');
       cube.className = 'cube';
-      const color = getBlockColor(sym.blockIndex);
+      const color = getBlockColor(entry.blockIndex);
       cube.style.backgroundColor = color;
       cube.style.width = cubeSize + 'px';
       cube.style.height = cubeSize + 'px';
@@ -391,40 +346,90 @@
       cube.style.setProperty('--emoji-size', emojiSize + 'px');
       cube.style.setProperty('--text-size', textSize + 'px');
 
-      cube.innerHTML = `<span class="cube-char">${sym.char}</span><span class="cube-text">${sym.text||''}</span>`;
-      cube.dataset.blockType = sym.blockType;
-      cube.dataset.blockIndex = sym.blockIndex;
-      cube.dataset.symbolIndex = sym.symbolIndex;
+      cube.innerHTML = `<span class="cube-char">${entry.char}</span><span class="cube-text">${entry.text||''}</span>`;
+
+      cube.dataset.blockIndex = entry.blockIndex;
+      cube.dataset.symbolIndex = entry.symbolIndex;
+      cube.dataset.placeholder = entry.placeholder;
       cube.dataset.globalIndex = globalIndex;
 
-      if (sym.blockType === 'block') {
-        cube.classList.add('editable');
-        const delBtn = document.createElement('button');
-        delBtn.className = 'delete-cube';
-        delBtn.textContent = '✕';
-        delBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const blockIdx = sym.blockIndex - 1;
-          additionalBlocks[blockIdx].splice(sym.symbolIndex, 1);
-          saveState();
-          renderAll();
-        });
-        cube.appendChild(delBtn);
-      }
+      // Крестик удаления (только в режиме редактирования и не для заглушек)
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-cube';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (entry.placeholder) return;
+        deleteSymbol(entry.blockIndex, entry.symbolIndex);
+      });
+      cube.appendChild(delBtn);
 
-      cube.addEventListener('pointerdown', onCubePointerDown);
+      cube.addEventListener('pointerdown', onPointerDown);
       cube.addEventListener('click', (e) => {
-        // tap без перетаскивания — смена активного блока
-        if (!dragState || !dragState.moved) {
-          const idx = parseInt(cube.dataset.blockIndex);
-          setActiveBlock(idx);
+        if (dragState?.moved) return;
+        if (editMode) {
+          // Открыть редактирование
+          if (!entry.placeholder) {
+            openEditModal(entry.blockIndex, entry.symbolIndex);
+          }
+        } else {
+          setActiveBlock(entry.blockIndex);
         }
       });
+
       cubesField.appendChild(cube);
     });
 
     updateResult();
     updateActiveBlockLabel();
+  }
+
+  function deleteSymbol(blockIndex, symbolIndex) {
+    if (blockIndex === 0) {
+      library.splice(symbolIndex, 1);
+    } else {
+      additionalBlocks[blockIndex - 1].splice(symbolIndex, 1);
+    }
+    saveState();
+    renderAll();
+  }
+
+  function openEditModal(blockIndex, symbolIndex) {
+    const sym = (blockIndex === 0) ? library[symbolIndex] : additionalBlocks[blockIndex - 1][symbolIndex];
+    if (!sym) return;
+    editingSymbol = { blockType: blockIndex === 0 ? 'main' : 'block', blockIndex, symbolIndex };
+    $('editCharInput').value = sym.char;
+    $('editTextInput').value = sym.text || '';
+    $('editModalOverlay').classList.remove('hidden');
+    $('editCharInput').focus();
+  }
+
+  function saveEdit() {
+    const ch = $('editCharInput').value.trim();
+    if (!ch) return;
+    const txt = $('editTextInput').value.trim();
+    const { blockIndex, symbolIndex } = editingSymbol;
+    if (blockIndex === 0) {
+      library[symbolIndex].char = ch.substring(0,2);
+      library[symbolIndex].text = txt;
+    } else {
+      additionalBlocks[blockIndex - 1][symbolIndex].char = ch.substring(0,2);
+      additionalBlocks[blockIndex - 1][symbolIndex].text = txt;
+    }
+    saveState();
+    renderAll();
+    $('editModalOverlay').classList.add('hidden');
+  }
+
+  function setActiveBlock(index) {
+    activeBlockIndex = index;
+    updateActiveBlockLabel();
+  }
+
+  function updateActiveBlockLabel() {
+    const names = ['Главный', ...additionalBlocks.map((_, i) => `Блок ${i+1}`)];
+    const color = getBlockColor(activeBlockIndex);
+    $('activeBlockLabel').innerHTML = `<span class="active-indicator" style="background:${color};"></span> ${names[activeBlockIndex] || 'Главный'}`;
   }
 
   function updateResult() {
@@ -433,31 +438,12 @@
     resultString.textContent = str || '(пусто)';
   }
 
-  function setActiveBlock(index) {
-    activeBlockIndex = index;
-    updateActiveBlockLabel();
-    // визуально можно подсветить кубики этого блока (добавим класс active-block)
-    document.querySelectorAll('.cube').forEach(c => {
-      c.classList.toggle('active-block', parseInt(c.dataset.blockIndex) === index);
-    });
-  }
-
-  function updateActiveBlockLabel() {
-    const names = ['Главный', ...additionalBlocks.map((_, i) => `Блок ${i+1}`)];
-    const color = getBlockColor(activeBlockIndex);
-    activeBlockLabel.innerHTML = `<span class="active-indicator" style="background:${color};"></span> ${names[activeBlockIndex] || 'Главный'}`;
-  }
-
-  window.addEventListener('resize', () => requestAnimationFrame(renderAll));
-  new ResizeObserver(() => renderAll()).observe(cubesField);
-
-  // Drag & Drop
-  function onCubePointerDown(e) {
+  // Drag & Drop (аналогично предыдущему, с учетом placeholder)
+  function onPointerDown(e) {
     if (dragState) return;
     if (e.button && e.button !== 0) return;
     const cube = e.currentTarget;
     if (e.target.classList.contains('delete-cube')) return;
-    if (editMode && cube.classList.contains('editable')) return; // в режиме редактирования не перетаскиваем
 
     e.preventDefault();
     cube.setPointerCapture(e.pointerId);
@@ -474,13 +460,13 @@
     dragState = {
       sourceCube: cube,
       ghost,
-      blockType: cube.dataset.blockType,
       blockIndex: parseInt(cube.dataset.blockIndex),
       symbolIndex: parseInt(cube.dataset.symbolIndex),
+      placeholder: cube.dataset.placeholder === 'true',
       offsetX: e.clientX - rect.left,
       offsetY: e.clientY - rect.top,
       pointerId: e.pointerId,
-      moved: false,
+      moved: false
     };
     document.addEventListener('pointermove', onPointerMove);
     document.addEventListener('pointerup', onPointerUp);
@@ -508,24 +494,35 @@
     const targetCube = targetEl?.closest('.cube');
     if (!targetCube || targetCube === dragState.sourceCube) { dragState = null; return; }
 
-    const srcType = dragState.blockType;
-    const srcBlockIdx = dragState.blockIndex;
-    const srcSymIdx = dragState.symbolIndex;
-    const tgtType = targetCube.dataset.blockType;
-    const tgtBlockIdx = parseInt(targetCube.dataset.blockIndex);
-    let tgtSymIdx = parseInt(targetCube.dataset.symbolIndex);
+    const srcBlock = dragState.blockIndex;
+    const srcIdx = dragState.symbolIndex;
+    const tgtBlock = parseInt(targetCube.dataset.blockIndex);
+    let tgtIdx = parseInt(targetCube.dataset.symbolIndex);
+    const tgtPlaceholder = targetCube.dataset.placeholder === 'true';
 
-    let movedSym;
-    if (srcType === 'main') {
-      movedSym = library.splice(srcSymIdx, 1)[0];
+    // Извлекаем из источника
+    let moved = null;
+    if (srcBlock === 0) {
+      if (dragState.placeholder) { dragState = null; return; }
+      moved = library.splice(srcIdx, 1)[0];
     } else {
-      movedSym = additionalBlocks[srcBlockIdx - 1].splice(srcSymIdx, 1)[0];
+      if (dragState.placeholder) { dragState = null; return; }
+      moved = additionalBlocks[srcBlock - 1].splice(srcIdx, 1)[0];
     }
 
-    if (tgtType === 'main') {
-      library.splice(tgtSymIdx, 0, movedSym);
+    // Вставляем в цель (если цель — плейсхолдер, то просто добавляем в этот блок)
+    if (tgtPlaceholder) {
+      if (tgtBlock === 0) {
+        library.push(moved);
+      } else {
+        additionalBlocks[tgtBlock - 1].push(moved);
+      }
     } else {
-      additionalBlocks[tgtBlockIdx - 1].splice(tgtSymIdx, 0, movedSym);
+      if (tgtBlock === 0) {
+        library.splice(tgtIdx, 0, moved);
+      } else {
+        additionalBlocks[tgtBlock - 1].splice(tgtIdx, 0, moved);
+      }
     }
 
     saveState();
@@ -533,44 +530,49 @@
     dragState = null;
   }
 
-  // Кнопки
+  // Обработчики кнопок
   $('addBlockBtn').addEventListener('click', () => {
     additionalBlocks.push([]);
-    if (activeBlockIndex === 0 || activeBlockIndex > additionalBlocks.length) {
-      setActiveBlock(additionalBlocks.length); // новый блок становится активным
-    }
+    setActiveBlock(additionalBlocks.length); // новый блок становится активным
     saveState();
     renderAll();
   });
 
   $('addSymbolBtn').addEventListener('click', () => {
     $('addModalOverlay').classList.remove('hidden');
-    $('newCharInput').focus();
     updateActiveBlockLabel();
   });
 
-  $('importBtn').addEventListener('click', () => {
-    $('importModalOverlay').classList.remove('hidden');
-    $('importTextarea').focus();
-  });
-  $('exportBtn').addEventListener('click', () => openExportFullscreen());
-
-  toggleModeBtn.addEventListener('click', () => {
-    detailedMode = !detailedMode;
-    document.body.classList.toggle('detailed-mode', detailedMode);
-    toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
+  $('saveAddModalBtn').addEventListener('click', () => {
+    const ch = $('newCharInput').value.trim();
+    if (!ch) return;
+    const txt = $('newTextInput').value.trim();
+    const sym = { id: Date.now().toString(), char: ch.substring(0,2), text: txt };
+    if (activeBlockIndex === 0) {
+      library.push(sym);
+    } else {
+      additionalBlocks[activeBlockIndex - 1].push(sym);
+    }
+    $('newCharInput').value = $('newTextInput').value = '';
+    $('addModalOverlay').classList.add('hidden');
+    saveState();
     renderAll();
   });
+  $('cancelAddModalBtn').addEventListener('click', () => $('addModalOverlay').classList.add('hidden'));
 
-  editModeBtn.addEventListener('click', () => {
+  // Редактирование
+  $('editModeBtn').addEventListener('click', () => {
     editMode = !editMode;
     document.body.classList.toggle('edit-mode', editMode);
     editModeBtn.style.background = editMode ? '#ff3b30' : '#fff';
     editModeBtn.style.color = editMode ? '#fff' : '#1d1d1f';
   });
 
-  colorBtn.addEventListener('click', () => {
-    // меняем цвет активного блока на следующий в палитре
+  $('cancelEditModalBtn').addEventListener('click', () => $('editModalOverlay').classList.add('hidden'));
+  $('saveEditModalBtn').addEventListener('click', saveEdit);
+
+  // Цвет блока
+  $('colorBtn').addEventListener('click', () => {
     const palette = ['#e74c3c','#f39c12','#9b59b6','#2ecc71','#3498db','#1abc9c','#e67e22','#34495e','#f1c40f','#e91e63'];
     const current = getBlockColor(activeBlockIndex);
     let nextIdx = palette.indexOf(current);
@@ -593,46 +595,26 @@
   });
   $('saveBtn').addEventListener('click', () => { saveState(); alert('Сохранено'); });
 
-  // Модалки
-  $('cancelAddModalBtn').addEventListener('click', () => $('addModalOverlay').classList.add('hidden'));
-  $('saveAddModalBtn').addEventListener('click', () => {
-    const ch = $('newCharInput').value.trim();
-    if (!ch) return;
-    const txt = $('newTextInput').value.trim();
-    const sym = { id: Date.now().toString(), char: ch.substring(0,2), text: txt };
-    if (activeBlockIndex === 0) {
-      library.push(sym);
-    } else {
-      const idx = activeBlockIndex - 1;
-      if (idx < additionalBlocks.length) {
-        additionalBlocks[idx].push(sym);
-      } else {
-        library.push(sym);
-      }
-    }
-    $('newCharInput').value = $('newTextInput').value = '';
-    $('addModalOverlay').classList.add('hidden');
-    saveState();
-    renderAll();
+  // Импорт/экспорт
+  $('importBtn').addEventListener('click', () => {
+    $('importModalOverlay').classList.remove('hidden');
+    $('importTextarea').focus();
   });
-
   $('cancelImportModalBtn').addEventListener('click', () => $('importModalOverlay').classList.add('hidden'));
   $('saveImportModalBtn').addEventListener('click', () => {
     const parsed = parsePhrase($('importTextarea').value);
     if (parsed.library.length) library.push(...parsed.library);
     if (parsed.blocks.length) additionalBlocks.push(...parsed.blocks);
-    saveState();
-    renderAll();
+    saveState(); renderAll();
     $('importModalOverlay').classList.add('hidden');
     $('importTextarea').value = '';
     alert('Импортировано');
   });
 
-  // Экспорт
-  function openExportFullscreen() {
+  $('exportBtn').addEventListener('click', () => {
     $('exportFullscreen').classList.remove('hidden');
     updateExportText();
-  }
+  });
   function updateExportText() {
     const withWords = document.querySelector('input[name="exportMode"]:checked').value === 'withWords';
     const lines = [];
@@ -652,6 +634,14 @@
     if (text) navigator.clipboard?.writeText(text).then(() => alert('Скопировано'));
   });
 
+  toggleModeBtn.addEventListener('click', () => {
+    detailedMode = !detailedMode;
+    document.body.classList.toggle('detailed-mode', detailedMode);
+    toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
+    renderAll();
+  });
+
+  // Старт
   document.body.classList.toggle('detailed-mode', detailedMode);
   renderAll();
 })();
