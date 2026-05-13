@@ -5,132 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>DreamSApp📌</title>
+  <title>Кубики — управление максимумом в строке</title>
   <style>
-    * {
-      margin: 0; padding: 0; box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      -webkit-user-select: none; user-select: none;
-    }
-    html, body {
-      height: 100%; width: 100%; overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #000;
-    }
-    #app {
-      display: flex; flex-direction: column; height: 100%;
-      max-width: 600px; margin: 0 auto; background: #f5f5f7;
-    }
-    .header {
-      display: flex; align-items: center; gap: 6px;
-      padding: 6px 10px; background: #fff;
-      border-bottom: 1px solid rgba(0,0,0,0.1);
-      z-index: 20; flex-shrink: 0;
-    }
-    .result-box {
-      flex: 1; display: flex; align-items: center;
-      background: #f0f0f5; border-radius: 18px;
-      padding: 4px 10px; gap: 6px; min-width: 0;
-    }
-    .result-label { font-size: 11px; font-weight: 600; color: #86868b; text-transform: uppercase; }
-    .result-string {
-      flex: 1; font-size: 14px; white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
-    }
-    .header-buttons { display: flex; gap: 4px; flex-shrink: 0; }
-    button {
-      background: #fff; border: 1px solid rgba(0,0,0,0.1);
-      padding: 6px 10px; border-radius: 18px; font-size: 12px;
-      font-weight: 600; color: #1d1d1f; cursor: pointer;
-      transition: all 0.2s; touch-action: manipulation; white-space: nowrap;
-    }
-    button:active { transform: scale(0.94); background: #f0f0f5; }
-    button.primary { background: #007aff; color: #fff; border-color: transparent; }
-    button.primary:active { background: #0066d6; }
-    button.danger { background: #ff3b30; color: #fff; border-color: transparent; }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+    html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#000; }
+    #app { display:flex; flex-direction:column; height:100%; max-width:600px; margin:0 auto; background:#f5f5f7; }
+    .header { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#fff; border-bottom:1px solid rgba(0,0,0,0.1); z-index:20; flex-shrink:0; }
+    .result-box { flex:1; display:flex; align-items:center; background:#f0f0f5; border-radius:18px; padding:4px 10px; gap:6px; min-width:0; }
+    .result-label { font-size:11px; font-weight:600; color:#86868b; text-transform:uppercase; }
+    .result-string { flex:1; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .header-buttons { display:flex; gap:4px; flex-shrink:0; }
+    button { background:#fff; border:1px solid rgba(0,0,0,0.1); padding:6px 10px; border-radius:18px; font-size:12px; font-weight:600; color:#1d1d1f; cursor:pointer; transition:all 0.2s; touch-action:manipulation; white-space:nowrap; }
+    button:active { transform:scale(0.94); background:#f0f0f5; }
+    button.primary { background:#007aff; color:#fff; border-color:transparent; }
+    button.primary:active { background:#0066d6; }
+    button.danger { background:#ff3b30; color:#fff; border-color:transparent; }
 
-    .cubes-field {
-      flex: 1; display: flex; flex-wrap: wrap;
-      align-content: flex-start; overflow: hidden;
-      background: #000; touch-action: none;
-    }
-    .cube {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; border: 1px solid rgba(255,255,255,0.25);
-      cursor: pointer; position: relative; transition: 0.1s;
-      font-family: inherit;
-    }
-    .cube.dragging { opacity: 0.4; transform: scale(0.95); }
-    .cube .cube-char { font-size: var(--emoji-size); line-height: 1; }
-    .cube .cube-text {
-      display: none; font-size: var(--text-size); color: #fff;
-      text-align: center; overflow: hidden; text-overflow: ellipsis;
-      white-space: nowrap; max-width: 100%; line-height: 1.2;
-    }
-    body.detailed-mode .cube .cube-text { display: block; }
-    body.detailed-mode .cube { height: auto !important; min-height: var(--cube-size); }
+    .cubes-field { flex:1; display:flex; flex-wrap:wrap; align-content:flex-start; overflow:hidden; background:#000; touch-action:none; }
+    .cube { display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.25); cursor:pointer; position:relative; transition:0.1s; font-family:inherit; }
+    .cube.dragging { opacity:0.4; transform:scale(0.95); }
+    .cube .cube-char { font-size:var(--emoji-size); line-height:1; }
+    .cube .cube-text { display:none; font-size:var(--text-size); color:#fff; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; line-height:1.2; }
+    body.detailed-mode .cube .cube-text { display:block; }
+    body.detailed-mode .cube { height:auto !important; min-height:var(--cube-size); }
 
-    .cube .delete-cube {
-      position: absolute; top: 1px; right: 1px;
-      width: 18px; height: 18px; border-radius: 50%;
-      background: #ff3b30; color: #fff; border: none;
-      font-size: 14px; cursor: pointer;
-      display: none; align-items: center; justify-content: center;
-      z-index: 2;
-    }
-    body.edit-mode .cube .delete-cube { display: flex; }
+    .cube .delete-cube { position:absolute; top:1px; right:1px; width:18px; height:18px; border-radius:50%; background:#ff3b30; color:#fff; border:none; font-size:14px; cursor:pointer; display:none; align-items:center; justify-content:center; z-index:2; }
+    body.edit-mode .cube .delete-cube { display:flex; }
 
-    .drag-ghost {
-      position: fixed; z-index: 9999; pointer-events: none;
-      opacity: 0.9; transform: scale(1.1);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-      background: inherit; display: flex; align-items: center;
-      justify-content: center; font-size: inherit;
-      border: 2px solid #fff; border-radius: 4px;
-    }
+    .drag-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:0.9; transform:scale(1.1); box-shadow:0 6px 16px rgba(0,0,0,0.3); background:inherit; display:flex; align-items:center; justify-content:center; font-size:inherit; border:2px solid #fff; border-radius:4px; }
 
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
-      z-index: 100; display: flex; align-items: center; justify-content: center;
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:center; justify-content:center; }
+    .modal { background:#fff; border-radius:22px; padding:20px; width:90%; max-width:380px; box-shadow:0 16px 32px rgba(0,0,0,0.18); display:flex; flex-direction:column; gap:10px; }
+    .modal input { padding:10px; border:1px solid #ddd; border-radius:12px; font-size:14px; font-family:inherit; outline:none; }
+    .modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+    .export-fullscreen { position:fixed; inset:0; background:#fff; z-index:200; display:flex; flex-direction:column; padding:16px; gap:12px; }
+    .export-fullscreen textarea { flex:1; width:100%; padding:12px; border:1px solid #ddd; border-radius:14px; font-size:14px; font-family:inherit; resize:none; -webkit-user-select:text; user-select:text; }
+    .switch-row { display:flex; align-items:center; gap:10px; font-size:14px; }
+    .hidden { display:none !important; }
+    .active-indicator { display:inline-block; width:12px; height:12px; border-radius:4px; margin-right:4px; border:1px solid rgba(0,0,0,0.2); vertical-align:middle; }
+    .preset-colors { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+    .preset-colors button { width:28px; height:28px; border-radius:14px; border:1px solid rgba(0,0,0,0.2); cursor:pointer; padding:0; }
+
+    /* Компактная панель управления */
+    .controls-panel {
+      display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 8px 6px;
+      background: #fff; border-top: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;
+      align-items: center;
     }
-    .modal {
-      background: #fff; border-radius: 22px; padding: 20px;
-      width: 90%; max-width: 380px;
-      box-shadow: 0 16px 32px rgba(0,0,0,0.18);
-      display: flex; flex-direction: column; gap: 10px;
+    .controls-row {
+      display: flex; flex: 1 1 100%; gap: 4px; align-items: center;
     }
-    .modal input {
-      padding: 10px; border: 1px solid #ddd; border-radius: 12px;
-      font-size: 14px; font-family: inherit; outline: none;
+    .controls-row label {
+      font-size: 11px; font-weight: 600; color: #86868b;
+      margin-right: 2px;
     }
-    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-    .export-fullscreen {
-      position: fixed; inset: 0; background: #fff;
-      z-index: 200; display: flex; flex-direction: column;
-      padding: 16px; gap: 12px;
-    }
-    .export-fullscreen textarea {
-      flex: 1; width: 100%; padding: 12px;
-      border: 1px solid #ddd; border-radius: 14px;
-      font-size: 14px; font-family: inherit; resize: none;
-      -webkit-user-select: text; user-select: text;
-    }
-    .switch-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-    .hidden { display: none !important; }
-    .active-indicator {
-      display: inline-block; width: 12px; height: 12px;
-      border-radius: 4px; margin-right: 4px;
-      border: 1px solid rgba(0,0,0,0.2); vertical-align: middle;
-    }
-    .preset-colors {
-      display: flex; flex-wrap: wrap; gap: 6px;
-      margin-top: 4px;
-    }
-    .preset-colors button {
-      width: 28px; height: 28px; border-radius: 14px;
-      border: 1px solid rgba(0,0,0,0.2);
-      cursor: pointer; padding: 0;
+    .max-cols-select {
+      padding: 4px 6px; border-radius: 14px; border: 1px solid rgba(0,0,0,0.1);
+      font-size: 12px; font-weight: 600; background: #fff; color: #1d1d1f;
+      cursor: pointer; outline: none;
     }
   </style>
 </head>
@@ -142,8 +74,8 @@
       <span class="result-string" id="resultString"></span>
     </div>
     <div class="header-buttons">
-      <button id="editModeBtn" title="Редактировать">✎</button>
-      <button id="colorBtn" title="Цвет блока">🎨</button>
+      <button id="editModeBtn" title="Режим удаления/редактирования">✎</button>
+      <button id="colorBtn" title="Цвет активного блока">🎨</button>
       <button id="copyBtn">📋</button>
       <button id="saveBtn">💾</button>
       <button id="toggleModeBtn">▤</button>
@@ -152,15 +84,37 @@
 
   <main class="cubes-field" id="cubesField"></main>
 
-  <div style="padding:3px 8px 6px; display:flex; gap:5px; flex-shrink:0;">
-    <button id="addBlockBtn" class="primary" style="flex:1;">+ Блок</button>
-    <button id="addSymbolBtn" style="flex:1;">+ Символ</button>
-    <button id="importBtn" style="flex:1;">📥 Импорт</button>
-    <button id="exportBtn" style="flex:1;">📤 Экспорт</button>
-    <button id="clearBtn" class="danger">🗑</button>
+  <!-- Панель управления с настройкой максимума в строке -->
+  <div class="controls-panel">
+    <div class="controls-row" style="justify-content: space-between;">
+      <div style="display:flex; gap:4px;">
+        <button id="addBlockBtn" class="primary">+ Блок</button>
+        <button id="addSymbolBtn">+ Символ</button>
+      </div>
+      <div style="display:flex; gap:4px;">
+        <button id="importBtn">📥</button>
+        <button id="exportBtn">📤</button>
+        <button id="clearBtn" class="danger">🗑</button>
+      </div>
+    </div>
+    <div class="controls-row" style="justify-content: flex-start; gap: 8px;">
+      <label for="maxColsSelect">Макс. в строке:</label>
+      <select id="maxColsSelect" class="max-cols-select">
+        <option value="0">Авто</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+      </select>
+    </div>
   </div>
 
-  <!-- Модалка добавления символа -->
+  <!-- Модалки -->
   <div id="addModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Добавить символ</h3>
@@ -177,7 +131,6 @@
     </div>
   </div>
 
-  <!-- Модалка редактирования символа -->
   <div id="editModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Редактировать символ</h3>
@@ -190,7 +143,6 @@
     </div>
   </div>
 
-  <!-- Модалка цвета -->
   <div id="colorModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Цвет блока</h3>
@@ -207,7 +159,6 @@
     </div>
   </div>
 
-  <!-- Модалка импорта -->
   <div id="importModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>📥 Импорт</h3>
@@ -220,7 +171,6 @@
     </div>
   </div>
 
-  <!-- Экспорт fullscreen -->
   <div id="exportFullscreen" class="export-fullscreen hidden">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h3>📤 Экспорт</h3>
@@ -240,7 +190,6 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // Новая фраза
   const phrase = `🔼:Высшее 🌀:Передаю ✉️:Послание
 👁:Я ❤️:Люблю 🧿:ТебЯ 📡:Приемник
 🛰:Транслятор 🔎:Фокус 🌍:Внутри 🔲:Мысль0 🔍:Запрос ∞:СинхронизациЯ
@@ -285,6 +234,7 @@
   let detailedMode = false;
   let editMode = false;
   let activeBlockIndex = 0;
+  let maxCols = 0; // 0 — авто, иначе — фиксированное число
   let dragState = null;
 
   const $ = id => document.getElementById(id);
@@ -292,6 +242,7 @@
   const resultString = $('resultString');
   const toggleModeBtn = $('toggleModeBtn');
   const editModeBtn = $('editModeBtn');
+  const maxColsSelect = $('maxColsSelect');
 
   const presetColorList = [
     '#e74c3c', '#f39c12', '#f1c40f', '#2ecc71', '#1abc9c',
@@ -349,13 +300,21 @@
       return;
     }
 
+    const colsToUse = maxCols > 0 ? maxCols : Math.floor(fieldWidth / 20);
     let bestSize = 20;
-    const maxSize = Math.min(fieldWidth, fieldHeight);
-    for (let s = maxSize; s >= 20; s--) {
-      const cols = Math.floor(fieldWidth / s);
-      if (cols === 0) continue;
-      const rows = Math.ceil(cubeEntries.length / cols);
-      if (rows * s <= fieldHeight) { bestSize = s; break; }
+    if (maxCols > 0) {
+      // фиксированное количество колонок — размер вычисляем по ширине
+      bestSize = Math.floor((fieldWidth - (colsToUse - 1) * 2) / colsToUse);
+      bestSize = Math.min(bestSize, fieldHeight); // не больше высоты
+      bestSize = Math.max(20, bestSize);
+    } else {
+      const maxSize = Math.min(fieldWidth, fieldHeight);
+      for (let s = maxSize; s >= 20; s--) {
+        const cols = Math.floor(fieldWidth / s);
+        if (cols === 0) continue;
+        const rows = Math.ceil(cubeEntries.length / cols);
+        if (rows * s <= fieldHeight) { bestSize = s; break; }
+      }
     }
 
     const cubeSize = bestSize;
@@ -540,7 +499,7 @@
     dragState = null;
   }
 
-  // Цвет блока
+  // Цвет
   function openColorModal() {
     const color = getBlockColor(activeBlockIndex);
     $('colorPicker').value = color;
@@ -620,6 +579,12 @@
   $('cancelColorModalBtn').addEventListener('click', () => $('colorModalOverlay').classList.add('hidden'));
   $('applyColorBtn').addEventListener('click', applyColor);
 
+  // Максимум в строке
+  maxColsSelect.addEventListener('change', () => {
+    maxCols = parseInt(maxColsSelect.value, 10);
+    renderAll();
+  });
+
   // Остальные кнопки
   $('clearBtn').addEventListener('click', () => {
     if (confirm('Очистить всё?')) {
@@ -681,6 +646,7 @@
 
   // Старт
   document.body.classList.toggle('detailed-mode', detailedMode);
+  maxColsSelect.value = maxCols.toString();
   renderAll();
 })();
 </script>
