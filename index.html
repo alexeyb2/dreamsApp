@@ -5,23 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Кубики — управление максимумом в строке</title>
+  <title>Кубики — крупная панель управления</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
     html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#000; }
     #app { display:flex; flex-direction:column; height:100%; max-width:600px; margin:0 auto; background:#f5f5f7; }
-    .header { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#fff; border-bottom:1px solid rgba(0,0,0,0.1); z-index:20; flex-shrink:0; }
+    /* Верхняя панель — итоговая строка и пара кнопок */
+    .top-bar { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#fff; border-bottom:1px solid rgba(0,0,0,0.1); z-index:20; flex-shrink:0; }
     .result-box { flex:1; display:flex; align-items:center; background:#f0f0f5; border-radius:18px; padding:4px 10px; gap:6px; min-width:0; }
-    .result-label { font-size:11px; font-weight:600; color:#86868b; text-transform:uppercase; }
-    .result-string { flex:1; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .header-buttons { display:flex; gap:4px; flex-shrink:0; }
-    button { background:#fff; border:1px solid rgba(0,0,0,0.1); padding:6px 10px; border-radius:18px; font-size:12px; font-weight:600; color:#1d1d1f; cursor:pointer; transition:all 0.2s; touch-action:manipulation; white-space:nowrap; }
-    button:active { transform:scale(0.94); background:#f0f0f5; }
-    button.primary { background:#007aff; color:#fff; border-color:transparent; }
-    button.primary:active { background:#0066d6; }
-    button.danger { background:#ff3b30; color:#fff; border-color:transparent; }
+    .result-label { font-size:12px; font-weight:700; color:#86868b; text-transform:uppercase; }
+    .result-string { flex:1; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
+    .top-buttons { display:flex; gap:4px; flex-shrink:0; }
+    .icon-btn { width:36px; height:36px; border-radius:18px; border:1px solid rgba(0,0,0,0.1); background:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; transition:0.2s; touch-action:manipulation; }
+    .icon-btn:active { transform:scale(0.94); background:#f0f0f5; }
+    .icon-btn.active { background:#007aff; color:#fff; border-color:transparent; }
 
     .cubes-field { flex:1; display:flex; flex-wrap:wrap; align-content:flex-start; overflow:hidden; background:#000; touch-action:none; }
+
     .cube { display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.25); cursor:pointer; position:relative; transition:0.1s; font-family:inherit; }
     .cube.dragging { opacity:0.4; transform:scale(0.95); }
     .cube .cube-char { font-size:var(--emoji-size); line-height:1; }
@@ -34,6 +34,17 @@
 
     .drag-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:0.9; transform:scale(1.1); box-shadow:0 6px 16px rgba(0,0,0,0.3); background:inherit; display:flex; align-items:center; justify-content:center; font-size:inherit; border:2px solid #fff; border-radius:4px; }
 
+    /* Нижняя панель управления — крупная */
+    .bottom-panel { background:#fff; border-top:1px solid rgba(0,0,0,0.1); padding:6px 10px 8px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
+    .bottom-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .bottom-btn { flex:1; min-width:0; height:38px; border-radius:19px; border:1px solid rgba(0,0,0,0.1); background:#fff; font-size:13px; font-weight:600; color:#1d1d1f; cursor:pointer; transition:0.2s; touch-action:manipulation; display:flex; align-items:center; justify-content:center; gap:4px; }
+    .bottom-btn:active { transform:scale(0.96); background:#f0f0f5; }
+    .bottom-btn.primary { background:#007aff; color:#fff; border-color:transparent; }
+    .bottom-btn.danger { background:#ff3b30; color:#fff; border-color:transparent; }
+    .col-control { display:flex; align-items:center; gap:4px; }
+    .col-control label { font-size:12px; font-weight:600; color:#86868b; }
+    .col-select { padding:6px 10px; border-radius:14px; border:1px solid rgba(0,0,0,0.1); font-size:13px; font-weight:600; background:#fff; color:#1d1d1f; cursor:pointer; }
+
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:center; justify-content:center; }
     .modal { background:#fff; border-radius:22px; padding:20px; width:90%; max-width:380px; box-shadow:0 16px 32px rgba(0,0,0,0.18); display:flex; flex-direction:column; gap:10px; }
     .modal input { padding:10px; border:1px solid #ddd; border-radius:12px; font-size:14px; font-family:inherit; outline:none; }
@@ -45,76 +56,55 @@
     .active-indicator { display:inline-block; width:12px; height:12px; border-radius:4px; margin-right:4px; border:1px solid rgba(0,0,0,0.2); vertical-align:middle; }
     .preset-colors { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
     .preset-colors button { width:28px; height:28px; border-radius:14px; border:1px solid rgba(0,0,0,0.2); cursor:pointer; padding:0; }
-
-    /* Компактная панель управления */
-    .controls-panel {
-      display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 8px 6px;
-      background: #fff; border-top: 1px solid rgba(0,0,0,0.1); flex-shrink: 0;
-      align-items: center;
-    }
-    .controls-row {
-      display: flex; flex: 1 1 100%; gap: 4px; align-items: center;
-    }
-    .controls-row label {
-      font-size: 11px; font-weight: 600; color: #86868b;
-      margin-right: 2px;
-    }
-    .max-cols-select {
-      padding: 4px 6px; border-radius: 14px; border: 1px solid rgba(0,0,0,0.1);
-      font-size: 12px; font-weight: 600; background: #fff; color: #1d1d1f;
-      cursor: pointer; outline: none;
-    }
   </style>
 </head>
 <body>
 <div id="app">
-  <header class="header">
+  <!-- Верхняя панель: итог, копировать, детали, редактирование, цвет -->
+  <header class="top-bar">
     <div class="result-box">
       <span class="result-label">Итог</span>
       <span class="result-string" id="resultString"></span>
     </div>
-    <div class="header-buttons">
-      <button id="editModeBtn" title="Режим удаления/редактирования">✎</button>
-      <button id="colorBtn" title="Цвет активного блока">🎨</button>
-      <button id="copyBtn">📋</button>
-      <button id="saveBtn">💾</button>
-      <button id="toggleModeBtn">▤</button>
+    <div class="top-buttons">
+      <button class="icon-btn" id="copyBtn" title="Копировать">📋</button>
+      <button class="icon-btn" id="toggleModeBtn" title="Показать слова">▤</button>
+      <button class="icon-btn" id="editModeBtn" title="Режим удаления">✎</button>
+      <button class="icon-btn" id="colorBtn" title="Цвет блока">🎨</button>
     </div>
   </header>
 
   <main class="cubes-field" id="cubesField"></main>
 
-  <!-- Панель управления с настройкой максимума в строке -->
-  <div class="controls-panel">
-    <div class="controls-row" style="justify-content: space-between;">
-      <div style="display:flex; gap:4px;">
-        <button id="addBlockBtn" class="primary">+ Блок</button>
-        <button id="addSymbolBtn">+ Символ</button>
-      </div>
-      <div style="display:flex; gap:4px;">
-        <button id="importBtn">📥</button>
-        <button id="exportBtn">📤</button>
-        <button id="clearBtn" class="danger">🗑</button>
-      </div>
+  <!-- Нижняя крупная панель -->
+  <div class="bottom-panel">
+    <div class="bottom-row">
+      <button class="bottom-btn primary" id="addBlockBtn">+ Блок</button>
+      <button class="bottom-btn" id="addSymbolBtn">+ Символ</button>
+      <button class="bottom-btn" id="importBtn">📥 Импорт</button>
+      <button class="bottom-btn" id="exportBtn">📤 Экспорт</button>
     </div>
-    <div class="controls-row" style="justify-content: flex-start; gap: 8px;">
-      <label for="maxColsSelect">Макс. в строке:</label>
-      <select id="maxColsSelect" class="max-cols-select">
-        <option value="0">Авто</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="7">7</option>
-        <option value="8">8</option>
-        <option value="9">9</option>
-        <option value="10">10</option>
-      </select>
+    <div class="bottom-row">
+      <div class="col-control">
+        <label for="maxColsSelect">В строке:</label>
+        <select id="maxColsSelect" class="col-select">
+          <option value="0">Авто</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+      <button class="bottom-btn danger" id="clearBtn">🗑 Очистить</button>
     </div>
   </div>
 
-  <!-- Модалки -->
+  <!-- Модалки (оставлены без изменений, кроме мелких правок) -->
   <div id="addModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Добавить символ</h3>
@@ -234,7 +224,7 @@
   let detailedMode = false;
   let editMode = false;
   let activeBlockIndex = 0;
-  let maxCols = 0; // 0 — авто, иначе — фиксированное число
+  let maxCols = 0;
   let dragState = null;
 
   const $ = id => document.getElementById(id);
@@ -300,24 +290,23 @@
       return;
     }
 
-    const colsToUse = maxCols > 0 ? maxCols : Math.floor(fieldWidth / 20);
-    let bestSize = 20;
+    let cubeSize;
     if (maxCols > 0) {
-      // фиксированное количество колонок — размер вычисляем по ширине
-      bestSize = Math.floor((fieldWidth - (colsToUse - 1) * 2) / colsToUse);
-      bestSize = Math.min(bestSize, fieldHeight); // не больше высоты
-      bestSize = Math.max(20, bestSize);
+      cubeSize = Math.floor((fieldWidth - (maxCols - 1) * 2) / maxCols);
+      cubeSize = Math.min(cubeSize, fieldHeight);
+      cubeSize = Math.max(20, cubeSize);
     } else {
-      const maxSize = Math.min(fieldWidth, fieldHeight);
-      for (let s = maxSize; s >= 20; s--) {
+      let best = 20;
+      const max = Math.min(fieldWidth, fieldHeight);
+      for (let s = max; s >= 20; s--) {
         const cols = Math.floor(fieldWidth / s);
         if (cols === 0) continue;
         const rows = Math.ceil(cubeEntries.length / cols);
-        if (rows * s <= fieldHeight) { bestSize = s; break; }
+        if (rows * s <= fieldHeight) { best = s; break; }
       }
+      cubeSize = best;
     }
 
-    const cubeSize = bestSize;
     const emojiSize = Math.max(10, cubeSize * 0.5);
     const textSize = Math.max(6, cubeSize * 0.18);
 
@@ -415,7 +404,7 @@
     resultString.textContent = str || '(пусто)';
   }
 
-  // Drag & Drop
+  // Drag & Drop (аналогично предыдущему)
   function onPointerDown(e) {
     if (dragState) return;
     if (e.button && e.button !== 0) return;
@@ -566,8 +555,7 @@
   $('editModeBtn').addEventListener('click', () => {
     editMode = !editMode;
     document.body.classList.toggle('edit-mode', editMode);
-    editModeBtn.style.background = editMode ? '#ff3b30' : '#fff';
-    editModeBtn.style.color = editMode ? '#fff' : '#1d1d1f';
+    editModeBtn.classList.toggle('active', editMode);
   });
 
   let editingSymbol = { blockType: null, blockIndex: null, symbolIndex: null };
@@ -596,7 +584,6 @@
     const str = resultString.textContent;
     if (str && str !== '(пусто)') navigator.clipboard?.writeText(str);
   });
-  $('saveBtn').addEventListener('click', () => { saveState(); alert('Сохранено'); });
 
   // Импорт/экспорт
   $('importBtn').addEventListener('click', () => {
@@ -640,7 +627,7 @@
   toggleModeBtn.addEventListener('click', () => {
     detailedMode = !detailedMode;
     document.body.classList.toggle('detailed-mode', detailedMode);
-    toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
+    toggleModeBtn.classList.toggle('active', detailedMode);
     renderAll();
   });
 
