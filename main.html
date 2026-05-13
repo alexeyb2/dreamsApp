@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Символьные кубики — Редактор свойств</title>
+  <title>Символьные кубики — Цвет из телефона</title>
   <style>
     * {
       margin: 0; padding: 0; box-sizing: border-box;
@@ -123,6 +123,15 @@
       border-radius: 4px; margin-right: 4px;
       border: 1px solid rgba(0,0,0,0.2); vertical-align: middle;
     }
+    .preset-colors {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-top: 4px;
+    }
+    .preset-colors button {
+      width: 28px; height: 28px; border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.2);
+      cursor: pointer; padding: 0;
+    }
   </style>
 </head>
 <body>
@@ -181,6 +190,23 @@
     </div>
   </div>
 
+  <!-- Модалка цвета -->
+  <div id="colorModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Цвет блока</h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span>Активный блок:</span>
+        <span id="colorBlockLabel" style="font-weight:600;"></span>
+      </div>
+      <input type="color" id="colorPicker" value="#e74c3c" style="width:100%; height:50px; border:none; padding:0;">
+      <div class="preset-colors" id="presetColors"></div>
+      <div class="modal-actions">
+        <button id="cancelColorModalBtn">Отмена</button>
+        <button id="applyColorBtn" class="primary">Применить</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Модалка импорта -->
   <div id="importModalOverlay" class="modal-overlay hidden">
     <div class="modal">
@@ -214,14 +240,15 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  // Базовая фраза
-  const phrase = `🔼:высшее 👁️:Я 🌀:передача:👁️Я 🌍:внутри 🧿:тебя 👁️:Я ❤️:люблю 🧿:тебя
-🌌:пространство 🛠️:создаёт 🎯:направление 🌊:течения ⚡️:энергии: 📍:старт 🏁:финиш 
-⏳:время 🛠️:создаёт 🌪️:движение: 🚀:скорость 
-🔮:связующий 🛠️:создаёт 🔄:синхронизация 🔎:через 
-🔳:мыслей ➕:добавление ❌:удаление ✅:подтверждение ♻️:трансформация 🔗:и
-🟡:чувств 🔺:поднимание 🔻:опускание 👍:нравится 👎:не_нравится 💠:усиление 🔅:ослабление ↕️:расширение ↔️:сжатие  
- 🔗:и 🛠️:создаёт 🌊:течение 🌳:рост 🔥:горение 🪨:опора 🎈:взлёт.`;
+  // Новая фраза
+  const phrase = `🔼:Высшее 🌀:Передаю ✉️:Послание
+👁:Я ❤️:Люблю 🧿:ТебЯ 📡:Приемник
+🛰:Транслятор 🔎:Фокус 🌍:Внутри 🔲:Мысль0 🔍:Запрос ∞:СинхронизациЯ
+🛥:Движение 🚀:Скорость ⏳:ВремЯ 📍:Старт 🏁:Финиш
+🟡:Люблю ⚪️:Чувство
+🔳:Мысль1 📌:Якорь 🌌:Снаружи 💰:Богатство
+🟥:Чувство 🪨:Опора ⚔️:Защита 🌊:Поток 🌴:Рост 🔥:ЭнергиЯ
+📝:Изменить ❌:Удалить ➕:Создать ♻️:ТрансформаЯ ✅:Подтвердить 🌋:Разрушить 🔑:Открытие 👍:Like ↔️:Расширение 🔺:Усиление 🏔:Стабилизировать 🔒:Закрытие 👎:DisLike ☀️:Втягивание 🔻:Ослабление`;
 
   function parseLine(line) {
     const symbols = [];
@@ -257,17 +284,19 @@
   ];
   let detailedMode = false;
   let editMode = false;
-  let activeBlockIndex = 0; // 0 — главный, 1+ — дополнительные
+  let activeBlockIndex = 0;
   let dragState = null;
-
-  // Редактирование текущего элемента
-  let editingSymbol = { blockType: null, blockIndex: null, symbolIndex: null };
 
   const $ = id => document.getElementById(id);
   const cubesField = $('cubesField');
   const resultString = $('resultString');
   const toggleModeBtn = $('toggleModeBtn');
   const editModeBtn = $('editModeBtn');
+
+  const presetColorList = [
+    '#e74c3c', '#f39c12', '#f1c40f', '#2ecc71', '#1abc9c',
+    '#3498db', '#9b59b6', '#e91e63', '#34495e', '#ffffff', '#000000'
+  ];
 
   function saveState() {
     try {
@@ -292,11 +321,9 @@
     const fieldHeight = cubesField.clientHeight;
     if (fieldWidth <= 0 || fieldHeight <= 0) return;
 
-    // Сначала собираем все символы, вставляя пустые кубики для пустых блоков
     const cubeEntries = [];
     blocks.forEach((block, blockIndex) => {
       if (block.length === 0) {
-        // Добавляем единственный кубик-заглушку
         cubeEntries.push({
           id: 'placeholder_' + blockIndex,
           char: '?',
@@ -347,13 +374,11 @@
       cube.style.setProperty('--text-size', textSize + 'px');
 
       cube.innerHTML = `<span class="cube-char">${entry.char}</span><span class="cube-text">${entry.text||''}</span>`;
-
       cube.dataset.blockIndex = entry.blockIndex;
       cube.dataset.symbolIndex = entry.symbolIndex;
       cube.dataset.placeholder = entry.placeholder;
       cube.dataset.globalIndex = globalIndex;
 
-      // Крестик удаления (только в режиме редактирования и не для заглушек)
       const delBtn = document.createElement('button');
       delBtn.className = 'delete-cube';
       delBtn.textContent = '✕';
@@ -368,10 +393,7 @@
       cube.addEventListener('click', (e) => {
         if (dragState?.moved) return;
         if (editMode) {
-          // Открыть редактирование
-          if (!entry.placeholder) {
-            openEditModal(entry.blockIndex, entry.symbolIndex);
-          }
+          if (!entry.placeholder) openEditModal(entry.blockIndex, entry.symbolIndex);
         } else {
           setActiveBlock(entry.blockIndex);
         }
@@ -385,11 +407,8 @@
   }
 
   function deleteSymbol(blockIndex, symbolIndex) {
-    if (blockIndex === 0) {
-      library.splice(symbolIndex, 1);
-    } else {
-      additionalBlocks[blockIndex - 1].splice(symbolIndex, 1);
-    }
+    if (blockIndex === 0) library.splice(symbolIndex, 1);
+    else additionalBlocks[blockIndex - 1].splice(symbolIndex, 1);
     saveState();
     renderAll();
   }
@@ -397,7 +416,6 @@
   function openEditModal(blockIndex, symbolIndex) {
     const sym = (blockIndex === 0) ? library[symbolIndex] : additionalBlocks[blockIndex - 1][symbolIndex];
     if (!sym) return;
-    editingSymbol = { blockType: blockIndex === 0 ? 'main' : 'block', blockIndex, symbolIndex };
     $('editCharInput').value = sym.char;
     $('editTextInput').value = sym.text || '';
     $('editModalOverlay').classList.remove('hidden');
@@ -438,7 +456,7 @@
     resultString.textContent = str || '(пусто)';
   }
 
-  // Drag & Drop (аналогично предыдущему, с учетом placeholder)
+  // Drag & Drop
   function onPointerDown(e) {
     if (dragState) return;
     if (e.button && e.button !== 0) return;
@@ -500,7 +518,6 @@
     let tgtIdx = parseInt(targetCube.dataset.symbolIndex);
     const tgtPlaceholder = targetCube.dataset.placeholder === 'true';
 
-    // Извлекаем из источника
     let moved = null;
     if (srcBlock === 0) {
       if (dragState.placeholder) { dragState = null; return; }
@@ -510,19 +527,12 @@
       moved = additionalBlocks[srcBlock - 1].splice(srcIdx, 1)[0];
     }
 
-    // Вставляем в цель (если цель — плейсхолдер, то просто добавляем в этот блок)
     if (tgtPlaceholder) {
-      if (tgtBlock === 0) {
-        library.push(moved);
-      } else {
-        additionalBlocks[tgtBlock - 1].push(moved);
-      }
+      if (tgtBlock === 0) library.push(moved);
+      else additionalBlocks[tgtBlock - 1].push(moved);
     } else {
-      if (tgtBlock === 0) {
-        library.splice(tgtIdx, 0, moved);
-      } else {
-        additionalBlocks[tgtBlock - 1].splice(tgtIdx, 0, moved);
-      }
+      if (tgtBlock === 0) library.splice(tgtIdx, 0, moved);
+      else additionalBlocks[tgtBlock - 1].splice(tgtIdx, 0, moved);
     }
 
     saveState();
@@ -530,10 +540,46 @@
     dragState = null;
   }
 
-  // Обработчики кнопок
+  // Цвет блока
+  function openColorModal() {
+    const color = getBlockColor(activeBlockIndex);
+    $('colorPicker').value = color;
+    updateColorBlockLabel();
+    buildPresetColors();
+    $('colorModalOverlay').classList.remove('hidden');
+  }
+
+  function updateColorBlockLabel() {
+    const names = ['Главный', ...additionalBlocks.map((_, i) => `Блок ${i+1}`)];
+    const color = getBlockColor(activeBlockIndex);
+    $('colorBlockLabel').innerHTML = `<span class="active-indicator" style="background:${color};"></span> ${names[activeBlockIndex] || 'Главный'}`;
+  }
+
+  function buildPresetColors() {
+    const container = $('presetColors');
+    container.innerHTML = '';
+    presetColorList.forEach(c => {
+      const btn = document.createElement('button');
+      btn.style.backgroundColor = c;
+      btn.addEventListener('click', () => {
+        $('colorPicker').value = c;
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  function applyColor() {
+    const newColor = $('colorPicker').value;
+    blockColors[activeBlockIndex % blockColors.length] = newColor;
+    saveState();
+    renderAll();
+    $('colorModalOverlay').classList.add('hidden');
+  }
+
+  // Инициализация кнопок
   $('addBlockBtn').addEventListener('click', () => {
     additionalBlocks.push([]);
-    setActiveBlock(additionalBlocks.length); // новый блок становится активным
+    setActiveBlock(additionalBlocks.length);
     saveState();
     renderAll();
   });
@@ -548,11 +594,8 @@
     if (!ch) return;
     const txt = $('newTextInput').value.trim();
     const sym = { id: Date.now().toString(), char: ch.substring(0,2), text: txt };
-    if (activeBlockIndex === 0) {
-      library.push(sym);
-    } else {
-      additionalBlocks[activeBlockIndex - 1].push(sym);
-    }
+    if (activeBlockIndex === 0) library.push(sym);
+    else additionalBlocks[activeBlockIndex - 1].push(sym);
     $('newCharInput').value = $('newTextInput').value = '';
     $('addModalOverlay').classList.add('hidden');
     saveState();
@@ -568,21 +611,16 @@
     editModeBtn.style.color = editMode ? '#fff' : '#1d1d1f';
   });
 
+  let editingSymbol = { blockType: null, blockIndex: null, symbolIndex: null };
   $('cancelEditModalBtn').addEventListener('click', () => $('editModalOverlay').classList.add('hidden'));
   $('saveEditModalBtn').addEventListener('click', saveEdit);
 
-  // Цвет блока
-  $('colorBtn').addEventListener('click', () => {
-    const palette = ['#e74c3c','#f39c12','#9b59b6','#2ecc71','#3498db','#1abc9c','#e67e22','#34495e','#f1c40f','#e91e63'];
-    const current = getBlockColor(activeBlockIndex);
-    let nextIdx = palette.indexOf(current);
-    if (nextIdx === -1) nextIdx = 0;
-    else nextIdx = (nextIdx + 1) % palette.length;
-    blockColors[activeBlockIndex % blockColors.length] = palette[nextIdx];
-    saveState();
-    renderAll();
-  });
+  // Цвет
+  $('colorBtn').addEventListener('click', openColorModal);
+  $('cancelColorModalBtn').addEventListener('click', () => $('colorModalOverlay').classList.add('hidden'));
+  $('applyColorBtn').addEventListener('click', applyColor);
 
+  // Остальные кнопки
   $('clearBtn').addEventListener('click', () => {
     if (confirm('Очистить всё?')) {
       library = []; additionalBlocks = []; activeBlockIndex = 0;
