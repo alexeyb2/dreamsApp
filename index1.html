@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
+  <meta name="telegram-webapp-theme-color" content="#f5f5f7">
+  <link rel="apple-touch-icon" href="icon.png">
+  <title>DreamSApp📌</title>
+  <style>
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none; user-select: none;
+    }
+    html, body {
+      height: 100%; width: 100%; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+    }
+    #app {
+      display: flex; flex-direction: column; height: 100%;
+      max-width: 600px; margin: 0 auto; background: #f5f5f7;
+    }
+    .header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 10px; background: #fff;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+      z-index: 20; flex-shrink: 0;
+    }
+    .result-box {
+      flex: 1; display: flex; align-items: center;
+      background: #f0f0f5; border-radius: 18px;
+      padding: 4px 10px; gap: 6px; min-width: 0;
+    }
+    .result-label { font-size: 11px; font-weight: 600; color: #86868b; text-transform: uppercase; }
+    .result-string {
+      flex: 1; font-size: 14px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .header-buttons { display: flex; gap: 4px; flex-shrink: 0; }
+    button {
+      background: #fff; border: 1px solid rgba(0,0,0,0.1);
+      padding: 6px 10px; border-radius: 18px; font-size: 12px;
+      font-weight: 600; color: #1d1d1f; cursor: pointer;
+      transition: all 0.2s; touch-action: manipulation; white-space: nowrap;
+    }
+    button:active { transform: scale(0.94); background: #f0f0f5; }
+    button.primary { background: #007aff; color: #fff; border-color: transparent; }
+    button.primary:active { background: #0066d6; }
+    button.danger { background: #ff3b30; color: #fff; border-color: transparent; }
+
+    .cubes-field {
+      flex: 1; display: flex; flex-wrap: wrap;
+      align-content: flex-start; overflow: hidden;
+      background: #000; touch-action: none;
+    }
+    .cube {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; border: 1px solid rgba(255,255,255,0.25);
+      cursor: pointer; position: relative; transition: 0.1s;
+      font-family: inherit;
+    }
+    .cube.dragging { opacity: 0.4; transform: scale(0.95); }
+    .cube .cube-char { font-size: var(--emoji-size); line-height: 1; }
+    .cube .cube-text {
+      display: none; font-size: var(--text-size); color: #fff;
+      text-align: center; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; max-width: 100%; line-height: 1.2;
+    }
+    body.detailed-mode .cube .cube-text { display: block; }
+    body.detailed-mode .cube { height: auto !important; min-height: var(--cube-size); }
+
+    .cube .delete-cube {
+      position: absolute; top: 1px; right: 1px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #ff3b30; color: #fff; border: none;
+      font-size: 14px; cursor: pointer;
+      display: none; align-items: center; justify-content: center;
+      z-index: 2;
+    }
+    body.edit-mode .cube .delete-cube { display: flex; }
+
+    .drag-ghost {
+      position: fixed; z-index: 9999; pointer-events: none;
+      opacity: 0.9; transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+      background: inherit; display: flex; align-items: center;
+      justify-content: center; font-size: inherit;
+      border: 2px solid #fff; border-radius: 4px;
+    }
+
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+      z-index: 100; display: flex; align-items: center; justify-content: center;
+    }
+    .modal {
+      background: #fff; border-radius: 22px; padding: 20px;
+      width: 90%; max-width: 380px;
+      box-shadow: 0 16px 32px rgba(0,0,0,0.18);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .modal input {
+      padding: 10px; border: 1px solid #ddd; border-radius: 12px;
+      font-size: 14px; font-family: inherit; outline: none;
+    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .export-fullscreen {
+      position: fixed; inset: 0; background: #fff;
+      z-index: 200; display: flex; flex-direction: column;
+      padding: 16px; gap: 12px;
+    }
+    .export-fullscreen textarea {
+      flex: 1; width: 100%; padding: 12px;
+      border: 1px solid #ddd; border-radius: 14px;
+      font-size: 14px; font-family: inherit; resize: none;
+      -webkit-user-select: text; user-select: text;
+    }
+    .switch-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+    .hidden { display: none !important; }
+    .active-indicator {
+      display: inline-block; width: 12px; height: 12px;
+      border-radius: 4px; margin-right: 4px;
+      border: 1px solid rgba(0,0,0,0.2); vertical-align: middle;
+    }
+    .preset-colors {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-top: 4px;
+    }
+    .preset-colors button {
+      width: 28px; height: 28px; border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.2);
+      cursor: pointer; padding: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header class="header">
+    <div class="result-box">
+      <span class="result-label">Итог</span>
+      <span class="result-string" id="resultString"></span>
+    </div>
+    <div class="header-buttons">
+      <button id="editModeBtn" title="Редактировать">✎</button>
+      <button id="colorBtn" title="Цвет блока">🎨</button>
+      <button id="copyBtn">📋</button>
+      <button id="saveBtn">💾</button>
+      <button id="toggleModeBtn">▤</button>
+    </div>
+  </header>
+
+  <main class="cubes-field" id="cubesField"></main>
+
+  <div style="padding:3px 8px 6px; display:flex; gap:5px; flex-shrink:0;">
+    <button id="addBlockBtn" class="primary" style="flex:1;">+ Блок</button>
+    <button id="addSymbolBtn" style="flex:1;">+ Символ</button>
+    <button id="importBtn" style="flex:1;">📥 Импорт</button>
+    <button id="exportBtn" style="flex:1;">📤 Экспорт</button>
+    <button id="clearBtn" class="danger">🗑</button>
+  </div>
+
+  <!-- Модалка добавления символа -->
+  <div id="addModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Добавить символ</h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span>В блок:</span>
+        <span id="activeBlockLabel" style="font-weight:600;"></span>
+      </div>
+      <input id="newCharInput" placeholder="Символ (эмодзи)" maxlength="2">
+      <input id="newTextInput" placeholder="Текст">
+      <div class="modal-actions">
+        <button id="cancelAddModalBtn">Отмена</button>
+        <button id="saveAddModalBtn" class="primary">Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка редактирования символа -->
+  <div id="editModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Редактировать символ</h3>
+      <input id="editCharInput" placeholder="Символ" maxlength="2">
+      <input id="editTextInput" placeholder="Текст">
+      <div class="modal-actions">
+        <button id="cancelEditModalBtn">Отмена</button>
+        <button id="saveEditModalBtn" class="primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка цвета -->
+  <div id="colorModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Цвет блока</h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span>Активный блок:</span>
+        <span id="colorBlockLabel" style="font-weight:600;"></span>
+      </div>
+      <input type="color" id="colorPicker" value="#e74c3c" style="width:100%; height:50px; border:none; padding:0;">
+      <div class="preset-colors" id="presetColors"></div>
+      <div class="modal-actions">
+        <button id="cancelColorModalBtn">Отмена</button>
+        <button id="applyColorBtn" class="primary">Применить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модалка импорта -->
+  <div id="importModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>📥 Импорт</h3>
+      <p style="font-size:13px;color:#86868b;">Каждая строка — блок. Пары «символ:слово» через пробел.</p>
+      <textarea id="importTextarea" placeholder="👁️:Я ❤️:люблю 🌀:связь"></textarea>
+      <div class="modal-actions">
+        <button id="cancelImportModalBtn">Отмена</button>
+        <button id="saveImportModalBtn" class="primary">Импортировать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Экспорт fullscreen -->
+  <div id="exportFullscreen" class="export-fullscreen hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3>📤 Экспорт</h3>
+      <button id="closeExportBtn" style="background:none; border:none; font-size:20px;">✕</button>
+    </div>
+    <div class="switch-row">
+      <label><input type="radio" name="exportMode" value="withWords" checked> Со словами</label>
+      <label><input type="radio" name="exportMode" value="symbolsOnly"> Только символы</label>
+    </div>
+    <textarea id="exportTextareaFull" readonly></textarea>
+    <button id="copyExportFullBtn" class="primary" style="align-self:flex-end;">Копировать</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  // Новая фраза
+  const phrase = `🔼:Высшее 🌀:Передаю ✉️:Послание
+👁:Я ❤️:Люблю 🧿:ТебЯ 📡:Приемник
+🛰:Транслятор 🔎:Фокус 🌍:Внутри 🔲:Мысль0 🔍:Запрос ∞:СинхронизациЯ
+🛥:Движение 🚀:Скорость ⏳:ВремЯ 📍:Старт 🏁:Финиш
+🟡:Люблю ⚪️:Чувство
+🔳:Мысль1 📌:Якорь 🌌:Снаружи 💰:Богатство
+🟥:Чувство 🪨:Опора ⚔️:Защита 🌊:Поток 🌴:Рост 🔥:ЭнергиЯ
+📝:Изменить ❌:Удалить ➕:Создать ♻️:ТрансформаЯ ✅:Подтвердить 🌋:Разрушить 🔑:Открытие 👍:Like ↔️:Расширение 🔺:Усиление 🏔:Стабилизировать 🔒:Закрытие 👎:DisLike ☀️:Втягивание 🔻:Ослабление`;
+
+  function parseLine(line) {
+    const symbols = [];
+    const tokens = line.trim().split(/\s+/);
+    for (const token of tokens) {
+      if (!token) continue;
+      const colonIndex = token.indexOf(':');
+      let char, text;
+      if (colonIndex > 0) { char = token.substring(0, colonIndex); text = token.substring(colonIndex + 1); }
+      else { char = token; text = ''; }
+      if (char) symbols.push({ id: Date.now().toString(36)+Math.random().toString(36), char, text });
+    }
+    return symbols;
+  }
+
+  function parsePhrase(text) {
+    const lines = text.split(/\n/).filter(l => l.trim());
+    const res = { library: [], blocks: [] };
+    if (lines.length > 0) res.library = parseLine(lines[0]);
+    for (let i = 1; i < lines.length; i++) {
+      const s = parseLine(lines[i]);
+      if (s.length) res.blocks.push(s);
+    }
+    return res;
+  }
+
+  const defaultData = parsePhrase(phrase);
+  let library = JSON.parse(localStorage.getItem('seq_library')) || defaultData.library;
+  let additionalBlocks = JSON.parse(localStorage.getItem('seq_blocks')) || defaultData.blocks;
+  let blockColors = JSON.parse(localStorage.getItem('seq_blockColors')) || [
+    '#e74c3c', '#f39c12', '#9b59b6', '#2ecc71',
+    '#3498db', '#1abc9c', '#e67e22', '#34495e'
+  ];
+  let detailedMode = false;
+  let editMode = false;
+  let activeBlockIndex = 0;
+  let dragState = null;
+
+  const $ = id => document.getElementById(id);
+  const cubesField = $('cubesField');
+  const resultString = $('resultString');
+  const toggleModeBtn = $('toggleModeBtn');
+  const editModeBtn = $('editModeBtn');
+
+  const presetColorList = [
+    '#e74c3c', '#f39c12', '#f1c40f', '#2ecc71', '#1abc9c',
+    '#3498db', '#9b59b6', '#e91e63', '#34495e', '#ffffff', '#000000'
+  ];
+
+  function saveState() {
+    try {
+      localStorage.setItem('seq_library', JSON.stringify(library));
+      localStorage.setItem('seq_blocks', JSON.stringify(additionalBlocks));
+      localStorage.setItem('seq_blockColors', JSON.stringify(blockColors));
+    } catch(e) {}
+  }
+
+  function getBlockColor(index) {
+    return blockColors[index % blockColors.length];
+  }
+
+  function allBlocks() {
+    return [library, ...additionalBlocks];
+  }
+
+  function renderAll() {
+    cubesField.innerHTML = '';
+    const blocks = allBlocks();
+    const fieldWidth = cubesField.clientWidth;
+    const fieldHeight = cubesField.clientHeight;
+    if (fieldWidth <= 0 || fieldHeight <= 0) return;
+
+    const cubeEntries = [];
+    blocks.forEach((block, blockIndex) => {
+      if (block.length === 0) {
+        cubeEntries.push({
+          id: 'placeholder_' + blockIndex,
+          char: '?',
+          text: 'Пусто',
+          blockIndex,
+          symbolIndex: 0,
+          placeholder: true
+        });
+      } else {
+        block.forEach((sym, symIdx) => {
+          cubeEntries.push({
+            ...sym,
+            blockIndex,
+            symbolIndex: symIdx,
+            placeholder: false
+          });
+        });
+      }
+    });
+
+    if (cubeEntries.length === 0) {
+      updateResult();
+      return;
+    }
+
+    let bestSize = 20;
+    const maxSize = Math.min(fieldWidth, fieldHeight);
+    for (let s = maxSize; s >= 20; s--) {
+      const cols = Math.floor(fieldWidth / s);
+      if (cols === 0) continue;
+      const rows = Math.ceil(cubeEntries.length / cols);
+      if (rows * s <= fieldHeight) { bestSize = s; break; }
+    }
+
+    const cubeSize = bestSize;
+    const emojiSize = Math.max(10, cubeSize * 0.5);
+    const textSize = Math.max(6, cubeSize * 0.18);
+
+    cubeEntries.forEach((entry, globalIndex) => {
+      const cube = document.createElement('div');
+      cube.className = 'cube';
+      const color = getBlockColor(entry.blockIndex);
+      cube.style.backgroundColor = color;
+      cube.style.width = cubeSize + 'px';
+      cube.style.height = cubeSize + 'px';
+      cube.style.setProperty('--cube-size', cubeSize + 'px');
+      cube.style.setProperty('--emoji-size', emojiSize + 'px');
+      cube.style.setProperty('--text-size', textSize + 'px');
+
+      cube.innerHTML = `<span class="cube-char">${entry.char}</span><span class="cube-text">${entry.text||''}</span>`;
+      cube.dataset.blockIndex = entry.blockIndex;
+      cube.dataset.symbolIndex = entry.symbolIndex;
+      cube.dataset.placeholder = entry.placeholder;
+      cube.dataset.globalIndex = globalIndex;
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-cube';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (entry.placeholder) return;
+        deleteSymbol(entry.blockIndex, entry.symbolIndex);
+      });
+      cube.appendChild(delBtn);
+
+      cube.addEventListener('pointerdown', onPointerDown);
+      cube.addEventListener('click', (e) => {
+        if (dragState?.moved) return;
+        if (editMode) {
+          if (!entry.placeholder) openEditModal(entry.blockIndex, entry.symbolIndex);
+        } else {
+          setActiveBlock(entry.blockIndex);
+        }
+      });
+
+      cubesField.appendChild(cube);
+    });
+
+    updateResult();
+    updateActiveBlockLabel();
+  }
+
+  function deleteSymbol(blockIndex, symbolIndex) {
+    if (blockIndex === 0) library.splice(symbolIndex, 1);
+    else additionalBlocks[blockIndex - 1].splice(symbolIndex, 1);
+    saveState();
+    renderAll();
+  }
+
+  function openEditModal(blockIndex, symbolIndex) {
+    const sym = (blockIndex === 0) ? library[symbolIndex] : additionalBlocks[blockIndex - 1][symbolIndex];
+    if (!sym) return;
+    $('editCharInput').value = sym.char;
+    $('editTextInput').value = sym.text || '';
+    $('editModalOverlay').classList.remove('hidden');
+    $('editCharInput').focus();
+  }
+
+  function saveEdit() {
+    const ch = $('editCharInput').value.trim();
+    if (!ch) return;
+    const txt = $('editTextInput').value.trim();
+    const { blockIndex, symbolIndex } = editingSymbol;
+    if (blockIndex === 0) {
+      library[symbolIndex].char = ch.substring(0,2);
+      library[symbolIndex].text = txt;
+    } else {
+      additionalBlocks[blockIndex - 1][symbolIndex].char = ch.substring(0,2);
+      additionalBlocks[blockIndex - 1][symbolIndex].text = txt;
+    }
+    saveState();
+    renderAll();
+    $('editModalOverlay').classList.add('hidden');
+  }
+
+  function setActiveBlock(index) {
+    activeBlockIndex = index;
+    updateActiveBlockLabel();
+  }
+
+  function updateActiveBlockLabel() {
+    const names = ['Главный', ...additionalBlocks.map((_, i) => `Блок ${i+1}`)];
+    const color = getBlockColor(activeBlockIndex);
+    $('activeBlockLabel').innerHTML = `<span class="active-indicator" style="background:${color};"></span> ${names[activeBlockIndex] || 'Главный'}`;
+  }
+
+  function updateResult() {
+    let str = library.map(s => s.char).join('');
+    additionalBlocks.forEach(b => str += b.map(s => s.char).join(''));
+    resultString.textContent = str || '(пусто)';
+  }
+
+  // Drag & Drop
+  function onPointerDown(e) {
+    if (dragState) return;
+    if (e.button && e.button !== 0) return;
+    const cube = e.currentTarget;
+    if (e.target.classList.contains('delete-cube')) return;
+
+    e.preventDefault();
+    cube.setPointerCapture(e.pointerId);
+    const rect = cube.getBoundingClientRect();
+    const ghost = cube.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    ghost.style.width = rect.width + 'px';
+    ghost.style.height = rect.height + 'px';
+    ghost.style.left = rect.left + 'px';
+    ghost.style.top = rect.top + 'px';
+    document.body.appendChild(ghost);
+    cube.classList.add('dragging');
+
+    dragState = {
+      sourceCube: cube,
+      ghost,
+      blockIndex: parseInt(cube.dataset.blockIndex),
+      symbolIndex: parseInt(cube.dataset.symbolIndex),
+      placeholder: cube.dataset.placeholder === 'true',
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      pointerId: e.pointerId,
+      moved: false
+    };
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+  }
+
+  function onPointerMove(e) {
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    const dx = e.clientX - (dragState.ghost.getBoundingClientRect().left + dragState.offsetX);
+    const dy = e.clientY - (dragState.ghost.getBoundingClientRect().top + dragState.offsetY);
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.moved = true;
+    dragState.ghost.style.left = (e.clientX - dragState.offsetX) + 'px';
+    dragState.ghost.style.top = (e.clientY - dragState.offsetY) + 'px';
+  }
+
+  function onPointerUp(e) {
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    dragState.ghost.remove();
+    if (dragState.sourceCube) dragState.sourceCube.classList.remove('dragging');
+
+    if (!dragState.moved) { dragState = null; return; }
+
+    const targetEl = document.elementFromPoint(e.clientX, e.clientY);
+    const targetCube = targetEl?.closest('.cube');
+    if (!targetCube || targetCube === dragState.sourceCube) { dragState = null; return; }
+
+    const srcBlock = dragState.blockIndex;
+    const srcIdx = dragState.symbolIndex;
+    const tgtBlock = parseInt(targetCube.dataset.blockIndex);
+    let tgtIdx = parseInt(targetCube.dataset.symbolIndex);
+    const tgtPlaceholder = targetCube.dataset.placeholder === 'true';
+
+    let moved = null;
+    if (srcBlock === 0) {
+      if (dragState.placeholder) { dragState = null; return; }
+      moved = library.splice(srcIdx, 1)[0];
+    } else {
+      if (dragState.placeholder) { dragState = null; return; }
+      moved = additionalBlocks[srcBlock - 1].splice(srcIdx, 1)[0];
+    }
+
+    if (tgtPlaceholder) {
+      if (tgtBlock === 0) library.push(moved);
+      else additionalBlocks[tgtBlock - 1].push(moved);
+    } else {
+      if (tgtBlock === 0) library.splice(tgtIdx, 0, moved);
+      else additionalBlocks[tgtBlock - 1].splice(tgtIdx, 0, moved);
+    }
+
+    saveState();
+    renderAll();
+    dragState = null;
+  }
+
+  // Цвет блока
+  function openColorModal() {
+    const color = getBlockColor(activeBlockIndex);
+    $('colorPicker').value = color;
+    updateColorBlockLabel();
+    buildPresetColors();
+    $('colorModalOverlay').classList.remove('hidden');
+  }
+
+  function updateColorBlockLabel() {
+    const names = ['Главный', ...additionalBlocks.map((_, i) => `Блок ${i+1}`)];
+    const color = getBlockColor(activeBlockIndex);
+    $('colorBlockLabel').innerHTML = `<span class="active-indicator" style="background:${color};"></span> ${names[activeBlockIndex] || 'Главный'}`;
+  }
+
+  function buildPresetColors() {
+    const container = $('presetColors');
+    container.innerHTML = '';
+    presetColorList.forEach(c => {
+      const btn = document.createElement('button');
+      btn.style.backgroundColor = c;
+      btn.addEventListener('click', () => {
+        $('colorPicker').value = c;
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  function applyColor() {
+    const newColor = $('colorPicker').value;
+    blockColors[activeBlockIndex % blockColors.length] = newColor;
+    saveState();
+    renderAll();
+    $('colorModalOverlay').classList.add('hidden');
+  }
+
+  // Инициализация кнопок
+  $('addBlockBtn').addEventListener('click', () => {
+    additionalBlocks.push([]);
+    setActiveBlock(additionalBlocks.length);
+    saveState();
+    renderAll();
+  });
+
+  $('addSymbolBtn').addEventListener('click', () => {
+    $('addModalOverlay').classList.remove('hidden');
+    updateActiveBlockLabel();
+  });
+
+  $('saveAddModalBtn').addEventListener('click', () => {
+    const ch = $('newCharInput').value.trim();
+    if (!ch) return;
+    const txt = $('newTextInput').value.trim();
+    const sym = { id: Date.now().toString(), char: ch.substring(0,2), text: txt };
+    if (activeBlockIndex === 0) library.push(sym);
+    else additionalBlocks[activeBlockIndex - 1].push(sym);
+    $('newCharInput').value = $('newTextInput').value = '';
+    $('addModalOverlay').classList.add('hidden');
+    saveState();
+    renderAll();
+  });
+  $('cancelAddModalBtn').addEventListener('click', () => $('addModalOverlay').classList.add('hidden'));
+
+  // Редактирование
+  $('editModeBtn').addEventListener('click', () => {
+    editMode = !editMode;
+    document.body.classList.toggle('edit-mode', editMode);
+    editModeBtn.style.background = editMode ? '#ff3b30' : '#fff';
+    editModeBtn.style.color = editMode ? '#fff' : '#1d1d1f';
+  });
+
+  let editingSymbol = { blockType: null, blockIndex: null, symbolIndex: null };
+  $('cancelEditModalBtn').addEventListener('click', () => $('editModalOverlay').classList.add('hidden'));
+  $('saveEditModalBtn').addEventListener('click', saveEdit);
+
+  // Цвет
+  $('colorBtn').addEventListener('click', openColorModal);
+  $('cancelColorModalBtn').addEventListener('click', () => $('colorModalOverlay').classList.add('hidden'));
+  $('applyColorBtn').addEventListener('click', applyColor);
+
+  // Остальные кнопки
+  $('clearBtn').addEventListener('click', () => {
+    if (confirm('Очистить всё?')) {
+      library = []; additionalBlocks = []; activeBlockIndex = 0;
+      saveState(); renderAll();
+    }
+  });
+  $('copyBtn').addEventListener('click', () => {
+    const str = resultString.textContent;
+    if (str && str !== '(пусто)') navigator.clipboard?.writeText(str);
+  });
+  $('saveBtn').addEventListener('click', () => { saveState(); alert('Сохранено'); });
+
+  // Импорт/экспорт
+  $('importBtn').addEventListener('click', () => {
+    $('importModalOverlay').classList.remove('hidden');
+    $('importTextarea').focus();
+  });
+  $('cancelImportModalBtn').addEventListener('click', () => $('importModalOverlay').classList.add('hidden'));
+  $('saveImportModalBtn').addEventListener('click', () => {
+    const parsed = parsePhrase($('importTextarea').value);
+    if (parsed.library.length) library.push(...parsed.library);
+    if (parsed.blocks.length) additionalBlocks.push(...parsed.blocks);
+    saveState(); renderAll();
+    $('importModalOverlay').classList.add('hidden');
+    $('importTextarea').value = '';
+    alert('Импортировано');
+  });
+
+  $('exportBtn').addEventListener('click', () => {
+    $('exportFullscreen').classList.remove('hidden');
+    updateExportText();
+  });
+  function updateExportText() {
+    const withWords = document.querySelector('input[name="exportMode"]:checked').value === 'withWords';
+    const lines = [];
+    if (withWords) {
+      lines.push(library.map(s => s.char + ':' + s.text).join(' '));
+      additionalBlocks.forEach(b => lines.push(b.map(s => s.char + ':' + s.text).join(' ')));
+    } else {
+      lines.push(library.map(s => s.char).join(' '));
+      additionalBlocks.forEach(b => lines.push(b.map(s => s.char).join(' ')));
+    }
+    $('exportTextareaFull').value = lines.join('\n');
+  }
+  document.querySelectorAll('input[name="exportMode"]').forEach(r => r.addEventListener('change', updateExportText));
+  $('closeExportBtn').addEventListener('click', () => $('exportFullscreen').classList.add('hidden'));
+  $('copyExportFullBtn').addEventListener('click', () => {
+    const text = $('exportTextareaFull').value;
+    if (text) navigator.clipboard?.writeText(text).then(() => alert('Скопировано'));
+  });
+
+  toggleModeBtn.addEventListener('click', () => {
+    detailedMode = !detailedMode;
+    document.body.classList.toggle('detailed-mode', detailedMode);
+    toggleModeBtn.textContent = detailedMode ? '▣' : '▤';
+    renderAll();
+  });
+
+  // Старт
+  document.body.classList.toggle('detailed-mode', detailedMode);
+  renderAll();
+})();
+</script>
+</body>
+</html>
