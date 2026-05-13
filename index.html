@@ -5,12 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
   <meta name="telegram-webapp-theme-color" content="#f5f5f7">
   <link rel="apple-touch-icon" href="icon.png">
-  <title>Кубики — крупная панель управления</title>
+  <title>👁:DreamSApp</title>
+  <meta name="description" content="Моё приложение для работы со Шри Янтрой, символическими кубиками и управления реальностью через геометрию">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="👁:DreamSApp">
+  <meta property="og:description" content="👁:DreamSApp Моё приложение для работы со Шри Янтрой, символическими кубиками и управления реальностью через геометрию">
+  <meta property="og:image" content="https://alexeyb2.github.io/dreamsApp/preview.jpg">
+  <meta property="og:url" content="https://alexeyb2.github.io/dreamsApp/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="👁:DreamSApp">
+  <meta name="twitter:description" content="Моё приложение для работы со Шри Янтрой, символическими кубиками и управления реальностью через геометрию">
+  <meta name="twitter:image" content="https://alexeyb2.github.io/dreamsApp/preview.jpg">
   <style>
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
     html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#000; }
-    #app { display:flex; flex-direction:column; height:100%; max-width:600px; margin:0 auto; background:#f5f5f7; }
-    /* Верхняя панель — итоговая строка и пара кнопок */
+    #app { display:flex; flex-direction:column; height:100%; max-width:100%; margin:0 auto; background:#f5f5f7; }
+    /* Верхняя панель */
     .top-bar { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#fff; border-bottom:1px solid rgba(0,0,0,0.1); z-index:20; flex-shrink:0; }
     .result-box { flex:1; display:flex; align-items:center; background:#f0f0f5; border-radius:18px; padding:4px 10px; gap:6px; min-width:0; }
     .result-label { font-size:12px; font-weight:700; color:#86868b; text-transform:uppercase; }
@@ -34,7 +44,7 @@
 
     .drag-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:0.9; transform:scale(1.1); box-shadow:0 6px 16px rgba(0,0,0,0.3); background:inherit; display:flex; align-items:center; justify-content:center; font-size:inherit; border:2px solid #fff; border-radius:4px; }
 
-    /* Нижняя панель управления — крупная */
+    /* Нижняя панель */
     .bottom-panel { background:#fff; border-top:1px solid rgba(0,0,0,0.1); padding:6px 10px 8px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
     .bottom-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
     .bottom-btn { flex:1; min-width:0; height:38px; border-radius:19px; border:1px solid rgba(0,0,0,0.1); background:#fff; font-size:13px; font-weight:600; color:#1d1d1f; cursor:pointer; transition:0.2s; touch-action:manipulation; display:flex; align-items:center; justify-content:center; gap:4px; }
@@ -60,7 +70,7 @@
 </head>
 <body>
 <div id="app">
-  <!-- Верхняя панель: итог, копировать, детали, редактирование, цвет -->
+  <!-- Верхняя панель -->
   <header class="top-bar">
     <div class="result-box">
       <span class="result-label">Итог</span>
@@ -76,7 +86,7 @@
 
   <main class="cubes-field" id="cubesField"></main>
 
-  <!-- Нижняя крупная панель -->
+  <!-- Нижняя панель -->
   <div class="bottom-panel">
     <div class="bottom-row">
       <button class="bottom-btn primary" id="addBlockBtn">+ Блок</button>
@@ -104,7 +114,7 @@
     </div>
   </div>
 
-  <!-- Модалки (оставлены без изменений, кроме мелких правок) -->
+  <!-- Модалки -->
   <div id="addModalOverlay" class="modal-overlay hidden">
     <div class="modal">
       <h3>Добавить символ</h3>
@@ -404,7 +414,7 @@
     resultString.textContent = str || '(пусто)';
   }
 
-  // Drag & Drop (аналогично предыдущему)
+  // Drag & Drop
   function onPointerDown(e) {
     if (dragState) return;
     if (e.button && e.button !== 0) return;
