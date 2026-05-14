@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0, orientation=any">
+  <link rel="apple-touch-icon" href="icon.png">
   <title>👁:DreamSApp</title>
   <meta name="description" content="Моё приложение для работы со Шри Янтрой, символическими кубиками и управления реальностью через геометрию">
   <meta property="og:type" content="website">
@@ -14,12 +16,17 @@
   <meta name="twitter:title" content="Символьные кубики — Цвет из телефона">
   <meta name="twitter:description" content="Моё приложение для работы со Шри Янтрой...">
   <meta name="twitter:image" content="https://alexeyb2.github.io/dreamsApp/preview.jpg">
-  <link rel="apple-touch-icon" href="icon.png">
+  
   <style>
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
     html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#000; }
-    #app { display:flex; flex-direction:column; height:100%; max-width:600px; margin:0 auto; background:#f5f5f7; }
-    .top-bar { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; border-bottom:1px solid rgba(0,0,0,0.1); z-index:20; flex-shrink:0; }
+    #app { display:flex; flex-direction:column; height:100%; height:100dvh; max-width:600px; margin:0 auto; background:#f5f5f7; position:relative; }
+    .top-bar { 
+      display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fff; 
+      border-bottom:1px solid rgba(0,0,0,0.1); z-index:20; flex-shrink:0; 
+      cursor:pointer; 
+    }
+    .top-bar:active { opacity:0.8; }
     .result-box { flex:1; display:flex; align-items:center; background:#f0f0f5; border-radius:18px; padding:6px 12px; gap:8px; min-width:0; }
     .result-label { font-size:12px; font-weight:700; color:#86868b; text-transform:uppercase; }
     .result-string { flex:1; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
@@ -40,7 +47,17 @@
 
     .drag-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:0.9; transform:scale(1.1); box-shadow:0 6px 16px rgba(0,0,0,0.3); background:inherit; display:flex; align-items:center; justify-content:center; font-size:inherit; border:2px solid #fff; border-radius:4px; }
 
-    .bottom-panel { background:#fff; border-top:1px solid rgba(0,0,0,0.1); padding:8px 12px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
+    /* Нижняя панель как overlay */
+    .bottom-panel { 
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%); 
+      width:100%; max-width:600px; 
+      background:#fff; border-top:1px solid rgba(0,0,0,0.1); 
+      padding:8px 12px; display:flex; flex-direction:column; gap:8px; 
+      z-index:50; 
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    }
+    .bottom-panel.hidden { transform: translateX(-50%) translateY(100%); }
     .bottom-row { display:flex; gap:8px; align-items:center; }
     .bottom-btn { flex:1; height:44px; border-radius:22px; border:1px solid rgba(0,0,0,0.1); background:#fff; font-size:14px; font-weight:600; color:#1d1d1f; cursor:pointer; transition:0.2s; touch-action:manipulation; display:flex; align-items:center; justify-content:center; gap:4px; }
     .bottom-btn:active { transform:scale(0.96); background:#f0f0f5; }
@@ -66,19 +83,19 @@
 </head>
 <body>
 <div id="app">
-  <!-- Верхняя панель: только итог и копирование -->
-  <header class="top-bar">
+  <!-- Верхняя панель: итог и копирование, клик переключает нижнюю панель -->
+  <header class="top-bar" id="topBar">
     <div class="result-box">
       <span class="result-label">Итог</span>
       <span class="result-string" id="resultString"></span>
     </div>
-    <button class="icon-btn" id="copyBtn" title="Копировать">📋</button>
+    <button class="icon-btn" id="copyBtn" title="Копировать" onclick="event.stopPropagation()">📋</button>
   </header>
 
   <main class="cubes-field" id="cubesField"></main>
 
-  <!-- Нижняя панель -->
-  <div class="bottom-panel">
+  <!-- Нижняя панель (overlay) -->
+  <div class="bottom-panel" id="bottomPanel">
     <!-- Строка 1: + Блок, + Символ -->
     <div class="bottom-row">
       <button class="bottom-btn primary" id="addBlockBtn">+ Блок</button>
@@ -243,7 +260,7 @@
   let detailedMode = false;
   let editMode = false;
   let activeBlockIndex = 0;
-  let maxCols = 5; // значение по умолчанию — 5
+  let maxCols = 5;
   let dragState = null;
 
   const $ = id => document.getElementById(id);
@@ -253,6 +270,20 @@
   const editModeBtn = $('editModeBtn');
   const colorBtn = $('colorBtn');
   const maxColsSelect = $('maxColsSelect');
+  const bottomPanel = $('bottomPanel');
+  const topBar = $('topBar');
+
+  // Переключение нижней панели по клику на верхнюю панель
+  topBar.addEventListener('click', (e) => {
+    // Игнорируем клик по кнопке копирования, она сама обрабатывается с stopPropagation
+    bottomPanel.classList.toggle('hidden');
+  });
+
+  // Кнопка копирования отдельно
+  $('copyBtn').addEventListener('click', () => {
+    const str = resultString.textContent;
+    if (str && str !== '(пусто)') navigator.clipboard?.writeText(str);
+  });
 
   const presetColorList = [
     '#e74c3c', '#f39c12', '#f1c40f', '#2ecc71', '#1abc9c',
@@ -599,7 +630,7 @@
   $('applyColorBtn').addEventListener('click', applyColor);
 
   // Максимум в строке
-  maxColsSelect.value = maxCols.toString();
+  maxColsSelect.value = maxCols;
   maxColsSelect.addEventListener('change', () => {
     maxCols = parseInt(maxColsSelect.value, 10);
     renderAll();
@@ -611,12 +642,6 @@
       library = []; additionalBlocks = []; activeBlockIndex = 0;
       saveState(); renderAll();
     }
-  });
-
-  // Копировать
-  $('copyBtn').addEventListener('click', () => {
-    const str = resultString.textContent;
-    if (str && str !== '(пусто)') navigator.clipboard?.writeText(str);
   });
 
   // Импорт/экспорт
@@ -660,8 +685,15 @@
 
   // Старт
   document.body.classList.toggle('detailed-mode', detailedMode);
-  maxColsSelect.value = maxCols;
   renderAll();
+
+  // Пересчёт при повороте экрана
+  window.addEventListener('orientationchange', () => {
+    setTimeout(renderAll, 300);
+  });
+  window.addEventListener('resize', () => {
+    renderAll();
+  });
 })();
 </script>
 </body>
