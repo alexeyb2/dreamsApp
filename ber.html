@@ -1,172 +1,380 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🌀 Две спирали Бернулли</title>
-<style>
-  body { margin:0; padding:15px; background:#05070f; color:#0ff; font-family:sans-serif; text-align:center; touch-action:none; }
-  canvas { border:2px solid #0ff; border-radius:16px; background:#000; max-width:100%; touch-action:none; display:block; margin:10px auto; }
-  .controls { max-width:600px; margin:15px auto; display:flex; flex-wrap:nowrap; gap:10px; justify-content:center; overflow-x:auto; }
-  .card { background:rgba(10,25,45,0.95); padding:12px; border-radius:14px; border:1px solid #0ff; flex: 1 1 0; min-width:220px; }
-  .label { color:#8ff; margin:6px 0 2px; font-size:14px; }
-  .value { color:#0ff; font-weight:bold; }
-  button { padding:10px 16px; margin:5px 3px; background:#112; color:#0ff; border:1px solid #0ff; border-radius:8px; font-size:14px; cursor:pointer; }
-  button.active { background:#0ff; color:#000; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🌀 Спирали Бернулли — уровни тела</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #05070f;
+      color: #0ff;
+      font-family: system-ui, -apple-system, sans-serif;
+      text-align: center;
+      padding: 12px;
+      touch-action: pan-x pan-y;
+    }
+    h2 {
+      font-weight: 400;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      border: 2px solid #0ff;
+      border-radius: 20px;
+      background: #000;
+      max-width: 100%;
+      height: auto;
+      touch-action: none;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 12px auto 0;
+      max-width: 650px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+    .card {
+      background: rgba(10, 25, 45, 0.95);
+      border-radius: 16px;
+      padding: 10px 12px;
+      border: 1px solid;
+      flex: 1 1 0;
+      min-width: 220px;
+    }
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .param {
+      margin: 8px 0 2px;
+      font-size: 0.9rem;
+      color: #8ff;
+      display: flex;
+      justify-content: space-between;
+    }
+    .param span {
+      color: #0ff;
+      font-weight: bold;
+    }
+    input[type="range"] {
+      width: 100%;
+      margin: 0 0 6px;
+      background: #0a1929;
+      height: 6px;
+      border-radius: 3px;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #0ff;
+      border-radius: 50%;
+      border: 2px solid #000;
+      cursor: pointer;
+    }
+    button {
+      padding: 8px 14px;
+      margin-top: 6px;
+      background: #112;
+      color: #0ff;
+      border: 1px solid #0ff;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:active {
+      background: #0ff;
+      color: #000;
+    }
+    @media (max-width: 500px) {
+      .controls {
+        flex-wrap: wrap;
+      }
+      .card {
+        min-width: 180px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <h2>🌀 Две спирали Бернулли</h2>
+  <canvas id="canvas"></canvas>
 
-<h1>🌀 Две спирали Бернулли</h1>
-<canvas id="c"></canvas>
+  <div class="controls">
+    <!-- Красная спираль – Копчик -->
+    <div class="card" style="border-color:#ff3366;">
+      <h3 style="color:#ff3366;">🔴 Копчик</h3>
+      <div class="param">A <span id="a1_val">11.0</span></div>
+      <input type="range" id="a1" min="3" max="28" value="11" step="0.1">
+      <div class="param">K <span id="k1_val">0.105</span></div>
+      <input type="range" id="k1" min="0.02" max="0.25" value="0.105" step="0.001">
+      <div class="param">Angle (°) <span id="angle1_val">270</span></div>
+      <input type="range" id="angle1" min="0" max="360" value="270" step="1">
+      <button id="dirBtn1" onclick="toggleDir(1)">По часовой</button>
+    </div>
 
-<div class="controls">
-  <!-- Красная (Копчик) -->
-  <div class="card" style="border-color:#ff3366;">
-    <div style="color:#ff3366; font-size:18px; font-weight:bold;">🔴 Копчик</div>
-    <div class="label">Сила старта a <span class="value" id="a1_val">11.0</span></div>
-    <input type="range" id="a1" min="3" max="28" value="11" step="0.1">
-    <div class="label">Угол α (°) <span class="value" id="angle1_val">84</span></div>
-    <input type="range" id="angle1" min="1" max="89" value="84" step="0.5">
-    <button onclick="toggleDir(1)" id="dir1">По часовой</button>
+    <!-- Синяя спираль – Сердце -->
+    <div class="card" style="border-color:#3388ff;">
+      <h3 style="color:#3388ff;">🔵 Сердце</h3>
+      <div class="param">A <span id="a2_val">11.0</span></div>
+      <input type="range" id="a2" min="3" max="28" value="11" step="0.1">
+      <div class="param">K <span id="k2_val">0.105</span></div>
+      <input type="range" id="k2" min="0.02" max="0.25" value="0.105" step="0.001">
+      <div class="param">Angle (°) <span id="angle2_val">0</span></div>
+      <input type="range" id="angle2" min="0" max="360" value="0" step="1">
+      <button id="dirBtn2" onclick="toggleDir(2)">По часовой</button>
+    </div>
   </div>
 
-  <!-- Синяя (Сердце / Центр) -->
-  <div class="card" style="border-color:#3388ff;">
-    <div style="color:#3388ff; font-size:18px; font-weight:bold;">🔵 Центр</div>
-    <div class="label">Сила старта a <span class="value" id="a2_val">11.0</span></div>
-    <input type="range" id="a2" min="3" max="28" value="11" step="0.1">
-    <div class="label">Угол α (°) <span class="value" id="angle2_val">84</span></div>
-    <input type="range" id="angle2" min="1" max="89" value="84" step="0.5">
-    <button onclick="toggleDir(2)" id="dir2">По часовой</button>
-  </div>
-</div>
+  <script>
+    (function() {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
 
-<script>
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
+      // Центры (перетаскиваются)
+      let center1 = { x: 200, y: 400 }; // красный (копчик)
+      let center2 = { x: 200, y: 150 }; // синий (сердце)
+      let dragging = null; // 1 или 2
 
-// Центры спиралей (управляются только перетаскиванием)
-let centerRed = {x:0, y:0};
-let centerBlue = {x:0, y:0};
-let dragging = null;
-let dir1 = 1, dir2 = 1;
+      // Направления вращения
+      let dir1 = 1;  // 1 - по часовой, -1 - против
+      let dir2 = 1;
 
-function resize() {
-  const size = Math.min(window.innerWidth - 30, 750);
-  canvas.width = size;
-  canvas.height = size;
-  // Стартовые позиции центров (можно потом перетащить)
-  centerRed = {x: size/2, y: size * 0.72};
-  centerBlue = {x: size/2, y: size * 0.29};
-}
+      // DOM элементы
+      const a1Input = document.getElementById('a1');
+      const k1Input = document.getElementById('k1');
+      const angle1Input = document.getElementById('angle1');
+      const a1Val = document.getElementById('a1_val');
+      const k1Val = document.getElementById('k1_val');
+      const angle1Val = document.getElementById('angle1_val');
 
-function draw() {
-  // Параметры красной
-  const a1 = parseFloat(document.getElementById('a1').value);
-  const angle1 = parseFloat(document.getElementById('angle1').value);
-  const k1 = 1 / Math.tan(angle1 * Math.PI / 180);
-  // Параметры синей
-  const a2 = parseFloat(document.getElementById('a2').value);
-  const angle2 = parseFloat(document.getElementById('angle2').value);
-  const k2 = 1 / Math.tan(angle2 * Math.PI / 180);
+      const a2Input = document.getElementById('a2');
+      const k2Input = document.getElementById('k2');
+      const angle2Input = document.getElementById('angle2');
+      const a2Val = document.getElementById('a2_val');
+      const k2Val = document.getElementById('k2_val');
+      const angle2Val = document.getElementById('angle2_val');
 
-  document.getElementById('a1_val').textContent = a1.toFixed(1);
-  document.getElementById('angle1_val').textContent = angle1.toFixed(1);
-  document.getElementById('a2_val').textContent = a2.toFixed(1);
-  document.getElementById('angle2_val').textContent = angle2.toFixed(1);
+      const dirBtn1 = document.getElementById('dirBtn1');
+      const dirBtn2 = document.getElementById('dirBtn2');
 
-  ctx.fillStyle = '#05070f';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.shadowBlur = 30;
+      // Горизонтальные уровни (Y) – снизу вверх: ладони, локти, рёбра
+      const horizLevels = [
+        { name: 'Ладони', yPercent: 0.18, color: 'rgba(255,255,255,0.5)' },
+        { name: 'Локти',  yPercent: 0.32, color: 'rgba(255,255,255,0.5)' },
+        { name: 'Рёбра',  yPercent: 0.48, color: 'rgba(255,255,255,0.5)' }
+      ];
 
-  // Точки центров
-  ctx.fillStyle = '#ff3366';
-  ctx.shadowColor = '#ff3366';
-  ctx.beginPath();
-  ctx.arc(centerRed.x, centerRed.y, 18, 0, Math.PI*2);
-  ctx.fill();
+      // Вертикальные уровни (X) – от центра влево и вправо
+      // Проценты от ширины холста, где 50% – абсолютный центр
+      const vertLevels = [
+        { name: 'Центр',  xPercent: 0,   color: 'rgba(255,255,255,0.6)' },
+        { name: 'Рёбра',  xPercent: 10,  color: 'rgba(255,200,200,0.4)' },
+        { name: 'Локти',  xPercent: 20,  color: 'rgba(200,200,255,0.4)' },
+        { name: 'Ладони', xPercent: 30,  color: 'rgba(200,255,200,0.4)' },
+        { name: 'Дальше', xPercent: 42,  color: 'rgba(255,255,200,0.4)' }
+      ];
 
-  ctx.fillStyle = '#3388ff';
-  ctx.shadowColor = '#3388ff';
-  ctx.beginPath();
-  ctx.arc(centerBlue.x, centerBlue.y, 18, 0, Math.PI*2);
-  ctx.fill();
+      function resizeCanvas() {
+        const size = Math.min(window.innerWidth - 24, 700);
+        canvas.width = size;
+        canvas.height = size;
 
-  // Красная спираль (стартует из центра!)
-  ctx.strokeStyle = '#ff3366';
-  ctx.lineWidth = 5;
-  ctx.shadowBlur = 35;
-  ctx.shadowColor = '#ff3366';
-  ctx.beginPath();
-  for(let i = 0; i < 340; i++) {
-    const t = i * 0.03;
-    // r = a * (e^(k*t) - 1)  ->  при t=0 r=0
-    const r = a1 * (Math.exp(k1 * t) - 1);
-    const x = centerRed.x + r * Math.sin(t * dir1);
-    const y = centerRed.y - r * Math.cos(t * dir1);
-    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-  }
-  ctx.stroke();
+        if (!dragging && center1.x === 200 && center1.y === 400) {
+          center1 = { x: size * 0.5, y: size * 0.72 };
+          center2 = { x: size * 0.5, y: size * 0.29 };
+        } else {
+          const oldSize = (canvas.width === size) ? size : canvas.width;
+          center1.x = (center1.x / oldSize) * size;
+          center1.y = (center1.y / oldSize) * size;
+          center2.x = (center2.x / oldSize) * size;
+          center2.y = (center2.y / oldSize) * size;
+        }
+        draw();
+      }
 
-  // Синяя спираль (стартует из центра!)
-  ctx.strokeStyle = '#3388ff';
-  ctx.shadowColor = '#3388ff';
-  ctx.beginPath();
-  for(let i = 0; i < 340; i++) {
-    const t = i * 0.03;
-    const r = a2 * (Math.exp(k2 * t) - 1);
-    const x = centerBlue.x + r * Math.cos(t * dir2);
-    const y = centerBlue.y + r * Math.sin(t * dir2);
-    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-  }
-  ctx.stroke();
-}
+      function drawGrid() {
+        ctx.save();
+        ctx.font = '11px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 1.5;
 
-function toggleDir(n) {
-  if (n === 1) {
-    dir1 *= -1;
-    document.getElementById('dir1').textContent = dir1 === 1 ? "По часовой" : "Против часовой";
-  } else {
-    dir2 *= -1;
-    document.getElementById('dir2').textContent = dir2 === 1 ? "По часовой" : "Против часовой";
-  }
-  draw();
-}
+        // Горизонтальные линии
+        for (let level of horizLevels) {
+          const y = canvas.height * level.yPercent;
+          ctx.beginPath();
+          ctx.moveTo(10, y);
+          ctx.lineTo(canvas.width - 10, y);
+          ctx.strokeStyle = level.color;
+          ctx.stroke();
 
-// Перетаскивание центров
-canvas.addEventListener('touchstart', e => {
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  const tx = touch.clientX - rect.left;
-  const ty = touch.clientY - rect.top;
+          ctx.fillStyle = level.color.replace(/[\d\.]+\)$/, '0.9)');
+          ctx.shadowColor = '#000';
+          ctx.shadowBlur = 4;
+          ctx.fillText(level.name, canvas.width - 15, y - 5);
+        }
 
-  const distRed = Math.hypot(tx - centerRed.x, ty - centerRed.y);
-  const distBlue = Math.hypot(tx - centerBlue.x, ty - centerBlue.y);
+        // Вертикальные линии
+        const centerX = canvas.width / 2;
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 4;
+        ctx.lineWidth = 1.2;
 
-  if (distRed < 60) dragging = 1;
-  else if (distBlue < 60) dragging = 2;
-});
+        for (let level of vertLevels) {
+          const dx = (level.xPercent / 100) * canvas.width;
+          // Правая линия
+          const rightX = centerX + dx;
+          ctx.beginPath();
+          ctx.moveTo(rightX, 5);
+          ctx.lineTo(rightX, canvas.height - 5);
+          ctx.strokeStyle = level.color;
+          ctx.stroke();
 
-canvas.addEventListener('touchmove', e => {
-  if (!dragging) return;
-  const touch = e.touches[0];
-  const rect = canvas.getBoundingClientRect();
-  const tx = touch.clientX - rect.left;
-  const ty = touch.clientY - rect.top;
+          // Левая линия
+          const leftX = centerX - dx;
+          ctx.beginPath();
+          ctx.moveTo(leftX, 5);
+          ctx.lineTo(leftX, canvas.height - 5);
+          ctx.stroke();
 
-  if (dragging === 1) centerRed = {x: tx, y: ty};
-  if (dragging === 2) centerBlue = {x: tx, y: ty};
-  draw();
-});
+          // Подпись (только справа, наверху)
+          if (level.name !== 'Центр') {
+            ctx.fillText(level.name, rightX + 4, 20);
+          } else {
+            // Подпись для центральной линии сверху
+            ctx.textAlign = 'center';
+            ctx.fillText(level.name, centerX, 20);
+            ctx.textAlign = 'left';
+          }
+        }
 
-canvas.addEventListener('touchend', () => dragging = null);
+        ctx.restore();
+      }
 
-document.querySelectorAll('input').forEach(sl => sl.addEventListener('input', draw));
+      function drawSpiral(cx, cy, A, K, angleDeg, dir, color) {
+        const angleRad = angleDeg * Math.PI / 180;
+        const steps = 340;
+        const step = 0.03;
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const phi = i * step;
+          const r = A * Math.exp(K * phi);
+          const theta = dir * phi + angleRad;
+          const x = cx + r * Math.cos(theta);
+          const y = cy + r * Math.sin(theta);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 5;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 30;
+        ctx.stroke();
+      }
 
-resize();
-draw();
-window.addEventListener('resize', () => { resize(); draw(); });
-</script>
+      function draw() {
+        // Обновление подписей
+        a1Val.textContent = parseFloat(a1Input.value).toFixed(1);
+        k1Val.textContent = parseFloat(k1Input.value).toFixed(3);
+        angle1Val.textContent = angle1Input.value;
+        a2Val.textContent = parseFloat(a2Input.value).toFixed(1);
+        k2Val.textContent = parseFloat(k2Input.value).toFixed(3);
+        angle2Val.textContent = angle2Input.value;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Сетка (уровни)
+        drawGrid();
+
+        // Центры (маленькие)
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ff3366';
+        ctx.fillStyle = '#ff3366';
+        ctx.beginPath();
+        ctx.arc(center1.x, center1.y, 8, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.shadowColor = '#3388ff';
+        ctx.fillStyle = '#3388ff';
+        ctx.beginPath();
+        ctx.arc(center2.x, center2.y, 8, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Спирали
+        drawSpiral(center1.x, center1.y, parseFloat(a1Input.value), parseFloat(k1Input.value), parseFloat(angle1Input.value), dir1, '#ff3366');
+        drawSpiral(center2.x, center2.y, parseFloat(a2Input.value), parseFloat(k2Input.value), parseFloat(angle2Input.value), dir2, '#3388ff');
+
+        ctx.shadowBlur = 0;
+      }
+
+      window.toggleDir = function(n) {
+        if (n === 1) {
+          dir1 *= -1;
+          dirBtn1.textContent = (dir1 === 1) ? 'По часовой' : 'Против часовой';
+        } else {
+          dir2 *= -1;
+          dirBtn2.textContent = (dir2 === 1) ? 'По часовой' : 'Против часовой';
+        }
+        draw();
+      };
+
+      // Перетаскивание центров
+      canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const tx = touch.clientX - rect.left;
+        const ty = touch.clientY - rect.top;
+
+        const dist1 = Math.hypot(tx - center1.x, ty - center1.y);
+        const dist2 = Math.hypot(tx - center2.x, ty - center2.y);
+
+        if (dist1 < 40) dragging = 1;  // радиус захвата уменьшен
+        else if (dist2 < 40) dragging = 2;
+      }, {passive: false});
+
+      canvas.addEventListener('touchmove', function(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        const tx = touch.clientX - rect.left;
+        const ty = touch.clientY - rect.top;
+
+        if (dragging === 1) {
+          center1.x = tx;
+          center1.y = ty;
+        } else if (dragging === 2) {
+          center2.x = tx;
+          center2.y = ty;
+        }
+        draw();
+      }, {passive: false});
+
+      canvas.addEventListener('touchend', function(e) {
+        dragging = null;
+      });
+
+      [a1Input, k1Input, angle1Input, a2Input, k2Input, angle2Input].forEach(input => {
+        input.addEventListener('input', draw);
+      });
+
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+    })();
+  </script>
 </body>
 </html>
