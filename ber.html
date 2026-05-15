@@ -7,15 +7,12 @@
 <style>
   body { margin:0; padding:15px; background:#05070f; color:#0ff; font-family:sans-serif; text-align:center; touch-action:none; }
   canvas { border:2px solid #0ff; border-radius:16px; background:#000; max-width:100%; touch-action:none; display:block; margin:10px auto; }
-  .controls { max-width:600px; margin:15px auto; display:flex; flex-wrap:nowrap; gap:10px; justify-content:center; }
+  .controls { max-width:600px; margin:15px auto; display:flex; flex-wrap:nowrap; gap:10px; justify-content:center; overflow-x:auto; }
   .card { background:rgba(10,25,45,0.95); padding:12px; border-radius:14px; border:1px solid #0ff; flex: 1 1 0; min-width:220px; }
   .label { color:#8ff; margin:6px 0 2px; font-size:14px; }
   .value { color:#0ff; font-weight:bold; }
   button { padding:10px 16px; margin:5px 3px; background:#112; color:#0ff; border:1px solid #0ff; border-radius:8px; font-size:14px; cursor:pointer; }
   button.active { background:#0ff; color:#000; }
-  @media (max-width: 520px) {
-    .controls { flex-wrap:wrap; }
-  }
 </style>
 </head>
 <body>
@@ -24,7 +21,7 @@
 <canvas id="c"></canvas>
 
 <div class="controls">
-  <!-- Красная спираль -->
+  <!-- Красная (Копчик) -->
   <div class="card" style="border-color:#ff3366;">
     <div style="color:#ff3366; font-size:18px; font-weight:bold;">🔴 Копчик</div>
     <div class="label">Сила старта a <span class="value" id="a1_val">11.0</span></div>
@@ -34,9 +31,9 @@
     <button onclick="toggleDir(1)" id="dir1">По часовой</button>
   </div>
 
-  <!-- Синяя спираль -->
+  <!-- Синяя (Сердце / Центр) -->
   <div class="card" style="border-color:#3388ff;">
-    <div style="color:#3388ff; font-size:18px; font-weight:bold;">🔵 Сердце</div>
+    <div style="color:#3388ff; font-size:18px; font-weight:bold;">🔵 Центр</div>
     <div class="label">Сила старта a <span class="value" id="a2_val">11.0</span></div>
     <input type="range" id="a2" min="3" max="28" value="11" step="0.1">
     <div class="label">Угол α (°) <span class="value" id="angle2_val">84</span></div>
@@ -83,7 +80,7 @@ function draw() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.shadowBlur = 30;
 
-  // Центры
+  // Точки центров
   ctx.fillStyle = '#ff3366';
   ctx.shadowColor = '#ff3366';
   ctx.beginPath();
@@ -96,7 +93,7 @@ function draw() {
   ctx.arc(centerBlue.x, centerBlue.y, 18, 0, Math.PI*2);
   ctx.fill();
 
-  // Красная спираль
+  // Красная спираль (стартует из центра!)
   ctx.strokeStyle = '#ff3366';
   ctx.lineWidth = 5;
   ctx.shadowBlur = 35;
@@ -104,20 +101,21 @@ function draw() {
   ctx.beginPath();
   for(let i = 0; i < 340; i++) {
     const t = i * 0.03;
-    const r = a1 * Math.pow(Math.E, k1 * t);
+    // r = a * (e^(k*t) - 1)  ->  при t=0 r=0
+    const r = a1 * (Math.exp(k1 * t) - 1);
     const x = centerRed.x + r * Math.sin(t * dir1);
-    const y = centerRed.y - r * Math.cos(t * dir1) - t*3.2;
+    const y = centerRed.y - r * Math.cos(t * dir1);
     i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
   }
   ctx.stroke();
 
-  // Синяя спираль
+  // Синяя спираль (стартует из центра!)
   ctx.strokeStyle = '#3388ff';
   ctx.shadowColor = '#3388ff';
   ctx.beginPath();
   for(let i = 0; i < 340; i++) {
     const t = i * 0.03;
-    const r = a2 * Math.pow(Math.E, k2 * t);
+    const r = a2 * (Math.exp(k2 * t) - 1);
     const x = centerBlue.x + r * Math.cos(t * dir2);
     const y = centerBlue.y + r * Math.sin(t * dir2);
     i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
