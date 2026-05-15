@@ -19,14 +19,14 @@
       align-items: center;
       justify-content: flex-start;
       min-height: 100vh;
-      padding: 8px;
+      padding: 6px;
       touch-action: pan-x pan-y;
     }
     h2 {
       font-weight: 400;
       letter-spacing: 2px;
-      margin: 4px 0 8px;
-      font-size: 1.3rem;
+      margin: 2px 0 6px;
+      font-size: 1.2rem;
     }
     canvas {
       display: block;
@@ -37,40 +37,40 @@
       max-width: 700px;
       aspect-ratio: 1 / 1;
       touch-action: none;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .controls {
       display: flex;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
       max-width: 700px;
     }
     .control-block {
       background: rgba(10, 25, 45, 0.95);
-      border-radius: 16px;
-      padding: 8px 10px;
+      border-radius: 14px;
+      padding: 6px 8px;
       border: 1px solid;
       flex: 1 1 0;
-      min-width: 150px;
+      min-width: 140px;
       display: flex;
       flex-direction: column;
       align-items: stretch;
     }
     .control-block h3 {
       text-align: center;
-      font-size: 1rem;
-      margin-bottom: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
       font-weight: 600;
     }
     .control-block button {
-      padding: 6px 8px;
-      margin-bottom: 8px;
+      padding: 4px 6px;
+      margin-bottom: 6px;
       background: #112;
       color: #0ff;
       border: 1px solid #0ff;
-      border-radius: 8px;
-      font-size: 0.8rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
       cursor: pointer;
       transition: 0.2s;
     }
@@ -81,9 +81,9 @@
     .param {
       display: flex;
       justify-content: space-between;
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       color: #8ff;
-      margin: 4px 0 1px;
+      margin: 3px 0 1px;
     }
     .param span {
       color: #0ff;
@@ -91,7 +91,7 @@
     }
     input[type="range"] {
       width: 100%;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       background: #0a1929;
       height: 4px;
       border-radius: 2px;
@@ -100,8 +100,8 @@
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       background: #0ff;
       border-radius: 50%;
       border: 2px solid #000;
@@ -109,11 +109,17 @@
     }
     @media (max-width: 500px) {
       .control-block {
-        min-width: 130px;
-        padding: 6px 8px;
+        min-width: 120px;
+        padding: 4px 6px;
       }
       .param {
-        font-size: 0.7rem;
+        font-size: 0.6rem;
+      }
+      .control-block h3 {
+        font-size: 0.8rem;
+      }
+      .control-block button {
+        font-size: 0.65rem;
       }
     }
   </style>
@@ -131,6 +137,8 @@
       <input type="range" id="a1" min="5" max="40" value="18" step="0.5">
       <div class="param">K <span id="k1_val">0.105</span></div>
       <input type="range" id="k1" min="0.03" max="0.2" value="0.105" step="0.001">
+      <div class="param">Длина <span id="len1_val">20</span></div>
+      <input type="range" id="len1" min="5" max="40" value="20" step="0.5">
       <div class="param">Angle (°) <span id="angle1_val">270</span></div>
       <input type="range" id="angle1" min="0" max="360" value="270" step="1">
     </div>
@@ -143,6 +151,8 @@
       <input type="range" id="a2" min="5" max="40" value="18" step="0.5">
       <div class="param">K <span id="k2_val">0.105</span></div>
       <input type="range" id="k2" min="0.03" max="0.2" value="0.105" step="0.001">
+      <div class="param">Длина <span id="len2_val">20</span></div>
+      <input type="range" id="len2" min="5" max="40" value="20" step="0.5">
       <div class="param">Angle (°) <span id="angle2_val">0</span></div>
       <input type="range" id="angle2" min="0" max="360" value="0" step="1">
     </div>
@@ -165,16 +175,20 @@
       // Привязки к DOM
       const a1Input = document.getElementById('a1');
       const k1Input = document.getElementById('k1');
+      const len1Input = document.getElementById('len1');
       const angle1Input = document.getElementById('angle1');
       const a1Val = document.getElementById('a1_val');
       const k1Val = document.getElementById('k1_val');
+      const len1Val = document.getElementById('len1_val');
       const angle1Val = document.getElementById('angle1_val');
 
       const a2Input = document.getElementById('a2');
       const k2Input = document.getElementById('k2');
+      const len2Input = document.getElementById('len2');
       const angle2Input = document.getElementById('angle2');
       const a2Val = document.getElementById('a2_val');
       const k2Val = document.getElementById('k2_val');
+      const len2Val = document.getElementById('len2_val');
       const angle2Val = document.getElementById('angle2_val');
 
       const dirBtn1 = document.getElementById('dirBtn1');
@@ -186,16 +200,14 @@
 
       function resizeCanvas() {
         const containerWidth = canvas.parentElement.clientWidth;
-        const size = Math.min(containerWidth - 16, 700);
+        const size = Math.min(containerWidth - 12, 700);
         canvas.width = size;
         canvas.height = size;
 
-        // Если центры не заданы – ставим по умолчанию
         if (!dragging && center1.x === 0 && center1.y === 0) {
           center1 = { x: size * 0.5, y: size * INIT_RED_Y };
           center2 = { x: size * 0.5, y: size * INIT_BLUE_Y };
         } else {
-          // При ресайзе сохраняем относительные координаты
           const oldSize = canvas.width === size ? size : canvas.width;
           center1.x = (center1.x / oldSize) * size;
           center1.y = (center1.y / oldSize) * size;
@@ -205,14 +217,15 @@
         draw();
       }
 
-      // Рисование одной спирали: формула r = A * e^(K * phi)
-      function drawSpiral(cx, cy, A, K, angleDeg, dir, color) {
+      // Рисование спирали с регулируемой длиной (maxPhi)
+      function drawSpiral(cx, cy, A, K, maxPhi, angleDeg, dir, color) {
         const angleRad = angleDeg * Math.PI / 180;
-        const steps = 500;          // больше шагов – плавнее и дальше раскрутка
-        const step = 0.04;          // phi_max = 20
+        const step = 0.03;          // фиксированный шаг для плавности
+        const steps = Math.floor(maxPhi / step);
         ctx.beginPath();
         for (let i = 0; i <= steps; i++) {
           const phi = i * step;
+          if (phi > maxPhi) break;
           const r = A * Math.exp(K * phi);
           const theta = dir * phi + angleRad;
           const x = cx + r * Math.cos(theta);
@@ -228,12 +241,14 @@
       }
 
       function draw() {
-        // Обновляем подписи значений
+        // Обновление подписей
         a1Val.textContent = parseFloat(a1Input.value).toFixed(1);
         k1Val.textContent = parseFloat(k1Input.value).toFixed(3);
+        len1Val.textContent = parseFloat(len1Input.value).toFixed(1);
         angle1Val.textContent = angle1Input.value;
         a2Val.textContent = parseFloat(a2Input.value).toFixed(1);
         k2Val.textContent = parseFloat(k2Input.value).toFixed(3);
+        len2Val.textContent = parseFloat(len2Input.value).toFixed(1);
         angle2Val.textContent = angle2Input.value;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -252,16 +267,19 @@
         ctx.arc(center2.x, center2.y, 16, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Спирали
+        // Красная спираль (вверх)
         drawSpiral(center1.x, center1.y,
           parseFloat(a1Input.value),
           parseFloat(k1Input.value),
+          parseFloat(len1Input.value),
           parseFloat(angle1Input.value),
           dir1, '#ff3366');
 
+        // Синяя спираль (горизонтально)
         drawSpiral(center2.x, center2.y,
           parseFloat(a2Input.value),
           parseFloat(k2Input.value),
+          parseFloat(len2Input.value),
           parseFloat(angle2Input.value),
           dir2, '#3388ff');
 
@@ -316,11 +334,11 @@
       canvas.addEventListener('touchend', () => { dragging = null; });
 
       // Обновление при движении ползунков
-      [a1Input, k1Input, angle1Input, a2Input, k2Input, angle2Input].forEach(inp => {
-        inp.addEventListener('input', draw);
-      });
+      [
+        a1Input, k1Input, len1Input, angle1Input,
+        a2Input, k2Input, len2Input, angle2Input
+      ].forEach(inp => inp.addEventListener('input', draw));
 
-      // Старт
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
     })();
