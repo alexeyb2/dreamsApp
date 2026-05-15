@@ -15,7 +15,6 @@
       background: #05070f;
       color: #0ff;
       font-family: system-ui, -apple-system, sans-serif;
-      touch-action: pan-x pan-y;
       overflow: hidden;
     }
     body {
@@ -38,7 +37,7 @@
       border: 2px solid #0ff;
       border-radius: 20px;
       background: #000;
-      touch-action: none;  /* важно для перетаскивания */
+      touch-action: none;
       margin-bottom: 8px;
       min-height: 0;
     }
@@ -127,7 +126,7 @@
       <div class="param">K <span id="k1_val">0.120</span></div>
       <input type="range" id="k1" min="0.01" max="0.30" value="0.120" step="0.001">
       <div class="param">Длина <span id="len1_val">30</span></div>
-      <input type="range" id="len1" min="5" max="120" value="30" step="1">
+      <input type="range" id="len1" min="5" max="120" value="30" step="0.5">
       <div class="param">Angle (°) <span id="angle1_val">270</span></div>
       <input type="range" id="angle1" min="0" max="360" value="270" step="1">
     </div>
@@ -141,7 +140,7 @@
       <div class="param">K <span id="k2_val">0.120</span></div>
       <input type="range" id="k2" min="0.01" max="0.30" value="0.120" step="0.001">
       <div class="param">Длина <span id="len2_val">30</span></div>
-      <input type="range" id="len2" min="5" max="120" value="30" step="1">
+      <input type="range" id="len2" min="5" max="120" value="30" step="0.5">
       <div class="param">Angle (°) <span id="angle2_val">0</span></div>
       <input type="range" id="angle2" min="0" max="360" value="0" step="1">
     </div>
@@ -152,12 +151,17 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Центры спиралей (перетаскиваются)
+      // Абсолютные координаты центров (в пикселях холста)
       let centerRed = { x: 0, y: 0 };
       let centerBlue = { x: 0, y: 0 };
+
+      // Относительные координаты (0..1) для сохранения и восстановления
+      let redRelX = 0.5, redRelY = 0.72;
+      let blueRelX = 0.5, blueRelY = 0.29;
+
       let dragging = null; // 'red' или 'blue'
 
-      // Направления вращения (1 — по часовой, -1 — против)
+      // Направления вращения
       let dirRed = 1;
       let dirBlue = 1;
 
@@ -183,27 +187,30 @@
       const dirBtn1 = document.getElementById('dirBtn1');
       const dirBtn2 = document.getElementById('dirBtn2');
 
-      // Ключи для localStorage
       const STORAGE_KEY_RED = 'spiral_red_params';
       const STORAGE_KEY_BLUE = 'spiral_blue_params';
 
       // Значения по умолчанию
-      const defaultParamsRed = { a: 15, k: 0.120, len: 30, angle: 270, dir: 1 };
-      const defaultParamsBlue = { a: 15, k: 0.120, len: 30, angle: 0, dir: 1 };
+      const defaultParamsRed = { a: 15, k: 0.12, len: 30, angle: 270, dir: 1, cx: 0.5, cy: 0.72 };
+      const defaultParamsBlue = { a: 15, k: 0.12, len: 30, angle: 0, dir: 1, cx: 0.5, cy: 0.29 };
 
-      // Загрузка сохранённых параметров
       function loadParams() {
         function load(key, defaults) {
           try {
             const saved = localStorage.getItem(key);
             if (saved) {
-              const parsed = JSON.parse(saved);
+              const p = JSON.parse(saved);
+              // Убедимся, что координаты – числа от 0 до 1
+              const cx = (typeof p.cx === 'number' && p.cx >= 0 && p.cx <= 1) ? p.cx : defaults.cx;
+              const cy = (typeof p.cy === 'number' && p.cy >= 0 && p.cy <= 1) ? p.cy : defaults.cy;
               return {
-                a: parsed.a ?? defaults.a,
-                k: parsed.k ?? defaults.k,
-                len: parsed.len ?? defaults.len,
-                angle: parsed.angle ?? defaults.angle,
-                dir: parsed.dir ?? defaults.dir
+                a: p.a ?? defaults.a,
+                k: p.k ?? defaults.k,
+                len: p.len ?? defaults.len,
+                angle: p.angle ?? defaults.angle,
+                dir: p.dir ?? defaults.dir,
+                cx,
+                cy
               };
             }
           } catch (e) {}
@@ -219,6 +226,8 @@
         angle1.value = red.angle;
         dirRed = red.dir;
         dirBtn1.textContent = (dirRed === 1) ? 'По часовой' : 'Против часовой';
+        redRelX = red.cx;
+        redRelY = red.cy;
 
         a2.value = blue.a;
         k2.value = blue.k;
@@ -226,56 +235,73 @@
         angle2.value = blue.angle;
         dirBlue = blue.dir;
         dirBtn2.textContent = (dirBlue === 1) ? 'По часовой' : 'Против часовой';
+        blueRelX = blue.cx;
+        blueRelY = blue.cy;
       }
 
-      // Сохранение текущих параметров
       function saveParams() {
+        if (canvas.width === 0 || canvas.height === 0) return; // не сохраняем, пока холст не готов
+
+        const redCx = centerRed.x / canvas.width;
+        const redCy = centerRed.y / canvas.height;
+        const blueCx = centerBlue.x / canvas.width;
+        const blueCy = centerBlue.y / canvas.height;
+
         const red = {
           a: parseFloat(a1.value),
           k: parseFloat(k1.value),
           len: parseFloat(len1.value),
           angle: parseFloat(angle1.value),
-          dir: dirRed
+          dir: dirRed,
+          cx: redCx,
+          cy: redCy
         };
         const blue = {
           a: parseFloat(a2.value),
           k: parseFloat(k2.value),
           len: parseFloat(len2.value),
           angle: parseFloat(angle2.value),
-          dir: dirBlue
+          dir: dirBlue,
+          cx: blueCx,
+          cy: blueCy
         };
+
         localStorage.setItem(STORAGE_KEY_RED, JSON.stringify(red));
         localStorage.setItem(STORAGE_KEY_BLUE, JSON.stringify(blue));
       }
 
-      // Начальные позиции центров (проценты)
-      const INIT_RED_Y = 0.72;
-      const INIT_BLUE_Y = 0.29;
+      function updateCentersFromRel() {
+        const w = canvas.width;
+        const h = canvas.height;
+        if (w === 0 || h === 0) return;
+        centerRed.x = w * redRelX;
+        centerRed.y = h * redRelY;
+        centerBlue.x = w * blueRelX;
+        centerBlue.y = h * blueRelY;
+      }
 
       function resizeCanvas() {
-        const titleHeight = document.querySelector('h2').offsetHeight;
-        const controlsHeight = document.querySelector('.controls').offsetHeight;
-        const maxWidth = Math.min(window.innerWidth - 16, 700);
-        const maxHeight = window.innerHeight - titleHeight - controlsHeight - 30;
-        const size = Math.min(maxWidth, maxHeight);
+        const titleH = document.querySelector('h2').offsetHeight;
+        const ctrlH = document.querySelector('.controls').offsetHeight;
+        const maxW = Math.min(window.innerWidth - 16, 700);
+        const maxH = window.innerHeight - titleH - ctrlH - 30;
+        const size = Math.min(maxW, maxH);
+
+        // Сохраняем старые относительные координаты перед изменением размера
+        if (canvas.width > 0 && canvas.height > 0) {
+          redRelX = centerRed.x / canvas.width;
+          redRelY = centerRed.y / canvas.height;
+          blueRelX = centerBlue.x / canvas.width;
+          blueRelY = centerBlue.y / canvas.height;
+        }
 
         canvas.width = size;
         canvas.height = size;
-
-        if (!dragging && centerRed.x === 0 && centerRed.y === 0) {
-          centerRed = { x: size * 0.5, y: size * INIT_RED_Y };
-          centerBlue = { x: size * 0.5, y: size * INIT_BLUE_Y };
-        } else {
-          const oldSize = canvas.width === size ? size : canvas.width;
-          centerRed.x = (centerRed.x / oldSize) * size;
-          centerRed.y = (centerRed.y / oldSize) * size;
-          centerBlue.x = (centerBlue.x / oldSize) * size;
-          centerBlue.y = (centerBlue.y / oldSize) * size;
-        }
+        updateCentersFromRel();
         draw();
       }
 
-      // Рисование спирали Бернулли r = A * exp(K * phi)
+      // Рисование спирали Бернулли: r = A * exp(K * phi)
       function drawSpiral(cx, cy, A, K, maxPhi, angleDeg, dir, color) {
         const angleRad = angleDeg * Math.PI / 180;
         const step = 0.03;
@@ -300,6 +326,8 @@
       }
 
       function draw() {
+        if (canvas.width === 0 || canvas.height === 0) return;
+
         const redA = parseFloat(a1.value);
         const redK = parseFloat(k1.value);
         const redLen = parseFloat(len1.value);
@@ -311,16 +339,16 @@
 
         a1Val.textContent = redA.toFixed(1);
         k1Val.textContent = redK.toFixed(3);
-        len1Val.textContent = redLen;
+        len1Val.textContent = redLen.toFixed(1);
         angle1Val.textContent = redAngle;
         a2Val.textContent = blueA.toFixed(1);
         k2Val.textContent = blueK.toFixed(3);
-        len2Val.textContent = blueLen;
+        len2Val.textContent = blueLen.toFixed(1);
         angle2Val.textContent = blueAngle;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Очень маленькие центры (радиус 4px), без свечения, просто яркие точки
+        // Маленькие яркие центры
         ctx.shadowBlur = 0;
         ctx.fillStyle = '#ff3366';
         ctx.beginPath();
@@ -359,94 +387,73 @@
         inp.addEventListener('input', onSliderChange);
       });
 
-      // Универсальные координаты из события (мышь/тач)
+      // Получение координат относительно canvas
       function getCanvasCoords(e) {
         const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         return {
-          x: clientX - rect.left,
-          y: clientY - rect.top
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
         };
       }
 
-      // Обработчики указателя с улучшенной механикой
-      function onPointerDown(e) {
-        // Предотвращаем стандартное поведение только когда попали в точку
+      // Перетаскивание только через Pointer Events (работает и для мыши, и для тача)
+      canvas.addEventListener('pointerdown', function(e) {
         const { x, y } = getCanvasCoords(e);
         const dRed = Math.hypot(x - centerRed.x, y - centerRed.y);
         const dBlue = Math.hypot(x - centerBlue.x, y - centerBlue.y);
-        const hitRadius = 40; // большая зона захвата для удобства
+        const hitRadius = 50;
 
         if (dRed < hitRadius) {
           dragging = 'red';
-          e.preventDefault(); // блокируем скролл только при перетаскивании
+          canvas.setPointerCapture(e.pointerId);
+          e.preventDefault();
         } else if (dBlue < hitRadius) {
           dragging = 'blue';
+          canvas.setPointerCapture(e.pointerId);
           e.preventDefault();
         }
-        // Иначе не мешаем скроллу страницы
-      }
+      });
 
-      function onPointerMove(e) {
-        if (!dragging) return;
-        e.preventDefault(); // важный вызов, чтобы не скроллилось при перетаскивании
-        const { x, y } = getCanvasCoords(e);
-        if (dragging === 'red') {
-          centerRed = { x, y };
-        } else if (dragging === 'blue') {
-          centerBlue = { x, y };
-        }
-        draw();
-      }
-
-      function onPointerUp() {
-        dragging = null;
-      }
-
-      // Используем Pointer Events (современный стандарт)
-      canvas.addEventListener('pointerdown', onPointerDown);
-      canvas.addEventListener('pointermove', onPointerMove);
-      canvas.addEventListener('pointerup', onPointerUp);
-      canvas.addEventListener('pointerleave', onPointerUp); // на случай ухода за пределы
-      canvas.addEventListener('pointercancel', onPointerUp);
-
-      // Для старых браузеров оставим touch fallback (но pointer включает тач)
-      // Дублируем для надежности:
-      canvas.addEventListener('touchstart', function(e) {
-        // если pointer не сработал, используем тач
-        if (dragging) return;
-        const { x, y } = getCanvasCoords(e);
-        const dRed = Math.hypot(x - centerRed.x, y - centerRed.y);
-        const dBlue = Math.hypot(x - centerBlue.x, y - centerBlue.y);
-        if (dRed < 40) {
-          dragging = 'red';
-          e.preventDefault();
-        } else if (dBlue < 40) {
-          dragging = 'blue';
-          e.preventDefault();
-        }
-      }, { passive: false });
-
-      canvas.addEventListener('touchmove', function(e) {
+      canvas.addEventListener('pointermove', function(e) {
         if (!dragging) return;
         e.preventDefault();
         const { x, y } = getCanvasCoords(e);
         if (dragging === 'red') {
-          centerRed = { x, y };
+          centerRed.x = x;
+          centerRed.y = y;
         } else if (dragging === 'blue') {
-          centerBlue = { x, y };
+          centerBlue.x = x;
+          centerBlue.y = y;
         }
         draw();
-      }, { passive: false });
+      });
 
-      canvas.addEventListener('touchend', onPointerUp);
+      function onPointerUp(e) {
+        if (dragging) {
+          // Обновляем относительные координаты и сохраняем
+          if (canvas.width > 0 && canvas.height > 0) {
+            redRelX = centerRed.x / canvas.width;
+            redRelY = centerRed.y / canvas.height;
+            blueRelX = centerBlue.x / canvas.width;
+            blueRelY = centerBlue.y / canvas.height;
+          }
+          saveParams();
+          dragging = null;
+        }
+      }
+
+      canvas.addEventListener('pointerup', onPointerUp);
+      canvas.addEventListener('pointerleave', onPointerUp);
+      canvas.addEventListener('pointercancel', onPointerUp);
 
       // Инициализация
       loadParams();
-      window.addEventListener('resize', resizeCanvas);
+      // Устанавливаем начальный размер холста (после загрузки параметров)
       resizeCanvas();
-      saveParams(); // чтобы сохранить дефолты при первом запуске
+      // Сохраняем, чтобы координаты по умолчанию попали в localStorage
+      saveParams();
+
+      window.addEventListener('resize', resizeCanvas);
     })();
   </script>
 </body>
