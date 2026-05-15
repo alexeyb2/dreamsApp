@@ -10,41 +10,46 @@
       margin: 0;
       padding: 0;
     }
-    body {
+    html, body {
+      height: 100%;
       background: #05070f;
       color: #0ff;
       font-family: system-ui, -apple-system, sans-serif;
+      touch-action: pan-x pan-y;
+      overflow: hidden;
+    }
+    body {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
       padding: 8px;
-      touch-action: pan-x pan-y;
     }
     h2 {
       font-weight: 400;
       letter-spacing: 2px;
-      margin: 0 0 8px;
-      font-size: 1.2rem;
+      margin: 0 0 4px;
+      font-size: clamp(1rem, 4vw, 1.3rem);
+      flex-shrink: 0;
     }
     canvas {
-      display: block;
+      flex: 1 1 auto;
+      width: 100%;
+      max-width: 700px;
       border: 2px solid #0ff;
       border-radius: 20px;
       background: #000;
-      width: 100%;
-      max-width: 700px;
-      aspect-ratio: 1 / 1;
       touch-action: none;
       margin-bottom: 8px;
+      min-height: 0; /* важно для flex-сжатия */
     }
     .controls {
+      flex-shrink: 0;
       display: flex;
       justify-content: center;
       gap: 8px;
       width: 100%;
       max-width: 700px;
+      padding-bottom: 2px;
     }
     .control-block {
       background: rgba(10, 25, 45, 0.95);
@@ -55,7 +60,6 @@
       min-width: 130px;
       display: flex;
       flex-direction: column;
-      align-items: stretch;
     }
     .control-block h3 {
       text-align: center;
@@ -118,10 +122,10 @@
     <div class="control-block" style="border-color:#ff3366;">
       <h3 style="color:#ff3366;">🔴 Копчик</h3>
       <button id="dirBtn1" onclick="toggleDir(1)">По часовой</button>
-      <div class="param">A <span id="a1_val">5.0</span></div>
-      <input type="range" id="a1" min="2" max="20" value="5" step="0.5">
+      <div class="param">A <span id="a1_val">3.0</span></div>
+      <input type="range" id="a1" min="0.5" max="10" value="3" step="0.5">
       <div class="param">K <span id="k1_val">0.12</span></div>
-      <input type="range" id="k1" min="0.03" max="0.25" value="0.12" step="0.001">
+      <input type="range" id="k1" min="0.02" max="0.25" value="0.12" step="0.001">
       <div class="param">Длина <span id="len1_val">25</span></div>
       <input type="range" id="len1" min="5" max="50" value="25" step="1">
       <div class="param">Angle (°) <span id="angle1_val">270</span></div>
@@ -132,10 +136,10 @@
     <div class="control-block" style="border-color:#3388ff;">
       <h3 style="color:#3388ff;">🔵 Сердце</h3>
       <button id="dirBtn2" onclick="toggleDir(2)">По часовой</button>
-      <div class="param">A <span id="a2_val">5.0</span></div>
-      <input type="range" id="a2" min="2" max="20" value="5" step="0.5">
+      <div class="param">A <span id="a2_val">3.0</span></div>
+      <input type="range" id="a2" min="0.5" max="10" value="3" step="0.5">
       <div class="param">K <span id="k2_val">0.12</span></div>
-      <input type="range" id="k2" min="0.03" max="0.25" value="0.12" step="0.001">
+      <input type="range" id="k2" min="0.02" max="0.25" value="0.12" step="0.001">
       <div class="param">Длина <span id="len2_val">25</span></div>
       <input type="range" id="len2" min="5" max="50" value="25" step="1">
       <div class="param">Angle (°) <span id="angle2_val">0</span></div>
@@ -148,13 +152,13 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Перетаскиваемые центры (начальные значения переопределятся в resize)
+      // Перетаскиваемые центры
       let centerRed = { x: 0, y: 0 };
       let centerBlue = { x: 0, y: 0 };
-      let dragging = null;
+      let dragging = null; // 'red' или 'blue'
 
       // Направления вращения
-      let dirRed = 1;   // 1 - по часовой, -1 - против
+      let dirRed = 1;
       let dirBlue = 1;
 
       // Привязка к DOM
@@ -179,41 +183,41 @@
       const dirBtn1 = document.getElementById('dirBtn1');
       const dirBtn2 = document.getElementById('dirBtn2');
 
-      // Позиции по умолчанию (проценты от размера холста)
+      // Позиции по умолчанию (проценты)
       const RED_Y = 0.72;
       const BLUE_Y = 0.29;
 
       function resizeCanvas() {
-        const maxSize = Math.min(window.innerWidth - 16, 700);
-        canvas.width = maxSize;
-        canvas.height = maxSize;
+        // Холст занимает всё доступное пространство, ограничиваясь 700px по ширине
+        const maxWidth = Math.min(window.innerWidth - 16, 700);
+        const maxHeight = window.innerHeight - document.querySelector('h2').offsetHeight - document.querySelector('.controls').offsetHeight - 40;
+        const size = Math.min(maxWidth, maxHeight);
+        canvas.width = size;
+        canvas.height = size;
 
-        // Если ещё не перетаскивали – ставим центры по умолчанию
         if (!dragging && centerRed.x === 0 && centerRed.y === 0) {
-          centerRed = { x: maxSize * 0.5, y: maxSize * RED_Y };
-          centerBlue = { x: maxSize * 0.5, y: maxSize * BLUE_Y };
+          centerRed = { x: size * 0.5, y: size * RED_Y };
+          centerBlue = { x: size * 0.5, y: size * BLUE_Y };
         } else {
-          // Сохраняем относительные координаты при изменении размера
-          const oldSize = canvas.width === maxSize ? maxSize : canvas.width;
-          centerRed.x = (centerRed.x / oldSize) * maxSize;
-          centerRed.y = (centerRed.y / oldSize) * maxSize;
-          centerBlue.x = (centerBlue.x / oldSize) * maxSize;
-          centerBlue.y = (centerBlue.y / oldSize) * maxSize;
+          const oldSize = canvas.width === size ? size : canvas.width;
+          centerRed.x = (centerRed.x / oldSize) * size;
+          centerRed.y = (centerRed.y / oldSize) * size;
+          centerBlue.x = (centerBlue.x / oldSize) * size;
+          centerBlue.y = (centerBlue.y / oldSize) * size;
         }
         draw();
       }
 
-      // Рисование спирали Бернулли: r = A * exp(K * phi)
+      // Рисование спирали: r = A * (exp(K*phi) - 1)  -> начинается из центра
       function drawSpiral(cx, cy, A, K, maxPhi, angleDeg, dir, color) {
         const angleRad = angleDeg * Math.PI / 180;
-        const step = 0.03;          // маленький шаг для плавности
+        const step = 0.03;
         const steps = Math.floor(maxPhi / step);
-
         ctx.beginPath();
         for (let i = 0; i <= steps; i++) {
           const phi = i * step;
           if (phi > maxPhi) break;
-          const r = A * Math.exp(K * phi);
+          const r = A * (Math.exp(K * phi) - 1);
           const theta = dir * phi + angleRad;
           const x = cx + r * Math.cos(theta);
           const y = cy + r * Math.sin(theta);
@@ -221,13 +225,11 @@
           else ctx.lineTo(x, y);
         }
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2;          // тонкая изящная линия
-        ctx.shadowBlur = 0;         // никакого размытия, чтобы не было толстых кругов
+        ctx.lineWidth = 2;
         ctx.stroke();
       }
 
       function draw() {
-        // Чтение значений
         const redA = parseFloat(a1.value);
         const redK = parseFloat(k1.value);
         const redLen = parseFloat(len1.value);
@@ -237,7 +239,6 @@
         const blueLen = parseFloat(len2.value);
         const blueAngle = parseFloat(angle2.value);
 
-        // Обновление подписей
         a1Val.textContent = redA.toFixed(1);
         k1Val.textContent = redK.toFixed(3);
         len1Val.textContent = redLen;
@@ -247,26 +248,23 @@
         len2Val.textContent = blueLen;
         angle2Val.textContent = blueAngle;
 
-        // Очистка
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Рисуем маленькие яркие центры
+        // Центры (маленькие точки)
         ctx.fillStyle = '#ff3366';
         ctx.beginPath();
-        ctx.arc(centerRed.x, centerRed.y, 6, 0, 2 * Math.PI);
+        ctx.arc(centerRed.x, centerRed.y, 6, 0, 2*Math.PI);
         ctx.fill();
 
         ctx.fillStyle = '#3388ff';
         ctx.beginPath();
-        ctx.arc(centerBlue.x, centerBlue.y, 6, 0, 2 * Math.PI);
+        ctx.arc(centerBlue.x, centerBlue.y, 6, 0, 2*Math.PI);
         ctx.fill();
 
-        // Спирали
         drawSpiral(centerRed.x, centerRed.y, redA, redK, redLen, redAngle, dirRed, '#ff3366');
         drawSpiral(centerBlue.x, centerBlue.y, blueA, blueK, blueLen, blueAngle, dirBlue, '#3388ff');
       }
 
-      // Переключение направления
       window.toggleDir = function(n) {
         if (n === 1) {
           dirRed *= -1;
@@ -278,46 +276,59 @@
         draw();
       };
 
-      // Перетаскивание центров (только touch)
-      canvas.addEventListener('touchstart', function(e) {
-        e.preventDefault();
+      // Поддержка мыши и тач-событий
+      function getCanvasCoords(e) {
         const rect = canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        const tx = touch.clientX - rect.left;
-        const ty = touch.clientY - rect.top;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: clientX - rect.left,
+          y: clientY - rect.top
+        };
+      }
 
-        const distRed = Math.hypot(tx - centerRed.x, ty - centerRed.y);
-        const distBlue = Math.hypot(tx - centerBlue.x, ty - centerBlue.y);
+      function onPointerDown(e) {
+        e.preventDefault();
+        const { x, y } = getCanvasCoords(e);
+        const dRed = Math.hypot(x - centerRed.x, y - centerRed.y);
+        const dBlue = Math.hypot(x - centerBlue.x, y - centerBlue.y);
+        if (dRed < 30) dragging = 'red';
+        else if (dBlue < 30) dragging = 'blue';
+      }
 
-        if (distRed < 40) dragging = 'red';
-        else if (distBlue < 40) dragging = 'blue';
-      }, { passive: false });
-
-      canvas.addEventListener('touchmove', function(e) {
+      function onPointerMove(e) {
         if (!dragging) return;
         e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        const tx = touch.clientX - rect.left;
-        const ty = touch.clientY - rect.top;
-
+        const { x, y } = getCanvasCoords(e);
         if (dragging === 'red') {
-          centerRed = { x: tx, y: ty };
+          centerRed = { x, y };
         } else if (dragging === 'blue') {
-          centerBlue = { x: tx, y: ty };
+          centerBlue = { x, y };
         }
         draw();
-      }, { passive: false });
+      }
 
-      canvas.addEventListener('touchend', () => { dragging = null; });
+      function onPointerUp() {
+        dragging = null;
+      }
 
-      // Слушатели ползунков
-      [a1, k1, len1, angle1, a2, k2, len2, angle2].forEach(input => {
-        input.addEventListener('input', draw);
+      canvas.addEventListener('mousedown', onPointerDown);
+      window.addEventListener('mousemove', (e) => {
+        if (dragging) onPointerMove(e);
+      });
+      window.addEventListener('mouseup', onPointerUp);
+
+      canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+      canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+      canvas.addEventListener('touchend', onPointerUp);
+
+      // Обновление при движении ползунков
+      [a1, k1, len1, angle1, a2, k2, len2, angle2].forEach(inp => {
+        inp.addEventListener('input', draw);
       });
 
-      resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
     })();
   </script>
 </body>
