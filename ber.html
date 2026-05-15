@@ -7,15 +7,9 @@
 <style>
   body { margin:0; padding:15px; background:#05070f; color:#0ff; font-family:sans-serif; }
   h1 { margin:10px 0 15px; text-align:center; }
-  canvas { 
-    max-width:100%; height:auto; border:2px solid #0ff; 
-    border-radius:16px; background:#000; display:block; margin:0 auto;
-  }
+  canvas { max-width:100%; height:auto; border:2px solid #0ff; border-radius:16px; background:#000; display:block; margin:0 auto; }
   .controls { margin-top:20px; }
-  .card {
-    background:rgba(10,20,40,0.9); margin:12px auto; padding:14px;
-    border-radius:14px; border:1px solid #0ff; max-width:360px;
-  }
+  .card { background:rgba(10,20,40,0.9); margin:12px auto; padding:14px; border-radius:14px; border:1px solid #0ff; max-width:360px; }
   .emoji { font-size:38px; }
   label { display:block; margin:8px 0 5px; font-size:15px; color:#8ff; }
   input { width:100%; accent-color:#0ff; }
@@ -46,16 +40,25 @@
 
   <div class="card">
     <span class="emoji">🔄</span>
-    <strong>Поворот спирали</strong>
+    <strong>Поворот вручную</strong>
     <label>Угол поворота</label>
     <input type="range" id="angle" min="0" max="360" value="90" step="1">
     <div class="value" id="angle_val">90°</div>
+  </div>
+
+  <div class="card">
+    <span class="emoji">⚡</span>
+    <strong>Авто-вращение</strong>
+    <label>Скорость самостоятельного вращения (0 = выкл)</label>
+    <input type="range" id="autoSpeed" min="0" max="0.15" value="0" step="0.001">
+    <div class="value" id="auto_val">0.000</div>
   </div>
 </div>
 
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
+let currentAngle = 90 * Math.PI / 180;
 
 function resizeCanvas() {
   const size = Math.min(window.innerWidth - 40, 720);
@@ -66,12 +69,20 @@ function resizeCanvas() {
 function draw() {
   const a = parseFloat(document.getElementById('a').value);
   const k = parseFloat(document.getElementById('k').value);
-  const angleDeg = parseFloat(document.getElementById('angle').value);
-  const angleRad = angleDeg * Math.PI / 180;
+  const manualAngle = parseFloat(document.getElementById('angle').value) * Math.PI / 180;
+  const autoSpeed = parseFloat(document.getElementById('autoSpeed').value);
   
   document.getElementById('a_val').textContent = a.toFixed(1);
   document.getElementById('k_val').textContent = k.toFixed(3);
-  document.getElementById('angle_val').textContent = angleDeg + '°';
+  document.getElementById('angle_val').textContent = Math.round(manualAngle * 180 / Math.PI) + '°';
+  document.getElementById('auto_val').textContent = autoSpeed.toFixed(3);
+
+  if (autoSpeed > 0) {
+    currentAngle += autoSpeed;
+    document.getElementById('angle').value = (currentAngle * 180 / Math.PI) % 360;
+  } else {
+    currentAngle = manualAngle;
+  }
 
   ctx.fillStyle = '#05070f';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -79,6 +90,7 @@ function draw() {
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
 
+  // Центр
   ctx.fillStyle = '#0ff';
   ctx.shadowBlur = 25;
   ctx.shadowColor = '#0ff';
@@ -94,8 +106,8 @@ function draw() {
   ctx.beginPath();
   for(let phi = 0; phi < Math.PI * 15; phi += 0.015) {
     const r = a * Math.pow(Math.E, k * phi);
-    const x = cx + r * Math.cos(phi + angleRad);
-    const y = cy + r * Math.sin(phi + angleRad);
+    const x = cx + r * Math.cos(phi + currentAngle);
+    const y = cy + r * Math.sin(phi + currentAngle);
     if(phi === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
