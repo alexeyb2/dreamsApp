@@ -38,7 +38,7 @@
       border: 2px solid #0ff;
       border-radius: 20px;
       background: #000;
-      touch-action: none;
+      touch-action: none;  /* важно для перетаскивания */
       margin-bottom: 8px;
       min-height: 0;
     }
@@ -187,7 +187,7 @@
       const STORAGE_KEY_RED = 'spiral_red_params';
       const STORAGE_KEY_BLUE = 'spiral_blue_params';
 
-      // Значения по умолчанию (разумные)
+      // Значения по умолчанию
       const defaultParamsRed = { a: 15, k: 0.120, len: 30, angle: 270, dir: 1 };
       const defaultParamsBlue = { a: 15, k: 0.120, len: 30, angle: 0, dir: 1 };
 
@@ -198,7 +198,6 @@
             const saved = localStorage.getItem(key);
             if (saved) {
               const parsed = JSON.parse(saved);
-              // Проверка наличия всех полей, иначе дефолт
               return {
                 a: parsed.a ?? defaults.a,
                 k: parsed.k ?? defaults.k,
@@ -214,7 +213,6 @@
         const red = load(STORAGE_KEY_RED, defaultParamsRed);
         const blue = load(STORAGE_KEY_BLUE, defaultParamsBlue);
 
-        // Применяем к элементам и внутренним переменным
         a1.value = red.a;
         k1.value = red.k;
         len1.value = red.len;
@@ -251,8 +249,8 @@
       }
 
       // Начальные позиции центров (проценты)
-      const INIT_RED_Y = 0.72;   // копчик внизу
-      const INIT_BLUE_Y = 0.29;  // сердце выше
+      const INIT_RED_Y = 0.72;
+      const INIT_BLUE_Y = 0.29;
 
       function resizeCanvas() {
         const titleHeight = document.querySelector('h2').offsetHeight;
@@ -295,14 +293,13 @@
           else ctx.lineTo(x, y);
         }
         ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;          // тонкая изящная линия
+        ctx.lineWidth = 1.5;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 15;          // яркое неоновое свечение
+        ctx.shadowBlur = 15;
         ctx.stroke();
       }
 
       function draw() {
-        // Чтение параметров
         const redA = parseFloat(a1.value);
         const redK = parseFloat(k1.value);
         const redLen = parseFloat(len1.value);
@@ -312,7 +309,6 @@
         const blueLen = parseFloat(len2.value);
         const blueAngle = parseFloat(angle2.value);
 
-        // Обновление подписей
         a1Val.textContent = redA.toFixed(1);
         k1Val.textContent = redK.toFixed(3);
         len1Val.textContent = redLen;
@@ -324,33 +320,24 @@
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Центры (яркие и чуть крупнее)
-        const centerRadius = 8;
-        ctx.shadowColor = '#ff3366';
-        ctx.shadowBlur = 20;
+        // Очень маленькие центры (радиус 4px), без свечения, просто яркие точки
+        ctx.shadowBlur = 0;
         ctx.fillStyle = '#ff3366';
         ctx.beginPath();
-        ctx.arc(centerRed.x, centerRed.y, centerRadius, 0, 2 * Math.PI);
+        ctx.arc(centerRed.x, centerRed.y, 4, 0, 2 * Math.PI);
         ctx.fill();
 
-        ctx.shadowColor = '#3388ff';
         ctx.fillStyle = '#3388ff';
         ctx.beginPath();
-        ctx.arc(centerBlue.x, centerBlue.y, centerRadius, 0, 2 * Math.PI);
+        ctx.arc(centerBlue.x, centerBlue.y, 4, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Сброс тени для спиралей (они зададут свою)
-        ctx.shadowBlur = 0;
-
-        // Рисуем спирали
         drawSpiral(centerRed.x, centerRed.y, redA, redK, redLen, redAngle, dirRed, '#ff3366');
         drawSpiral(centerBlue.x, centerBlue.y, blueA, blueK, blueLen, blueAngle, dirBlue, '#3388ff');
 
-        // Сброс тени после
         ctx.shadowBlur = 0;
       }
 
-      // Переключение направления с сохранением
       window.toggleDir = function(n) {
         if (n === 1) {
           dirRed *= -1;
@@ -363,7 +350,6 @@
         draw();
       };
 
-      // Обработчики ползунков с сохранением
       function onSliderChange() {
         saveParams();
         draw();
@@ -373,7 +359,7 @@
         inp.addEventListener('input', onSliderChange);
       });
 
-      // Перетаскивание центров (мышь и тач)
+      // Универсальные координаты из события (мышь/тач)
       function getCanvasCoords(e) {
         const rect = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -384,18 +370,27 @@
         };
       }
 
+      // Обработчики указателя с улучшенной механикой
       function onPointerDown(e) {
-        e.preventDefault();
+        // Предотвращаем стандартное поведение только когда попали в точку
         const { x, y } = getCanvasCoords(e);
         const dRed = Math.hypot(x - centerRed.x, y - centerRed.y);
         const dBlue = Math.hypot(x - centerBlue.x, y - centerBlue.y);
-        if (dRed < 30) dragging = 'red';
-        else if (dBlue < 30) dragging = 'blue';
+        const hitRadius = 40; // большая зона захвата для удобства
+
+        if (dRed < hitRadius) {
+          dragging = 'red';
+          e.preventDefault(); // блокируем скролл только при перетаскивании
+        } else if (dBlue < hitRadius) {
+          dragging = 'blue';
+          e.preventDefault();
+        }
+        // Иначе не мешаем скроллу страницы
       }
 
       function onPointerMove(e) {
         if (!dragging) return;
-        e.preventDefault();
+        e.preventDefault(); // важный вызов, чтобы не скроллилось при перетаскивании
         const { x, y } = getCanvasCoords(e);
         if (dragging === 'red') {
           centerRed = { x, y };
@@ -409,22 +404,49 @@
         dragging = null;
       }
 
-      canvas.addEventListener('mousedown', onPointerDown);
-      window.addEventListener('mousemove', (e) => {
-        if (dragging) onPointerMove(e);
-      });
-      window.addEventListener('mouseup', onPointerUp);
+      // Используем Pointer Events (современный стандарт)
+      canvas.addEventListener('pointerdown', onPointerDown);
+      canvas.addEventListener('pointermove', onPointerMove);
+      canvas.addEventListener('pointerup', onPointerUp);
+      canvas.addEventListener('pointerleave', onPointerUp); // на случай ухода за пределы
+      canvas.addEventListener('pointercancel', onPointerUp);
 
-      canvas.addEventListener('touchstart', onPointerDown, { passive: false });
-      canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+      // Для старых браузеров оставим touch fallback (но pointer включает тач)
+      // Дублируем для надежности:
+      canvas.addEventListener('touchstart', function(e) {
+        // если pointer не сработал, используем тач
+        if (dragging) return;
+        const { x, y } = getCanvasCoords(e);
+        const dRed = Math.hypot(x - centerRed.x, y - centerRed.y);
+        const dBlue = Math.hypot(x - centerBlue.x, y - centerBlue.y);
+        if (dRed < 40) {
+          dragging = 'red';
+          e.preventDefault();
+        } else if (dBlue < 40) {
+          dragging = 'blue';
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      canvas.addEventListener('touchmove', function(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const { x, y } = getCanvasCoords(e);
+        if (dragging === 'red') {
+          centerRed = { x, y };
+        } else if (dragging === 'blue') {
+          centerBlue = { x, y };
+        }
+        draw();
+      }, { passive: false });
+
       canvas.addEventListener('touchend', onPointerUp);
 
       // Инициализация
       loadParams();
       window.addEventListener('resize', resizeCanvas);
       resizeCanvas();
-      // Первое сохранение (на случай если ничего не меняли, но хотим сохранить дефолты)
-      saveParams();
+      saveParams(); // чтобы сохранить дефолты при первом запуске
     })();
   </script>
 </body>
