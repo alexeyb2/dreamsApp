@@ -19,13 +19,13 @@
       align-items: center;
       justify-content: flex-start;
       min-height: 100vh;
-      padding: 6px;
+      padding: 8px;
       touch-action: pan-x pan-y;
     }
     h2 {
       font-weight: 400;
       letter-spacing: 2px;
-      margin: 2px 0 6px;
+      margin: 0 0 8px;
       font-size: 1.2rem;
     }
     canvas {
@@ -37,7 +37,7 @@
       max-width: 700px;
       aspect-ratio: 1 / 1;
       touch-action: none;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .controls {
       display: flex;
@@ -48,11 +48,11 @@
     }
     .control-block {
       background: rgba(10, 25, 45, 0.95);
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 6px 8px;
       border: 1px solid;
       flex: 1 1 0;
-      min-width: 140px;
+      min-width: 130px;
       display: flex;
       flex-direction: column;
       align-items: stretch;
@@ -91,7 +91,7 @@
     }
     input[type="range"] {
       width: 100%;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
       background: #0a1929;
       height: 4px;
       border-radius: 2px;
@@ -107,21 +107,6 @@
       border: 2px solid #000;
       cursor: pointer;
     }
-    @media (max-width: 500px) {
-      .control-block {
-        min-width: 120px;
-        padding: 4px 6px;
-      }
-      .param {
-        font-size: 0.6rem;
-      }
-      .control-block h3 {
-        font-size: 0.8rem;
-      }
-      .control-block button {
-        font-size: 0.65rem;
-      }
-    }
   </style>
 </head>
 <body>
@@ -133,12 +118,12 @@
     <div class="control-block" style="border-color:#ff3366;">
       <h3 style="color:#ff3366;">🔴 Копчик</h3>
       <button id="dirBtn1" onclick="toggleDir(1)">По часовой</button>
-      <div class="param">A <span id="a1_val">18.0</span></div>
-      <input type="range" id="a1" min="5" max="40" value="18" step="0.5">
-      <div class="param">K <span id="k1_val">0.105</span></div>
-      <input type="range" id="k1" min="0.03" max="0.2" value="0.105" step="0.001">
-      <div class="param">Длина <span id="len1_val">20</span></div>
-      <input type="range" id="len1" min="5" max="40" value="20" step="0.5">
+      <div class="param">A <span id="a1_val">5.0</span></div>
+      <input type="range" id="a1" min="2" max="20" value="5" step="0.5">
+      <div class="param">K <span id="k1_val">0.12</span></div>
+      <input type="range" id="k1" min="0.03" max="0.25" value="0.12" step="0.001">
+      <div class="param">Длина <span id="len1_val">25</span></div>
+      <input type="range" id="len1" min="5" max="50" value="25" step="1">
       <div class="param">Angle (°) <span id="angle1_val">270</span></div>
       <input type="range" id="angle1" min="0" max="360" value="270" step="1">
     </div>
@@ -147,12 +132,12 @@
     <div class="control-block" style="border-color:#3388ff;">
       <h3 style="color:#3388ff;">🔵 Сердце</h3>
       <button id="dirBtn2" onclick="toggleDir(2)">По часовой</button>
-      <div class="param">A <span id="a2_val">18.0</span></div>
-      <input type="range" id="a2" min="5" max="40" value="18" step="0.5">
-      <div class="param">K <span id="k2_val">0.105</span></div>
-      <input type="range" id="k2" min="0.03" max="0.2" value="0.105" step="0.001">
-      <div class="param">Длина <span id="len2_val">20</span></div>
-      <input type="range" id="len2" min="5" max="40" value="20" step="0.5">
+      <div class="param">A <span id="a2_val">5.0</span></div>
+      <input type="range" id="a2" min="2" max="20" value="5" step="0.5">
+      <div class="param">K <span id="k2_val">0.12</span></div>
+      <input type="range" id="k2" min="0.03" max="0.25" value="0.12" step="0.001">
+      <div class="param">Длина <span id="len2_val">25</span></div>
+      <input type="range" id="len2" min="5" max="50" value="25" step="1">
       <div class="param">Angle (°) <span id="angle2_val">0</span></div>
       <input type="range" id="angle2" min="0" max="360" value="0" step="1">
     </div>
@@ -163,29 +148,29 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Центры спиралей (перетаскиваются)
-      let center1 = { x: 0, y: 0 }; // красный
-      let center2 = { x: 0, y: 0 }; // синий
+      // Перетаскиваемые центры (начальные значения переопределятся в resize)
+      let centerRed = { x: 0, y: 0 };
+      let centerBlue = { x: 0, y: 0 };
       let dragging = null;
 
-      // Направления вращения (1 – по часовой, -1 – против)
-      let dir1 = 1;
-      let dir2 = 1;
+      // Направления вращения
+      let dirRed = 1;   // 1 - по часовой, -1 - против
+      let dirBlue = 1;
 
-      // Привязки к DOM
-      const a1Input = document.getElementById('a1');
-      const k1Input = document.getElementById('k1');
-      const len1Input = document.getElementById('len1');
-      const angle1Input = document.getElementById('angle1');
+      // Привязка к DOM
+      const a1 = document.getElementById('a1');
+      const k1 = document.getElementById('k1');
+      const len1 = document.getElementById('len1');
+      const angle1 = document.getElementById('angle1');
       const a1Val = document.getElementById('a1_val');
       const k1Val = document.getElementById('k1_val');
       const len1Val = document.getElementById('len1_val');
       const angle1Val = document.getElementById('angle1_val');
 
-      const a2Input = document.getElementById('a2');
-      const k2Input = document.getElementById('k2');
-      const len2Input = document.getElementById('len2');
-      const angle2Input = document.getElementById('angle2');
+      const a2 = document.getElementById('a2');
+      const k2 = document.getElementById('k2');
+      const len2 = document.getElementById('len2');
+      const angle2 = document.getElementById('angle2');
       const a2Val = document.getElementById('a2_val');
       const k2Val = document.getElementById('k2_val');
       const len2Val = document.getElementById('len2_val');
@@ -194,34 +179,36 @@
       const dirBtn1 = document.getElementById('dirBtn1');
       const dirBtn2 = document.getElementById('dirBtn2');
 
-      // Начальные позиции центров (проценты от размера холста)
-      const INIT_RED_Y = 0.72;   // копчик внизу
-      const INIT_BLUE_Y = 0.29;  // сердце выше
+      // Позиции по умолчанию (проценты от размера холста)
+      const RED_Y = 0.72;
+      const BLUE_Y = 0.29;
 
       function resizeCanvas() {
-        const containerWidth = canvas.parentElement.clientWidth;
-        const size = Math.min(containerWidth - 12, 700);
-        canvas.width = size;
-        canvas.height = size;
+        const maxSize = Math.min(window.innerWidth - 16, 700);
+        canvas.width = maxSize;
+        canvas.height = maxSize;
 
-        if (!dragging && center1.x === 0 && center1.y === 0) {
-          center1 = { x: size * 0.5, y: size * INIT_RED_Y };
-          center2 = { x: size * 0.5, y: size * INIT_BLUE_Y };
+        // Если ещё не перетаскивали – ставим центры по умолчанию
+        if (!dragging && centerRed.x === 0 && centerRed.y === 0) {
+          centerRed = { x: maxSize * 0.5, y: maxSize * RED_Y };
+          centerBlue = { x: maxSize * 0.5, y: maxSize * BLUE_Y };
         } else {
-          const oldSize = canvas.width === size ? size : canvas.width;
-          center1.x = (center1.x / oldSize) * size;
-          center1.y = (center1.y / oldSize) * size;
-          center2.x = (center2.x / oldSize) * size;
-          center2.y = (center2.y / oldSize) * size;
+          // Сохраняем относительные координаты при изменении размера
+          const oldSize = canvas.width === maxSize ? maxSize : canvas.width;
+          centerRed.x = (centerRed.x / oldSize) * maxSize;
+          centerRed.y = (centerRed.y / oldSize) * maxSize;
+          centerBlue.x = (centerBlue.x / oldSize) * maxSize;
+          centerBlue.y = (centerBlue.y / oldSize) * maxSize;
         }
         draw();
       }
 
-      // Рисование спирали с регулируемой длиной (maxPhi)
+      // Рисование спирали Бернулли: r = A * exp(K * phi)
       function drawSpiral(cx, cy, A, K, maxPhi, angleDeg, dir, color) {
         const angleRad = angleDeg * Math.PI / 180;
-        const step = 0.03;          // фиксированный шаг для плавности
+        const step = 0.03;          // маленький шаг для плавности
         const steps = Math.floor(maxPhi / step);
+
         ctx.beginPath();
         for (let i = 0; i <= steps; i++) {
           const phi = i * step;
@@ -234,71 +221,64 @@
           else ctx.lineTo(x, y);
         }
         ctx.strokeStyle = color;
-        ctx.lineWidth = 5;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 30;
+        ctx.lineWidth = 2;          // тонкая изящная линия
+        ctx.shadowBlur = 0;         // никакого размытия, чтобы не было толстых кругов
         ctx.stroke();
       }
 
       function draw() {
-        // Обновление подписей
-        a1Val.textContent = parseFloat(a1Input.value).toFixed(1);
-        k1Val.textContent = parseFloat(k1Input.value).toFixed(3);
-        len1Val.textContent = parseFloat(len1Input.value).toFixed(1);
-        angle1Val.textContent = angle1Input.value;
-        a2Val.textContent = parseFloat(a2Input.value).toFixed(1);
-        k2Val.textContent = parseFloat(k2Input.value).toFixed(3);
-        len2Val.textContent = parseFloat(len2Input.value).toFixed(1);
-        angle2Val.textContent = angle2Input.value;
+        // Чтение значений
+        const redA = parseFloat(a1.value);
+        const redK = parseFloat(k1.value);
+        const redLen = parseFloat(len1.value);
+        const redAngle = parseFloat(angle1.value);
+        const blueA = parseFloat(a2.value);
+        const blueK = parseFloat(k2.value);
+        const blueLen = parseFloat(len2.value);
+        const blueAngle = parseFloat(angle2.value);
 
+        // Обновление подписей
+        a1Val.textContent = redA.toFixed(1);
+        k1Val.textContent = redK.toFixed(3);
+        len1Val.textContent = redLen;
+        angle1Val.textContent = redAngle;
+        a2Val.textContent = blueA.toFixed(1);
+        k2Val.textContent = blueK.toFixed(3);
+        len2Val.textContent = blueLen;
+        angle2Val.textContent = blueAngle;
+
+        // Очистка
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Яркие центры
-        ctx.shadowBlur = 25;
-        ctx.shadowColor = '#ff3366';
+        // Рисуем маленькие яркие центры
         ctx.fillStyle = '#ff3366';
         ctx.beginPath();
-        ctx.arc(center1.x, center1.y, 16, 0, 2 * Math.PI);
+        ctx.arc(centerRed.x, centerRed.y, 6, 0, 2 * Math.PI);
         ctx.fill();
 
-        ctx.shadowColor = '#3388ff';
         ctx.fillStyle = '#3388ff';
         ctx.beginPath();
-        ctx.arc(center2.x, center2.y, 16, 0, 2 * Math.PI);
+        ctx.arc(centerBlue.x, centerBlue.y, 6, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Красная спираль (вверх)
-        drawSpiral(center1.x, center1.y,
-          parseFloat(a1Input.value),
-          parseFloat(k1Input.value),
-          parseFloat(len1Input.value),
-          parseFloat(angle1Input.value),
-          dir1, '#ff3366');
-
-        // Синяя спираль (горизонтально)
-        drawSpiral(center2.x, center2.y,
-          parseFloat(a2Input.value),
-          parseFloat(k2Input.value),
-          parseFloat(len2Input.value),
-          parseFloat(angle2Input.value),
-          dir2, '#3388ff');
-
-        ctx.shadowBlur = 0;
+        // Спирали
+        drawSpiral(centerRed.x, centerRed.y, redA, redK, redLen, redAngle, dirRed, '#ff3366');
+        drawSpiral(centerBlue.x, centerBlue.y, blueA, blueK, blueLen, blueAngle, dirBlue, '#3388ff');
       }
 
       // Переключение направления
       window.toggleDir = function(n) {
         if (n === 1) {
-          dir1 *= -1;
-          dirBtn1.textContent = (dir1 === 1) ? 'По часовой' : 'Против часовой';
+          dirRed *= -1;
+          dirBtn1.textContent = (dirRed === 1) ? 'По часовой' : 'Против часовой';
         } else {
-          dir2 *= -1;
-          dirBtn2.textContent = (dir2 === 1) ? 'По часовой' : 'Против часовой';
+          dirBlue *= -1;
+          dirBtn2.textContent = (dirBlue === 1) ? 'По часовой' : 'Против часовой';
         }
         draw();
       };
 
-      // Перетаскивание центров (пальцем)
+      // Перетаскивание центров (только touch)
       canvas.addEventListener('touchstart', function(e) {
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
@@ -306,11 +286,11 @@
         const tx = touch.clientX - rect.left;
         const ty = touch.clientY - rect.top;
 
-        const dist1 = Math.hypot(tx - center1.x, ty - center1.y);
-        const dist2 = Math.hypot(tx - center2.x, ty - center2.y);
+        const distRed = Math.hypot(tx - centerRed.x, ty - centerRed.y);
+        const distBlue = Math.hypot(tx - centerBlue.x, ty - centerBlue.y);
 
-        if (dist1 < 50) dragging = 1;
-        else if (dist2 < 50) dragging = 2;
+        if (distRed < 40) dragging = 'red';
+        else if (distBlue < 40) dragging = 'blue';
       }, { passive: false });
 
       canvas.addEventListener('touchmove', function(e) {
@@ -321,23 +301,20 @@
         const tx = touch.clientX - rect.left;
         const ty = touch.clientY - rect.top;
 
-        if (dragging === 1) {
-          center1.x = tx;
-          center1.y = ty;
-        } else if (dragging === 2) {
-          center2.x = tx;
-          center2.y = ty;
+        if (dragging === 'red') {
+          centerRed = { x: tx, y: ty };
+        } else if (dragging === 'blue') {
+          centerBlue = { x: tx, y: ty };
         }
         draw();
       }, { passive: false });
 
       canvas.addEventListener('touchend', () => { dragging = null; });
 
-      // Обновление при движении ползунков
-      [
-        a1Input, k1Input, len1Input, angle1Input,
-        a2Input, k2Input, len2Input, angle2Input
-      ].forEach(inp => inp.addEventListener('input', draw));
+      // Слушатели ползунков
+      [a1, k1, len1, angle1, a2, k2, len2, angle2].forEach(input => {
+        input.addEventListener('input', draw);
+      });
 
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
