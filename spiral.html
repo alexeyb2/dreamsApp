@@ -2,50 +2,50 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>🌀 Двойная энергетическая восьмёрка</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: #05070f; }
     body {
-      background: #05070f;
-      color: #0ff;
-      font-family: system-ui, sans-serif;
-      height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 10px;
-      overflow: hidden;
+      justify-content: center;
+      padding: 8px;
+      font-family: system-ui, sans-serif;
+      color: #0ff;
     }
     canvas {
-      flex: 1;
-      max-width: 800px;
-      max-height: 800px;
+      width: 100%;
+      height: auto;
+      max-width: 100vw;
+      max-height: calc(100vh - 80px);
+      aspect-ratio: 1 / 1;
       border: 2px solid #0ff;
       border-radius: 20px;
       background: #010314;
-      touch-action: none;
+      touch-action: none; /* важно для перетаскивания */
     }
     .controls {
       margin-top: 12px;
       display: flex;
-      gap: 12px;
-      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     button {
-      padding: 12px 28px;
-      font-size: 17px;
+      padding: 12px 24px;
+      font-size: 16px;
       background: rgba(10, 25, 45, 0.9);
       color: #0ff;
       border: 2px solid #0ff;
       border-radius: 30px;
       cursor: pointer;
-      transition: 0.2s;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
     }
-    button:hover {
-      background: #0ff;
-      color: #000;
-    }
+    button:active { transform: scale(0.96); }
     button.playing {
       background: #0ff;
       color: #000;
@@ -64,22 +64,21 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Точки (в пропорциях от размера холста, будут пересчитаны в resize)
+      // Пропорциональные координаты (доли от ширины/высоты)
       const initialPoints = {
-        heart: { rx: 0.5, ry: 0.48 },
-        front: { rx: 0.35, ry: 0.3 },
-        back:  { rx: 0.65, ry: 0.3 },
-        left:  { rx: 0.15, ry: 0.4 },
-        right: { rx: 0.85, ry: 0.4 }
+        heart: { rx: 0.5, ry: 0.5 },
+        front: { rx: 0.5, ry: 0.2 },  // верх
+        back:  { rx: 0.5, ry: 0.8 },  // низ
+        left:  { rx: 0.15, ry: 0.5 }, // левая рука
+        right: { rx: 0.85, ry: 0.5 }  // правая рука
       };
 
       let points = {};
       let dragTarget = null;
       let playing = false;
-      let time = 0;                 // накопительное время для анимации
-      const animSpeed = 0.15;       // циклов в секунду (медленное движение)
+      let time = 0;
+      const animSpeed = 0.15;
 
-      // Преобразование пропорциональных координат в пиксельные
       function initPoints() {
         const w = canvas.width;
         const h = canvas.height;
@@ -91,43 +90,34 @@
         }
       }
 
-      // Catmull-Rom сплайн – интерполяция между p1 и p2 с учетом p0 и p3
       function catmullRom(p0, p1, p2, p3, t) {
         const t2 = t * t;
         const t3 = t2 * t;
-        const x = 0.5 * ((2 * p1.x) +
-          (-p0.x + p2.x) * t +
-          (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
-          (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3);
-        const y = 0.5 * ((2 * p1.y) +
-          (-p0.y + p2.y) * t +
-          (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
-          (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3);
-        return { x, y };
+        return {
+          x: 0.5 * ((2*p1.x) + (-p0.x + p2.x)*t + (2*p0.x - 5*p1.x + 4*p2.x - p3.x)*t2 + (-p0.x + 3*p1.x - 3*p2.x + p3.x)*t3),
+          y: 0.5 * ((2*p1.y) + (-p0.y + p2.y)*t + (2*p0.y - 5*p1.y + 4*p2.y - p3.y)*t2 + (-p0.y + 3*p1.y - 3*p2.y + p3.y)*t3)
+        };
       }
 
-      // Построить массив точек кривой, проходящей через a -> b -> c
-      function buildCurve(a, b, c, steps = 120) {
+      function buildCurve(a, b, c, steps = 140) {
         const result = [];
-        // Сегмент a->b (используем a, a, b, c)
-        for (let i = 0; i <= steps / 2; i++) {
-          const t = i / (steps / 2);
+        const half = steps / 2;
+        for (let i = 0; i <= half; i++) {
+          const t = i / half;
           result.push(catmullRom(a, a, b, c, t));
         }
-        // Сегмент b->c (используем a, b, c, c)
-        for (let i = 0; i <= steps / 2; i++) {
-          const t = i / (steps / 2);
+        for (let i = 0; i <= half; i++) {
+          const t = i / half;
           result.push(catmullRom(a, b, c, c, t));
         }
         return result;
       }
 
-      // Отрисовка кривой с неоновым свечением
-      function drawCurve(curve, color, lineWidth = 3, blur = 25, alpha = 1) {
+      function drawCurve(curve, color, width, blur, alpha) {
         if (curve.length < 2) return;
         ctx.save();
         ctx.strokeStyle = color;
-        ctx.lineWidth = lineWidth;
+        ctx.lineWidth = width;
         ctx.shadowBlur = blur;
         ctx.shadowColor = color;
         ctx.globalAlpha = alpha;
@@ -140,8 +130,7 @@
         ctx.restore();
       }
 
-      // Отрисовка светящейся частицы на кривой по нормализованной позиции (0..1)
-      function drawParticle(curve, progress, color, size = 8) {
+      function drawParticle(curve, progress, color, size) {
         const idx = Math.floor(progress * (curve.length - 1));
         const pt = curve[idx];
         ctx.save();
@@ -149,83 +138,76 @@
         ctx.shadowColor = color;
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, size, 0, Math.PI * 2);
+        ctx.arc(pt.x, pt.y, size, 0, 2 * Math.PI);
         ctx.fill();
         ctx.shadowBlur = 50;
         ctx.fillStyle = '#fff';
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, size * 0.5, 0, Math.PI * 2);
+        ctx.arc(pt.x, pt.y, size * 0.6, 0, 2 * Math.PI);
         ctx.fill();
         ctx.restore();
       }
 
-      // Отрисовка узловой точки (перетаскиваемой)
-      function drawNode(pt, color, label, radius = 16) {
+      function drawNode(pt, color, label, radius) {
         ctx.save();
         ctx.shadowBlur = 40;
         ctx.shadowColor = color;
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+        ctx.arc(pt.x, pt.y, radius, 0, 2 * Math.PI);
         ctx.fill();
-        // Белая сердцевина
         ctx.shadowBlur = 50;
         ctx.fillStyle = '#fff';
         ctx.beginPath();
-        ctx.arc(pt.x, pt.y, radius * 0.4, 0, Math.PI * 2);
+        ctx.arc(pt.x, pt.y, radius * 0.4, 0, 2 * Math.PI);
         ctx.fill();
-        // Подпись
+        // подпись
         ctx.font = '12px system-ui';
         ctx.fillStyle = '#fff';
         ctx.shadowBlur = 6;
         ctx.shadowColor = '#000';
-        ctx.fillText(label, pt.x + radius + 5, pt.y - radius);
+        ctx.fillText(label, pt.x + radius + 5, pt.y - 5);
         ctx.restore();
       }
 
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Построение кривых
         const frontCurve = buildCurve(points.heart, points.front, points.left);
         const backCurve = buildCurve(points.heart, points.back, points.right);
 
-        // Рисуем кривые (полупрозрачные, чтобы не перебивать частицы)
-        drawCurve(frontCurve, 'rgba(51, 153, 255, 0.4)', 3, 20);
-        drawCurve(backCurve, 'rgba(255, 51, 102, 0.4)', 3, 20);
+        // статические линии
+        drawCurve(frontCurve, 'rgba(51,153,255,0.35)', 3, 20, 1);
+        drawCurve(backCurve, 'rgba(255,51,102,0.35)', 3, 20, 1);
 
-        // Анимация
-        const t = time % 1.0; // циклический прогресс 0..1
+        const t = time % 1.0;
+        const tRev = (1 - t + 1) % 1;
 
-        // Синие частицы (от сердца к рукам)
-        drawParticle(frontCurve, t, '#3399ff', 7);        // heart → left по передней
-        drawParticle(backCurve, t, '#3399ff', 7);         // heart → right по задней
+        // синие частицы (от сердца к рукам)
+        drawParticle(frontCurve, t, '#3399ff', 7);
+        drawParticle(backCurve, t, '#3399ff', 7);
+        // красные частицы (от рук к сердцу)
+        drawParticle(frontCurve, tRev, '#ff3366', 7);
+        drawParticle(backCurve, tRev, '#ff3366', 7);
 
-        // Красные частицы (от рук к сердцу) – движутся в обратном направлении
-        const tReverse = (1 - t + 1) % 1;
-        drawParticle(frontCurve, tReverse, '#ff3366', 7); // left → heart
-        drawParticle(backCurve, tReverse, '#ff3366', 7);  // right → heart
-
-        // Узлы
+        // узлы
         drawNode(points.heart, '#ffffff', 'Сердце', 18);
-        drawNode(points.front, '#3399ff', 'Front', 14);
-        drawNode(points.back, '#ff3366', 'Back', 14);
-        drawNode(points.left, '#3399ff', 'Левая рука', 14);
-        drawNode(points.right, '#ff3366', 'Правая рука', 14);
+        drawNode(points.front, '#3399ff', 'Верх', 15);
+        drawNode(points.back, '#ff3366', 'Низ', 15);
+        drawNode(points.left, '#3399ff', 'Левая', 15);
+        drawNode(points.right, '#ff3366', 'Правая', 15);
       }
 
-      // Анимационный цикл
       function animationLoop() {
         if (playing) {
-          time += animSpeed / 60; // 60 fps
-          if (time > 1000) time -= 1000; // предотвращаем переполнение
+          time += animSpeed / 60;
+          if (time > 1000) time -= 1000;
         }
         draw();
         requestAnimationFrame(animationLoop);
       }
 
-      // Перетаскивание (Pointer Events)
-      function getPos(e) {
+      function getCanvasPos(e) {
         const rect = canvas.getBoundingClientRect();
         return {
           x: e.clientX - rect.left,
@@ -234,9 +216,9 @@
       }
 
       canvas.addEventListener('pointerdown', e => {
-        const pos = getPos(e);
+        const pos = getCanvasPos(e);
         for (let key in points) {
-          if (Math.hypot(pos.x - points[key].x, pos.y - points[key].y) < 25) {
+          if (Math.hypot(pos.x - points[key].x, pos.y - points[key].y) < 30) {
             dragTarget = key;
             canvas.setPointerCapture(e.pointerId);
             break;
@@ -246,7 +228,7 @@
 
       canvas.addEventListener('pointermove', e => {
         if (!dragTarget) return;
-        const pos = getPos(e);
+        const pos = getCanvasPos(e);
         points[dragTarget].x = pos.x;
         points[dragTarget].y = pos.y;
       });
@@ -256,7 +238,6 @@
         canvas.releasePointerCapture(e.pointerId);
       });
 
-      // Кнопка Play/Pause
       document.getElementById('playBtn').addEventListener('click', () => {
         playing = !playing;
         const btn = document.getElementById('playBtn');
@@ -264,23 +245,17 @@
         btn.classList.toggle('playing', playing);
       });
 
-      // Сброс точек
-      document.getElementById('resetBtn').addEventListener('click', () => {
-        initPoints();
-      });
+      document.getElementById('resetBtn').addEventListener('click', initPoints);
 
-      // Ресайз
       function resize() {
-        const size = Math.min(window.innerWidth - 20, 800);
-        canvas.width = size;
-        canvas.height = size;
+        const maxSize = Math.min(window.innerWidth - 16, window.innerHeight - 80, 800);
+        canvas.width = maxSize;
+        canvas.height = maxSize;
         initPoints();
       }
 
       window.addEventListener('resize', resize);
       resize();
-
-      // Запуск анимации
       animationLoop();
     })();
   </script>
