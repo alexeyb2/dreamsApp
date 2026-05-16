@@ -60,9 +60,9 @@
       constructor(canvas, defaultPoints) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.defaultPoints = defaultPoints;
-        this.points = {};
-        this.rays = [];
+        this.defaultPoints = defaultPoints; // { key: { rx, ry } }
+        this.points = {};                   // текущие пиксельные координаты
+        this.spirals = [];                  // массив { out: {keys, color, dir}, in: {keys, color, dir} }
         this.dragTarget = null;
         this.playing = false;
         this.time = 0;
@@ -77,11 +77,13 @@
 
       setSpeed(val) { this.animSpeed = val; }
 
-      // out и in — объекты { keys, color, direction? } (direction по умолчанию 1)
-      makeSpiralOutIn(out, inp) {
-        this.rays.push({
-          out: { ...out, direction: out.direction ?? 1 },
-          in:  { ...inp, direction: inp.direction ?? 1 }
+      // Универсальный метод добавления спирали
+      // outConfig = { keys, color, direction } (direction: 1 — по часовой, -1 — против)
+      // inConfig  = { keys, color, direction }
+      makeSpiral(outConfig, inConfig) {
+        this.spirals.push({
+          out: { ...outConfig, direction: outConfig.direction ?? 1 },
+          in:  { ...inConfig,  direction: inConfig.direction  ?? 1 }
         });
       }
 
@@ -147,7 +149,7 @@
             result.push(this.catmullRom(p0, p1, p2, p3, s / stepsPerSegment));
           }
         }
-        result.push(pts[0]); // замыкание
+        result.push(pts[0]);
         return result;
       }
 
@@ -214,32 +216,33 @@
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         const t = this.time % 1.0;
 
-        for (let ray of this.rays) {
-          const outCurve = this.buildLoop(ray.out.keys);
-          const inCurve  = this.buildLoop(ray.in.keys);
+        for (let spiral of this.spirals) {
+          const outCurve = this.buildLoop(spiral.out.keys);
+          const inCurve  = this.buildLoop(spiral.in.keys);
 
-          // Статические линии
-          this.drawCurve(outCurve, ray.out.color + '44', 3, 20, 1);
-          this.drawCurve(inCurve,  ray.in.color  + '44', 3, 20, 1);
+          // Линии
+          this.drawCurve(outCurve, spiral.out.color + '44', 3, 20, 1);
+          this.drawCurve(inCurve,  spiral.in.color  + '44', 3, 20, 1);
 
-          // Частицы: обе стартуют из сердца и движутся по своим веткам одновременно
-          this.drawParticle(outCurve, t, ray.out.color);
-          this.drawParticle(inCurve,  t, ray.in.color);
+          // Частицы (обе стартуют из сердца)
+          this.drawParticle(outCurve, t, spiral.out.color);
+          this.drawParticle(inCurve,  t, spiral.in.color);
         }
 
-        // Узлы
+        // Узлы с подписями
         const colorMap = {
           heart: '#ffffff',
           front_left: '#3399ff', left: '#3399ff', behind_left: '#3399ff',
           front_right: '#ff3366', right: '#ff3366', behind_right: '#ff3366',
           top: '#ffaa00', bottom: '#ffaa00', front_heart: '#ffaa00', back_heart: '#ffaa00',
-          left_foot: '#ffaa00', right_foot: '#ffaa00'
+          left_knee: '#ffaa00', right_knee: '#ffaa00', left_foot: '#ffaa00', right_foot: '#ffaa00'
         };
         const labelMap = {
           heart: 'Сердце',
           front_left: 'Перед L локтем', left: 'Левая ладонь', behind_left: 'За L локтем',
           front_right: 'Перед R локтем', right: 'Правая ладонь', behind_right: 'За R локтем',
           top: 'Макушка', bottom: 'Копчик', front_heart: 'Перед сердцем', back_heart: 'За сердцем',
+          left_knee: 'Левое колено', right_knee: 'Правое колено',
           left_foot: 'Левая ступня', right_foot: 'Правая ступня'
         };
         for (let key in this.points) {
@@ -305,7 +308,7 @@
       }
     }
 
-    // ---------- НАЧАЛЬНАЯ КОНФИГУРАЦИЯ ----------
+    // ---------- ТОЧКИ ПО УМОЛЧАНИЮ ----------
     const defaultPoints = {
       heart:        { rx: 0.50, ry: 0.50 },
       front_left:   { rx: 0.30, ry: 0.25 },
@@ -318,23 +321,26 @@
       bottom:       { rx: 0.50, ry: 0.92 },
       front_heart:  { rx: 0.50, ry: 0.35 },
       back_heart:   { rx: 0.50, ry: 0.65 },
-      left_foot:    { rx: 0.25, ry: 0.85 },
-      right_foot:   { rx: 0.75, ry: 0.85 }
+      left_knee:    { rx: 0.30, ry: 0.85 },
+      right_knee:   { rx: 0.70, ry: 0.85 },
+      left_foot:    { rx: 0.15, ry: 0.95 },
+      right_foot:   { rx: 0.85, ry: 0.95 }
     };
 
     const canvas = document.getElementById('canvas');
     const energy = new SpiralEnergy(canvas, defaultPoints);
 
-    // Горизонтальная восьмёрка: синий через левую руку, красный через правую
-    energy.makeSpiralOutIn(
-      { keys: ['front_left', 'left', 'behind_left'],       color: '#3399ff' },
-      { keys: ['behind_right', 'right', 'front_right'],    color: '#ff3366' }
+    // ---------- СПИРАЛИ ----------
+    // 1. Горизонтальная (руки): синий — передняя левая сторона, красный — задняя правая
+    energy.makeSpiral(
+      { keys: ['front_left', 'left', 'behind_left'],    color: '#3399ff', direction: 1 },
+      { keys: ['behind_right', 'right', 'front_right'], color: '#ff3366', direction: -1 }
     );
 
-    // Вертикальная восьмёрка: жёлтый через макушку и левую ступню, оранжевый через копчик и правую ступню
-    energy.makeSpiralOutIn(
-      { keys: ['top', 'front_heart', 'left_foot'],         color: '#ffaa00' },
-      { keys: ['bottom', 'back_heart', 'right_foot'],      color: '#ff8800' }
+    // 2. Вертикальная (ноги → сердце → макушка): жёлтый — вверх через макушку и левую ногу, оранжевый — вниз через копчик и правую ногу
+    energy.makeSpiral(
+      { keys: ['top', 'front_heart', 'left_knee', 'left_foot'],        color: '#ffaa00', direction: 1 },
+      { keys: ['bottom', 'back_heart', 'right_knee', 'right_foot'],    color: '#ff8800', direction: -1 }
     );
 
     // ---------- КНОПКИ ----------
@@ -346,6 +352,7 @@
     });
 
     document.getElementById('resetBtn').addEventListener('click', () => {
+      // Сброс к исходным пропорциям
       Object.assign(energy.defaultPoints, {
         heart: { rx: 0.50, ry: 0.50 },
         front_left: { rx: 0.30, ry: 0.25 },
@@ -358,8 +365,10 @@
         bottom: { rx: 0.50, ry: 0.92 },
         front_heart: { rx: 0.50, ry: 0.35 },
         back_heart: { rx: 0.50, ry: 0.65 },
-        left_foot: { rx: 0.25, ry: 0.85 },
-        right_foot: { rx: 0.75, ry: 0.85 }
+        left_knee: { rx: 0.30, ry: 0.85 },
+        right_knee: { rx: 0.70, ry: 0.85 },
+        left_foot: { rx: 0.15, ry: 0.95 },
+        right_foot: { rx: 0.85, ry: 0.95 }
       });
       energy.initPoints();
       energy.savePoints();
