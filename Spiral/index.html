@@ -84,6 +84,7 @@
 
       setSpeed(val) { this.animSpeed = val; }
 
+      // Универсальный метод: центр + две ветки (out и in)
       makeSpiral(center, outConfig, inConfig) {
         this.spirals.push({
           center: center,
@@ -239,15 +240,16 @@
           front_left: '#3399ff', left: '#3399ff', behind_left: '#3399ff',
           front_right: '#ff3366', right: '#ff3366', behind_right: '#ff3366',
           top: '#ffaa00', bottom: '#ffaa00', front_heart: '#ffaa00', back_heart: '#ffaa00',
-          left_knee: '#ffaa00', right_knee: '#ffaa00', left_foot: '#ffaa00', right_foot: '#ffaa00'
+          left_front_knee: '#ffaa00', left_behind_knee: '#ffaa00', left_foot: '#ffaa00',
+          right_front_knee: '#ff8800', right_behind_knee: '#ff8800', right_foot: '#ff8800'
         };
         const labelMap = {
           heart: 'Сердце',
           front_left: 'Перед L локтем', left: 'Левая ладонь', behind_left: 'За L локтем',
           front_right: 'Перед R локтем', right: 'Правая ладонь', behind_right: 'За R локтем',
           top: 'Макушка', bottom: 'Копчик', front_heart: 'Перед сердцем', back_heart: 'За сердцем',
-          left_knee: 'Левое колено', right_knee: 'Правое колено',
-          left_foot: 'Левая ступня', right_foot: 'Правая ступня'
+          left_front_knee: 'Перед L коленом', left_behind_knee: 'За L коленом', left_foot: 'Левая ступня',
+          right_front_knee: 'Перед R коленом', right_behind_knee: 'За R коленом', right_foot: 'Правая ступня'
         };
         for (let key in this.points) {
           const pt = this.points[key];
@@ -312,6 +314,7 @@
       }
     }
 
+    // Точки теперь включают передние и задние коленные
     const defaultPoints = {
       heart:        { rx: 0.50, ry: 0.50 },
       front_left:   { rx: 0.30, ry: 0.25 },
@@ -324,23 +327,27 @@
       bottom:       { rx: 0.50, ry: 0.92 },
       front_heart:  { rx: 0.50, ry: 0.35 },
       back_heart:   { rx: 0.50, ry: 0.65 },
-      left_knee:    { rx: 0.30, ry: 0.85 },
-      right_knee:   { rx: 0.70, ry: 0.85 },
-      left_foot:    { rx: 0.15, ry: 0.95 },
-      right_foot:   { rx: 0.85, ry: 0.95 }
+      left_front_knee:  { rx: 0.32, ry: 0.75 },
+      left_behind_knee: { rx: 0.22, ry: 0.85 },
+      left_foot:        { rx: 0.12, ry: 0.95 },
+      right_front_knee: { rx: 0.68, ry: 0.75 },
+      right_behind_knee:{ rx: 0.78, ry: 0.85 },
+      right_foot:       { rx: 0.88, ry: 0.95 }
     };
 
     const canvas = document.getElementById('canvas');
     const energy = new SpiralEnergy(canvas, defaultPoints);
 
+    // Горизонтальная восьмёрка (руки)
     energy.makeSpiral('heart',
       { keys: ['front_left', 'left', 'behind_left'],    color: '#3399ff', direction: 1 },
       { keys: ['behind_right', 'right', 'front_right'], color: '#ff3366', direction: -1 }
     );
 
-    energy.makeSpiral('bottom',
-      { keys: ['left_knee', 'left_foot', 'front_heart', 'top'],       color: '#ffaa00', direction: 1 },
-      { keys: ['right_knee', 'right_foot', 'back_heart', 'top'],      color: '#ff8800', direction: -1 }
+    // Вертикальная восьмёрка (ноги) с передними и задними коленями
+    energy.makeSpiral('heart',
+      { keys: ['top', 'front_heart', 'left_front_knee', 'left_foot'],        color: '#ffaa00', direction: 1 },
+      { keys: ['bottom', 'back_heart', 'right_behind_knee', 'right_foot'],   color: '#ff8800', direction: -1 }
     );
 
     document.getElementById('playBtn').addEventListener('click', () => {
@@ -363,10 +370,12 @@
         bottom: { rx: 0.50, ry: 0.92 },
         front_heart: { rx: 0.50, ry: 0.35 },
         back_heart: { rx: 0.50, ry: 0.65 },
-        left_knee: { rx: 0.30, ry: 0.85 },
-        right_knee: { rx: 0.70, ry: 0.85 },
-        left_foot: { rx: 0.15, ry: 0.95 },
-        right_foot: { rx: 0.85, ry: 0.95 }
+        left_front_knee: { rx: 0.32, ry: 0.75 },
+        left_behind_knee: { rx: 0.22, ry: 0.85 },
+        left_foot: { rx: 0.12, ry: 0.95 },
+        right_front_knee: { rx: 0.68, ry: 0.75 },
+        right_behind_knee: { rx: 0.78, ry: 0.85 },
+        right_foot: { rx: 0.88, ry: 0.95 }
       });
       energy.initPoints();
       energy.savePoints();
