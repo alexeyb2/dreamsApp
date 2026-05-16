@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>🌀 Объёмная восьмёрка — два потока</title>
+  <title>🌀 Горизонтальная восьмёрка — поток энергии</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -67,10 +67,10 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Изометрическая проекция (угол обзора чуть увеличен для лучшего разделения)
-      const cosA = 0.6, sinA = 0.4; // было 0.5/0.5, теперь передняя/задняя разносятся сильнее
+      // Изометрическая проекция
+      const cosA = 0.5, sinA = 0.5;
 
-      // Мировые координаты контрольных точек
+      // Мировые координаты (3D)
       let points = {
         heart:  { worldX: 0, worldY: 0, worldZ: 0 },
         left:   { worldX: -90, worldY: 0, worldZ: 75 },   // впереди слева
@@ -116,7 +116,7 @@
       function onPointerDown(e) {
         e.preventDefault();
         const { x, y } = getCanvasCoords(e);
-        const clickRadius = 30;
+        const clickRadius = 28;
         for (let key of ['heart', 'left', 'right']) {
           const sp = screenPoints[key];
           if (Math.hypot(x - sp.sx - canvasOffsetX, y - sp.sy - canvasOffsetY) < clickRadius) {
@@ -165,7 +165,7 @@
         };
       }
 
-      function buildCurve() {
+      function buildFullCurve() {
         const pts = [points.heart, points.left, points.heart, points.right];
         const curve = [];
         const stepsPerSegment = 80;
@@ -190,10 +190,13 @@
         return { blueLoop, redLoop };
       }
 
+      // Анимация
       let playing = false;
-      let progressBlue = 0;
-      let progressRed = 0;
-      const animSpeed = 0.15;
+      let blueProgress1 = 0; // вперёд по синей
+      let blueProgress2 = 0; // назад по синей
+      let redProgress1 = 0;  // вперёд по красной
+      let redProgress2 = 0;  // назад по красной
+      const animSpeed = 0.12; // циклов в секунду
       let lastTime = performance.now();
 
       const playBtn = document.getElementById('playBtn');
@@ -212,8 +215,11 @@
         if (!playing) return;
         const dt = (now - lastTime) / 1000;
         lastTime = now;
-        progressBlue = (progressBlue + animSpeed * dt) % 1.0;
-        progressRed = (progressRed - animSpeed * dt + 1.0) % 1.0;
+        const delta = animSpeed * dt;
+        blueProgress1 = (blueProgress1 + delta) % 1.0;
+        blueProgress2 = (blueProgress2 + delta) % 1.0;
+        redProgress1 = (redProgress1 + delta) % 1.0;
+        redProgress2 = (redProgress2 + delta) % 1.0;
         draw();
         requestAnimationFrame(animate);
       }
@@ -237,11 +243,12 @@
         }
         ctx.restore();
 
-        const curve = buildCurve();
-        if (curve.length < 2) return;
-        const { blueLoop, redLoop } = splitCurve(curve);
+        const fullCurve = buildFullCurve();
+        if (fullCurve.length < 2) return;
+        const { blueLoop, redLoop } = splitCurve(fullCurve);
 
-        function drawGlowLine(loop, color, width, blur, alpha = 1) {
+        // Функция отрисовки петли
+        function drawLoop(loop, color, width, blur, alpha = 1) {
           if (loop.length < 2) return;
           ctx.save();
           ctx.strokeStyle = color;
@@ -261,12 +268,12 @@
           ctx.restore();
         }
 
-        // Сначала рисуем заднюю (красную) петлю — она должна быть хорошо видна
-        drawGlowLine(redLoop, '#ff3366', 4, 25, 1);
-        drawGlowLine(redLoop, '#ff3366', 2, 35, 0.7);
-        // Затем переднюю (синюю) с небольшой прозрачностью, чтобы красная просвечивала
-        drawGlowLine(blueLoop, '#3399ff', 4, 25, 0.9);
-        drawGlowLine(blueLoop, '#3399ff', 2, 35, 0.6);
+        // Задняя красная петля рисуется первой, чтобы быть под синей
+        drawLoop(redLoop, '#ff3366', 3.5, 22, 1);
+        drawLoop(redLoop, '#ff3366', 1.8, 32, 0.6);
+        // Передняя синяя петля поверх
+        drawLoop(blueLoop, '#3399ff', 3.5, 22, 0.95);
+        drawLoop(blueLoop, '#3399ff', 1.8, 32, 0.5);
 
         // Контрольные точки
         function drawPoint(sp, color, label) {
@@ -275,18 +282,18 @@
           ctx.shadowBlur = 30;
           ctx.fillStyle = color;
           ctx.beginPath();
-          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 14, 0, 2*Math.PI);
+          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 13, 0, 2*Math.PI);
           ctx.fill();
           ctx.shadowBlur = 0;
           ctx.fillStyle = '#fff';
           ctx.beginPath();
-          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 6, 0, 2*Math.PI);
+          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 5, 0, 2*Math.PI);
           ctx.fill();
-          ctx.font = 'bold 13px system-ui';
+          ctx.font = 'bold 12px system-ui';
           ctx.fillStyle = '#fff';
           ctx.shadowColor = '#000';
           ctx.shadowBlur = 6;
-          ctx.fillText(label, sp.sx + canvasOffsetX + 18, sp.sy + canvasOffsetY - 12);
+          ctx.fillText(label, sp.sx + canvasOffsetX + 18, sp.sy + canvasOffsetY - 10);
           ctx.restore();
         }
 
@@ -306,18 +313,26 @@
           ctx.shadowBlur = 40;
           ctx.fillStyle = color;
           ctx.beginPath();
-          ctx.arc(px, py, 8, 0, 2*Math.PI);
+          ctx.arc(px, py, 7, 0, 2*Math.PI);
           ctx.fill();
           ctx.shadowBlur = 60;
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(px, py, 4, 0, 2*Math.PI);
+          ctx.arc(px, py, 3.5, 0, 2*Math.PI);
           ctx.fill();
           ctx.restore();
         }
 
-        drawParticle(blueLoop, progressBlue, '#3399ff');
-        drawParticle(redLoop, progressRed, '#ff3366');
+        // Синие частицы: одна вперёд, другая назад
+        drawParticle(blueLoop, blueProgress1, '#3399ff');
+        // Для обратного движения: индекс = (1 - progress) * (N-1)
+        const blueIdx2 = Math.floor((1 - blueProgress2) * (blueLoop.length - 1));
+        drawParticle(blueLoop, blueIdx2 / (blueLoop.length - 1), '#3399ff'); // передаём нормализованный индекс как progress для функции
+
+        // Красные частицы
+        drawParticle(redLoop, redProgress1, '#ff3366');
+        const redIdx2 = Math.floor((1 - redProgress2) * (redLoop.length - 1));
+        drawParticle(redLoop, redIdx2 / (redLoop.length - 1), '#ff3366');
       }
 
       function resize() {
