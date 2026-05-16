@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>👁🌀📱DreamSApp</title>
+  <link rel="apple-touch-icon" href="icon.png">
+<meta name="description" content="👁️:Я 🌀:Внимание 📱:Связь ">
+<meta property="og:type" content="website">
+<meta property="og:title" content="🔼👁🌀📱DreamSApp">
+<meta property="og:description" content="🔼👁 👁️:Я 🌀:Внимание 📱:Связь ">
+<meta property="og:image" content="https://alexeyb2.github.io/dreamsApp/Spiral/icon.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://alexeyb2.github.io/dreamsApp/Spiral">
+
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: #05070f; overflow: hidden; font-family: system-ui, sans-serif; }
+    canvas {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      border: none; touch-action: none; background: #010314;
+    }
+    .ui-panel {
+      position: fixed; top: 12px; right: 12px;
+      background: rgba(10, 25, 45, 0.75); backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 255, 255, 0.4); border-radius: 16px;
+      padding: 10px 14px; display: flex; flex-direction: column; gap: 8px;
+      z-index: 10; min-width: 150px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
+    .ui-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; color: #0ff; font-size: 13px; white-space: nowrap;
+    }
+    button {
+      padding: 8px 14px; font-size: 13px; background: rgba(10, 25, 45, 0.9);
+      color: #0ff; border: 1px solid #0ff; border-radius: 20px; cursor: pointer;
+      transition: all 0.2s; backdrop-filter: blur(4px); flex: 1;
+    }
+    button:active { transform: scale(0.96); }
+    button.playing { background: #0ff; color: #000; }
+    input[type="range"] {
+      width: 100%; background: #0a1929; height: 4px; border-radius: 2px;
+      -webkit-appearance: none; appearance: none; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px;
+      background: #0ff; border-radius: 50%; border: 2px solid #000;
+    }
+    .speed-value { font-weight: bold; color: #0ff; min-width: 36px; text-align: right; }
+    @media (max-width: 400px) {
+      .ui-panel { top: 8px; right: 8px; padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div class="ui-panel">
+    <button id="playBtn">▶ Play</button>
+    <button id="resetBtn">↺ Сброс</button>
+    <div class="ui-row">
+      <span>Скорость</span>
+      <span class="speed-value" id="speedValue">0.12</span>
+    </div>
+    <input type="range" id="speedSlider" min="0.03" max="0.5" step="0.01" value="0.12">
+  </div>
+
+  <script>
+    class SpiralEnergy {
+      constructor(canvas, defaultPoints) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.defaultPoints = defaultPoints;
+        this.points = {};
+        this.spirals = []; // { center, out: {keys, color, dir}, in: {keys, color, dir} }
+        this.dragTarget = null;
+        this.playing = false;
+        this.time = 0;
+        this.animSpeed = 0.12;
+
+        this.loadPoints();
+        this.initPoints();
+        this.bindEvents();
+        this.resize();
+        this.animationLoop();
+      }
+
+      setSpeed(val) { this.animSpeed = val; }
+
+      // Универсальный метод: center – ключ центральной точки, outConfig/inConfig – { keys, color, direction }
+      makeSpiral(center, outConfig, inConfig) {
+        this.spirals.push({
+          center,
+          out: { ...outConfig, direction: outConfig.direction ?? 1 },
+          in:  { ...inConfig,  direction: inConfig.direction  ?? 1 }
+        });
+      }
+
+      loadPoints() {
+        const saved = localStorage.getItem('energyPoints');
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            for (let key in data) {
+              if (this.defaultPoints.hasOwnProperty(key)) {
+                this.defaultPoints[key].rx = data[key].rx;
+                this.defaultPoints[key].ry = data[key].ry;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+
+      savePoints() {
+        const data = {};
+        for (let key in this.points) {
+          data[key] = {
+            rx: this.points[key].x / this.canvas.width,
+            ry: this.points[key].y / this.canvas.height
+          };
+        }
+        localStorage.setItem('energyPoints', JSON.stringify(data));
+      }
+
+      initPoints() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        for (let key in this.defaultPoints) {
+          this.points[key] = {
+            x: this.defaultPoints[key].rx * w,
+            y: this.defaultPoints[key].ry * h
+          };
+        }
+      }
+
+      catmullRom(p0, p1, p2, p3, t) {
+        const t2 = t * t, t3 = t2 * t;
+        return {
+          x: 0.5 * ((2*p1.x) + (-p0.x + p2.x)*t + (2*p0.x - 5*p1.x + 4*p2.x - p3.x)*t2 + (-p0.x + 3*p1.x - 3*p2.x + p3.x)*t3),
+          y: 0.5 * ((2*p1.y) + (-p0.y + p2.y)*t + (2*p0.y - 5*p1.y + 4*p2.y - p3.y)*t2 + (-p0.y + 3*p1.y - 3*p2.y + p3.y)*t3)
+        };
+      }
+
+      buildLoop(centerKey, keys, steps = 300) {
+        const allKeys = [centerKey, ...keys, centerKey];
+        const pts = allKeys.map(k => this.points[k]);
+        const n = pts.length;
+        if (n < 2) return [];
+        const segments = n - 1;
+        const stepsPerSegment = Math.floor(steps / segments);
+        const result = [];
+        for (let i = 0; i < segments; i++) {
+          const p0 = pts[(i - 1 + n) % n];
+          const p1 = pts[i];
+          const p2 = pts[i + 1];
+          const p3 = pts[(i + 2) % n];
+          for (let s = 0; s < stepsPerSegment; s++) {
+            result.push(this.catmullRom(p0, p1, p2, p3, s / stepsPerSegment));
+          }
+        }
+        result.push(pts[0]); // замыкание
+        return result;
+      }
+
+      drawCurve(curve, color, width, blur, alpha) {
+        if (!curve || curve.length < 2) return;
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.shadowBlur = blur;
+        ctx.shadowColor = color;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(curve[0].x, curve[0].y);
+        for (let i = 1; i < curve.length; i++) ctx.lineTo(curve[i].x, curve[i].y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      drawParticle(curve, progress, color, size = 7) {
+        if (!curve || curve.length < 2) return;
+        const idx = Math.floor(progress * (curve.length - 1));
+        const pt = curve[idx];
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.shadowBlur = 35;
+        ctx.shadowColor = color;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, size, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.shadowBlur = 50;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, size * 0.6, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      drawNode(pt, color, label, radius = 14) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.shadowBlur = 40;
+        ctx.shadowColor = color;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, radius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.shadowBlur = 50;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, radius * 0.4, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.font = '10px system-ui';
+        ctx.fillStyle = '#fff';
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#000';
+        ctx.fillText(label, pt.x + radius + 4, pt.y - 3);
+        ctx.restore();
+      }
+
+      draw() {
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const t = this.time % 1.0;
+
+        for (let spiral of this.spirals) {
+          const outCurve = this.buildLoop(spiral.center, spiral.out.keys);
+          const inCurve  = this.buildLoop(spiral.center, spiral.in.keys);
+
+          this.drawCurve(outCurve, spiral.out.color + '44', 3, 20, 1);
+          this.drawCurve(inCurve,  spiral.in.color  + '44', 3, 20, 1);
+
+          const outProgress = spiral.out.direction === 1 ? t : (1 - t + 1) % 1;
+          const inProgress  = spiral.in.direction  === 1 ? t : (1 - t + 1) % 1;
+          this.drawParticle(outCurve, outProgress, spiral.out.color);
+          this.drawParticle(inCurve,  inProgress,  spiral.in.color);
+        }
+
+        // Цвета и подписи узлов
+        const colorMap = {
+          heart: '#ffffff',
+          front_left: '#3399ff', left: '#3399ff', behind_left: '#3399ff',
+          front_right: '#ff3366', right: '#ff3366', behind_right: '#ff3366',
+          top: '#ffaa00', bottom: '#ffaa00', front_heart: '#ffaa00', back_heart: '#ffaa00',
+          front_left_knee: '#33cc99', left_foot: '#33cc99', behind_left_knee: '#33cc99',
+          front_right_knee: '#cc66ff', right_foot: '#cc66ff', behind_right_knee: '#cc66ff'
+        };
+        const labelMap = {
+          heart: 'Сердце',
+          front_left: 'Перед L локтем', left: 'Левая ладонь', behind_left: 'За L локтем',
+          front_right: 'Перед R локтем', right: 'Правая ладонь', behind_right: 'За R локтем',
+          top: 'Макушка', bottom: 'Копчик', front_heart: 'Перед сердцем', back_heart: 'За сердцем',
+          front_left_knee: 'Перед L коленом', left_foot: 'Левая ступня', behind_left_knee: 'За L коленом',
+          front_right_knee: 'Перед R коленом', right_foot: 'Правая ступня', behind_right_knee: 'За R коленом'
+        };
+        for (let key in this.points) {
+          const pt = this.points[key];
+          const color = colorMap[key] || '#aaa';
+          const label = labelMap[key] || key;
+          this.drawNode(pt, color, label, key === 'heart' ? 18 : 14);
+        }
+      }
+
+      animationLoop() {
+        if (this.playing) {
+          this.time += this.animSpeed / 60;
+          if (this.time > 1000) this.time -= 1000;
+        }
+        this.draw();
+        requestAnimationFrame(() => this.animationLoop());
+      }
+
+      getCanvasPos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+
+      onPointerDown(e) {
+        const pos = this.getCanvasPos(e);
+        for (let key in this.points) {
+          if (Math.hypot(pos.x - this.points[key].x, pos.y - this.points[key].y) < 30) {
+            this.dragTarget = key;
+            this.canvas.setPointerCapture(e.pointerId);
+            break;
+          }
+        }
+      }
+
+      onPointerMove(e) {
+        if (!this.dragTarget) return;
+        const pos = this.getCanvasPos(e);
+        this.points[this.dragTarget].x = pos.x;
+        this.points[this.dragTarget].y = pos.y;
+        this.defaultPoints[this.dragTarget].rx = pos.x / this.canvas.width;
+        this.defaultPoints[this.dragTarget].ry = pos.y / this.canvas.height;
+      }
+
+      onPointerUp(e) {
+        if (this.dragTarget) {
+          this.savePoints();
+          this.dragTarget = null;
+        }
+        this.canvas.releasePointerCapture(e.pointerId);
+      }
+
+      bindEvents() {
+        this.canvas.addEventListener('pointerdown', e => this.onPointerDown(e));
+        this.canvas.addEventListener('pointermove', e => this.onPointerMove(e));
+        this.canvas.addEventListener('pointerup', e => this.onPointerUp(e));
+      }
+
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.initPoints();
+      }
+    }
+
+    // ---------- НАЧАЛЬНЫЕ ТОЧКИ (пропорции) ----------
+    const defaultPoints = {
+      heart:            { rx: 0.50, ry: 0.50 },
+      front_left:       { rx: 0.30, ry: 0.25 },
+      left:             { rx: 0.10, ry: 0.50 },
+      behind_left:      { rx: 0.20, ry: 0.75 },
+      front_right:      { rx: 0.70, ry: 0.25 },
+      right:            { rx: 0.90, ry: 0.50 },
+      behind_right:     { rx: 0.80, ry: 0.75 },
+      top:              { rx: 0.50, ry: 0.08 },
+      bottom:           { rx: 0.50, ry: 0.92 },
+      front_heart:      { rx: 0.50, ry: 0.35 },
+      back_heart:       { rx: 0.50, ry: 0.65 },
+      front_left_knee:  { rx: 0.30, ry: 0.80 },
+      left_foot:        { rx: 0.15, ry: 0.95 },
+      behind_left_knee: { rx: 0.45, ry: 0.85 },
+      front_right_knee: { rx: 0.70, ry: 0.80 },
+      right_foot:       { rx: 0.85, ry: 0.95 },
+      behind_right_knee:{ rx: 0.55, ry: 0.85 }
+    };
+
+    const canvas = document.getElementById('canvas');
+    const energy = new SpiralEnergy(canvas, defaultPoints);
+
+    // ---------- ТРИ СПИРАЛИ ----------
+    // 1. Горизонтальная восьмёрка через руки (центр – сердце)
+    energy.makeSpiral('heart',
+      { keys: ['front_left', 'left', 'behind_left'],    color: '#3399ff', direction: 1 },
+      { keys: ['behind_right', 'right', 'front_right'], color: '#ff3366', direction: 1 }
+    );
+
+    // 2. Вертикальная ось: вверх к макушке и вниз к копчику (центр – сердце)
+    energy.makeSpiral('heart',
+      { keys: ['top', 'front_heart'],       color: '#ffaa00', direction: 1 },
+      { keys: ['bottom', 'back_heart'],     color: '#ff8800', direction: 1 }
+    );
+
+    // 3. Нижняя восьмёрка через ноги (центр – копчик)
+    energy.makeSpiral('bottom',
+      { keys: ['front_left_knee', 'left_foot', 'behind_left_knee'],   color: '#33cc99', direction: 1 },
+      { keys: ['behind_right_knee', 'right_foot', 'front_right_knee'], color: '#cc66ff', direction: 1 }
+    );
+
+    // ---------- КНОПКИ УПРАВЛЕНИЯ ----------
+    document.getElementById('playBtn').addEventListener('click', () => {
+      energy.playing = !energy.playing;
+      const btn = document.getElementById('playBtn');
+      btn.textContent = energy.playing ? '⏸ Pause' : '▶ Play';
+      btn.classList.toggle('playing', energy.playing);
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      // Восстанавливаем исходные пропорции
+      Object.assign(energy.defaultPoints, {
+        heart: { rx: 0.50, ry: 0.50 },
+        front_left: { rx: 0.30, ry: 0.25 },
+        left: { rx: 0.10, ry: 0.50 },
+        behind_left: { rx: 0.20, ry: 0.75 },
+        front_right: { rx: 0.70, ry: 0.25 },
+        right: { rx: 0.90, ry: 0.50 },
+        behind_right: { rx: 0.80, ry: 0.75 },
+        top: { rx: 0.50, ry: 0.08 },
+        bottom: { rx: 0.50, ry: 0.92 },
+        front_heart: { rx: 0.50, ry: 0.35 },
+        back_heart: { rx: 0.50, ry: 0.65 },
+        front_left_knee: { rx: 0.30, ry: 0.80 },
+        left_foot: { rx: 0.15, ry: 0.95 },
+        behind_left_knee: { rx: 0.45, ry: 0.85 },
+        front_right_knee: { rx: 0.70, ry: 0.80 },
+        right_foot: { rx: 0.85, ry: 0.95 },
+        behind_right_knee: { rx: 0.55, ry: 0.85 }
+      });
+      energy.initPoints();
+      energy.savePoints();
+    });
+
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValue = document.getElementById('speedValue');
+    speedSlider.addEventListener('input', () => {
+      const val = parseFloat(speedSlider.value);
+      speedValue.textContent = val.toFixed(2);
+      energy.setSpeed(val);
+    });
+
+    window.addEventListener('resize', () => energy.resize());
+  </script>
+</body>
+</html>
