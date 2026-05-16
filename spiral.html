@@ -65,18 +65,18 @@
       const initialPoints = {
         heart:       { rx: 0.5, ry: 0.5 },
         front_left:  { rx: 0.3, ry: 0.25 }, // перед левым локтем
-        behind_left: { rx: 0.2, ry: 0.7 },  // за левым локтем
         left:        { rx: 0.1, ry: 0.5 },  // левая рука
-        back_right:  { rx: 0.7, ry: 0.75 }, // за правым локтем
-        front_right: { rx: 0.8, ry: 0.3 },  // перед правым локтем
-        right:       { rx: 0.9, ry: 0.5 }   // правая рука
+        behind_left: { rx: 0.2, ry: 0.75 }, // за левым локтем
+        front_right: { rx: 0.7, ry: 0.25 }, // перед правым локтем
+        right:       { rx: 0.9, ry: 0.5 },  // правая рука
+        behind_right:{ rx: 0.8, ry: 0.75 }  // за правым локтем
       };
 
       let points = {};
       let dragTarget = null;
       let playing = false;
       let time = 0;
-      const animSpeed = 0.15; // циклов в секунду
+      const animSpeed = 0.12; // циклов в секунду
 
       function initPoints() {
         const w = canvas.width;
@@ -98,10 +98,10 @@
         };
       }
 
-      // Построение замкнутой петли через массив точек (heart, A, B, hand, heart)
-      function buildLoop(heart, a, b, hand, steps = 240) {
-        const pts = [heart, a, b, hand, heart];
-        const segments = pts.length - 1; // 4 сегмента
+      // Построение замкнутой петли через массив точек (heart, a, hand, b, heart)
+      function buildLoop(heart, a, hand, b, steps = 280) {
+        const pts = [heart, a, hand, b, heart];
+        const segments = pts.length - 1;
         const stepsPerSegment = Math.floor(steps / segments);
         const result = [];
 
@@ -115,8 +115,7 @@
             result.push(catmullRom(p0, p1, p2, p3, t));
           }
         }
-        // добавляем последнюю точку для замыкания
-        result.push({ x: heart.x, y: heart.y });
+        result.push({ x: heart.x, y: heart.y }); // замыкание
         return result;
       }
 
@@ -181,39 +180,36 @@
 
         const heart = points.heart;
         const frontLeft = points.front_left;
-        const behindLeft = points.behind_left;
         const leftHand = points.left;
-        const backRight = points.back_right;
+        const behindLeft = points.behind_left;
         const frontRight = points.front_right;
         const rightHand = points.right;
+        const behindRight = points.behind_right;
 
-        // Построение петель
-        const frontLoop = buildLoop(heart, frontLeft, behindLeft, leftHand);
-        const backLoop = buildLoop(heart, backRight, frontRight, rightHand);
+        // Передняя петля: сердце -> перед L -> левая -> за L -> сердце
+        const frontLoop = buildLoop(heart, frontLeft, leftHand, behindLeft);
+        // Задняя петля: сердце -> перед R -> правая -> за R -> сердце
+        const backLoop = buildLoop(heart, frontRight, rightHand, behindRight);
 
-        // Отрисовка петель (статический фон)
-        drawCurve(frontLoop, 'rgba(51,153,255,0.35)', 3, 20, 1);
-        drawCurve(backLoop, 'rgba(255,51,102,0.35)', 3, 20, 1);
+        // Отрисовка статических линий
+        drawCurve(frontLoop, 'rgba(51,153,255,0.4)', 3, 20, 1);
+        drawCurve(backLoop, 'rgba(255,51,102,0.4)', 3, 20, 1);
 
-        const t = time % 1.0;
-        const tRev = (1 - t + 1) % 1;
+        const t = time % 1.0; // циклический прогресс
 
-        // Синие частицы (heart → руки)
+        // Два шара, стартующие из центра в противоположные стороны (по разным петлям)
+        // Синий шар по передней петле, красный по задней
         drawParticle(frontLoop, t, '#3399ff', 7);
-        drawParticle(backLoop, t, '#3399ff', 7);
-
-        // Красные частицы (руки → heart)
-        drawParticle(frontLoop, tRev, '#ff3366', 7);
-        drawParticle(backLoop, tRev, '#ff3366', 7);
+        drawParticle(backLoop, t, '#ff3366', 7);
 
         // Узлы
         drawNode(heart, '#ffffff', 'Сердце', 18);
         drawNode(frontLeft, '#3399ff', 'Перед L', 14);
-        drawNode(behindLeft, '#3399ff', 'За L', 14);
         drawNode(leftHand, '#3399ff', 'Левая', 14);
-        drawNode(backRight, '#ff3366', 'За R', 14);
+        drawNode(behindLeft, '#3399ff', 'За L', 14);
         drawNode(frontRight, '#ff3366', 'Перед R', 14);
         drawNode(rightHand, '#ff3366', 'Правая', 14);
+        drawNode(behindRight, '#ff3366', 'За R', 14);
       }
 
       function animationLoop() {
@@ -225,7 +221,7 @@
         requestAnimationFrame(animationLoop);
       }
 
-      // Перетаскивание
+      // Перетаскивание (указатели)
       function getCanvasPos(e) {
         const rect = canvas.getBoundingClientRect();
         return {
