@@ -67,8 +67,8 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Изометрическая проекция
-      const cosA = 0.5, sinA = 0.5;
+      // Изометрическая проекция (угол обзора чуть увеличен для лучшего разделения)
+      const cosA = 0.6, sinA = 0.4; // было 0.5/0.5, теперь передняя/задняя разносятся сильнее
 
       // Мировые координаты контрольных точек
       let points = {
@@ -116,7 +116,7 @@
       function onPointerDown(e) {
         e.preventDefault();
         const { x, y } = getCanvasCoords(e);
-        const clickRadius = 25;
+        const clickRadius = 30;
         for (let key of ['heart', 'left', 'right']) {
           const sp = screenPoints[key];
           if (Math.hypot(x - sp.sx - canvasOffsetX, y - sp.sy - canvasOffsetY) < clickRadius) {
@@ -183,21 +183,17 @@
         return curve;
       }
 
-      // Разделение кривой на две петли по индексам
       function splitCurve(curve) {
-        const n = curve.length;
-        // heart->left->heart: индексы от 0 до примерно 2*80 = 160
-        const blueEnd = 2 * 80;
+        const blueEnd = 2 * 80; // heart->left->heart
         const blueLoop = curve.slice(0, blueEnd + 1);
-        // heart->right->heart: индексы от blueEnd до n-1
-        const redLoop = curve.slice(blueEnd, n);
+        const redLoop = curve.slice(blueEnd, curve.length);
         return { blueLoop, redLoop };
       }
 
       let playing = false;
-      let progressBlue = 0;   // для синей частицы (движется по синей петле)
-      let progressRed = 0;    // для красной частицы (движется по красной петле)
-      const animSpeed = 0.15; // циклов в секунду
+      let progressBlue = 0;
+      let progressRed = 0;
+      const animSpeed = 0.15;
       let lastTime = performance.now();
 
       const playBtn = document.getElementById('playBtn');
@@ -216,9 +212,7 @@
         if (!playing) return;
         const dt = (now - lastTime) / 1000;
         lastTime = now;
-        // Синяя частица идёт вперёд (heart -> left -> heart)
         progressBlue = (progressBlue + animSpeed * dt) % 1.0;
-        // Красная частица идёт в обратном направлении (heart -> right -> heart)
         progressRed = (progressRed - animSpeed * dt + 1.0) % 1.0;
         draw();
         requestAnimationFrame(animate);
@@ -227,9 +221,9 @@
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Сетка
+        // Фоновая сетка
         ctx.save();
-        ctx.strokeStyle = 'rgba(0,255,255,0.05)';
+        ctx.strokeStyle = 'rgba(0,255,255,0.04)';
         ctx.lineWidth = 1;
         for (let gx = -200; gx <= 200; gx += 40) {
           for (let gz = -200; gz <= 200; gz += 40) {
@@ -247,7 +241,6 @@
         if (curve.length < 2) return;
         const { blueLoop, redLoop } = splitCurve(curve);
 
-        // Функция отрисовки линии с свечением
         function drawGlowLine(loop, color, width, blur, alpha = 1) {
           if (loop.length < 2) return;
           ctx.save();
@@ -268,31 +261,32 @@
           ctx.restore();
         }
 
-        // Рисуем петли разными цветами
-        drawGlowLine(blueLoop, '#3399ff', 3, 20, 0.9);   // синяя (передняя)
-        drawGlowLine(blueLoop, '#3399ff', 1.5, 30, 0.6);
-        drawGlowLine(redLoop, '#ff3366', 3, 20, 0.9);    // красная (задняя)
-        drawGlowLine(redLoop, '#ff3366', 1.5, 30, 0.6);
+        // Сначала рисуем заднюю (красную) петлю — она должна быть хорошо видна
+        drawGlowLine(redLoop, '#ff3366', 4, 25, 1);
+        drawGlowLine(redLoop, '#ff3366', 2, 35, 0.7);
+        // Затем переднюю (синюю) с небольшой прозрачностью, чтобы красная просвечивала
+        drawGlowLine(blueLoop, '#3399ff', 4, 25, 0.9);
+        drawGlowLine(blueLoop, '#3399ff', 2, 35, 0.6);
 
         // Контрольные точки
         function drawPoint(sp, color, label) {
           ctx.save();
           ctx.shadowColor = color;
-          ctx.shadowBlur = 25;
+          ctx.shadowBlur = 30;
           ctx.fillStyle = color;
           ctx.beginPath();
-          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 12, 0, 2*Math.PI);
+          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 14, 0, 2*Math.PI);
           ctx.fill();
           ctx.shadowBlur = 0;
           ctx.fillStyle = '#fff';
           ctx.beginPath();
-          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 5, 0, 2*Math.PI);
+          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 6, 0, 2*Math.PI);
           ctx.fill();
-          ctx.font = '12px system-ui';
+          ctx.font = 'bold 13px system-ui';
           ctx.fillStyle = '#fff';
           ctx.shadowColor = '#000';
-          ctx.shadowBlur = 4;
-          ctx.fillText(label, sp.sx + canvasOffsetX + 15, sp.sy + canvasOffsetY - 10);
+          ctx.shadowBlur = 6;
+          ctx.fillText(label, sp.sx + canvasOffsetX + 18, sp.sy + canvasOffsetY - 12);
           ctx.restore();
         }
 
@@ -309,21 +303,21 @@
           const py = sy + canvasOffsetY;
           ctx.save();
           ctx.shadowColor = color;
-          ctx.shadowBlur = 35;
+          ctx.shadowBlur = 40;
           ctx.fillStyle = color;
           ctx.beginPath();
-          ctx.arc(px, py, 7, 0, 2*Math.PI);
+          ctx.arc(px, py, 8, 0, 2*Math.PI);
           ctx.fill();
-          ctx.shadowBlur = 50;
+          ctx.shadowBlur = 60;
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(px, py, 3, 0, 2*Math.PI);
+          ctx.arc(px, py, 4, 0, 2*Math.PI);
           ctx.fill();
           ctx.restore();
         }
 
-        drawParticle(blueLoop, progressBlue, '#3399ff');  // синяя частица на передней петле
-        drawParticle(redLoop, progressRed, '#ff3366');   // красная частица на задней петле
+        drawParticle(blueLoop, progressBlue, '#3399ff');
+        drawParticle(redLoop, progressRed, '#ff3366');
       }
 
       function resize() {
