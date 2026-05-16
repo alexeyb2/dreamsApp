@@ -314,7 +314,7 @@
       }
     }
 
-    // Точки теперь включают передние и задние коленные
+    // Все 17 точек с передними/задними коленями
     const defaultPoints = {
       heart:        { rx: 0.50, ry: 0.50 },
       front_left:   { rx: 0.30, ry: 0.25 },
@@ -338,13 +338,13 @@
     const canvas = document.getElementById('canvas');
     const energy = new SpiralEnergy(canvas, defaultPoints);
 
-    // Горизонтальная восьмёрка (руки)
+    // Горизонтальная (руки) – строго тройки: передняя, ладонь, задняя
     energy.makeSpiral('heart',
       { keys: ['front_left', 'left', 'behind_left'],    color: '#3399ff', direction: 1 },
       { keys: ['behind_right', 'right', 'front_right'], color: '#ff3366', direction: -1 }
     );
 
-    // Вертикальная восьмёрка (ноги) с передними и задними коленями
+    // Вертикальная (ноги) – тоже тройки, но с дополнительными коленными точками
     energy.makeSpiral('heart',
       { keys: ['top', 'front_heart', 'left_front_knee', 'left_foot'],        color: '#ffaa00', direction: 1 },
       { keys: ['bottom', 'back_heart', 'right_behind_knee', 'right_foot'],   color: '#ff8800', direction: -1 }
