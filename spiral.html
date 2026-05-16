@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>🌀 Объёмная восьмёрка — энергетическая структура</title>
+  <title>🌀 Объёмная восьмёрка — два потока энергии</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -37,7 +37,7 @@
     }
     button {
       padding: 12px 24px;
-      background: #101a2b;
+      background: rgba(10, 25, 45, 0.8);
       color: #0ff;
       border: 2px solid #0ff;
       border-radius: 30px;
@@ -46,8 +46,6 @@
       letter-spacing: 1px;
       cursor: pointer;
       transition: 0.2s;
-      backdrop-filter: blur(5px);
-      background: rgba(10, 25, 45, 0.8);
     }
     button:hover { background: #0ff; color: #000; }
     .hint {
@@ -69,18 +67,16 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Проекционные константы (изометрия)
-      const cosA = 0.5;  // примерно 30°
-      const sinA = 0.5;
+      // Изометрическая проекция
+      const cosA = 0.5, sinA = 0.5;
 
       // Мировые координаты (3D) контрольных точек
       let points = {
         heart:  { worldX: 0, worldY: 0, worldZ: 0 },
-        left:   { worldX: -90, worldY: 0, worldZ: 75 },  // передняя левая рука
-        right:  { worldX: 90, worldY: 0, worldZ: -75 }   // задняя правая рука
+        left:   { worldX: -90, worldY: 0, worldZ: 75 },   // впереди слева
+        right:  { worldX: 90, worldY: 0, worldZ: -75 }    // сзади справа
       };
 
-      // Экранные координаты (вычисляются)
       function worldToScreen(wx, wy, wz) {
         return {
           sx: wx + wz * cosA,
@@ -93,7 +89,6 @@
         return { wx, wy };
       }
 
-      // Для каждой точки храним её экранное положение (для отрисовки) и мировое
       let screenPoints = {
         heart: { sx: 0, sy: 0 },
         left: { sx: 0, sy: 0 },
@@ -107,14 +102,12 @@
         }
       }
 
-      // Перетаскивание
-      let dragTarget = null; // 'heart', 'left', 'right'
-      let offsetX = 0, offsetY = 0;
+      let dragTarget = null;
       let canvasOffsetX = 0, canvasOffsetY = 0;
 
       function getCanvasCoords(e) {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;   // canvas может быть масштабирован CSS
+        const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -128,7 +121,6 @@
         e.preventDefault();
         const { x, y } = getCanvasCoords(e);
         const clickRadius = 25;
-        // Проверяем попадание в экранные позиции точек
         const dist = (sx, sy) => Math.hypot(x - sx - canvasOffsetX, y - sy - canvasOffsetY);
         if (dist(screenPoints.heart.sx, screenPoints.heart.sy) < clickRadius) {
           dragTarget = 'heart';
@@ -139,19 +131,15 @@
         } else {
           dragTarget = null;
         }
-        if (dragTarget) {
-          canvas.style.cursor = 'grabbing';
-        }
+        if (dragTarget) canvas.style.cursor = 'grabbing';
       }
 
       function onPointerMove(e) {
         if (!dragTarget) return;
         e.preventDefault();
         const { x, y } = getCanvasCoords(e);
-        // Новое экранное положение
         const newSx = x - canvasOffsetX;
         const newSy = y - canvasOffsetY;
-        // Преобразуем обратно в мировые, сохраняя фиксированную Z
         const fixedWz = points[dragTarget].worldZ;
         const { wx, wy } = screenToWorld(newSx, newSy, fixedWz);
         points[dragTarget].worldX = wx;
@@ -172,36 +160,19 @@
       canvas.addEventListener('touchmove', onPointerMove, { passive: false });
       canvas.addEventListener('touchend', onPointerUp);
 
-      // Catmull-Rom сплайн (центростремительный, alpha=0.5)
+      // Catmull-Rom сплайн
       function catmullRom(p0, p1, p2, p3, t) {
-        const dt = 0.5; // фиксированный шаг для равномерности
-        const t2 = t * t;
-        const t3 = t2 * t;
-        const x = 0.5 * ((2*p1.worldX) +
-          (-p0.worldX + p2.worldX) * t +
-          (2*p0.worldX - 5*p1.worldX + 4*p2.worldX - p3.worldX) * t2 +
-          (-p0.worldX + 3*p1.worldX - 3*p2.worldX + p3.worldX) * t3);
-        const y = 0.5 * ((2*p1.worldY) +
-          (-p0.worldY + p2.worldY) * t +
-          (2*p0.worldY - 5*p1.worldY + 4*p2.worldY - p3.worldY) * t2 +
-          (-p0.worldY + 3*p1.worldY - 3*p2.worldY + p3.worldY) * t3);
-        const z = 0.5 * ((2*p1.worldZ) +
-          (-p0.worldZ + p2.worldZ) * t +
-          (2*p0.worldZ - 5*p1.worldZ + 4*p2.worldZ - p3.worldZ) * t2 +
-          (-p0.worldZ + 3*p1.worldZ - 3*p2.worldZ + p3.worldZ) * t3);
+        const t2 = t * t, t3 = t2 * t;
+        const x = 0.5 * ((2*p1.worldX) + (-p0.worldX + p2.worldX) * t + (2*p0.worldX - 5*p1.worldX + 4*p2.worldX - p3.worldX) * t2 + (-p0.worldX + 3*p1.worldX - 3*p2.worldX + p3.worldX) * t3);
+        const y = 0.5 * ((2*p1.worldY) + (-p0.worldY + p2.worldY) * t + (2*p0.worldY - 5*p1.worldY + 4*p2.worldY - p3.worldY) * t2 + (-p0.worldY + 3*p1.worldY - 3*p2.worldY + p3.worldY) * t3);
+        const z = 0.5 * ((2*p1.worldZ) + (-p0.worldZ + p2.worldZ) * t + (2*p0.worldZ - 5*p1.worldZ + 4*p2.worldZ - p3.worldZ) * t2 + (-p0.worldZ + 3*p1.worldZ - 3*p2.worldZ + p3.worldZ) * t3);
         return { worldX: x, worldY: y, worldZ: z };
       }
 
-      function getCurvePoints(numPoints = 200) {
-        // Последовательность: heart, left, heart, right (замкнуто)
-        const pts = [
-          points.heart,
-          points.left,
-          points.heart,
-          points.right
-        ];
+      function getCurvePoints(numPoints = 240) {
+        const pts = [points.heart, points.left, points.heart, points.right];
         const result = [];
-        const segments = pts.length; // 4 сегмента
+        const segments = pts.length;
         for (let i = 0; i < segments; i++) {
           const p0 = pts[(i - 1 + segments) % segments];
           const p1 = pts[i];
@@ -213,15 +184,13 @@
             result.push(catmullRom(p0, p1, p2, p3, t));
           }
         }
-        // Добавляем последнюю точку для замыкания
-        result.push(result[0]);
+        result.push(result[0]); // замыкание
         return result;
       }
 
-      // Анимация
       let playing = false;
-      let animProgress = 0; // 0..1
-      const animSpeed = 0.15; // циклов в секунду (медленно)
+      let progress = 0;          // основная частица (идёт heart -> left -> ...)
+      const animSpeed = 0.12;   // циклов в секунду
       let lastTime = performance.now();
 
       const playBtn = document.getElementById('playBtn');
@@ -231,6 +200,8 @@
         if (playing) {
           lastTime = performance.now();
           requestAnimationFrame(animate);
+        } else {
+          draw(); // перерисовка для статичной геометрии
         }
       });
 
@@ -238,38 +209,34 @@
         if (!playing) return;
         const dt = (now - lastTime) / 1000;
         lastTime = now;
-        animProgress = (animProgress + animSpeed * dt) % 1.0;
+        progress = (progress + animSpeed * dt) % 1.0;
         draw();
         requestAnimationFrame(animate);
       }
 
       function draw() {
-        if (!canvas.width) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Фоновая сетка (полупрозрачные линии, идущие по XZ)
+        // Лёгкая сетка
         ctx.save();
-        ctx.strokeStyle = 'rgba(0,255,255,0.08)';
+        ctx.strokeStyle = 'rgba(0,255,255,0.06)';
         ctx.lineWidth = 1;
-        const gridSize = 40;
-        for (let gx = -200; gx <= 200; gx += gridSize) {
-          for (let gz = -200; gz <= 200; gz += gridSize) {
-            const { sx, sy } = worldToScreen(gx, 0, gz);
-            const sx2 = worldToScreen(gx + gridSize, 0, gz).sx;
-            const sy2 = worldToScreen(gx + gridSize, 0, gz).sy;
+        for (let gx = -200; gx <= 200; gx += 40) {
+          for (let gz = -200; gz <= 200; gz += 40) {
+            const p1 = worldToScreen(gx, 0, gz);
+            const p2 = worldToScreen(gx + 40, 0, gz);
             ctx.beginPath();
-            ctx.moveTo(sx + canvasOffsetX, sy + canvasOffsetY);
-            ctx.lineTo(sx2 + canvasOffsetX, sy2 + canvasOffsetY);
+            ctx.moveTo(p1.sx + canvasOffsetX, p1.sy + canvasOffsetY);
+            ctx.lineTo(p2.sx + canvasOffsetX, p2.sy + canvasOffsetY);
             ctx.stroke();
           }
         }
         ctx.restore();
 
-        // Кривая восьмёрки
         const curve = getCurvePoints(240);
         if (curve.length < 2) return;
 
-        // Рисуем неоновую линию (несколько слоёв для свечения)
+        // Рисуем саму восьмёрку (неоновая)
         function drawGlowLine(pointsArray, color, width, blur, alpha = 1) {
           ctx.save();
           ctx.strokeStyle = color;
@@ -290,13 +257,12 @@
           ctx.restore();
         }
 
-        drawGlowLine(curve, '#ff3366', 2.5, 20, 0.9);
-        drawGlowLine(curve, '#ff3366', 1.5, 30, 0.6);
-        drawGlowLine(curve, '#00ffff', 1, 25, 0.5);
+        drawGlowLine(curve, '#ff3366', 2.5, 18, 0.8);
+        drawGlowLine(curve, '#ff3366', 1.5, 28, 0.5);
+        drawGlowLine(curve, '#00ffff', 1.2, 22, 0.4);
 
         // Контрольные точки
         function drawPoint(sx, sy, color, label) {
-          // свечение
           ctx.save();
           ctx.shadowColor = color;
           ctx.shadowBlur = 25;
@@ -309,7 +275,6 @@
           ctx.beginPath();
           ctx.arc(sx + canvasOffsetX, sy + canvasOffsetY, 6, 0, 2*Math.PI);
           ctx.fill();
-          // подпись
           ctx.font = '12px system-ui';
           ctx.fillStyle = '#fff';
           ctx.shadowColor = '#000';
@@ -322,28 +287,32 @@
         drawPoint(screenPoints.left.sx, screenPoints.left.sy, '#ff3366', 'Левая рука');
         drawPoint(screenPoints.right.sx, screenPoints.right.sy, '#3388ff', 'Правая рука');
 
-        // Анимированная частица энергии
-        if (playing || animProgress > 0) {
-          const index = Math.floor(animProgress * (curve.length - 1));
+        // Две частицы энергии, движущиеся в противоположных направлениях
+        const progress2 = (progress + 0.5) % 1.0;
+        function drawParticle(prog, color) {
+          const index = Math.floor(prog * (curve.length - 1));
           const point = curve[index];
           const { sx, sy } = worldToScreen(point.worldX, point.worldY, point.worldZ);
           const px = sx + canvasOffsetX;
           const py = sy + canvasOffsetY;
 
           ctx.save();
-          ctx.shadowColor = '#ffffff';
+          ctx.shadowColor = color;
           ctx.shadowBlur = 35;
-          ctx.fillStyle = '#ffffff';
+          ctx.fillStyle = color;
           ctx.beginPath();
           ctx.arc(px, py, 7, 0, 2*Math.PI);
           ctx.fill();
           ctx.shadowBlur = 50;
-          ctx.fillStyle = '#ffddff';
+          ctx.fillStyle = '#ffffff';
           ctx.beginPath();
           ctx.arc(px, py, 4, 0, 2*Math.PI);
           ctx.fill();
           ctx.restore();
         }
+
+        drawParticle(progress, '#ff66aa');      // розовая частица (heart -> left -> ...)
+        drawParticle(progress2, '#66aaff');    // голубая частица (heart -> right -> ...)
       }
 
       function resize() {
@@ -358,8 +327,6 @@
 
       window.addEventListener('resize', resize);
       resize();
-      // начальный вызов draw
-      draw();
     })();
   </script>
 </body>
