@@ -6,98 +6,45 @@
   <title>🌀 Две спирали — полный экран</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      height: 100%;
-      background: #05070f;
-      overflow: hidden;
-      font-family: system-ui, sans-serif;
-    }
+    html, body { height: 100%; background: #05070f; overflow: hidden; font-family: system-ui, sans-serif; }
     canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-      touch-action: none;
-      background: #010314;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      border: none; touch-action: none; background: #010314;
     }
     .ui-panel {
-      position: fixed;
-      top: 12px;
-      right: 12px;
-      background: rgba(10, 25, 45, 0.75);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(0, 255, 255, 0.4);
-      border-radius: 16px;
-      padding: 10px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 10;
-      min-width: 150px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+      position: fixed; top: 12px; right: 12px;
+      background: rgba(10, 25, 45, 0.75); backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 255, 255, 0.4); border-radius: 16px;
+      padding: 10px 14px; display: flex; flex-direction: column; gap: 8px;
+      z-index: 10; min-width: 150px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
     }
     .ui-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      color: #0ff;
-      font-size: 13px;
-      white-space: nowrap;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; color: #0ff; font-size: 13px; white-space: nowrap;
     }
     button {
-      padding: 8px 14px;
-      font-size: 13px;
-      background: rgba(10, 25, 45, 0.9);
-      color: #0ff;
-      border: 1px solid #0ff;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.2s;
-      -webkit-tap-highlight-color: transparent;
-      backdrop-filter: blur(4px);
-      flex: 1;
+      padding: 8px 14px; font-size: 13px; background: rgba(10, 25, 45, 0.9);
+      color: #0ff; border: 1px solid #0ff; border-radius: 20px; cursor: pointer;
+      transition: all 0.2s; backdrop-filter: blur(4px); flex: 1;
     }
     button:active { transform: scale(0.96); }
     button.playing { background: #0ff; color: #000; }
     input[type="range"] {
-      width: 100%;
-      background: #0a1929;
-      height: 4px;
-      border-radius: 2px;
-      -webkit-appearance: none;
-      appearance: none;
-      outline: none;
-      cursor: pointer;
+      width: 100%; background: #0a1929; height: 4px; border-radius: 2px;
+      -webkit-appearance: none; appearance: none; outline: none; cursor: pointer;
     }
     input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      background: #0ff;
-      border-radius: 50%;
-      border: 2px solid #000;
+      -webkit-appearance: none; width: 16px; height: 16px;
+      background: #0ff; border-radius: 50%; border: 2px solid #000;
     }
-    .speed-value {
-      font-weight: bold;
-      color: #0ff;
-      min-width: 36px;
-      text-align: right;
-    }
+    .speed-value { font-weight: bold; color: #0ff; min-width: 36px; text-align: right; }
     @media (max-width: 400px) {
-      .ui-panel {
-        top: 8px;
-        right: 8px;
-        padding: 8px 10px;
-      }
+      .ui-panel { top: 8px; right: 8px; padding: 8px 10px; }
     }
   </style>
 </head>
 <body>
   <canvas id="canvas"></canvas>
-
   <div class="ui-panel">
     <button id="playBtn">▶ Play</button>
     <button id="resetBtn">↺ Сброс</button>
@@ -115,7 +62,7 @@
         this.ctx = canvas.getContext('2d');
         this.defaultPoints = defaultPoints;
         this.points = {};
-        this.rays = []; // { out: { keys, color, direction }, in: { keys, color, direction } }
+        this.rays = [];
         this.dragTarget = null;
         this.playing = false;
         this.time = 0;
@@ -128,15 +75,13 @@
         this.animationLoop();
       }
 
-      setSpeed(val) {
-        this.animSpeed = val;
-      }
+      setSpeed(val) { this.animSpeed = val; }
 
-      // out и in — объекты с полями keys, color, direction (1 или -1)
-      makeSpiralOutIn(out, in_) {
+      // out и in — объекты { keys, color, direction? } (direction по умолчанию 1)
+      makeSpiralOutIn(out, inp) {
         this.rays.push({
           out: { ...out, direction: out.direction ?? 1 },
-          in:  { ...in_, direction: in_.direction ?? 1 }
+          in:  { ...inp, direction: inp.direction ?? 1 }
         });
       }
 
@@ -202,7 +147,7 @@
             result.push(this.catmullRom(p0, p1, p2, p3, s / stepsPerSegment));
           }
         }
-        result.push(pts[0]);
+        result.push(pts[0]); // замыкание
         return result;
       }
 
@@ -271,18 +216,18 @@
 
         for (let ray of this.rays) {
           const outCurve = this.buildLoop(ray.out.keys);
-          const inCurve = this.buildLoop(ray.in.keys);
+          const inCurve  = this.buildLoop(ray.in.keys);
 
+          // Статические линии
           this.drawCurve(outCurve, ray.out.color + '44', 3, 20, 1);
           this.drawCurve(inCurve,  ray.in.color  + '44', 3, 20, 1);
 
-          // Учитываем направление для каждой ветки
-          const outProgress = ray.out.direction === 1 ? t : (1 - t + 1) % 1;
-          const inProgress  = ray.in.direction  === 1 ? t : (1 - t + 1) % 1;
-          this.drawParticle(outCurve, outProgress, ray.out.color);
-          this.drawParticle(inCurve,  inProgress,  ray.in.color);
+          // Частицы: обе стартуют из сердца и движутся по своим веткам одновременно
+          this.drawParticle(outCurve, t, ray.out.color);
+          this.drawParticle(inCurve,  t, ray.in.color);
         }
 
+        // Узлы
         const colorMap = {
           heart: '#ffffff',
           front_left: '#3399ff', left: '#3399ff', behind_left: '#3399ff',
@@ -360,7 +305,7 @@
       }
     }
 
-    // --- Инициализация ---
+    // ---------- НАЧАЛЬНАЯ КОНФИГУРАЦИЯ ----------
     const defaultPoints = {
       heart:        { rx: 0.50, ry: 0.50 },
       front_left:   { rx: 0.30, ry: 0.25 },
@@ -380,19 +325,19 @@
     const canvas = document.getElementById('canvas');
     const energy = new SpiralEnergy(canvas, defaultPoints);
 
-    // Горизонтальная спираль: out (синий) через левую сторону, in (красный) через правую
+    // Горизонтальная восьмёрка: синий через левую руку, красный через правую
     energy.makeSpiralOutIn(
-      { keys: ['front_left', 'left', 'behind_left'], color: '#3399ff', direction: 1 },
-      { keys: ['behind_right', 'right', 'front_right'], color: '#ff3366', direction: -1 }
+      { keys: ['front_left', 'left', 'behind_left'],       color: '#3399ff' },
+      { keys: ['behind_right', 'right', 'front_right'],    color: '#ff3366' }
     );
 
-    // Вертикальная спираль: out (жёлтый) вверх через макушку и левую ступню, in (оранжевый) вниз через копчик и правую ступню
+    // Вертикальная восьмёрка: жёлтый через макушку и левую ступню, оранжевый через копчик и правую ступню
     energy.makeSpiralOutIn(
-      { keys: ['top', 'front_heart', 'left_foot'], color: '#ffaa00', direction: 1 },
-      { keys: ['bottom', 'back_heart', 'right_foot'], color: '#ff8800', direction: -1 }
+      { keys: ['top', 'front_heart', 'left_foot'],         color: '#ffaa00' },
+      { keys: ['bottom', 'back_heart', 'right_foot'],      color: '#ff8800' }
     );
 
-    // Управление
+    // ---------- КНОПКИ ----------
     document.getElementById('playBtn').addEventListener('click', () => {
       energy.playing = !energy.playing;
       const btn = document.getElementById('playBtn');
