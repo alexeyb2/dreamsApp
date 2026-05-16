@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>🌀 Объёмная восьмёрка — два потока энергии</title>
+  <title>🌀 Объёмная восьмёрка — два потока</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -70,7 +70,7 @@
       // Изометрическая проекция
       const cosA = 0.5, sinA = 0.5;
 
-      // Мировые координаты (3D) контрольных точек
+      // Мировые координаты контрольных точек
       let points = {
         heart:  { worldX: 0, worldY: 0, worldZ: 0 },
         left:   { worldX: -90, worldY: 0, worldZ: 75 },   // впереди слева
@@ -84,21 +84,17 @@
         };
       }
       function screenToWorld(sx, sy, fixedWz) {
-        const wx = sx - fixedWz * cosA;
-        const wy = -(sy - fixedWz * sinA);
-        return { wx, wy };
+        return {
+          wx: sx - fixedWz * cosA,
+          wy: -(sy - fixedWz * sinA)
+        };
       }
 
-      let screenPoints = {
-        heart: { sx: 0, sy: 0 },
-        left: { sx: 0, sy: 0 },
-        right: { sx: 0, sy: 0 }
-      };
+      let screenPoints = { heart: null, left: null, right: null };
 
       function updateScreenPoints() {
         for (let key in points) {
-          const { worldX, worldY, worldZ } = points[key];
-          Object.assign(screenPoints[key], worldToScreen(worldX, worldY, worldZ));
+          screenPoints[key] = worldToScreen(points[key].worldX, points[key].worldY, points[key].worldZ);
         }
       }
 
@@ -121,17 +117,15 @@
         e.preventDefault();
         const { x, y } = getCanvasCoords(e);
         const clickRadius = 25;
-        const dist = (sx, sy) => Math.hypot(x - sx - canvasOffsetX, y - sy - canvasOffsetY);
-        if (dist(screenPoints.heart.sx, screenPoints.heart.sy) < clickRadius) {
-          dragTarget = 'heart';
-        } else if (dist(screenPoints.left.sx, screenPoints.left.sy) < clickRadius) {
-          dragTarget = 'left';
-        } else if (dist(screenPoints.right.sx, screenPoints.right.sy) < clickRadius) {
-          dragTarget = 'right';
-        } else {
-          dragTarget = null;
+        for (let key of ['heart', 'left', 'right']) {
+          const sp = screenPoints[key];
+          if (Math.hypot(x - sp.sx - canvasOffsetX, y - sp.sy - canvasOffsetY) < clickRadius) {
+            dragTarget = key;
+            canvas.style.cursor = 'grabbing';
+            return;
+          }
         }
-        if (dragTarget) canvas.style.cursor = 'grabbing';
+        dragTarget = null;
       }
 
       function onPointerMove(e) {
@@ -163,34 +157,47 @@
       // Catmull-Rom сплайн
       function catmullRom(p0, p1, p2, p3, t) {
         const t2 = t * t, t3 = t2 * t;
-        const x = 0.5 * ((2*p1.worldX) + (-p0.worldX + p2.worldX) * t + (2*p0.worldX - 5*p1.worldX + 4*p2.worldX - p3.worldX) * t2 + (-p0.worldX + 3*p1.worldX - 3*p2.worldX + p3.worldX) * t3);
-        const y = 0.5 * ((2*p1.worldY) + (-p0.worldY + p2.worldY) * t + (2*p0.worldY - 5*p1.worldY + 4*p2.worldY - p3.worldY) * t2 + (-p0.worldY + 3*p1.worldY - 3*p2.worldY + p3.worldY) * t3);
-        const z = 0.5 * ((2*p1.worldZ) + (-p0.worldZ + p2.worldZ) * t + (2*p0.worldZ - 5*p1.worldZ + 4*p2.worldZ - p3.worldZ) * t2 + (-p0.worldZ + 3*p1.worldZ - 3*p2.worldZ + p3.worldZ) * t3);
-        return { worldX: x, worldY: y, worldZ: z };
+        const interp = (a, b, c, d) => 0.5 * ((2*b) + (-a + c) * t + (2*a - 5*b + 4*c - d) * t2 + (-a + 3*b - 3*c + d) * t3);
+        return {
+          worldX: interp(p0.worldX, p1.worldX, p2.worldX, p3.worldX),
+          worldY: interp(p0.worldY, p1.worldY, p2.worldY, p3.worldY),
+          worldZ: interp(p0.worldZ, p1.worldZ, p2.worldZ, p3.worldZ)
+        };
       }
 
-      function getCurvePoints(numPoints = 240) {
+      function buildCurve() {
         const pts = [points.heart, points.left, points.heart, points.right];
-        const result = [];
-        const segments = pts.length;
-        for (let i = 0; i < segments; i++) {
-          const p0 = pts[(i - 1 + segments) % segments];
+        const curve = [];
+        const stepsPerSegment = 80;
+        for (let i = 0; i < pts.length; i++) {
+          const p0 = pts[(i - 1 + pts.length) % pts.length];
           const p1 = pts[i];
-          const p2 = pts[(i + 1) % segments];
-          const p3 = pts[(i + 2) % segments];
-          const steps = Math.floor(numPoints / segments);
-          for (let s = 0; s < steps; s++) {
-            const t = s / steps;
-            result.push(catmullRom(p0, p1, p2, p3, t));
+          const p2 = pts[(i + 1) % pts.length];
+          const p3 = pts[(i + 2) % pts.length];
+          for (let s = 0; s < stepsPerSegment; s++) {
+            const t = s / stepsPerSegment;
+            curve.push(catmullRom(p0, p1, p2, p3, t));
           }
         }
-        result.push(result[0]); // замыкание
-        return result;
+        curve.push(curve[0]); // замкнуть
+        return curve;
+      }
+
+      // Разделение кривой на две петли по индексам
+      function splitCurve(curve) {
+        const n = curve.length;
+        // heart->left->heart: индексы от 0 до примерно 2*80 = 160
+        const blueEnd = 2 * 80;
+        const blueLoop = curve.slice(0, blueEnd + 1);
+        // heart->right->heart: индексы от blueEnd до n-1
+        const redLoop = curve.slice(blueEnd, n);
+        return { blueLoop, redLoop };
       }
 
       let playing = false;
-      let progress = 0;          // основная частица (идёт heart -> left -> ...)
-      const animSpeed = 0.12;   // циклов в секунду
+      let progressBlue = 0;   // для синей частицы (движется по синей петле)
+      let progressRed = 0;    // для красной частицы (движется по красной петле)
+      const animSpeed = 0.15; // циклов в секунду
       let lastTime = performance.now();
 
       const playBtn = document.getElementById('playBtn');
@@ -201,7 +208,7 @@
           lastTime = performance.now();
           requestAnimationFrame(animate);
         } else {
-          draw(); // перерисовка для статичной геометрии
+          draw();
         }
       });
 
@@ -209,7 +216,10 @@
         if (!playing) return;
         const dt = (now - lastTime) / 1000;
         lastTime = now;
-        progress = (progress + animSpeed * dt) % 1.0;
+        // Синяя частица идёт вперёд (heart -> left -> heart)
+        progressBlue = (progressBlue + animSpeed * dt) % 1.0;
+        // Красная частица идёт в обратном направлении (heart -> right -> heart)
+        progressRed = (progressRed - animSpeed * dt + 1.0) % 1.0;
         draw();
         requestAnimationFrame(animate);
       }
@@ -217,9 +227,9 @@
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Лёгкая сетка
+        // Сетка
         ctx.save();
-        ctx.strokeStyle = 'rgba(0,255,255,0.06)';
+        ctx.strokeStyle = 'rgba(0,255,255,0.05)';
         ctx.lineWidth = 1;
         for (let gx = -200; gx <= 200; gx += 40) {
           for (let gz = -200; gz <= 200; gz += 40) {
@@ -233,11 +243,13 @@
         }
         ctx.restore();
 
-        const curve = getCurvePoints(240);
+        const curve = buildCurve();
         if (curve.length < 2) return;
+        const { blueLoop, redLoop } = splitCurve(curve);
 
-        // Рисуем саму восьмёрку (неоновая)
-        function drawGlowLine(pointsArray, color, width, blur, alpha = 1) {
+        // Функция отрисовки линии с свечением
+        function drawGlowLine(loop, color, width, blur, alpha = 1) {
+          if (loop.length < 2) return;
           ctx.save();
           ctx.strokeStyle = color;
           ctx.lineWidth = width;
@@ -245,57 +257,56 @@
           ctx.shadowBlur = blur;
           ctx.globalAlpha = alpha;
           ctx.beginPath();
-          for (let i = 0; i < pointsArray.length; i++) {
-            const { worldX, worldY, worldZ } = pointsArray[i];
-            const { sx, sy } = worldToScreen(worldX, worldY, worldZ);
+          loop.forEach((pt, i) => {
+            const { sx, sy } = worldToScreen(pt.worldX, pt.worldY, pt.worldZ);
             const px = sx + canvasOffsetX;
             const py = sy + canvasOffsetY;
             if (i === 0) ctx.moveTo(px, py);
             else ctx.lineTo(px, py);
-          }
+          });
           ctx.stroke();
           ctx.restore();
         }
 
-        drawGlowLine(curve, '#ff3366', 2.5, 18, 0.8);
-        drawGlowLine(curve, '#ff3366', 1.5, 28, 0.5);
-        drawGlowLine(curve, '#00ffff', 1.2, 22, 0.4);
+        // Рисуем петли разными цветами
+        drawGlowLine(blueLoop, '#3399ff', 3, 20, 0.9);   // синяя (передняя)
+        drawGlowLine(blueLoop, '#3399ff', 1.5, 30, 0.6);
+        drawGlowLine(redLoop, '#ff3366', 3, 20, 0.9);    // красная (задняя)
+        drawGlowLine(redLoop, '#ff3366', 1.5, 30, 0.6);
 
         // Контрольные точки
-        function drawPoint(sx, sy, color, label) {
+        function drawPoint(sp, color, label) {
           ctx.save();
           ctx.shadowColor = color;
           ctx.shadowBlur = 25;
           ctx.fillStyle = color;
           ctx.beginPath();
-          ctx.arc(sx + canvasOffsetX, sy + canvasOffsetY, 12, 0, 2*Math.PI);
+          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 12, 0, 2*Math.PI);
           ctx.fill();
           ctx.shadowBlur = 0;
           ctx.fillStyle = '#fff';
           ctx.beginPath();
-          ctx.arc(sx + canvasOffsetX, sy + canvasOffsetY, 6, 0, 2*Math.PI);
+          ctx.arc(sp.sx + canvasOffsetX, sp.sy + canvasOffsetY, 5, 0, 2*Math.PI);
           ctx.fill();
           ctx.font = '12px system-ui';
           ctx.fillStyle = '#fff';
           ctx.shadowColor = '#000';
           ctx.shadowBlur = 4;
-          ctx.fillText(label, sx + canvasOffsetX + 15, sy + canvasOffsetY - 10);
+          ctx.fillText(label, sp.sx + canvasOffsetX + 15, sp.sy + canvasOffsetY - 10);
           ctx.restore();
         }
 
-        drawPoint(screenPoints.heart.sx, screenPoints.heart.sy, '#ff66aa', 'Сердце');
-        drawPoint(screenPoints.left.sx, screenPoints.left.sy, '#ff3366', 'Левая рука');
-        drawPoint(screenPoints.right.sx, screenPoints.right.sy, '#3388ff', 'Правая рука');
+        drawPoint(screenPoints.heart, '#ff66aa', 'Сердце');
+        drawPoint(screenPoints.left, '#3399ff', 'Левая рука');
+        drawPoint(screenPoints.right, '#ff3366', 'Правая рука');
 
-        // Две частицы энергии, движущиеся в противоположных направлениях
-        const progress2 = (progress + 0.5) % 1.0;
-        function drawParticle(prog, color) {
-          const index = Math.floor(prog * (curve.length - 1));
-          const point = curve[index];
-          const { sx, sy } = worldToScreen(point.worldX, point.worldY, point.worldZ);
+        // Частицы
+        function drawParticle(loop, progress, color) {
+          const idx = Math.floor(progress * (loop.length - 1));
+          const pt = loop[idx];
+          const { sx, sy } = worldToScreen(pt.worldX, pt.worldY, pt.worldZ);
           const px = sx + canvasOffsetX;
           const py = sy + canvasOffsetY;
-
           ctx.save();
           ctx.shadowColor = color;
           ctx.shadowBlur = 35;
@@ -306,13 +317,13 @@
           ctx.shadowBlur = 50;
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(px, py, 4, 0, 2*Math.PI);
+          ctx.arc(px, py, 3, 0, 2*Math.PI);
           ctx.fill();
           ctx.restore();
         }
 
-        drawParticle(progress, '#ff66aa');      // розовая частица (heart -> left -> ...)
-        drawParticle(progress2, '#66aaff');    // голубая частица (heart -> right -> ...)
+        drawParticle(blueLoop, progressBlue, '#3399ff');  // синяя частица на передней петле
+        drawParticle(redLoop, progressRed, '#ff3366');   // красная частица на задней петле
       }
 
       function resize() {
