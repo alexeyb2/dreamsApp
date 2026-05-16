@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>🌀 Идеальная восьмёрка</title>
+  <title>🌀 Идеальная восьмёрка — два потока</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; background: #05070f; }
@@ -89,7 +89,7 @@
         }
       }
 
-      // Catmull-Rom интерполяция между p1 и p2 с учётом p0 и p3
+      // Catmull-Rom сплайн
       function catmullRom(p0, p1, p2, p3, t) {
         const t2 = t * t, t3 = t2 * t;
         return {
@@ -98,7 +98,7 @@
         };
       }
 
-      // Построение замкнутой петли через массив точек (heart, a, hand, b, heart)
+      // Построение замкнутой петли: heart -> a -> hand -> b -> heart
       function buildLoop(heart, a, hand, b, steps = 280) {
         const pts = [heart, a, hand, b, heart];
         const segments = pts.length - 1;
@@ -186,21 +186,23 @@
         const rightHand = points.right;
         const behindRight = points.behind_right;
 
-        // Передняя петля: сердце -> перед L -> левая -> за L -> сердце
-        const frontLoop = buildLoop(heart, frontLeft, leftHand, behindLeft);
-        // Задняя петля: сердце -> перед R -> правая -> за R -> сердце
-        const backLoop = buildLoop(heart, frontRight, rightHand, behindRight);
+        // Петли
+        const frontLoop = buildLoop(heart, frontLeft, leftHand, behindLeft); // синяя
+        const backLoop = buildLoop(heart, frontRight, rightHand, behindRight); // красная
 
-        // Отрисовка статических линий
+        // Статические линии
         drawCurve(frontLoop, 'rgba(51,153,255,0.4)', 3, 20, 1);
         drawCurve(backLoop, 'rgba(255,51,102,0.4)', 3, 20, 1);
 
-        const t = time % 1.0; // циклический прогресс
+        const t = time % 1.0;
 
-        // Два шара, стартующие из центра в противоположные стороны (по разным петлям)
-        // Синий шар по передней петле, красный по задней
+        // Два шара, разлетающиеся из сердца в противоположные стороны
+        // Синий – по передней петле (heart → перед L)
         drawParticle(frontLoop, t, '#3399ff', 7);
-        drawParticle(backLoop, t, '#ff3366', 7);
+
+        // Красный – по задней петле в обратном направлении (heart → за R)
+        const redProgress = (1 - t + 1) % 1;
+        drawParticle(backLoop, redProgress, '#ff3366', 7);
 
         // Узлы
         drawNode(heart, '#ffffff', 'Сердце', 18);
@@ -221,7 +223,7 @@
         requestAnimationFrame(animationLoop);
       }
 
-      // Перетаскивание (указатели)
+      // Перетаскивание
       function getCanvasPos(e) {
         const rect = canvas.getBoundingClientRect();
         return {
