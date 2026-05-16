@@ -3,57 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>🌀 Две спирали — лучи из сердца</title>
+  <title>🌀 Две спирали — полный экран</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; background: #05070f; }
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 8px;
+    html, body {
+      height: 100%;
+      background: #05070f;
+      overflow: hidden;
       font-family: system-ui, sans-serif;
-      color: #0ff;
     }
     canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      max-width: 100vw;
-      height: auto;
-      max-height: calc(100vh - 80px);
-      aspect-ratio: 1 / 1;
-      border: 2px solid #0ff;
-      border-radius: 20px;
-      background: #010314;
+      height: 100%;
+      border: none;
       touch-action: none;
+      background: #010314;
     }
-    .controls {
-      margin-top: 10px;
+    .ui-panel {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: rgba(10, 25, 45, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 255, 255, 0.4);
+      border-radius: 16px;
+      padding: 10px 14px;
       display: flex;
+      flex-direction: column;
       gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
+      z-index: 10;
+      min-width: 150px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
+    .ui-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: #0ff;
+      font-size: 13px;
+      white-space: nowrap;
     }
     button {
-      padding: 10px 18px;
-      font-size: 14px;
+      padding: 8px 14px;
+      font-size: 13px;
       background: rgba(10, 25, 45, 0.9);
       color: #0ff;
-      border: 2px solid #0ff;
-      border-radius: 30px;
+      border: 1px solid #0ff;
+      border-radius: 20px;
       cursor: pointer;
       transition: all 0.2s;
       -webkit-tap-highlight-color: transparent;
+      backdrop-filter: blur(4px);
+      flex: 1;
     }
     button:active { transform: scale(0.96); }
     button.playing { background: #0ff; color: #000; }
+    input[type="range"] {
+      width: 100%;
+      background: #0a1929;
+      height: 4px;
+      border-radius: 2px;
+      -webkit-appearance: none;
+      appearance: none;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #0ff;
+      border-radius: 50%;
+      border: 2px solid #000;
+    }
+    .speed-value {
+      font-weight: bold;
+      color: #0ff;
+      min-width: 36px;
+      text-align: right;
+    }
+    @media (max-width: 400px) {
+      .ui-panel {
+        top: 8px;
+        right: 8px;
+        padding: 8px 10px;
+      }
+    }
   </style>
 </head>
 <body>
   <canvas id="canvas"></canvas>
-  <div class="controls">
+
+  <div class="ui-panel">
     <button id="playBtn">▶ Play</button>
     <button id="resetBtn">↺ Сброс</button>
+    <div class="ui-row">
+      <span>Скорость</span>
+      <span class="speed-value" id="speedValue">0.12</span>
+    </div>
+    <input type="range" id="speedSlider" min="0.03" max="0.5" step="0.01" value="0.12">
   </div>
 
   <script>
@@ -61,15 +113,14 @@
       constructor(canvas, defaultPoints) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.defaultPoints = defaultPoints; // { key: { rx, ry } } – исходные пропорции
-        this.points = {};                   // текущие пиксельные координаты
-        this.rays = [];                     // { out: { keys, color }, in: { keys, color } }
+        this.defaultPoints = defaultPoints;
+        this.points = {};
+        this.rays = [];
         this.dragTarget = null;
         this.playing = false;
         this.time = 0;
         this.animSpeed = 0.12;
 
-        // Загружаем сохранённые пропорции или используем дефолтные
         this.loadPoints();
         this.initPoints();
         this.bindEvents();
@@ -77,7 +128,10 @@
         this.animationLoop();
       }
 
-      // Добавляет пару лучей: out (цвет outColor) проходит через outKeys, in (цвет inColor) через inKeys
+      setSpeed(val) {
+        this.animSpeed = val;
+      }
+
       makeSpiralOutIn(outKeys, outColor, inKeys, inColor) {
         this.rays.push({
           out: { keys: outKeys, color: outColor },
@@ -85,24 +139,21 @@
         });
       }
 
-      // Загрузка сохранённых пропорций из localStorage
       loadPoints() {
         const saved = localStorage.getItem('energyPoints');
         if (saved) {
           try {
             const data = JSON.parse(saved);
-            // Обновляем дефолтные пропорции, если ключи совпадают
             for (let key in data) {
               if (this.defaultPoints.hasOwnProperty(key)) {
                 this.defaultPoints[key].rx = data[key].rx;
                 this.defaultPoints[key].ry = data[key].ry;
               }
             }
-          } catch (e) { /* игнорируем ошибки */ }
+          } catch (e) {}
         }
       }
 
-      // Сохранение текущих пропорций в localStorage
       savePoints() {
         const data = {};
         for (let key in this.points) {
@@ -114,7 +165,6 @@
         localStorage.setItem('energyPoints', JSON.stringify(data));
       }
 
-      // Пересчёт пиксельных координат на основе пропорций (вызывается при ресайзе или сбросе)
       initPoints() {
         const w = this.canvas.width;
         const h = this.canvas.height;
@@ -126,7 +176,6 @@
         }
       }
 
-      // Catmull-Rom сплайн
       catmullRom(p0, p1, p2, p3, t) {
         const t2 = t * t, t3 = t2 * t;
         return {
@@ -135,13 +184,12 @@
         };
       }
 
-      // Построение замкнутой петли: heart → keys → heart
       buildLoop(keys, steps = 300) {
         const allKeys = ['heart', ...keys, 'heart'];
         const pts = allKeys.map(k => this.points[k]);
-        const n = pts.length; // должно быть >= 3
+        const n = pts.length;
         if (n < 2) return [];
-        const segments = n - 1; // замкнутая: heart→...→heart
+        const segments = n - 1;
         const stepsPerSegment = Math.floor(steps / segments);
         const result = [];
         for (let i = 0; i < segments; i++) {
@@ -153,7 +201,7 @@
             result.push(this.catmullRom(p0, p1, p2, p3, s / stepsPerSegment));
           }
         }
-        result.push(pts[0]); // замыкание
+        result.push(pts[0]);
         return result;
       }
 
@@ -220,21 +268,15 @@
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         const t = this.time % 1.0;
 
-        // Для каждого луча строим петли по текущим позициям точек
         for (let ray of this.rays) {
           const outCurve = this.buildLoop(ray.out.keys);
           const inCurve = this.buildLoop(ray.in.keys);
-
-          // Статические полупрозрачные линии
           this.drawCurve(outCurve, ray.out.color + '44', 3, 20, 1);
           this.drawCurve(inCurve,  ray.in.color  + '44', 3, 20, 1);
-
-          // Частицы, одновременно вылетающие из сердца по обеим веткам
           this.drawParticle(outCurve, t, ray.out.color);
           this.drawParticle(inCurve,  t, ray.in.color);
         }
 
-        // Подписи узлов
         const colorMap = {
           heart: '#ffffff',
           front_left: '#3399ff', left: '#3399ff', behind_left: '#3399ff',
@@ -285,14 +327,13 @@
         const pos = this.getCanvasPos(e);
         this.points[this.dragTarget].x = pos.x;
         this.points[this.dragTarget].y = pos.y;
-        // Обновляем пропорциональные координаты в реальном времени
         this.defaultPoints[this.dragTarget].rx = pos.x / this.canvas.width;
         this.defaultPoints[this.dragTarget].ry = pos.y / this.canvas.height;
       }
 
       onPointerUp(e) {
         if (this.dragTarget) {
-          this.savePoints(); // автоматическое сохранение после перемещения
+          this.savePoints();
           this.dragTarget = null;
         }
         this.canvas.releasePointerCapture(e.pointerId);
@@ -305,14 +346,13 @@
       }
 
       resize() {
-        const maxSize = Math.min(window.innerWidth - 16, window.innerHeight - 80, 800);
-        this.canvas.width = maxSize;
-        this.canvas.height = maxSize;
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
         this.initPoints();
       }
     }
 
-    // --- Конфигурация ---
+    // --- Инициализация ---
     const defaultPoints = {
       heart:        { rx: 0.50, ry: 0.50 },
       front_left:   { rx: 0.30, ry: 0.25 },
@@ -330,23 +370,21 @@
     const canvas = document.getElementById('canvas');
     const energy = new SpiralEnergy(canvas, defaultPoints);
 
-    // Горизонтальная спираль: синий луч (левая сторона) и красный (правая)
     energy.makeSpiralOutIn(
-      ['front_left', 'left', 'behind_left'],       // outKeys
-      '#3399ff',                                   // blue
-      ['behind_right', 'right', 'front_right'],    // inKeys
-      '#ff3366'                                    // red
+      ['front_left', 'left', 'behind_left'],
+      '#3399ff',
+      ['behind_right', 'right', 'front_right'],
+      '#ff3366'
     );
 
-    // Вертикальная спираль: жёлтый вверх (макушка) и оранжевый вниз (копчик)
     energy.makeSpiralOutIn(
-      ['top', 'front_heart', 'left'],              // outKeys
-      '#ffaa00',                                   // yellow
-      ['bottom', 'back_heart', 'right'],           // inKeys
-      '#ff8800'                                    // orange
+      ['top', 'front_heart', 'left'],
+      '#ffaa00',
+      ['bottom', 'back_heart', 'right'],
+      '#ff8800'
     );
 
-    // Кнопки управления
+    // Управление
     document.getElementById('playBtn').addEventListener('click', () => {
       energy.playing = !energy.playing;
       const btn = document.getElementById('playBtn');
@@ -355,7 +393,6 @@
     });
 
     document.getElementById('resetBtn').addEventListener('click', () => {
-      // Восстанавливаем исходные пропорции (без учёта сохранённых)
       Object.assign(energy.defaultPoints, {
         heart: { rx: 0.50, ry: 0.50 },
         front_left: { rx: 0.30, ry: 0.25 },
@@ -370,7 +407,15 @@
         back_heart: { rx: 0.50, ry: 0.65 }
       });
       energy.initPoints();
-      energy.savePoints(); // сброшенные позиции тоже сохраняем
+      energy.savePoints();
+    });
+
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValue = document.getElementById('speedValue');
+    speedSlider.addEventListener('input', () => {
+      const val = parseFloat(speedSlider.value);
+      speedValue.textContent = val.toFixed(2);
+      energy.setSpeed(val);
     });
 
     window.addEventListener('resize', () => energy.resize());
