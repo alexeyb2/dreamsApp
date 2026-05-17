@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>24PayBase — Платежи без остановок для hard traffic</title>
+    <meta name="description" content="Надежный платежный шлюз для Low и High-Risk бизнеса. P2P, Ecom, быстрые выплаты.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        .hero-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200">
+
+    <!-- Hero -->
+    <header class="hero-bg py-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center mb-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-2xl font-bold">24</div>
+                    <h1 class="text-3xl font-bold">PayBase</h1>
+                </div>
+                <nav class="hidden md:flex gap-8 text-lg">
+                    <a href="#solutions" class="hover:text-emerald-400 transition">Решения</a>
+                    <a href="#verticals" class="hover:text-emerald-400 transition">Вертикали</a>
+                    <a href="#how" class="hover:text-emerald-400 transition">Как это работает</a>
+                </nav>
+                <a href="#contact" class="bg-emerald-500 hover:bg-emerald-600 px-8 py-3 rounded-2xl font-semibold transition">Подключиться</a>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-5xl md:text-6xl font-bold leading-tight mb-6">
+                        Платежи, которые <span class="text-emerald-400">не останавливаются</span><br>даже на hard traffic
+                    </h2>
+                    <p class="text-xl text-slate-400 mb-10">
+                        Надежный P2P и Ecom шлюз для Low & High-Risk бизнеса.<br>
+                        Быстрые выплаты • Мультивалютность • 24/7 поддержка
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="#contact" class="bg-emerald-500 hover:bg-emerald-600 px-10 py-4 rounded-2xl text-lg font-semibold transition inline-flex items-center gap-3">
+                            <i class="fas fa-rocket"></i> Подключить за 15 минут
+                        </a>
+                        <a href="#" onclick="alert('Свяжитесь с нами в Telegram: @support24pay')" class="border border-slate-400 hover:border-slate-200 px-8 py-4 rounded-2xl text-lg font-semibold transition">
+                            Написать в Telegram
+                        </a>
+                    </div>
+                    <div class="mt-10 flex items-center gap-8 text-sm">
+                        <div>✓ Visa / Mastercard</div>
+                        <div>✓ 100+ валют</div>
+                        <div>✓ API за 1 день</div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <img src="https://picsum.photos/700/500" alt="Payment Dashboard" class="rounded-3xl shadow-2xl">
+                    <div class="absolute -bottom-6 -left-6 bg-slate-900 border border-emerald-500 rounded-2xl p-6 shadow-xl">
+                        <div class="flex items-center gap-3 text-emerald-400">
+                            <i class="fas fa-check-circle text-2xl"></i>
+                            <div>
+                                <div class="font-semibold">+1 248 392 ₽</div>
+                                <div class="text-sm text-slate-400">за последние 30 минут</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features -->
+    <section class="py-20 bg-slate-900">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div class="bg-slate-800 p-8 rounded-3xl card-hover">
+                    <i class="fas fa-globe text-4xl text-emerald-400 mb-6"></i>
+                    <h3 class="text-2xl font-semibold mb-3">Мультивалютность</h3>
+                    <p class="text-slate-400">Visa, Mastercard, локальные карты и счета по всему миру. Моментальное зачисление.</p>
+                </div>
+                <div class="bg-slate-800 p-8 rounded-3xl card-hover">
+                    <i class="fas fa-shield-alt text-4xl text-emerald-400 mb-6"></i>
+                    <h3 class="text-2xl font-semibold mb-3">Высокая безопасность</h3>
+                    <p class="text-slate-400">3D Secure, 2FA, шифрование и полное соответствие международным стандартам.</p>
+                </div>
+                <div class="bg-slate-800 p-8 rounded-3xl card-hover">
+                    <i class="fas fa-headset text-4xl text-emerald-400 mb-6"></i>
+                    <h3 class="text-2xl font-semibold mb-3">Поддержка 24/7</h3>
+                    <p class="text-slate-400">Персональный менеджер и техническая поддержка в любое время.</p>
+                </div>
+                <div class="bg-slate-800 p-8 rounded-3xl card-hover">
+                    <i class="fas fa-bolt text-4xl text-emerald-400 mb-6"></i>
+                    <h3 class="text-2xl font-semibold mb-3">Быстрое подключение</h3>
+                    <p class="text-slate-400">Интеграция API за 1 день. Готовые решения для P2P и E-commerce.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solutions -->
+    <section id="solutions" class="py-20">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-16">Наши решения</h2>
+            <div class="grid md:grid-cols-2 gap-12">
+                <div class="bg-slate-800 rounded-3xl p-10">
+                    <h3 class="text-3xl font-semibold mb-6">P2P Переводы на карты и счета</h3>
+                    <p class="text-slate-400 mb-8">Мгновенное получение средств от клиентов по всему миру. Уведомления и прозрачная отчётность.</p>
+                    <ul class="space-y-3 text-slate-300">
+                        <li><i class="fas fa-check text-emerald-400 mr-3"></i>Выплаты на любые карты</li>
+                        <li><i class="fas fa-check text-emerald-400 mr-3"></i>Автоматические постбэки</li>
+                        <li><i class="fas fa-check text-emerald-400 mr-3"></i>Массовые выплаты</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-800 rounded-3xl p-10">
+                    <h3 class="text-3xl font-semibold mb-6">Эквайринг для E-commerce</h3>
+                    <p class="text-slate-400 mb-8">Приём платежей на сайте, подписки, возвраты и управление chargeback.</p>
+                    <ul class="space-y-3 text-slate-300">
+                        <li><i class="fas fa-check text-emerald-400 mr-3"></i>Одноразовые и рекуррентные платежи</li>
+                        <li><i class="fas fa-check text-emerald-400 mr-3"></i>Мобильная и десктопная версия</li>
+                        <li><i class="fas fa-check text-emerald-400 mr-3"></i>Готовые плагины</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Verticals -->
+    <section id="verticals" class="py-20 bg-slate-900">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-12">Вертикали, которые мы поддерживаем</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="bg-slate-800 py-6 rounded-2xl">iGaming</div>
+                <div class="bg-slate-800 py-6 rounded-2xl">Betting</div>
+                <div class="bg-slate-800 py-6 rounded-2xl">Nutra</div>
+                <div class="bg-slate-800 py-6 rounded-2xl">Forex</div>
+                <div class="bg-slate-800 py-6 rounded-2xl">Travel</div>
+                <div class="bg-slate-800 py-6 rounded-2xl">Marketing</div>
+                <div class="bg-slate-800 py-6 rounded-2xl">High Risk</div>
+                <div class="bg-slate-800 py-6 rounded-2xl">Telecom</div>
+            </div>
+            <p class="text-center text-slate-400 mt-10">И любые другие продукты по запросу</p>
+        </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how" class="py-20">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-16">Как это работает</h2>
+            <div class="grid md:grid-cols-3 gap-10">
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto bg-emerald-500 text-black rounded-2xl flex items-center justify-center text-3xl font-bold mb-6">01</div>
+                    <h4 class="text-xl font-semibold mb-3">Клиент платит</h4>
+                    <p class="text-slate-400">Клиент переводит средства на вашу карту/счёт. Система фиксирует поступление мгновенно.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto bg-emerald-500 text-black rounded-2xl flex items-center justify-center text-3xl font-bold mb-6">02</div>
+                    <h4 class="text-xl font-semibold mb-3">Верификация и обработка</h4>
+                    <p class="text-slate-400">Автоматическая проверка и подготовка выплаты.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto bg-emerald-500 text-black rounded-2xl flex items-center justify-center text-3xl font-bold mb-6">03</div>
+                    <h4 class="text-xl font-semibold mb-3">Вы получаете деньги</h4>
+                    <p class="text-slate-400">Чистые средства зачисляются на ваш счёт. Реал-тайм аналитика и уведомления.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="contact" class="py-24 bg-gradient-to-r from-emerald-600 to-teal-600">
+        <div class="max-w-4xl mx-auto text-center px-6">
+            <h2 class="text-5xl font-bold mb-6">Готовы масштабировать бизнес?</h2>
+            <p class="text-2xl mb-12">Подключение за 15 минут. Ответим в Telegram за 5 минут.</p>
+            <a href="https://t.me/" target="_blank" class="inline-flex items-center gap-4 bg-white text-slate-900 px-12 py-6 rounded-3xl text-2xl font-semibold hover:scale-105 transition">
+                <i class="fab fa-telegram text-3xl"></i>
+                Написать в Telegram
+            </a>
+            <p class="mt-8 text-slate-200">или оставьте заявку — менеджер свяжется с вами</p>
+        </div>
+    </section>
+
+    <footer class="bg-black py-12 text-center text-slate-500">
+        <p>© 2026 24PayBase • Платежи без пауз</p>
+    </footer>
+
+</body>
+</html>
