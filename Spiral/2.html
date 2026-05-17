@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>👁🌀📱DreamSApp</title>
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="description" content="👁️:Я 🌀:Внимание 📱:Связь ">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="🔼👁🌀📱DreamSApp">
+  <meta property="og:description" content="🔼👁 👁️:Я 🌀:Внимание 📱:Связь ">
+  <meta property="og:image" content="https://alexeyb2.github.io/dreamsApp/Spiral/icon.png">
+  <meta property="og:url" content="https://alexeyb2.github.io/dreamsApp/Spiral">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#05070f; color:#0ff; font-family:system-ui;
+      display:flex; flex-direction:column; height:100vh; overflow:hidden;
+    }
+    h2 { text-align:center; padding:10px; letter-spacing:2px; font-size:1.4rem; }
+    canvas {
+      flex:1; background:#000; touch-action:none;
+    }
+    .controls {
+      padding:10px; display:flex; gap:10px; background:rgba(10,25,45,0.95);
+    }
+    .block {
+      flex:1; background:rgba(0,0,0,0.6); padding:10px; border-radius:12px;
+      border:1px solid;
+    }
+    .red { border-color:#ff3366; }
+    .blue { border-color:#3388ff; }
+    h3 { text-align:center; margin-bottom:8px; font-size:1rem; }
+    .param { display:flex; justify-content:space-between; margin:6px 0; font-size:0.8rem; }
+    input[type="range"] { width:100%; }
+  </style>
+</head>
+<body>
+  <h2>🌀 Две спирали Бернулли</h2>
+  <canvas id="canvas"></canvas>
+
+  <div class="controls">
+    <!-- Красная спираль -->
+    <div class="block red">
+      <h3 style="color:#ff3366;">🔴 Красная</h3>
+      <div class="param">A <span id="a1_val">8</span></div>
+      <input type="range" id="a1" min="1" max="30" value="8" step="0.5">
+      <div class="param">K <span id="k1_val">0.12</span></div>
+      <input type="range" id="k1" min="0.02" max="0.25" value="0.12" step="0.01">
+      <div class="param">Макс. угол (рад) <span id="max1_val">25</span></div>
+      <input type="range" id="max1" min="5" max="80" value="25" step="1">
+      <div class="param">Нач. угол (°) <span id="angle1_val">0</span></div>
+      <input type="range" id="angle1" min="0" max="360" value="0" step="15">
+    </div>
+
+    <!-- Синяя спираль -->
+    <div class="block blue">
+      <h3 style="color:#3388ff;">🔵 Синяя</h3>
+      <div class="param">A <span id="a2_val">8</span></div>
+      <input type="range" id="a2" min="1" max="30" value="8" step="0.5">
+      <div class="param">K <span id="k2_val">0.12</span></div>
+      <input type="range" id="k2" min="0.02" max="0.25" value="0.12" step="0.01">
+      <div class="param">Макс. угол (рад) <span id="max2_val">25</span></div>
+      <input type="range" id="max2" min="5" max="80" value="25" step="1">
+      <div class="param">Нач. угол (°) <span id="angle2_val">180</span></div>
+      <input type="range" id="angle2" min="0" max="360" value="180" step="15">
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Центры спиралей (начальные позиции)
+      let centerRed = { x: 0, y: 0 };
+      let centerBlue = { x: 0, y: 0 };
+      let dragging = null; // 'red' или 'blue'
+
+      // Размеры канваса и первоначальная установка центров
+      function resize() {
+        canvas.width = window.innerWidth - 20;
+        canvas.height = window.innerHeight - 220;
+        if (canvas.width < 300) canvas.width = 300;
+        if (canvas.height < 300) canvas.height = 300;
+
+        // Устанавливаем центры пропорционально, если они ещё не двигались
+        if (!dragging) {
+          centerRed.x = canvas.width / 2;
+          centerRed.y = canvas.height * 0.75;  // красный внизу
+          centerBlue.x = canvas.width / 2;
+          centerBlue.y = canvas.height * 0.25; // синий вверху
+        }
+        draw();
+      }
+
+      // Рисование одной спирали
+      function drawSpiral(cx, cy, A, K, maxPhi, startAngle, color, direction) {
+        ctx.beginPath();
+        const steps = 300;
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * maxPhi;
+          const r = A * Math.exp(K * t);
+          const angle = direction * t + startAngle * Math.PI / 180;
+          const x = cx + r * Math.cos(angle);
+          const y = cy + r * Math.sin(angle);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = color;
+        ctx.stroke();
+      }
+
+      function draw() {
+        // Очистка
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Чтение параметров из ползунков
+        const A1 = parseFloat(document.getElementById('a1').value);
+        const K1 = parseFloat(document.getElementById('k1').value);
+        const max1 = parseFloat(document.getElementById('max1').value);
+        const angle1 = parseFloat(document.getElementById('angle1').value);
+
+        const A2 = parseFloat(document.getElementById('a2').value);
+        const K2 = parseFloat(document.getElementById('k2').value);
+        const max2 = parseFloat(document.getElementById('max2').value);
+        const angle2 = parseFloat(document.getElementById('angle2').value);
+
+        // Обновление подписей
+        document.getElementById('a1_val').textContent = A1;
+        document.getElementById('k1_val').textContent = K1;
+        document.getElementById('max1_val').textContent = max1;
+        document.getElementById('angle1_val').textContent = angle1;
+
+        document.getElementById('a2_val').textContent = A2;
+        document.getElementById('k2_val').textContent = K2;
+        document.getElementById('max2_val').textContent = max2;
+        document.getElementById('angle2_val').textContent = angle2;
+
+        // Рисование спиралей
+        drawSpiral(centerRed.x, centerRed.y, A1, K1, max1, angle1, '#ff3366', 1);
+        drawSpiral(centerBlue.x, centerBlue.y, A2, K2, max2, angle2, '#3388ff', -1);
+
+        // Отображение центров (точки)
+        ctx.fillStyle = '#ff3366';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ff3366';
+        ctx.beginPath();
+        ctx.arc(centerRed.x, centerRed.y, 12, 0, 2 * Math.PI);
+        ctx.fill();
+
+        ctx.fillStyle = '#3388ff';
+        ctx.shadowColor = '#3388ff';
+        ctx.beginPath();
+        ctx.arc(centerBlue.x, centerBlue.y, 12, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Сброс тени
+        ctx.shadowBlur = 0;
+      }
+
+      // --- Перетаскивание центров (мышь и касания) ---
+      function getCanvasCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: clientX - rect.left,
+          y: clientY - rect.top
+        };
+      }
+
+      function onPointerDown(e) {
+        e.preventDefault();
+        const pos = getCanvasCoords(e);
+        const distRed = Math.hypot(pos.x - centerRed.x, pos.y - centerRed.y);
+        const distBlue = Math.hypot(pos.x - centerBlue.x, pos.y - centerBlue.y);
+        if (distRed < 30) {
+          dragging = 'red';
+        } else if (distBlue < 30) {
+          dragging = 'blue';
+        }
+      }
+
+      function onPointerMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const pos = getCanvasCoords(e);
+        if (dragging === 'red') {
+          centerRed.x = pos.x;
+          centerRed.y = pos.y;
+        } else if (dragging === 'blue') {
+          centerBlue.x = pos.x;
+          centerBlue.y = pos.y;
+        }
+        draw();
+      }
+
+      function onPointerUp() {
+        dragging = null;
+      }
+
+      // Поддержка мыши
+      canvas.addEventListener('mousedown', onPointerDown);
+      window.addEventListener('mousemove', onPointerMove);
+      window.addEventListener('mouseup', onPointerUp);
+
+      // Поддержка тач-событий
+      canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+      canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+      canvas.addEventListener('touchend', onPointerUp);
+
+      // Слушатели ползунков
+      document.querySelectorAll('input').forEach(el => el.addEventListener('input', draw));
+
+      // Ресайз
+      window.addEventListener('resize', resize);
+
+      // Первый запуск
+      resize();
+    })();
+  </script>
+</body>
+</html>
