@@ -168,8 +168,8 @@
         <input type="range" id="k1" min="0.02" max="0.25" value="0.12" step="0.01">
         <div class="param">Макс. угол (рад) <span id="max1_val">25</span></div>
         <input type="range" id="max1" min="5" max="80" value="25" step="1">
-        <div class="param">Нач. угол <span id="angle1_val">3π/2</span></div>
-        <input type="range" id="angle1" min="0" max="6.283" value="4.712" step="0.7854">
+        <div class="param">Нач. угол <span id="angle1_val">0</span></div>
+        <input type="range" id="angle1" min="0" max="6.283" value="0" step="0.7854">
       </div>
 
       <!-- Синяя спираль -->
@@ -181,8 +181,8 @@
         <input type="range" id="k2" min="0.02" max="0.25" value="0.12" step="0.01">
         <div class="param">Макс. угол (рад) <span id="max2_val">25</span></div>
         <input type="range" id="max2" min="5" max="80" value="25" step="1">
-        <div class="param">Нач. угол <span id="angle2_val">π/2</span></div>
-        <input type="range" id="angle2" min="0" max="6.283" value="1.571" step="0.7854">
+        <div class="param">Нач. угол <span id="angle2_val">π</span></div>
+        <input type="range" id="angle2" min="0" max="6.283" value="3.1416" step="0.7854">
       </div>
     </div>
   </div>
@@ -192,7 +192,7 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      const STORAGE_KEY = 'spiralBernoulliV5';
+      const STORAGE_KEY = 'spiralBernoulliV6';
 
       let centerRed = { x: 0, y: 0, relX: null, relY: null };
       let centerBlue = { x: 0, y: 0, relX: null, relY: null };
@@ -220,21 +220,14 @@
       const lockBtn = document.getElementById('lockBtn');
       const centerBtn = document.getElementById('centerBtn');
 
-      // Преобразование радиан в строку с π
       function formatAngle(rad) {
         const pi = Math.PI;
-        if (rad === 0) return '0';
-        const multiples = [
-          { value: 0, label: '0' },
-          { value: pi/2, label: 'π/2' },
-          { value: pi, label: 'π' },
-          { value: 3*pi/2, label: '3π/2' },
-          { value: 2*pi, label: '2π' }
-        ];
-        // Ищем точное совпадение или близкое значение
-        const found = multiples.find(m => Math.abs(m.value - rad) < 0.01);
-        if (found) return found.label;
-        // Если нет точного совпадения, выводим с точностью до 2 знаков
+        // Проверяем с небольшой погрешностью
+        if (Math.abs(rad) < 0.01) return '0';
+        if (Math.abs(rad - pi/2) < 0.01) return 'π/2';
+        if (Math.abs(rad - pi) < 0.01) return 'π';
+        if (Math.abs(rad - 3*pi/2) < 0.01) return '3π/2';
+        if (Math.abs(rad - 2*pi) < 0.01) return '2π';
         return rad.toFixed(2) + ' рад';
       }
 
@@ -439,7 +432,6 @@
         updateLockButton();
         saveState();
         if (locked) {
-          // Синхронизация от красной к синей
           a2.value = a1.value;
           k2.value = k1.value;
           max2.value = max1.value;
