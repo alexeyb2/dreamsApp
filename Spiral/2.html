@@ -168,8 +168,8 @@
         <input type="range" id="k1" min="0.02" max="0.25" value="0.12" step="0.01">
         <div class="param">Макс. угол (рад) <span id="max1_val">25</span></div>
         <input type="range" id="max1" min="5" max="80" value="25" step="1">
-        <div class="param">Нач. угол (рад) <span id="angle1_val">0.0</span></div>
-        <input type="range" id="angle1" min="0" max="6.28" value="0" step="0.5">
+        <div class="param">Нач. угол <span id="angle1_val">3π/2</span></div>
+        <input type="range" id="angle1" min="0" max="6.283" value="4.712" step="0.7854">
       </div>
 
       <!-- Синяя спираль -->
@@ -181,8 +181,8 @@
         <input type="range" id="k2" min="0.02" max="0.25" value="0.12" step="0.01">
         <div class="param">Макс. угол (рад) <span id="max2_val">25</span></div>
         <input type="range" id="max2" min="5" max="80" value="25" step="1">
-        <div class="param">Нач. угол (рад) <span id="angle2_val">3.14</span></div>
-        <input type="range" id="angle2" min="0" max="6.28" value="3.14" step="0.5">
+        <div class="param">Нач. угол <span id="angle2_val">π/2</span></div>
+        <input type="range" id="angle2" min="0" max="6.283" value="1.571" step="0.7854">
       </div>
     </div>
   </div>
@@ -192,15 +192,13 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      const STORAGE_KEY = 'spiralBernoulliV4';
+      const STORAGE_KEY = 'spiralBernoulliV5';
 
-      // Состояние
       let centerRed = { x: 0, y: 0, relX: null, relY: null };
       let centerBlue = { x: 0, y: 0, relX: null, relY: null };
       let dragging = null;
-      let locked = false; // синхронизация параметров
+      let locked = false;
 
-      // DOM элементы
       const a1 = document.getElementById('a1');
       const k1 = document.getElementById('k1');
       const max1 = document.getElementById('max1');
@@ -221,6 +219,24 @@
 
       const lockBtn = document.getElementById('lockBtn');
       const centerBtn = document.getElementById('centerBtn');
+
+      // Преобразование радиан в строку с π
+      function formatAngle(rad) {
+        const pi = Math.PI;
+        if (rad === 0) return '0';
+        const multiples = [
+          { value: 0, label: '0' },
+          { value: pi/2, label: 'π/2' },
+          { value: pi, label: 'π' },
+          { value: 3*pi/2, label: '3π/2' },
+          { value: 2*pi, label: '2π' }
+        ];
+        // Ищем точное совпадение или близкое значение
+        const found = multiples.find(m => Math.abs(m.value - rad) < 0.01);
+        if (found) return found.label;
+        // Если нет точного совпадения, выводим с точностью до 2 знаков
+        return rad.toFixed(2) + ' рад';
+      }
 
       function loadState() {
         const saved = localStorage.getItem(STORAGE_KEY);
@@ -265,23 +281,19 @@
         lockBtn.classList.toggle('active', locked);
       }
 
-      // Синхронизация параметров: если замок включен, при изменении одного ползунка обновляем другой
       function syncParameters(sourceId) {
         if (!locked) return;
         const isRed = sourceId.includes('1');
         const targetPrefix = isRed ? '2' : '1';
-        const sourceEl = document.getElementById(sourceId);
         const targetId = sourceId.replace(isRed ? '1' : '2', targetPrefix);
         const targetEl = document.getElementById(targetId);
         if (targetEl) {
-          targetEl.value = sourceEl.value;
-          // Вручную вызываем обновление подписи через draw
+          targetEl.value = document.getElementById(sourceId).value;
         }
         draw();
         saveState();
       }
 
-      // Обработчик изменения любого input
       function onInputChange(e) {
         draw();
         saveState();
@@ -349,11 +361,11 @@
         a1Val.textContent = A1;
         k1Val.textContent = K1.toFixed(2);
         max1Val.textContent = maxPhi1;
-        angle1Val.textContent = angle1Rad.toFixed(1);
+        angle1Val.textContent = formatAngle(angle1Rad);
         a2Val.textContent = A2;
         k2Val.textContent = K2.toFixed(2);
         max2Val.textContent = maxPhi2;
-        angle2Val.textContent = angle2Rad.toFixed(1);
+        angle2Val.textContent = formatAngle(angle2Rad);
 
         drawSpiral(centerRed.x, centerRed.y, A1, K1, maxPhi1, angle1Rad, '#ff3366', 1);
         drawSpiral(centerBlue.x, centerBlue.y, A2, K2, maxPhi2, angle2Rad, '#3388ff', -1);
@@ -409,12 +421,10 @@
       canvas.addEventListener('touchmove', onPointerMove, { passive: false });
       canvas.addEventListener('touchend', onPointerUp);
 
-      // Назначаем слушатели для всех ползунков
       [a1, k1, max1, angle1, a2, k2, max2, angle2].forEach(input => {
         input.addEventListener('input', onInputChange);
       });
 
-      // Кнопка "В центр"
       centerBtn.addEventListener('click', () => {
         centerRed.x = canvas.width / 2;
         centerRed.y = canvas.height / 2;
@@ -424,14 +434,12 @@
         saveState();
       });
 
-      // Кнопка блокировки синхронизации
       lockBtn.addEventListener('click', () => {
         locked = !locked;
         updateLockButton();
         saveState();
-        // Если включили синхронизацию, сразу синхронизируем параметры (например, от красной к синей)
         if (locked) {
-          // Берём за основу красную спираль
+          // Синхронизация от красной к синей
           a2.value = a1.value;
           k2.value = k1.value;
           max2.value = max1.value;
@@ -441,7 +449,6 @@
         }
       });
 
-      // Скрытие/показ панели
       const toggleBtn = document.getElementById('togglePanel');
       const controlsGrid = document.getElementById('controlsGrid');
       let panelVisible = true;
