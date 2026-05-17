@@ -13,70 +13,98 @@
   <meta property="og:url" content="https://alexeyb2.github.io/dreamsApp/Spiral">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    html, body {
+      height: 100%;
       background: #05070f;
       color: #0ff;
-      font-family: system-ui, sans-serif;
-      height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+    body {
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
     h2 {
       text-align: center;
-      padding: 8px 0 4px;
+      padding: 6px 0 2px;
       letter-spacing: 2px;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       flex-shrink: 0;
+      background: #05070f;
+      z-index: 2;
     }
     canvas {
-      flex: 1;
+      flex: 1 1 auto;
       background: #000;
       touch-action: none;
       min-height: 0;
+      width: 100%;
     }
-    /* Панель управления всегда снизу */
+    /* Панель управления – всегда снизу, видимая */
     .controls-container {
       flex-shrink: 0;
-      position: relative;
-    }
-    .controls {
-      background: rgba(10, 25, 45, 0.95);
+      background: rgba(5, 7, 15, 0.95);
+      border-top: 2px solid #0ff;
+      padding: 6px 4px;
       display: flex;
-      gap: 8px;
-      padding: 8px;
-      overflow-x: auto;
-      transition: max-height 0.3s ease, padding 0.3s ease;
-      max-height: 300px; /* достаточно для двух блоков */
+      flex-direction: column;
+      gap: 4px;
+      z-index: 10;
+      max-height: 45vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
-    .controls.collapsed {
-      max-height: 0;
-      padding-top: 0;
-      padding-bottom: 0;
-      overflow: hidden;
+    .controls-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+    .toggle-btn {
+      background: rgba(10, 25, 45, 0.9);
+      border: 1px solid #0ff;
+      color: #0ff;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      white-space: nowrap;
+    }
+    .toggle-btn:active {
+      background: #0ff;
+      color: #000;
+    }
+    .controls-grid {
+      display: flex;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 4px;
     }
     .block {
-      flex: 1;
-      background: rgba(0, 0, 0, 0.6);
+      flex: 1 0 48%;
+      background: rgba(0, 0, 0, 0.75);
       padding: 8px;
       border-radius: 12px;
       border: 1px solid;
-      min-width: 150px;
+      min-width: 155px;
     }
     .red { border-color: #ff3366; }
     .blue { border-color: #3388ff; }
     h3 {
       text-align: center;
       margin-bottom: 4px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
     }
     .param {
       display: flex;
       justify-content: space-between;
-      margin: 4px 0 2px;
+      margin: 5px 0 2px;
       font-size: 0.7rem;
-      color: #8ff;
+      color: #ccc;
     }
     .param span {
       color: #0ff;
@@ -84,40 +112,33 @@
     }
     input[type="range"] {
       width: 100%;
-      margin-bottom: 4px;
-      background: #0a1929;
-      height: 4px;
-      border-radius: 2px;
+      margin-bottom: 6px;
+      background: #1a2a3a;
+      height: 5px;
+      border-radius: 3px;
       -webkit-appearance: none;
       appearance: none;
+      outline: none;
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       background: #0ff;
       border-radius: 50%;
       border: 2px solid #000;
       cursor: pointer;
+      box-shadow: 0 0 8px #0ff;
     }
-    .toggle-btn {
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(10, 25, 45, 0.9);
-      border: 1px solid #0ff;
-      color: #0ff;
-      border-radius: 0 0 8px 8px;
-      padding: 4px 16px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      z-index: 2;
-      backdrop-filter: blur(4px);
+    /* Яндекс браузер может игнорировать некоторые стили, поэтому добавляем !important и явные фоны */
+    .controls-grid, .block, .param, input {
+      visibility: visible !important;
+      opacity: 1 !important;
     }
-    .toggle-btn:active {
-      background: #0ff;
-      color: #000;
+    @media (max-width: 400px) {
+      .block { min-width: 140px; }
+      h3 { font-size: 0.8rem; }
+      .param { font-size: 0.65rem; }
     }
   </style>
 </head>
@@ -125,9 +146,12 @@
   <h2>🌀 Две спирали Бернулли</h2>
   <canvas id="canvas"></canvas>
 
-  <div class="controls-container">
-    <button class="toggle-btn" id="togglePanel">▲</button>
-    <div class="controls" id="controlsPanel">
+  <div class="controls-container" id="controlsContainer">
+    <div class="controls-header">
+      <span style="color:#0ff; font-size:0.8rem;">Параметры</span>
+      <button class="toggle-btn" id="togglePanel">▲ Скрыть</button>
+    </div>
+    <div class="controls-grid" id="controlsGrid">
       <!-- Красная спираль -->
       <div class="block red">
         <h3 style="color:#ff3366;">🔴 Красная (зад)</h3>
@@ -161,15 +185,12 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Сохранение / загрузка
-      const STORAGE_KEY = 'spiralBernoulliV2';
+      const STORAGE_KEY = 'spiralBernoulliV3';
 
-      // Центры спиралей (начальные позиции)
-      let centerRed = { x: 0, y: 0 };
-      let centerBlue = { x: 0, y: 0 };
+      let centerRed = { x: 0, y: 0, relX: null, relY: null };
+      let centerBlue = { x: 0, y: 0, relX: null, relY: null };
       let dragging = null;
 
-      // Привязки к ползункам
       const a1 = document.getElementById('a1');
       const k1 = document.getElementById('k1');
       const max1 = document.getElementById('max1');
@@ -188,13 +209,11 @@
       const max2Val = document.getElementById('max2_val');
       const angle2Val = document.getElementById('angle2_val');
 
-      // Загрузка сохранённых данных
       function loadState() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           try {
             const data = JSON.parse(saved);
-            // Параметры ползунков
             if (data.a1 !== undefined) a1.value = data.a1;
             if (data.k1 !== undefined) k1.value = data.k1;
             if (data.max1 !== undefined) max1.value = data.max1;
@@ -203,7 +222,6 @@
             if (data.k2 !== undefined) k2.value = data.k2;
             if (data.max2 !== undefined) max2.value = data.max2;
             if (data.angle2 !== undefined) angle2.value = data.angle2;
-            // Координаты центров (относительные, в долях канваса)
             if (data.centerRed) {
               centerRed.relX = data.centerRed.relX;
               centerRed.relY = data.centerRed.relY;
@@ -216,37 +234,24 @@
         }
       }
 
-      // Сохранение состояния
       function saveState() {
         const data = {
-          a1: a1.value,
-          k1: k1.value,
-          max1: max1.value,
-          angle1: angle1.value,
-          a2: a2.value,
-          k2: k2.value,
-          max2: max2.value,
-          angle2: angle2.value,
-          centerRed: {
-            relX: centerRed.x / canvas.width,
-            relY: centerRed.y / canvas.height
-          },
-          centerBlue: {
-            relX: centerBlue.x / canvas.width,
-            relY: centerBlue.y / canvas.height
-          }
+          a1: a1.value, k1: k1.value, max1: max1.value, angle1: angle1.value,
+          a2: a2.value, k2: k2.value, max2: max2.value, angle2: angle2.value,
+          centerRed: { relX: centerRed.x / canvas.width, relY: centerRed.y / canvas.height },
+          centerBlue: { relX: centerBlue.x / canvas.width, relY: centerBlue.y / canvas.height }
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       }
 
-      // Установка размеров канваса и начальных позиций центров
       function resize() {
-        canvas.width = window.innerWidth - 20;
-        canvas.height = window.innerHeight - document.querySelector('h2').offsetHeight - document.querySelector('.controls-container').offsetHeight - 30;
-        if (canvas.width < 300) canvas.width = 300;
-        if (canvas.height < 300) canvas.height = 300;
+        const h2 = document.querySelector('h2');
+        const controls = document.getElementById('controlsContainer');
+        const headerH = h2 ? h2.offsetHeight : 30;
+        const controlsH = controls ? controls.offsetHeight : 120;
+        canvas.width = window.innerWidth - 16;
+        canvas.height = Math.max(300, window.innerHeight - headerH - controlsH - 20);
 
-        // Если есть сохранённые относительные координаты – используем их, иначе ставим по умолчанию
         if (centerRed.relX !== undefined) {
           centerRed.x = centerRed.relX * canvas.width;
           centerRed.y = centerRed.relY * canvas.height;
@@ -264,7 +269,6 @@
         draw();
       }
 
-      // Рисование спирали
       function drawSpiral(cx, cy, A, K, maxPhi, startAngle, color, direction) {
         ctx.beginPath();
         const steps = 300;
@@ -287,7 +291,6 @@
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Обновление подписей
         const A1 = parseFloat(a1.value);
         const K1 = parseFloat(k1.value);
         const maxPhi1 = parseFloat(max1.value);
@@ -306,11 +309,9 @@
         max2Val.textContent = maxPhi2;
         angle2Val.textContent = startAngle2;
 
-        // Рисование
         drawSpiral(centerRed.x, centerRed.y, A1, K1, maxPhi1, startAngle1, '#ff3366', 1);
         drawSpiral(centerBlue.x, centerBlue.y, A2, K2, maxPhi2, startAngle2, '#3388ff', -1);
 
-        // Центры (маленькие точки)
         ctx.fillStyle = '#ff3366';
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#ff3366';
@@ -327,49 +328,32 @@
         ctx.shadowBlur = 0;
       }
 
-      // Перетаскивание центров
       function getCanvasCoords(e) {
         const rect = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return {
-          x: clientX - rect.left,
-          y: clientY - rect.top
-        };
+        return { x: clientX - rect.left, y: clientY - rect.top };
       }
 
       function onPointerDown(e) {
         e.preventDefault();
         const pos = getCanvasCoords(e);
-        const distRed = Math.hypot(pos.x - centerRed.x, pos.y - centerRed.y);
-        const distBlue = Math.hypot(pos.x - centerBlue.x, pos.y - centerBlue.y);
-        if (distRed < 20) {
-          dragging = 'red';
-        } else if (distBlue < 20) {
-          dragging = 'blue';
-        }
+        if (Math.hypot(pos.x - centerRed.x, pos.y - centerRed.y) < 20) dragging = 'red';
+        else if (Math.hypot(pos.x - centerBlue.x, pos.y - centerBlue.y) < 20) dragging = 'blue';
       }
 
       function onPointerMove(e) {
         if (!dragging) return;
         e.preventDefault();
         const pos = getCanvasCoords(e);
-        if (dragging === 'red') {
-          centerRed.x = pos.x;
-          centerRed.y = pos.y;
-        } else if (dragging === 'blue') {
-          centerBlue.x = pos.x;
-          centerBlue.y = pos.y;
-        }
+        if (dragging === 'red') { centerRed.x = pos.x; centerRed.y = pos.y; }
+        else if (dragging === 'blue') { centerBlue.x = pos.x; centerBlue.y = pos.y; }
         draw();
-        saveState(); // автосохранение при перемещении
+        saveState();
       }
 
       function onPointerUp() {
-        if (dragging) {
-          saveState();
-          dragging = null;
-        }
+        if (dragging) { saveState(); dragging = null; }
       }
 
       canvas.addEventListener('mousedown', onPointerDown);
@@ -379,27 +363,20 @@
       canvas.addEventListener('touchmove', onPointerMove, { passive: false });
       canvas.addEventListener('touchend', onPointerUp);
 
-      // Слушатели ползунков (с сохранением)
       [a1, k1, max1, angle1, a2, k2, max2, angle2].forEach(input => {
-        input.addEventListener('input', () => {
-          draw();
-          saveState();
-        });
+        input.addEventListener('input', () => { draw(); saveState(); });
       });
 
-      // Переключение видимости панели
       const toggleBtn = document.getElementById('togglePanel');
-      const controlsPanel = document.getElementById('controlsPanel');
+      const controlsGrid = document.getElementById('controlsGrid');
       let panelVisible = true;
       toggleBtn.addEventListener('click', () => {
         panelVisible = !panelVisible;
-        controlsPanel.classList.toggle('collapsed', !panelVisible);
-        toggleBtn.textContent = panelVisible ? '▲' : '▼';
-        // После анимации пересчитаем размер канваса
-        setTimeout(resize, 310);
+        controlsGrid.style.display = panelVisible ? 'flex' : 'none';
+        toggleBtn.textContent = panelVisible ? '▲ Скрыть' : '▼ Показать';
+        setTimeout(resize, 50);
       });
 
-      // Загрузка состояния при старте
       loadState();
       window.addEventListener('resize', resize);
       resize();
