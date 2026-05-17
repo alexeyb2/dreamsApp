@@ -41,7 +41,6 @@
       min-height: 0;
       width: 100%;
     }
-    /* Панель управления – всегда снизу, видимая */
     .controls-container {
       flex-shrink: 0;
       background: rgba(5, 7, 15, 0.95);
@@ -51,7 +50,7 @@
       flex-direction: column;
       gap: 4px;
       z-index: 10;
-      max-height: 45vh;
+      max-height: 50vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
@@ -60,21 +59,28 @@
       justify-content: space-between;
       align-items: center;
       padding: 0 4px;
+      gap: 6px;
+      flex-wrap: wrap;
     }
-    .toggle-btn {
+    .btn {
       background: rgba(10, 25, 45, 0.9);
       border: 1px solid #0ff;
       color: #0ff;
       border-radius: 6px;
-      padding: 4px 10px;
+      padding: 4px 8px;
       font-size: 0.8rem;
       cursor: pointer;
       backdrop-filter: blur(4px);
       white-space: nowrap;
     }
-    .toggle-btn:active {
+    .btn:active {
       background: #0ff;
       color: #000;
+    }
+    .btn.active {
+      background: #0ff;
+      color: #000;
+      border-color: #0ff;
     }
     .controls-grid {
       display: flex;
@@ -89,7 +95,7 @@
       padding: 8px;
       border-radius: 12px;
       border: 1px solid;
-      min-width: 155px;
+      min-width: 160px;
     }
     .red { border-color: #ff3366; }
     .blue { border-color: #3388ff; }
@@ -130,13 +136,12 @@
       cursor: pointer;
       box-shadow: 0 0 8px #0ff;
     }
-    /* Яндекс браузер может игнорировать некоторые стили, поэтому добавляем !important и явные фоны */
     .controls-grid, .block, .param, input {
       visibility: visible !important;
       opacity: 1 !important;
     }
     @media (max-width: 400px) {
-      .block { min-width: 140px; }
+      .block { min-width: 145px; }
       h3 { font-size: 0.8rem; }
       .param { font-size: 0.65rem; }
     }
@@ -149,7 +154,9 @@
   <div class="controls-container" id="controlsContainer">
     <div class="controls-header">
       <span style="color:#0ff; font-size:0.8rem;">Параметры</span>
-      <button class="toggle-btn" id="togglePanel">▲ Скрыть</button>
+      <button class="btn" id="lockBtn">🔓</button>
+      <button class="btn" id="centerBtn">🟡 В центр</button>
+      <button class="btn toggle-btn" id="togglePanel">▲ Скрыть</button>
     </div>
     <div class="controls-grid" id="controlsGrid">
       <!-- Красная спираль -->
@@ -161,8 +168,8 @@
         <input type="range" id="k1" min="0.02" max="0.25" value="0.12" step="0.01">
         <div class="param">Макс. угол (рад) <span id="max1_val">25</span></div>
         <input type="range" id="max1" min="5" max="80" value="25" step="1">
-        <div class="param">Нач. угол (°) <span id="angle1_val">0</span></div>
-        <input type="range" id="angle1" min="0" max="360" value="0" step="15">
+        <div class="param">Нач. угол (рад) <span id="angle1_val">0.0</span></div>
+        <input type="range" id="angle1" min="0" max="6.28" value="0" step="0.5">
       </div>
 
       <!-- Синяя спираль -->
@@ -174,8 +181,8 @@
         <input type="range" id="k2" min="0.02" max="0.25" value="0.12" step="0.01">
         <div class="param">Макс. угол (рад) <span id="max2_val">25</span></div>
         <input type="range" id="max2" min="5" max="80" value="25" step="1">
-        <div class="param">Нач. угол (°) <span id="angle2_val">180</span></div>
-        <input type="range" id="angle2" min="0" max="360" value="180" step="15">
+        <div class="param">Нач. угол (рад) <span id="angle2_val">3.14</span></div>
+        <input type="range" id="angle2" min="0" max="6.28" value="3.14" step="0.5">
       </div>
     </div>
   </div>
@@ -185,12 +192,15 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      const STORAGE_KEY = 'spiralBernoulliV3';
+      const STORAGE_KEY = 'spiralBernoulliV4';
 
+      // Состояние
       let centerRed = { x: 0, y: 0, relX: null, relY: null };
       let centerBlue = { x: 0, y: 0, relX: null, relY: null };
       let dragging = null;
+      let locked = false; // синхронизация параметров
 
+      // DOM элементы
       const a1 = document.getElementById('a1');
       const k1 = document.getElementById('k1');
       const max1 = document.getElementById('max1');
@@ -209,6 +219,9 @@
       const max2Val = document.getElementById('max2_val');
       const angle2Val = document.getElementById('angle2_val');
 
+      const lockBtn = document.getElementById('lockBtn');
+      const centerBtn = document.getElementById('centerBtn');
+
       function loadState() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
@@ -222,6 +235,7 @@
             if (data.k2 !== undefined) k2.value = data.k2;
             if (data.max2 !== undefined) max2.value = data.max2;
             if (data.angle2 !== undefined) angle2.value = data.angle2;
+            if (data.locked !== undefined) locked = data.locked;
             if (data.centerRed) {
               centerRed.relX = data.centerRed.relX;
               centerRed.relY = data.centerRed.relY;
@@ -232,16 +246,48 @@
             }
           } catch (e) {}
         }
+        updateLockButton();
       }
 
       function saveState() {
         const data = {
           a1: a1.value, k1: k1.value, max1: max1.value, angle1: angle1.value,
           a2: a2.value, k2: k2.value, max2: max2.value, angle2: angle2.value,
+          locked: locked,
           centerRed: { relX: centerRed.x / canvas.width, relY: centerRed.y / canvas.height },
           centerBlue: { relX: centerBlue.x / canvas.width, relY: centerBlue.y / canvas.height }
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
+
+      function updateLockButton() {
+        lockBtn.textContent = locked ? '🔒' : '🔓';
+        lockBtn.classList.toggle('active', locked);
+      }
+
+      // Синхронизация параметров: если замок включен, при изменении одного ползунка обновляем другой
+      function syncParameters(sourceId) {
+        if (!locked) return;
+        const isRed = sourceId.includes('1');
+        const targetPrefix = isRed ? '2' : '1';
+        const sourceEl = document.getElementById(sourceId);
+        const targetId = sourceId.replace(isRed ? '1' : '2', targetPrefix);
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          targetEl.value = sourceEl.value;
+          // Вручную вызываем обновление подписи через draw
+        }
+        draw();
+        saveState();
+      }
+
+      // Обработчик изменения любого input
+      function onInputChange(e) {
+        draw();
+        saveState();
+        if (locked) {
+          syncParameters(e.target.id);
+        }
       }
 
       function resize() {
@@ -269,13 +315,13 @@
         draw();
       }
 
-      function drawSpiral(cx, cy, A, K, maxPhi, startAngle, color, direction) {
+      function drawSpiral(cx, cy, A, K, maxPhi, startAngleRad, color, direction) {
         ctx.beginPath();
         const steps = 300;
         for (let i = 0; i <= steps; i++) {
           const t = (i / steps) * maxPhi;
           const r = A * Math.exp(K * t);
-          const angle = direction * t + startAngle * Math.PI / 180;
+          const angle = direction * t + startAngleRad;
           const x = cx + r * Math.cos(angle);
           const y = cy + r * Math.sin(angle);
           if (i === 0) ctx.moveTo(x, y);
@@ -294,23 +340,23 @@
         const A1 = parseFloat(a1.value);
         const K1 = parseFloat(k1.value);
         const maxPhi1 = parseFloat(max1.value);
-        const startAngle1 = parseFloat(angle1.value);
+        const angle1Rad = parseFloat(angle1.value);
         const A2 = parseFloat(a2.value);
         const K2 = parseFloat(k2.value);
         const maxPhi2 = parseFloat(max2.value);
-        const startAngle2 = parseFloat(angle2.value);
+        const angle2Rad = parseFloat(angle2.value);
 
         a1Val.textContent = A1;
         k1Val.textContent = K1.toFixed(2);
         max1Val.textContent = maxPhi1;
-        angle1Val.textContent = startAngle1;
+        angle1Val.textContent = angle1Rad.toFixed(1);
         a2Val.textContent = A2;
         k2Val.textContent = K2.toFixed(2);
         max2Val.textContent = maxPhi2;
-        angle2Val.textContent = startAngle2;
+        angle2Val.textContent = angle2Rad.toFixed(1);
 
-        drawSpiral(centerRed.x, centerRed.y, A1, K1, maxPhi1, startAngle1, '#ff3366', 1);
-        drawSpiral(centerBlue.x, centerBlue.y, A2, K2, maxPhi2, startAngle2, '#3388ff', -1);
+        drawSpiral(centerRed.x, centerRed.y, A1, K1, maxPhi1, angle1Rad, '#ff3366', 1);
+        drawSpiral(centerBlue.x, centerBlue.y, A2, K2, maxPhi2, angle2Rad, '#3388ff', -1);
 
         ctx.fillStyle = '#ff3366';
         ctx.shadowBlur = 15;
@@ -363,10 +409,39 @@
       canvas.addEventListener('touchmove', onPointerMove, { passive: false });
       canvas.addEventListener('touchend', onPointerUp);
 
+      // Назначаем слушатели для всех ползунков
       [a1, k1, max1, angle1, a2, k2, max2, angle2].forEach(input => {
-        input.addEventListener('input', () => { draw(); saveState(); });
+        input.addEventListener('input', onInputChange);
       });
 
+      // Кнопка "В центр"
+      centerBtn.addEventListener('click', () => {
+        centerRed.x = canvas.width / 2;
+        centerRed.y = canvas.height / 2;
+        centerBlue.x = canvas.width / 2;
+        centerBlue.y = canvas.height / 2;
+        draw();
+        saveState();
+      });
+
+      // Кнопка блокировки синхронизации
+      lockBtn.addEventListener('click', () => {
+        locked = !locked;
+        updateLockButton();
+        saveState();
+        // Если включили синхронизацию, сразу синхронизируем параметры (например, от красной к синей)
+        if (locked) {
+          // Берём за основу красную спираль
+          a2.value = a1.value;
+          k2.value = k1.value;
+          max2.value = max1.value;
+          angle2.value = angle1.value;
+          draw();
+          saveState();
+        }
+      });
+
+      // Скрытие/показ панели
       const toggleBtn = document.getElementById('togglePanel');
       const controlsGrid = document.getElementById('controlsGrid');
       let panelVisible = true;
