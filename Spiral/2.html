@@ -136,10 +136,6 @@
       cursor: pointer;
       box-shadow: 0 0 8px #0ff;
     }
-    .controls-grid, .block, .param, input {
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
     @media (max-width: 400px) {
       .block { min-width: 145px; }
       h3 { font-size: 0.8rem; }
@@ -168,8 +164,8 @@
         <input type="range" id="k1" min="0.02" max="0.25" value="0.12" step="0.01">
         <div class="param">Макс. угол (рад) <span id="max1_val">25</span></div>
         <input type="range" id="max1" min="5" max="80" value="25" step="1">
-        <div class="param">Нач. угол <span id="angle1_val">0</span></div>
-        <input type="range" id="angle1" min="0" max="6.283" value="0" step="0.7854">
+        <div class="param">Нач. угол <span id="angle1_val">π</span></div>
+        <input type="range" id="angle1" min="0" max="6.283" value="3.1416" step="0.7854">
       </div>
 
       <!-- Синяя спираль -->
@@ -181,8 +177,8 @@
         <input type="range" id="k2" min="0.02" max="0.25" value="0.12" step="0.01">
         <div class="param">Макс. угол (рад) <span id="max2_val">25</span></div>
         <input type="range" id="max2" min="5" max="80" value="25" step="1">
-        <div class="param">Нач. угол <span id="angle2_val">π</span></div>
-        <input type="range" id="angle2" min="0" max="6.283" value="3.1416" step="0.7854">
+        <div class="param">Нач. угол <span id="angle2_val">0</span></div>
+        <input type="range" id="angle2" min="0" max="6.283" value="0" step="0.7854">
       </div>
     </div>
   </div>
@@ -192,7 +188,7 @@
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      const STORAGE_KEY = 'spiralBernoulliV6';
+      const STORAGE_KEY = 'spiralBernoulliV7';
 
       let centerRed = { x: 0, y: 0, relX: null, relY: null };
       let centerBlue = { x: 0, y: 0, relX: null, relY: null };
@@ -222,7 +218,6 @@
 
       function formatAngle(rad) {
         const pi = Math.PI;
-        // Проверяем с небольшой погрешностью
         if (Math.abs(rad) < 0.01) return '0';
         if (Math.abs(rad - pi/2) < 0.01) return 'π/2';
         if (Math.abs(rad - pi) < 0.01) return 'π';
@@ -320,6 +315,7 @@
         draw();
       }
 
+      // Новая формула: 0 радиан = вверх (над точкой), π = вниз (за точкой)
       function drawSpiral(cx, cy, A, K, maxPhi, startAngleRad, color, direction) {
         ctx.beginPath();
         const steps = 300;
@@ -327,8 +323,9 @@
           const t = (i / steps) * maxPhi;
           const r = A * Math.exp(K * t);
           const angle = direction * t + startAngleRad;
-          const x = cx + r * Math.cos(angle);
-          const y = cy + r * Math.sin(angle);
+          // Преобразование угла: 0 → вверх, увеличивается по часовой стрелке (как direction задаёт)
+          const x = cx + r * Math.sin(angle);
+          const y = cy - r * Math.cos(angle);
           if (i === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
