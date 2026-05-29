@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAJAPAY · India Payment Infrastructure</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #081120;
+      color: #E2E8F0;
+    }
+    .glass {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(16px);
+    }
+    .glow {
+      box-shadow: 0 0 35px rgba(0, 212, 255, 0.25);
+    }
+    .brand-glow {
+      animation: brandGlow 8s ease-in-out infinite;
+    }
+    @keyframes brandGlow {
+      0%, 100% { filter: drop-shadow(0 0 25px #00D4FF); }
+      50% { filter: drop-shadow(0 0 60px #00D4FF); }
+    }
+    .section-number {
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      color: #64748B;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-50 bg-[#081120]/95 backdrop-blur-md border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-gradient-to-br from-[#00D4FF] to-[#4F46E5] rounded-xl flex items-center justify-center font-bold">A</div>
+        <div class="font-bold text-2xl tracking-tighter">AAJAPAY</div>
+      </div>
+      <nav class="hidden md:flex gap-8 text-sm font-medium">
+        <a href="#" class="hover:text-[#00D4FF]">Home</a>
+        <a href="#" class="hover:text-[#00D4FF]">Solutions</a>
+        <a href="#" class="hover:text-[#00D4FF]">API</a>
+        <a href="#" class="hover:text-[#00D4FF]">Industries</a>
+        <a href="#" class="hover:text-[#00D4FF]">Contact</a>
+      </nav>
+      <button class="bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-black px-6 py-3 rounded-2xl font-semibold">Contact Sales</button>
+    </div>
+  </header>
+
+  <!-- 01 HERO + FLOW COMMAND CENTER -->
+  <section class="max-w-7xl mx-auto px-6 pt-16 pb-20 grid lg:grid-cols-2 gap-12">
+    <div>
+      <div class="text-[#00D4FF] text-sm tracking-widest mb-4">INDIA PAYMENT INFRASTRUCTURE</div>
+      <h1 class="text-5xl lg:text-6xl font-bold leading-tight">Fast <span class="text-[#00D4FF]">UPI</span> Processing<br>For Merchants Operating In India</h1>
+      <p class="mt-6 text-lg text-gray-400">Reliable payment infrastructure, merchant solutions and API integrations for businesses targeting the Indian market.</p>
+      
+      <div class="mt-10 flex gap-4">
+        <button class="bg-[#00D4FF] text-black px-8 py-4 rounded-2xl font-semibold flex items-center gap-2">Get Started</button>
+        <button class="border border-white/40 px-8 py-4 rounded-2xl hover:border-white/70">Contact Team</button>
+      </div>
+    </div>
+
+    <!-- Flow Command Center -->
+    <div class="glass rounded-3xl p-8 glow">
+      <div class="flex justify-between items-center mb-8">
+        <h3 class="font-semibold text-lg">Flow Command Center</h3>
+        <span class="flex items-center gap-2 text-emerald-400 text-sm"><span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span> Live</span>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-6 mb-8">
+        <div>
+          <div class="text-xs text-gray-400">Today's Volume</div>
+          <div class="text-4xl font-bold">₹12.4M</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-400">Success Rate</div>
+          <div class="text-4xl font-bold text-emerald-400">83%</div>
+        </div>
+      </div>
+
+      <div class="text-sm font-medium mb-4">Recent Transactions</div>
+      <div class="space-y-4 text-sm">
+        <div class="flex justify-between items-center"><span>Deposit</span><span>₹10,000</span><span class="text-emerald-400">Success</span></div>
+        <div class="flex justify-between items-center"><span>Payout</span><span>₹25,000</span><span class="text-emerald-400">Success</span></div>
+        <div class="flex justify-between items-center"><span>Deposit</span><span>₹15,000</span><span class="text-amber-400">Pending</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 CONTROL PAYMENT OPERATIONS -->
+  <section class="max-w-7xl mx-auto px-6 py-16 bg-[#0F172A]">
+    <div class="text-center mb-12">
+      <span class="section-number">02</span>
+      <h2 class="text-4xl font-bold mt-2">Control Payment Operations From One Dashboard</h2>
+    </div>
+    <div class="grid md:grid-cols-4 gap-6">
+      <div class="glass rounded-3xl p-8 text-center hover:-translate-y-1 transition">
+        <i data-lucide="arrow-down-circle" class="w-12 h-12 mx-auto mb-4 text-[#00D4FF]"></i>
+        <h4 class="font-semibold">Incoming Deposits</h4>
+      </div>
+      <div class="glass rounded-3xl p-8 text-center hover:-translate-y-1 transition">
+        <i data-lucide="arrow-up-circle" class="w-12 h-12 mx-auto mb-4 text-violet-400"></i>
+        <h4 class="font-semibold">Payout Operations</h4>
+      </div>
+      <div class="glass rounded-3xl p-8 text-center hover:-translate-y-1 transition">
+        <i data-lucide="route" class="w-12 h-12 mx-auto mb-4 text-[#00D4FF]"></i>
+        <h4 class="font-semibold">Bank Routes</h4>
+      </div>
+      <div class="glass rounded-3xl p-8 text-center hover:-translate-y-1 transition">
+        <i data-lucide="shield-alert" class="w-12 h-12 mx-auto mb-4 text-amber-400"></i>
+        <h4 class="font-semibold">Dispute Monitoring</h4>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 WHY BUSINESSES CHOOSE -->
+  <section class="max-w-7xl mx-auto px-6 py-20">
+    <div class="text-center mb-12">
+      <span class="section-number">03</span>
+      <h2 class="text-4xl font-bold mt-2">Why Businesses Choose AAJAPAY</h2>
+    </div>
+    <div class="grid md:grid-cols-4 gap-6 mb-16">
+      <div class="glass rounded-3xl p-8 text-center">Reliable Infrastructure</div>
+      <div class="glass rounded-3xl p-8 text-center">Fast Settlements</div>
+      <div class="glass rounded-3xl p-8 text-center">Dedicated Support</div>
+      <div class="glass rounded-3xl p-8 text-center">Merchant Focused</div>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <div class="glass p-8 rounded-3xl"><div class="text-5xl font-bold text-[#00D4FF]">500M+</div><div class="mt-3 text-gray-400">Processed Volume</div></div>
+      <div class="glass p-8 rounded-3xl"><div class="text-5xl font-bold">100+</div><div class="mt-3 text-gray-400">Partner Merchants</div></div>
+      <div class="glass p-8 rounded-3xl"><div class="text-5xl font-bold text-emerald-400">83%</div><div class="mt-3 text-gray-400">Average Success Rate</div></div>
+      <div class="glass p-8 rounded-3xl"><div class="text-5xl font-bold">24/7</div><div class="mt-3 text-gray-400">Operations Support</div></div>
+    </div>
+  </section>
+
+  <!-- 04 CINEMATIC BRAND -->
+  <section class="py-28 relative overflow-hidden bg-gradient-to-b from-[#081120] via-[#0A1428] to-[#081120]">
+    <div class="max-w-5xl mx-auto text-center px-6 brand-glow">
+      <div class="relative h-[320px] flex items-center justify-center">
+        <div class="text-[320px] font-black text-white/10 tracking-[-0.1em]">AA</div>
+        <div class="absolute text-[140px] font-bold bg-gradient-to-br from-white via-[#00D4FF] to-[#4F46E5] bg-clip-text text-transparent">A</div>
+      </div>
+      <p class="text-2xl font-medium tracking-widest text-gray-300">INDIA PAYMENT INFRASTRUCTURE</p>
+    </div>
+  </section>
+
+  <!-- 05 OUR SOLUTIONS -->
+  <section class="max-w-7xl mx-auto px-6 py-20">
+    <div class="text-center mb-12">
+      <span class="section-number">05</span>
+      <h2 class="text-4xl font-bold mt-2">Our Solutions</h2>
+    </div>
+    <div class="grid md:grid-cols-4 gap-6">
+      <div class="glass rounded-3xl p-8 text-center">UPI Processing</div>
+      <div class="glass rounded-3xl p-8 text-center">Merchant Solutions</div>
+      <div class="glass rounded-3xl p-8 text-center">Payment Routing</div>
+      <div class="glass rounded-3xl p-8 text-center">Risk Monitoring</div>
+    </div>
+  </section>
+
+  <!-- 06 DEVELOPER API -->
+  <section class="bg-[#0F172A] py-20">
+    <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
+      <div>
+        <span class="section-number">06</span>
+        <h2 class="text-4xl font-bold mt-3 mb-6">Developer Friendly API</h2>
+        <button class="bg-[#00D4FF] text-black px-8 py-4 rounded-2xl">Request Documentation</button>
+      </div>
+      <div class="glass p-8 rounded-3xl font-mono text-sm">
+        <pre class="text-[#00D4FF]">{<br>  "status": "success",<br>  "amount": 50000,<br>  "currency": "INR"<br>}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 INDIA EXPERTISE -->
+  <section class="max-w-7xl mx-auto px-6 py-20">
+    <div class="text-center mb-12">
+      <span class="section-number">07</span>
+      <h2 class="text-4xl font-bold mt-2">India Expertise</h2>
+    </div>
+    <div class="text-center text-gray-400 mb-8">Deep understanding of India's payment ecosystem</div>
+    <!-- Placeholder for India Map -->
+    <div class="h-80 bg-[#0F172A] rounded-3xl flex items-center justify-center text-gray-500">India Map (SVG would go here)</div>
+  </section>
+
+  <!-- 08 PRODUCT MODULES + 09 PERFORMANCE DASHBOARD + 10 CTA + 11 CONTACT + FOOTER -->
+  <section class="max-w-7xl mx-auto px-6 py-20 bg-[#0F172A]">
+    <h2 class="text-center text-4xl font-bold mb-12">Ready To Scale Payments In India?</h2>
+    <div class="text-center">
+      <button class="bg-gradient-to-r from-[#00D4FF] to-[#4F46E5] text-black px-10 py-5 rounded-3xl text-lg font-semibold">Request Partnership</button>
+    </div>
+  </section>
+
+  <footer class="bg-black py-12 text-center text-sm text-gray-500">
+    © 2026 AAJAPAY. All rights reserved.
+  </footer>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
