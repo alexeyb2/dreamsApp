@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAJAPAY · India Payment Infrastructure</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #081120; color: #E2E8F0; }
+    .glass { 
+      background: rgba(15, 23, 42, 0.85); 
+      border: 1px solid rgba(255,255,255,0.1); 
+      backdrop-filter: blur(16px); 
+    }
+    .brand-glow {
+      animation: brandGlow 5s ease-in-out infinite;
+    }
+    @keyframes brandGlow {
+      0%, 100% { filter: drop-shadow(0 0 30px #00D4FF); }
+      50% { filter: drop-shadow(0 0 70px #00D4FF); }
+    }
+  </style>
+</head>
+<body class="bg-[#081120]">
+
+  <!-- 10 READY TO SCALE -->
+  <section class="max-w-7xl mx-auto px-6 py-24 bg-gradient-to-b from-transparent via-[#00D4FF]/5 to-transparent text-center relative overflow-hidden">
+    <div class="flex items-baseline gap-4 mb-8 justify-center">
+      <span class="text-sm tracking-[4px] text-gray-500 font-medium">10</span>
+      <h2 class="text-5xl font-bold">Ready To Scale Payments In India?</h2>
+    </div>
+    <p class="text-gray-400 max-w-md mx-auto mb-10">
+      Speak with our specialists and discover how AAJAPAY can support your payment operations.
+    </p>
+
+    <div class="flex flex-wrap justify-center gap-4">
+      <button class="bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-semibold px-10 py-4 rounded-2xl flex items-center gap-3">
+        Request Partnership
+      </button>
+      <button class="bg-[#00D4FF] text-black font-semibold px-8 py-4 rounded-2xl flex items-center gap-3">
+        <i data-lucide="send" class="w-5 h-5"></i>
+        Contact On Telegram
+      </button>
+    </div>
+
+    <!-- Big Logo Graphic -->
+    <div class="mt-16 flex justify-center brand-glow">
+      <img src="logo.png" alt="AAJAPAY" class="h-32 opacity-90">
+    </div>
+  </section>
+
+  <!-- 11 LET'S BUILD TOGETHER -->
+  <section class="max-w-7xl mx-auto px-6 py-20">
+    <div class="flex items-baseline gap-4 mb-12">
+      <span class="text-sm tracking-[4px] text-gray-500 font-medium">11</span>
+      <h2 class="text-4xl font-bold">Let's Build Together</h2>
+    </div>
+    <p class="text-gray-400 mb-10">Fill out the form and our team will contact you.</p>
+
+    <form class="grid md:grid-cols-2 gap-6 max-w-4xl">
+      <input type="text" placeholder="Name" class="glass rounded-2xl px-6 py-5 outline-none border border-white/10 focus:border-[#00D4FF]">
+      <input type="text" placeholder="Company" class="glass rounded-2xl px-6 py-5 outline-none border border-white/10 focus:border-[#00D4FF]">
+      
+      <select class="glass rounded-2xl px-6 py-5 outline-none border border-white/10 focus:border-[#00D4FF]">
+        <option>Monthly Volume</option>
+        <option>Up to ₹10L</option>
+        <option>₹10L - ₹50L</option>
+        <option>₹50L+</option>
+      </select>
+      <input type="text" placeholder="Telegram Username" class="glass rounded-2xl px-6 py-5 outline-none border border-white/10 focus:border-[#00D4FF]">
+      
+      <textarea placeholder="Message" rows="4" class="glass rounded-2xl px-6 py-5 outline-none border border-white/10 focus:border-[#00D4FF] md:col-span-2"></textarea>
+      
+      <div class="md:col-span-2 flex justify-center mt-4">
+        <button type="submit" class="bg-[#00D4FF] text-black font-semibold px-12 py-5 rounded-2xl">Send Request</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- 12 FOOTER -->
+  <footer class="bg-[#0A0F1C] py-16 border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="grid md:grid-cols-5 gap-10">
+        <!-- Logo Column -->
+        <div>
+          <div class="flex items-center gap-3 mb-6">
+            <img src="logo.png" alt="AAJAPAY" class="h-10">
+          </div>
+          <p class="text-sm text-gray-400">Reliable payment infrastructure and merchant solutions for India's digital economy.</p>
+        </div>
+
+        <!-- Company -->
+        <div>
+          <h4 class="font-semibold mb-4">COMPANY</h4>
+          <ul class="space-y-2 text-sm text-gray-400">
+            <li>Home</li>
+            <li>Solutions</li>
+            <li>API</li>
+            <li>Industries</li>
+            <li>Contact</li>
+          </ul>
+        </div>
+
+        <!-- Solutions -->
+        <div>
+          <h4 class="font-semibold mb-4">SOLUTIONS</h4>
+          <ul class="space-y-2 text-sm text-gray-400">
+            <li>UPI Processing</li>
+            <li>Merchant Solutions</li>
+            <li>Payment Routing</li>
+            <li>Risk Monitoring</li>
+          </ul>
+        </div>
+
+        <!-- Resources -->
+        <div>
+          <h4 class="font-semibold mb-4">RESOURCES</h4>
+          <ul class="space-y-2 text-sm text-gray-400">
+            <li>Documentation</li>
+            <li>API Reference</li>
+            <li>Status</li>
+            <li>Blog</li>
+          </ul>
+        </div>
+
+        <!-- Contact + Follow -->
+        <div>
+          <h4 class="font-semibold mb-4">CONTACT</h4>
+          <ul class="space-y-2 text-sm text-gray-400">
+            <li>Telegram</li>
+            <li>business@aajapay.in</li>
+            <li>24/7 Operations</li>
+          </ul>
+          
+          <div class="mt-8">
+            <h4 class="font-semibold mb-4">FOLLOW US</h4>
+            <button class="bg-[#00D4FF] text-black p-4 rounded-2xl">
+              <i data-lucide="send" class="w-6 h-6"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center text-xs text-gray-500 mt-16">
+        © 2026 AAJAPAY. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
