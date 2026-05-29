@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAJAPAY · India Payment Infrastructure</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #081120; color: #E2E8F0; }
+    .glass { background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(20px); }
+    .glow { box-shadow: 0 0 50px rgba(0, 212, 255, 0.3); }
+  </style>
+</head>
+<body class="bg-[#081120]">
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-50 bg-[#081120]/95 backdrop-blur-md border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="AAJAPAY" class="h-9">
+      </div>
+      <nav class="hidden md:flex gap-8 text-sm font-medium">
+        <a href="#" class="hover:text-white">Home</a>
+        <a href="#" class="hover:text-white">Solutions</a>
+        <a href="#" class="hover:text-white">API</a>
+        <a href="#" class="hover:text-white">Industries</a>
+        <a href="#" class="hover:text-white">Contact</a>
+      </nav>
+      <button class="bg-[#00D4FF] text-black px-6 py-3 rounded-2xl font-semibold flex items-center gap-2">
+        Contact Sales <i data-lucide="send" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="max-w-7xl mx-auto px-6 pt-16 pb-20 grid lg:grid-cols-2 gap-12">
+    <div>
+      <div class="inline-flex items-center gap-2 text-[#00D4FF] text-sm font-medium mb-6">
+        INDIA PAYMENT INFRASTRUCTURE
+      </div>
+      <h1 class="text-5xl lg:text-6xl font-bold leading-tight">
+        Fast <span class="text-[#00D4FF]">UPI</span> Processing<br>For Merchants Operating In India
+      </h1>
+      <p class="mt-6 text-lg text-gray-400 max-w-lg">
+        Reliable payment infrastructure, merchant solutions and API integrations for businesses targeting the Indian market.
+      </p>
+
+      <div class="flex gap-4 mt-10">
+        <button class="bg-[#00D4FF] text-black px-8 py-4 rounded-2xl font-semibold">Get Started</button>
+        <button class="border border-white/40 px-8 py-4 rounded-2xl hover:border-white/70">Contact Team</button>
+      </div>
+
+      <div class="flex flex-wrap gap-x-8 gap-y-3 mt-12 text-sm">
+        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i> Fast Integration</div>
+        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i> Dedicated Support</div>
+        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i> API Ready</div>
+        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i> Merchant Solutions</div>
+      </div>
+    </div>
+
+    <!-- FLOW COMMAND CENTER -->
+    <div class="glass rounded-3xl p-8 glow">
+      <div class="flex items-center justify-between mb-8">
+        <h3 class="font-semibold text-lg">Flow Command Center</h3>
+        <span class="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+          <span class="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span> Live
+        </span>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        <div class="text-center">
+          <div class="text-xs text-gray-400">Today's Volume</div>
+          <div class="text-2xl font-bold">₹12.4M</div>
+          <div class="text-emerald-400 text-xs">+12.2%</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xs text-gray-400">Success Rate</div>
+          <div class="text-2xl font-bold text-emerald-400">83%</div>
+          <div class="text-emerald-400 text-xs">+5.3%</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xs text-gray-400">Active Routes</div>
+          <div class="text-2xl font-bold">42</div>
+          <div class="text-emerald-400 text-xs">+8.1%</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xs text-gray-400">Active Merchants</div>
+          <div class="text-2xl font-bold">128</div>
+          <div class="text-emerald-400 text-xs">+15.4%</div>
+        </div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="mb-8">
+        <h4 class="text-sm font-medium mb-4">Recent Transactions</h4>
+        <div class="space-y-4 text-sm">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-blue-400">↓</span>
+              <span>Deposit</span>
+            </div>
+            <span>₹10,000</span>
+            <span class="text-emerald-400 text-xs">Success</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-violet-400">↑</span>
+              <span>Payout</span>
+            </div>
+            <span>₹25,000</span>
+            <span class="text-emerald-400 text-xs">Success</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-blue-400">↓</span>
+              <span>Deposit</span>
+            </div>
+            <span>₹15,000</span>
+            <span class="text-amber-400 text-xs">Pending</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Volume Overview -->
+      <div>
+        <h4 class="text-sm font-medium mb-4">Volume Overview</h4>
+        <div class="relative w-48 h-48 mx-auto">
+          <canvas id="volumeChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    lucide.createIcons();
+
+    // Volume Circular Chart
+    const ctx = document.getElementById('volumeChart');
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [83, 17],
+            backgroundColor: ['#00D4FF', '#1E2937'],
+            borderWidth: 0,
+            cutout: '82%'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
