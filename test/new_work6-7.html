@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAJAPAY · India Payment Infrastructure</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #081120; color: #E2E8F0; }
+    .glass { 
+      background: rgba(15, 23, 42, 0.85); 
+      border: 1px solid rgba(255,255,255,0.1); 
+      backdrop-filter: blur(20px); 
+    }
+    .api-glow {
+      animation: apiGlow 4s ease-in-out infinite;
+    }
+    @keyframes apiGlow {
+      0%, 100% { filter: drop-shadow(0 0 25px #00D4FF); }
+      50% { filter: drop-shadow(0 0 60px #00D4FF); }
+    }
+  </style>
+</head>
+<body class="bg-[#081120]">
+
+  <!-- 06 DEVELOPER FRIENDLY API -->
+  <section class="max-w-7xl mx-auto px-6 py-20 bg-[#0F172A]">
+    <div class="flex items-baseline gap-4 mb-12">
+      <span class="text-sm tracking-[4px] text-gray-500 font-medium">06</span>
+      <h2 class="text-4xl font-bold">Developer Friendly API</h2>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-12 items-center">
+      <!-- Left Side -->
+      <div>
+        <p class="text-gray-400 text-lg mb-10">
+          Powerful, well documented and easy to integrate. Build faster with AAJAPAY.
+        </p>
+        <div class="flex flex-col gap-4">
+          <button class="bg-[#00D4FF] text-black font-semibold py-4 px-8 rounded-2xl text-left">
+            Request Documentation
+          </button>
+          <button class="border border-[#00D4FF] text-[#00D4FF] font-semibold py-4 px-8 rounded-2xl text-left">
+            Contact Integration Team
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Side - API Visual -->
+      <div class="grid grid-cols-5 gap-6">
+        <!-- API Cube -->
+        <div class="col-span-3 glass rounded-3xl p-10 flex items-center justify-center api-glow">
+          <img src="api.png" alt="API" class="w-56">
+        </div>
+
+        <!-- JSON Response -->
+        <div class="col-span-2 glass rounded-3xl p-6 text-sm font-mono overflow-hidden">
+          <div class="flex justify-between mb-4 text-xs text-gray-400">
+            <span>Request</span>
+            <span>Response</span>
+            <span class="text-gray-500">JSON</span>
+          </div>
+          <pre class="text-[#00D4FF] text-xs leading-relaxed overflow-auto max-h-80">
+{
+  "status": "success",
+  "transaction_id": "TXN_123456789",
+  "amount": 50000,
+  "currency": "INR",
+  "method": "UPI",
+  "timestamp": "2026-05-29T10:38:02"
+}</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 INDIA EXPERTISE -->
+  <section class="max-w-7xl mx-auto px-6 py-20">
+    <div class="flex items-baseline gap-4 mb-12">
+      <span class="text-sm tracking-[4px] text-gray-500 font-medium">07</span>
+      <h2 class="text-4xl font-bold">India Expertise</h2>
+    </div>
+
+    <div class="grid lg:grid-cols-12 gap-12 items-center">
+      <!-- Description -->
+      <div class="lg:col-span-5">
+        <p class="text-gray-400 text-lg">
+          Deep understanding of India's payment ecosystem, banking network and regulatory environment.
+        </p>
+      </div>
+
+      <!-- India Map -->
+      <div class="lg:col-span-4 flex justify-center">
+        <img src="map.png" alt="India Map" class="rounded-3xl shadow-2xl">
+      </div>
+
+      <!-- Right Features -->
+      <div class="lg:col-span-3 space-y-5">
+        <div class="glass rounded-3xl p-6 flex items-center gap-4">
+          <i data-lucide="globe" class="w-6 h-6 text-[#00D4FF]"></i>
+          <span class="font-medium">UPI Ecosystem</span>
+        </div>
+        <div class="glass rounded-3xl p-6 flex items-center gap-4">
+          <i data-lucide="users" class="w-6 h-6 text-[#00D4FF]"></i>
+          <span class="font-medium">Merchant Network</span>
+        </div>
+        <div class="glass rounded-3xl p-6 flex items-center gap-4">
+          <i data-lucide="landmark" class="w-6 h-6 text-[#00D4FF]"></i>
+          <span class="font-medium">Banking Infrastructure</span>
+        </div>
+        <div class="glass rounded-3xl p-6 flex items-center gap-4">
+          <i data-lucide="cog" class="w-6 h-6 text-[#00D4FF]"></i>
+          <span class="font-medium">Operational Expertise</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
