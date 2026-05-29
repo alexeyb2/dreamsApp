@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAJAPAY · India Payment Infrastructure</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #081120; color: #E2E8F0; }
+    .glass { 
+      background: rgba(15, 23, 42, 0.85); 
+      border: 1px solid rgba(255,255,255,0.1); 
+      backdrop-filter: blur(16px); 
+    }
+    .brand-glow {
+      animation: brandGlow 6s ease-in-out infinite;
+    }
+    @keyframes brandGlow {
+      0%, 100% { filter: drop-shadow(0 0 30px #00D4FF); }
+      50% { filter: drop-shadow(0 0 70px #00D4FF); }
+    }
+  </style>
+</head>
+<body class="bg-[#081120]">
+
+  <!-- 04 CINEMATIC BRAND EXPERIENCE -->
+  <section class="max-w-7xl mx-auto px-6 py-24 relative overflow-hidden bg-gradient-to-b from-[#081120] via-[#0A1428] to-[#081120]">
+    <div class="flex items-baseline gap-4 mb-12">
+      <span class="text-sm tracking-[3px] text-gray-500 font-medium">04</span>
+      <h2 class="text-3xl font-bold">CINEMATIC BRAND EXPERIENCE</h2>
+    </div>
+
+    <div class="relative h-[420px] flex items-center justify-center brand-glow">
+      <!-- Big Logo Effect -->
+      <div class="relative flex items-center justify-center">
+        <!-- Background Silver A's -->
+        <div class="text-[280px] font-black text-white/10 tracking-[-0.08em] absolute">AA</div>
+        
+        <!-- Blue Wave + Central A -->
+        <div class="relative z-10 flex flex-col items-center">
+          <div class="text-[160px] font-bold bg-gradient-to-br from-[#00D4FF] via-[#4F46E5] to-[#00D4FF] bg-clip-text text-transparent leading-none">
+            A
+          </div>
+          <div class="h-1 w-96 bg-gradient-to-r from-transparent via-[#00D4FF] to-transparent mt-[-20px]"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-[-40px]">
+      <p class="text-2xl font-medium tracking-widest text-gray-300">INDIA PAYMENT INFRASTRUCTURE</p>
+    </div>
+  </section>
+
+  <!-- 05 OUR SOLUTIONS -->
+  <section class="max-w-7xl mx-auto px-6 py-20">
+    <div class="flex items-baseline gap-4 mb-12">
+      <span class="text-sm tracking-[3px] text-gray-500 font-medium">05</span>
+      <h2 class="text-4xl font-bold">Our Solutions</h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- Solution 1 -->
+      <div class="glass rounded-3xl p-8 text-center hover:-translate-y-2 transition-all group">
+        <div class="w-16 h-16 mx-auto mb-6 bg-[#00D4FF]/10 rounded-2xl flex items-center justify-center group-hover:bg-[#00D4FF]/20 transition">
+          <i data-lucide="smartphone" class="w-9 h-9 text-[#00D4FF]"></i>
+        </div>
+        <h4 class="font-semibold text-lg mb-2">UPI Processing</h4>
+        <p class="text-sm text-gray-400">Fast & reliable UPI collections</p>
+      </div>
+
+      <!-- Solution 2 -->
+      <div class="glass rounded-3xl p-8 text-center hover:-translate-y-2 transition-all group">
+        <div class="w-16 h-16 mx-auto mb-6 bg-emerald-500/10 rounded-2xl flex items-center justify-center group-hover:bg-emerald-500/20 transition">
+          <i data-lucide="store" class="w-9 h-9 text-emerald-400"></i>
+        </div>
+        <h4 class="font-semibold text-lg mb-2">Merchant Solutions</h4>
+        <p class="text-sm text-gray-400">Complete tools for merchant growth</p>
+      </div>
+
+      <!-- Solution 3 -->
+      <div class="glass rounded-3xl p-8 text-center hover:-translate-y-2 transition-all group">
+        <div class="w-16 h-16 mx-auto mb-6 bg-violet-500/10 rounded-2xl flex items-center justify-center group-hover:bg-violet-500/20 transition">
+          <i data-lucide="shuffle" class="w-9 h-9 text-violet-400"></i>
+        </div>
+        <h4 class="font-semibold text-lg mb-2">Payment Routing</h4>
+        <p class="text-sm text-gray-400">Smart routing for higher success</p>
+      </div>
+
+      <!-- Solution 4 -->
+      <div class="glass rounded-3xl p-8 text-center hover:-translate-y-2 transition-all group">
+        <div class="w-16 h-16 mx-auto mb-6 bg-amber-500/10 rounded-2xl flex items-center justify-center group-hover:bg-amber-500/20 transition">
+          <i data-lucide="shield-check" class="w-9 h-9 text-amber-400"></i>
+        </div>
+        <h4 class="font-semibold text-lg mb-2">Risk Monitoring</h4>
+        <p class="text-sm text-gray-400">Advanced risk & fraud protection</p>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
