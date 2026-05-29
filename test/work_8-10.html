@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAJAPAY · India Payment Infrastructure</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #081120; color: #E2E8F0; }
+    .glass { 
+      background: rgba(15, 23, 42, 0.85); 
+      border: 1px solid rgba(255,255,255,0.1); 
+      backdrop-filter: blur(16px); 
+    }
+  </style>
+</head>
+<body class="bg-[#081120]">
+
+  <!-- 08 OUR PRODUCT MODULES -->
+  <section class="max-w-7xl mx-auto px-6 py-20 bg-[#0F172A]">
+    <div class="flex items-baseline gap-4 mb-12">
+      <span class="text-sm tracking-[4px] text-gray-500 font-medium">08</span>
+      <h2 class="text-4xl font-bold">Our Product Modules</h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- Incoming Deposits -->
+      <div class="glass rounded-3xl p-6">
+        <h4 class="font-semibold mb-4">Incoming Deposits</h4>
+        <div class="text-3xl font-bold mb-1">₹2.4M</div>
+        <div class="text-emerald-400 text-sm mb-4">+12.3%</div>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-gray-400">Deposit</span><span class="text-emerald-400">Success</span></div>
+          <div class="flex justify-between"><span class="text-gray-400">Deposit</span><span class="text-emerald-400">Success</span></div>
+        </div>
+      </div>
+
+      <!-- Transfer Workbench -->
+      <div class="glass rounded-3xl p-6">
+        <h4 class="font-semibold mb-4">Transfer Workbench</h4>
+        <div class="text-3xl font-bold mb-1">24</div>
+        <div class="text-amber-400 text-sm">Pending Payouts</div>
+      </div>
+
+      <!-- Accounts Nexus -->
+      <div class="glass rounded-3xl p-6">
+        <h4 class="font-semibold mb-4">Accounts Nexus</h4>
+        <div class="text-3xl font-bold mb-1">16</div>
+        <div class="text-emerald-400 text-sm mb-4">+8.2%</div>
+        <canvas id="accountsChart" height="80"></canvas>
+      </div>
+
+      <!-- Dispute Watch -->
+      <div class="glass rounded-3xl p-6">
+        <h4 class="font-semibold mb-4">Dispute Watch</h4>
+        <div class="text-3xl font-bold mb-1">7</div>
+        <div class="text-emerald-400 text-sm">Active Disputes</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 PERFORMANCE DASHBOARD -->
+  <section class="max-w-7xl mx-auto px-6 py-20">
+    <div class="flex items-baseline gap-4 mb-12">
+      <span class="text-sm tracking-[4px] text-gray-500 font-medium">09</span>
+      <div>
+        <h2 class="text-4xl font-bold">Performance Dashboard</h2>
+        <p class="text-gray-400">Real-time overview of your payment operations and business performance.</p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div class="glass rounded-3xl p-6">
+        <div class="text-sm text-gray-400">Transaction Volume</div>
+        <div class="text-3xl font-bold mt-2">₹12.4M</div>
+        <canvas id="volumeChart" height="90"></canvas>
+      </div>
+      <div class="glass rounded-3xl p-6">
+        <div class="text-sm text-gray-400">Success Rate</div>
+        <div class="text-3xl font-bold text-emerald-400 mt-2">83%</div>
+        <canvas id="successChart" height="90"></canvas>
+      </div>
+      <div class="glass rounded-3xl p-6">
+        <div class="text-sm text-gray-400">Settlement Amount</div>
+        <div class="text-3xl font-bold mt-2">₹10.8M</div>
+        <canvas id="settlementChart" height="90"></canvas>
+      </div>
+      <div class="glass rounded-3xl p-6">
+        <div class="text-sm text-gray-400">Active Routes</div>
+        <div class="text-3xl font-bold mt-2">42</div>
+      </div>
+      <div class="glass rounded-3xl p-6">
+        <div class="text-sm text-gray-400">Merchant Activity</div>
+        <div class="text-3xl font-bold mt-2">128</div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    lucide.createIcons();
+
+    // Small Charts
+    function createMiniChart(id, color) {
+      const ctx = document.getElementById(id);
+      if (ctx) {
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['1','2','3','4','5','6'],
+            datasets: [{
+              data: [12, 19, 15, 25, 22, 28],
+              backgroundColor: color,
+              borderRadius: 4,
+              barThickness: 12
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: { x: { display: false }, y: { display: false } }
+          }
+        });
+      }
+    }
+
+    createMiniChart('accountsChart', '#00D4FF');
+    createMiniChart('volumeChart', '#00D4FF');
+    createMiniChart('successChart', '#1DE782');
+    createMiniChart('settlementChart', '#00D4FF');
+  </script>
+</body>
+</html>
