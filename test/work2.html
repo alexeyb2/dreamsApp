@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAJAPAY - India Payment Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #00091F;
+            color: #fff;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(7.5px);
+            -webkit-backdrop-filter: blur(7.5px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <header class="bg-transparent py-4 px-6">
+        <div class="container mx-auto flex items-center justify-between">
+            <a href="#" class="text-2xl font-bold">
+                <img src="https://placehold.co/100x40" alt="AAJAPAY Logo">
+            </a>
+            <nav class="space-x-6">
+                <a href="#" class="hover:text-gray-300">Home</a>
+                <a href="#" class="hover:text-gray-300">Solutions</a>
+                <a href="#" class="hover:text-gray-300">API</a>
+                <a href="#" class="hover:text-gray-300">Industries</a>
+                <a href="#" class="hover:text-gray-300">Contact</a>
+                <a href="#" class="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded">Contact Sales</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="py-20 px-6">
+        <div class="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+                <h1 class="text-4xl font-bold mb-4">Fast UPI Processing For Merchants Operating In India</h1>
+                <p class="text-lg text-gray-400 mb-6">Reliable payment infrastructure, merchant solutions and API integrations for businesses targeting the Indian market.</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="bg-blue-500 hover:bg-blue-700 text-white py-2 px-6 rounded">Get Started</a>
+                    <a href="#" class="bg-transparent border border-gray-500 hover:border-gray-300 text-white py-2 px-6 rounded">Contact Team</a>
+                </div>
+                <div class="mt-4 flex items-center space-x-4">
+                    <span><img src="https://placehold.co/20x20/ffffff/000000" alt="Fast Integration"></span>
+                    <span>Fast Integration</span>
+                    <span><img src="https://placehold.co/20x20/ffffff/000000" alt="Dedicated Support"></span>
+                    <span>Dedicated Support</span>
+                    <span><img src="https://placehold.co/20x20/ffffff/000000" alt="API Ready"></span>
+                    <span>API Ready</span>
+                    <span><img src="https://placehold.co/20x20/ffffff/000000" alt="Merchant Solutions"></span>
+                    <span>Merchant Solutions</span>
+                </div>
+            </div>
+            <div>
+                <img src="https://placehold.co/600x400" alt="Hero Image" class="rounded-lg">
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6 bg-gray-800">
+        <div class="container mx-auto">
+            <h2 class="text-2xl font-bold mb-6">Flow Command Center <span class="text-green-500">Live</span></h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Today's Volume</h3>
+                    <p class="text-3xl font-bold">₹12.4M</p>
+                    <p class="text-sm text-green-500">▲ 12.2%</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Success Rate</h3>
+                    <p class="text-3xl font-bold">83%</p>
+                    <p class="text-sm text-red-500">▼ 5.3%</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Active Routes</h3>
+                    <p class="text-3xl font-bold">42</p>
+                    <p class="text-sm text-green-500">▲ 8.1%</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Active Merchants</h3>
+                    <p class="text-3xl font-bold">128</p>
+                    <p class="text-sm text-green-500">▲ 15.4%</p>
+                </div>
+            </div>
+            <div class="mt-8">
+                <h3 class="text-lg font-semibold mb-2">Recent Transactions</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap"><img src="https://placehold.co/20x20/ffffff/000000" alt="Deposit"> Deposit</td>
+                                <td class="px-6 py-4 whitespace-nowrap">₹10,000</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-green-500">Success</td>
+                                <td class="px-6 py-4 whitespace-nowrap">2m ago</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap"><img src="https://placehold.co/20x20/ffffff/000000" alt="Payout"> Payout</td>
+                                <td class="px-6 py-4 whitespace-nowrap">₹25,000</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-green-500">Success</td>
+                                <td class="px-6 py-4 whitespace-nowrap">5m ago</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap"><img src="https://placehold.co/20x20/ffffff/000000" alt="Deposit"> Deposit</td>
+                                <td class="px-6 py-4 whitespace-nowrap">₹15,000</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-yellow-500">Pending</td>
+                                <td class="px-6 py-4 whitespace-nowrap">7m ago</td>
+                            </tr>
+                             <tr>
+                                <td class="px-6 py-4 whitespace-nowrap"><img src="https://placehold.co/20x20/ffffff/000000" alt="Payout"> Payout</td>
+                                <td class="px-6 py-4 whitespace-nowrap">₹10,000</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-green-500">Success</td>
+                                <td class="px-6 py-4 whitespace-nowrap">1m ago</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="mt-8 glass-card p-4 rounded-lg">
+                <h3 class="text-lg font-semibold mb-2">Volume Overview</h3>
+                <canvas id="volumeChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6">
+        <div class="container mx-auto">
+            <h2 class="text-2xl font-bold mb-6">Control Payment Operations From One Dashboard</h2>
+            <p class="text-lg text-gray-400 mb-6">Monitor deposits, payouts, routing performance and operational metrics from one command center.</p>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Incoming Deposits" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Incoming Deposits</h3>
+                    <p class="text-sm text-gray-400">Live tracking of all incoming payments</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Payout Operations" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Payout Operations</h3>
+                    <p class="text-sm text-gray-400">Manage withdrawals and payouts</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Bank Routes" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Bank Routes</h3>
+                    <p class="text-sm text-gray-400">Smart routing across available channels</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Dispute Monitoring" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Dispute Monitoring</h3>
+                    <p class="text-sm text-gray-400">Review and resolve payment disputes</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6 bg-gray-800">
+        <div class="container mx-auto">
+            <h2 class="text-2xl font-bold mb-6">Why Businesses Choose AAJAPAY</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Reliable Infrastructure" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Reliable Infrastructure</h3>
+                    <p class="text-sm text-gray-400">Built for scale and high performance</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Fast Settlements" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Fast Settlements</h3>
+                    <p class="text-sm text-gray-400">Quick fund movement and settlements</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Dedicated Support" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Dedicated Support</h3>
+                    <p class="text-sm text-gray-400">24/7 expert support for your business</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Merchant Focused" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Merchant Focused</h3>
+                    <p class="text-sm text-gray-400">Built specifically for merchant success</p>
+                </div>
+            </div>
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <p class="text-3xl font-bold">500M+</p>
+                    <p class="text-sm text-gray-400">Processed Volume</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <p class="text-3xl font-bold">100+</p>
+                    <p class="text-sm text-gray-400">Partner Merchants</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <p class="text-3xl font-bold">83%</p>
+                    <p class="text-sm text-gray-400">Average Success Rate</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <p class="text-3xl font-bold">24/7</p>
+                    <p class="text-sm text-gray-400">Operations Support</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6">
+        <div class="container mx-auto text-center">
+            <img src="https://placehold.co/200x100" alt="AAJAPAY Logo" class="mx-auto mb-4">
+            <h2 class="text-2xl font-bold mb-2">INDIA PAYMENT INFRASTRUCTURE</h2>
+        </div>
+    </section>
+
+    <section class="py-12 px-6 bg-gray-800">
+        <div class="container mx-auto">
+            <h2 class="text-2xl font-bold mb-6">Our Solutions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="UPI Processing" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">UPI Processing</h3>
+                    <p class="text-sm text-gray-400">Fast & reliable UPI collections</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Merchant Solutions" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Merchant Solutions</h3>
+                    <p class="text-sm text-gray-400">Complete tools for merchant growth</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Payment Routing" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Payment Routing</h3>
+                    <p class="text-sm text-gray-400">Smart routing for higher success</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Risk Monitoring" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Risk Monitoring</h3>
+                    <p class="text-sm text-gray-400">Advanced risk & fraud protection</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6">
+        <div class="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+                <h2 class="text-2xl font-bold mb-4">Developer Friendly API</h2>
+                <p class="text-lg text-gray-400 mb-6">Powerful, well documented and easy to integrate. Build faster with AAJAPAY.</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="bg-blue-500 hover:bg-blue-700 text-white py-2 px-6 rounded">Request Documentation</a>
+                    <a href="#" class="bg-transparent border border-gray-500 hover:border-gray-300 text-white py-2 px-6 rounded">Contact Integration Team</a>
+                </div>
+            </div>
+            <div>
+                <img src="https://placehold.co/600x400" alt="API Image" class="rounded-lg">
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6 bg-gray-800">
+        <div class="container mx-auto">
+            <h2 class="text-2xl font-bold mb-4">India Expertise</h2>
+            <p class="text-lg text-gray-400 mb-6">Deep understanding of India's payment ecosystem, banking network and regulatory environment.</p>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="UPI Ecosystem" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">UPI Ecosystem</h3>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Merchant Network" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Merchant Network</h3>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Banking Infrastructure" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Banking Infrastructure</h3>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center">
+                    <img src="https://placehold.co/50x50/ffffff/000000" alt="Operational Expertise" class="mx-auto mb-2">
+                    <h3 class="text-lg font-semibold mb-2">Operational Expertise</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6">
+        <div class="container mx-auto">
+            <h2 class="text-2xl font-bold mb-6">Our Product Modules</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Incoming Deposits</h3>
+                    <p class="text-3xl font-bold">₹2.4M</p>
+                    <p class="text-sm text-green-500">▲ 12.3%</p>
+                    <canvas id="incomingDepositsChart"></canvas>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Transfer Workbench</h3>
+                    <p class="text-xl font-bold">24</p>
+                    <p class="text-sm text-gray-400">Pending Payouts</p>
+                    <p class="text-sm text-yellow-500">Processing</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Accounts Nexus</h3>
+                    <p class="text-xl font-bold">16</p>
+                    <p class="text-sm text-red-500">▼ 8.2%</p>
+                    <canvas id="accountsNexusChart"></canvas>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Dispute Watch</h3>
+                    <p class="text-xl font-bold">7</p>
+                    <p class="text-sm text-gray-400">Active Disputes</p>
+                    <p class="text-sm text-green-500">Open Cases</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6 bg-gray-800">
+        <div class="container mx-auto">
+            <h2 class="text-2xl font-bold mb-6">Performance Dashboard</h2>
+            <p class="text-lg text-gray-400 mb-6">Real-time overview of your payment operations and business performance.</p>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Transaction Volume</h3>
+                    <p class="text-3xl font-bold">₹12.4M</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Success Rate</h3>
+                    <p class="text-3xl font-bold">83%</p>
+                    <canvas id="successRateChart"></canvas>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Settlement Amount</h3>
+                    <p class="text-3xl font-bold">₹10.8M</p>
+                    <canvas id="settlementAmountChart"></canvas>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Active Routes</h3>
+                    <p class="text-3xl font-bold">42</p>
+                </div>
+                <div class="glass-card p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2">Merchant Activity</h3>
+                    <p class="text-3xl font-bold">128</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6">
+        <div class="container mx-auto text-center">
+            <h2 class="text-3xl font-bold mb-4">Ready To Scale Payments In India?</h2>
+            <p class="text-lg text-gray-400 mb-6">Speak with our specialists and discover how AAJAPAY can support your payment operations.</p>
+            <div class="flex justify-center space-x-4">
+                <a href="#" class="bg-blue-500 hover:bg-blue-700 text-white py-3 px-8 rounded">Request Partnership</a>
+                <a href="#" class="bg-transparent border border-blue-500 hover:border-blue-300 text-blue-500 hover:text-blue-300 py-3 px-8 rounded">Contact On Telegram</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-12 px-6 bg-gray-800">
+        <div class="container mx-auto">
+            <h2 class="text-2xl font-bold mb-6">Let's Build Together</h2>
+            <p class="text-lg text-gray-400 mb-6">Fill out the form and our team will contact you.</p>
+            <form class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-300">Name</label>
+                    <input type="text" id="name" class="mt-1 block w-full rounded-md border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-700 text-white">
+                </div>
+                <div>
+                    <label for="company" class="block text-sm font-medium text-gray-300">Company</label>
+                    <input type="text" id="company" class="mt-1 block w-full rounded-md border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-700 text-white">
+                </div>
+                <div>
+                    <label for="monthlyVolume" class="block text-sm font-medium text-gray-300">Monthly Volume</label>
+                    <select id="monthlyVolume" class="mt-1 block w-full rounded-md border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-700 text-white">
+                        <option>Select Volume</option>
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="telegramUsername" class="block text-sm font-medium text-gray-300">Telegram Username</label>
+                    <input type="text" id="telegramUsername" class="mt-1 block w-full rounded-md border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-700 text-white">
+                </div>
+                <div class="md:col-span-2">
+                    <label for="message" class="block text-sm font-medium text-gray-300">Message</label>
+                    <textarea id="message" rows="4" class="mt-1 block w-full rounded-md border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-700 text-white"></textarea>
+                </div>
+                <div class="md:col-span-2 text-center">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white py-3 px-8 rounded">Send Request</button>
+                    <p class="mt-2 text-sm text-gray-400">Our team will contact you shortly.</p>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <footer class="py-8 px-6 bg-gray-900">
+        <div class="container mx-auto grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div>
+                <img src="https://placehold.co/100x40" alt="AAJAPAY Logo" class="mb-4">
+                <p class="text-sm text-gray-400">Reliable payment infrastructure and merchant solutions for India's digital economy.</p>
+                <p class="text-xs text-gray-500 mt-4">© 2026 AAJAPAY. All Rights Reserved.</p>
+            </div>
+            <div>
+                <h4 class="text-lg font-semibold mb-2">Company</h4>
+                <ul class="text-sm text-gray-400 space-y-1">
+                    <li><a href="#" class="hover:text-gray-300">Home</a></li>
+                    <li><a href="#" class="hover:text-gray-300">Solutions</a></li>
+                    <li><a href="#" class="hover:text-gray-300">API</a></li>
+                    <li><a href="#" class="hover:text-gray-300">Industries</a></li>
+                    <li><a href="#" class="hover:text-gray-300">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-lg font-semibold mb-2">Solutions</h4>
+                <ul class="text-sm text-gray-400 space-y-1">
+                    <li><a href="#" class="hover:text-gray-300">UPI Processing</a></li>
+                    <li><a href="#" class="hover:text-gray-300">Merchant Solutions</a></li>
+                    <li><a href="#" class="hover:text-gray-300">Payment Routing</a></li>
+                    <li><a href="#" class="hover:text-gray-300">Risk Monitoring</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-lg font-semibold mb-2">Resources</h4>
+                <ul class="text-sm text-gray-400 space-y-1">
+                    <li><a href="#" class="hover:text-gray-300">Documentation</a></li>
+                    <li><a href="#" class="hover:text-gray-300">API Reference</a></li>
+                    <li><a href="#" class="hover:text-gray-300">Status</a></li>
+                    <li><a href="#" class="hover:text-gray-300">Blog</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-lg font-semibold mb-2">Contact</h4>
+                <ul class="text-sm text-gray-400 space-y-1">
+                    <li><a href="#" class="hover:text-gray-300">Telegram</a></li>
+                    <li><a href="#" class="hover:text-gray-300">business@aajapay.in</a></li>
+                    <li><a href="#" class="hover:text-gray-300">24/7 Operations</a></li>
+                </ul>
+                <h4 class="text-lg font-semibold mt-4 mb-2">Follow Us</h4>
+                <a href="#" class="hover:text-gray-300">Telegram</a>
+            </div>
+        </div>
+        <div class="container mx-auto text-center mt-6">
+            <p class="text-xs text-gray-500">Privacy Policy | Terms of Service</p>
+        </div>
+    </footer>
+
+    <script>
+        $(document).ready(function() {
+            // Volume Chart
+            var volumeChartCanvas = document.getElementById('volumeChart').getContext('2d');
+            var volumeChart = new Chart(volumeChartCanvas, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Volume',
+                        data: [10, 15, 12, 18, 20, 25, 22, 28, 30, 35, 32, 38],
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+             // Incoming Deposits Chart
+            var incomingDepositsChartCanvas = document.getElementById('incomingDepositsChart').getContext('2d');
+            var incomingDepositsChart = new Chart(incomingDepositsChartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Deposit', 'Payout'],
+                    datasets: [{
+                        label: 'Transactions',
+                        data: [70,
