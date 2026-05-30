@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAJAPAY — India Payment Infrastructure</title>
+    <meta name="description" content="Fast UPI Processing for merchants operating in India. Reliable payment infrastructure, merchant solutions and API integrations.">
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #081120;
+            --bg-secondary: #0F172A;
+            --accent-glow: #00D4FF;
+            --secondary-glow: #4F46E5;
+            --success: #1DE782;
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: #081120;
+            color: var(--text-primary);
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* UNIFIED FLOWING GRADIENT BACKGROUND */
+        .unified-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% 5%, rgba(0, 212, 255, 0.06) 0%, transparent 70%),
+                radial-gradient(ellipse 70% 50% at 50% 25%, rgba(79, 70, 229, 0.05) 0%, transparent 65%),
+                radial-gradient(ellipse 75% 55% at 50% 45%, rgba(0, 212, 255, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 80% 50% at 50% 65%, rgba(79, 70, 229, 0.05) 0%, transparent 55%),
+                radial-gradient(ellipse 70% 60% at 50% 80%, rgba(0, 212, 255, 0.05) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 50% 95%, rgba(29, 231, 130, 0.03) 0%, transparent 50%),
+                linear-gradient(180deg, #081120 0%, #0b1628 15%, #0F172A 30%, #0d1a2e 50%, #0F172A 70%, #081120 100%);
+        }
+
+        /* SUBTLE FINTECH GRID OVERLAY */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.025;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 70%);
+        }
+
+        /* CONTENT WRAPPER - above background */
+        .content-wrapper {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* GLASSMORPHISM CARD */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: 20px;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 20px;
+            pointer-events: none;
+            background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+            transition: opacity 0.4s;
+            opacity: 0.5;
+        }
+        .glass-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 60px rgba(0, 212, 255, 0.08);
+        }
+        .glass-card:hover::before {
+            opacity: 1;
+        }
+
+        /* GLASS CARD ALT - for dark sections */
+        .glass-card-alt {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+        }
+        .glass-card-alt:hover {
+            border-color: rgba(255, 255, 255, 0.14);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), 0 0 50px rgba(79, 70, 229, 0.06);
+            transform: translateY(-4px);
+        }
+
+        /* SECTION GLOW CONNECTOR */
+        .section-glow-top {
+            position: relative;
+        }
+        .section-glow-top::before {
+            content: '';
+            position: absolute;
+            top: -120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 200px;
+            pointer-events: none;
+            z-index: 0;
+            background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0, 212, 255, 0.04) 0%, transparent 70%);
+        }
+
+        /* HEADER */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(8, 17, 32, 0.7);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.3s;
+        }
+        .sticky-header.scrolled {
+            background: rgba(8, 17, 32, 0.85);
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* GLOW LINE CONNECTOR */
+        .glow-connector-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.5), rgba(79, 70, 229, 0.5), rgba(0, 212, 255, 0.5), transparent);
+            border-radius: 50%;
+            filter: blur(8px);
+            pointer-events: none;
+        }
+
+        /* ANIMATED COUNTER */
+        .counter-num {
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: "tnum";
+        }
+
+        /* CODE WINDOW */
+        .code-window {
+            background: #0a0f1c;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.04);
+        }
+        .code-window .title-bar {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .code-window .dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+        }
+        .code-window .dot.red {
+            background: #ff5f57;
+        }
+        .code-window .dot.yellow {
+            background: #febc2e;
+        }
+        .code-window .dot.green {
+            background: #28c840;
+        }
+        .code-window pre {
+            padding: 20px;
+            margin: 0;
+            color: #c9d1d9;
+            overflow-x: auto;
+            position: relative;
+        }
+        .code-keyword {
+            color: #ff7b72;
+        }
+        .code-string {
+            color: #a5d6ff;
+        }
+        .code-number {
+            color: #79c0ff;
+        }
+        .code-prop {
+            color: #ffa657;
+        }
+        .code-bracket {
+            color: #8b949e;
+        }
+        .blinking-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background: #00D4FF;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+            margin-left: 2px;
+            border-radius: 1px;
+        }
+        @keyframes blink {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* DASHBOARD MOCKUP */
+        .dashboard-mockup {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 80px rgba(0, 212, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        .dashboard-mockup::after {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: -30%;
+            width: 160%;
+            height: 160%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(0, 212, 255, 0.04) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .mini-chart-bar {
+            background: linear-gradient(180deg, #00D4FF 0%, #4F46E5 100%);
+            border-radius: 4px 4px 0 0;
+            transition: height 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .pulse-dot {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(29, 231, 130, 0.6);
+            }
+            50% {
+                box-shadow: 0 0 0 14px rgba(29, 231, 130, 0);
+            }
+        }
+
+        /* TIMELINE */
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            background: linear-gradient(180deg, rgba(0, 212, 255, 0.5), rgba(79, 70, 229, 0.5), rgba(0, 212, 255, 0.3));
+            border-radius: 3px;
+            filter: blur(2px);
+            transition: all 0.8s;
+        }
+        .timeline-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00D4FF;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+            position: relative;
+            z-index: 2;
+            transition: all 0.5s;
+        }
+
+        /* INDIA MAP MARKERS */
+        .map-marker {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #00D4FF;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.7), 0 0 40px rgba(0, 212, 255, 0.3);
+            animation: markerPulse 3s ease-in-out infinite;
+            cursor: default;
+        }
+        @keyframes markerPulse {
+            0%,
+            100% {
+                box-shadow: 0 0 15px rgba(0, 212, 255, 0.6), 0 0 30px rgba(0, 212, 255, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(0, 212, 255, 0.9), 0 0 60px rgba(0, 212, 255, 0.4);
+            }
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #081120;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        /* MOBILE CARD SLIDER */
+        .card-slider {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 8px;
+        }
+        .card-slider>* {
+            scroll-snap-align: start;
+            flex-shrink: 0;
+            width: 280px;
+        }
+        .card-slider::-webkit-scrollbar {
+            height: 0;
+        }
+
+        @media (min-width: 768px) {
+            .card-slider {
+                display: grid;
+                overflow-x: visible;
+                scroll-snap-type: none;
+            }
+            .card-slider>* {
+                width: auto;
+                flex-shrink: 1;
+            }
+        }
+
+        /* FLOATING CARDS HERO */
+        .float-card {
+            animation: float 6s ease-in-out infinite;
+        }
+        .float-card:nth-child(2) {
+            animation-delay: -2s;
+        }
+        .float-card:nth-child(3) {
+            animation-delay: -4s;
+        }
+        @keyframes float {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-12px);
+            }
+        }
+
+        /* Video logo styling */
+        .logo-video {
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- UNIFIED BACKGROUND -->
+    <div class="unified-bg"></div>
+    <div class="grid-overlay"></div>
+
+    <!-- CONTENT -->
+    <div class="content-wrapper">
+
+        <!-- HEADER -->
+        <header class="sticky-header" id="mainHeader">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between" style="height:80px;">
+                <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <!-- Replaced static logo with video -->
+                    <video 
+                        src="1_AAJA%203.mp4" 
+                        class="logo-video w-9 h-9 sm:w-10 sm:h-10"
+                        autoplay 
+                        loop 
+                        muted 
+                        playsinline 
+                        disableRemotePlayback
+                        preload="auto"
+                        aria-label="AAJAPAY animated logo"
+                    ></video>
+                    <div class="leading-tight">
+                        <div class="font-bold text-base sm:text-lg text-white tracking-tight">AAJAPAY</div>
+                        <div class="text-xs sm:text-xs" style="color:#64748b;">India Payment Infrastructure</div>
+                    </div>
+                </div>
+                <nav class="hidden lg:flex gap-6 lg:gap-8 text-sm font-medium" style="color:#94a3b8;">
+                    <a href="#hero" class="hover:text-white transition-colors duration-200">Home</a>
+                    <a href="#solutions" class="hover:text-white transition-colors duration-200">Solutions</a>
+                    <a href="#api" class="hover:text-white transition-colors duration-200">API</a>
+                    <a href="#industries" class="hover:text-white transition-colors duration-200">Industries</a>
+                    <a href="#contact" class="hover:text-white transition-colors duration-200">Contact</a>
+                </nav>
+                <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <a href="#contact" class="hidden sm:inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 hover:scale-105" style="background:linear-gradient(135deg,#00D4FF,#4F46E5);color:#fff;box-shadow:0 4px 20px rgba(0,212,255,0.25);">
+                        Contact Sales
+                    </a>
+                    <a href="https://t.me/" target="_blank" class="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 border hover:scale-105" style="border-color:rgba(255,255,255,0.2);color:#e2e8f0;">
+                        <i class="fab fa-telegram"></i> <span class="hidden sm:inline">Telegram</span>
+                    </a>
+                    <button class="lg:hidden text-2xl p-1" style="color:#94a3b8;" onclick="toggleMobileMenu()" aria-label="Menu">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="lg:hidden hidden px-6 pb-6 space-y-4 text-sm font-medium" style="background:rgba(8,17,32,0.95);backdrop-filter:blur(20px);color:#94a3b8;">
+                <a href="#hero" class="block hover:text-white transition py-1">Home</a>
+                <a href="#solutions" class="block hover:text-white transition py-1">Solutions</a>
+                <a href="#api" class="block hover:text-white transition py-1">API</a>
+                <a href="#industries" class="block hover:text-white transition py-1">Industries</a>
+                <a href="#contact" class="block hover:text-white transition py-1">Contact</a>
+                <a href="#contact" class="block text-center px-5 py-2.5 rounded-xl font-semibold transition" style="background:linear-gradient(135deg,#00D4FF,#4F46E5);color:#fff;">Contact Sales</a>
+            </div>
+        </header>
+
+        <!-- SECTION 1: HERO -->
+        <section id="hero" class="section-glow-top relative" style="padding:60px 0 80px;">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6">
+                <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+                    <!-- LEFT -->
+                    <div class="relative z-10">
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wide mb-6" style="background:rgba(0,212,255,0.1);color:#00D4FF;border:1px solid rgba(0,212,255,0.2);">
+                            <span class="w-2 h-2 rounded-full" style="background:#1DE782;box-shadow:0 0 8px rgba(29,231,130,0.6);"></span>
+                            INDIA PAYMENT INFRASTRUCTURE
+                        </div>
+                        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6 tracking-tight text-white">
+                            Fast <span style="color:#00D4FF;">UPI</span> Processing<br>For Merchants Operating In India
+                        </h1>
+                        <p class="text-lg sm:text-xl mb-8 leading-relaxed" style="color:#94a3b8;">
+                            Reliable payment infrastructure, merchant solutions and API integrations for businesses targeting the Indian market.
+                        </p>
+                        <div class="flex flex-wrap gap-3 sm:gap-4 mb-8">
+                            <a href="#contact" class="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold text-base transition-all duration-300 hover:scale-105" style="background:linear-gradient(135deg,#00D4FF,#4F46E5);color:#fff;box-shadow:0 6px 30px rgba(0,212,255,0.3);">
+                                <i class="fas fa-rocket"></i> Get Started
+                            </a>
+                            <a href="https://t.me/" target="_blank" class="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold text-base transition-all duration-300 border hover:scale-105" style="border-color:rgba(255,255,255,0.2);color:#e2e8f0;">
+                                <i class="fab fa-telegram"></i> Contact Team
+                            </a>
+                        </div>
+                        <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm" style="color:#64748b;">
+                            <span><i class="fas fa-check-circle mr-1.5" style="color:#1DE782;"></i> Fast Integration</span>
+                            <span><i class="fas fa-check-circle mr-1.5" style="color:#1DE782;"></i> Dedicated Support</span>
+                            <span><i class="fas fa-check-circle mr-1.5" style="color:#1DE782;"></i> API Ready</span>
+                            <span><i class="fas fa-check-circle mr-1.5" style="color:#1DE782;"></i> Merchant Solutions</span>
+                        </div>
+                    </div>
+                    <!-- RIGHT: Dashboard Mockup -->
+                    <div class="relative flex justify-center lg:justify-end">
+                        <div class="dashboard-mockup w-full max-w-lg relative z-10">
+                            <div class="flex items-center justify-between mb-5">
+                                <div>
+                                    <div class="text-xs font-semibold tracking-wide" style="color:#64748b;">TODAY'S VOLUME</div>
+                                    <div class="text-2xl font-bold text-white counter-num">₹ 48,29,350</div>
+                                </div>
+                                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold" style="background:rgba(29,231,130,0.1);color:#1DE782;">
+                                    <span class="w-2 h-2 rounded-full pulse-dot" style="background:#1DE782;"></span> Live
+                                </div>
+                            </div>
+                            <!-- Mini Chart -->
+                            <div class="flex items-end gap-2 h-28 mb-5">
+                                <div class="mini-chart-bar flex-1" style="height:55%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:70%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:45%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:80%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:60%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:90%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:75%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:50%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:85%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:65%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:95%;"></div>
+                                <div class="mini-chart-bar flex-1" style="height:72%;"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);">
+                                    <div class="text-xs" style="color:#64748b;">Success Rate</div>
+                                    <div class="text-lg font-bold" style="color:#1DE782;">99.2%</div>
+                                </div>
+                                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);">
+                                    <div class="text-xs" style="color:#64748b;">Settlements</div>
+                                    <div class="text-lg font-bold text-white">1,247</div>
+                                </div>
+                                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);">
+                                    <div class="text-xs" style="color:#64748b;">Active Merchants</div>
+                                    <div class="text-lg font-bold text-white">384</div>
+                                </div>
+                                <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);">
+                                    <div class="text-xs" style="color:#64748b;">Avg. Settlement</div>
+                                    <div class="text-lg font-bold text-white">2.4 min</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Floating cards -->
+                        <div class="absolute -top-4 -right-2 sm:-right-6 glass-card float-card hidden sm:flex items-center gap-3 px-4 py-3 z-20" style="border-radius:14px;">
+                            <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style="background:rgba(29,231,130,0.2);color:#1DE782;">✓</span>
+                            <span class="text-sm font-semibold text-white whitespace-nowrap">99.2% Success Rate</span>
+                        </div>
+                        <div class="absolute bottom-8 -left-4 sm:-left-8 glass-card float-card hidden sm:flex items-center gap-3 px-4 py-3 z-20" style="border-radius:14px;animation-delay:-2s;">
+                            <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:rgba(0,212,255,0.2);color:#00D4FF;"><i class="fas fa-headset"></i></span>
+                            <span class="text-sm font-semibold text-white whitespace-nowrap">24/7 Support</span>
+                        </div>
+                        <div class="absolute top-1/3 -right-3 sm:-right-10 glass-card float-card hidden sm:flex items-center gap-3 px-4 py-3 z-20" style="border-radius:14px;animation-delay:-4s;">
+                            <span class="w-8 h-8 rounded-full flex items-center justify-center text-sm" style="background:rgba(79,70,229,0.2);color:#4F46E5;"><i class="fas fa-bolt"></i></span>
+                            <span class="text-sm font-semibold text-white whitespace-nowrap">Fast Integration</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: WHY AAJAPAY -->
+        <section class="relative py-16 sm:py-20" style="background:transparent;">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+                <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 text-white">Why Businesses Choose AAJAPAY</h2>
+                <!-- Glow connector line -->
+                <div class="relative">
+                    <div class="glow-connector-line hidden md:block" style="top:50%;left:5%;width:90%;transform:translateY(-50%);"></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative z-10">
+                        <div class="glass-card p-6 sm:p-8 text-center">
+                            <div class="w-14 h-14 mx-auto mb-5 rounded-2xl flex items-center justify-center text-2xl" style="background:rgba(0,212,255,0.1);color:#00D4FF;">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold mb-2 text-white">Reliable Infrastructure</h3>
+                            <p class="text-sm" style="color:#94a3b8;">Built for scale with redundant systems ensuring 99.9% uptime for your payment operations.</p>
+                        </div>
+                        <div class="glass-card p-6 sm:p-8 text-center">
+                            <div class="w-14 h-14 mx-auto mb-5 rounded-2xl flex items-center justify-center text-2xl" style="background:rgba(29,231,130,0.1);color:#1DE782;">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold mb-2 text-white">Fast Settlements</h3>
+                            <p class="text-sm" style="color:#94a3b8;">Same-day and real-time settlement options to keep your cash flow moving without delays.</p>
+                        </div>
+                        <div class="glass-card p-6 sm:p-8 text-center">
+                            <div class="w-14 h-14 mx-auto mb-5 rounded-2xl flex items-center justify-center text-2xl" style="background:rgba(79,70,229,0.1);color:#4F46E5;">
+                                <i class="fas fa-headset"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold mb-2 text-white">Dedicated Support</h3>
+                            <p class="text-sm" style="color:#94a3b8;">Personal account manager and 24/7 technical support to resolve issues before they impact you.</p>
+                        </div>
+                        <div class="glass-card p-6 sm:p-8 text-center">
+                            <div class="w-14 h-14 mx-auto mb-5 rounded-2xl flex items-center justify-center text-2xl" style="background:rgba(0,212,255,0.1);color:#00D4FF;">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold mb-2 text-white">High Approval Rates</h3>
+                            <p class="text-sm" style="color:#94a3b8;">Optimized routing and smart retry logic deliver industry-leading transaction approval rates.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: STATISTICS -->
+        <section class="relative py-16 sm:py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 text-center">
+                    <div class="glass-card-alt p-6 sm:p-8">
+                        <div class="text-3xl sm:text-4xl lg:text-5xl font-bold counter-num mb-2" style="color:#00D4FF;" data-target="500" data-suffix="M+">0</div>
+                        <div class="text-sm sm:text-base" style="color:#94a3b8;">Processed Volume</div>
+                    </div>
+                    <div class="glass-card-alt p-6 sm:p-8">
+                        <div class="text-3xl sm:text-4xl lg:text-5xl font-bold counter-num mb-2" style="color:#1DE782;" data-target="99.2" data-suffix="%" data-decimal="true">0</div>
+                        <div class="text-sm sm:text-base" style="color:#94a3b8;">Success Rate</div>
+                    </div>
+                    <div class="glass-card-alt p-6 sm:p-8">
+                        <div class="text-3xl sm:text-4xl lg:text-5xl font-bold counter-num mb-2" style="color:#4F46E5;" data-target="24" data-suffix="/7">0</div>
+                        <div class="text-sm sm:text-base" style="color:#94a3b8;">Support</div>
+                    </div>
+                    <div class="glass-card-alt p-6 sm:p-8">
+                        <div class="text-3xl sm:text-4xl lg:text-5xl font-bold counter-num mb-2" style="color:#00D4FF;" data-target="3" data-suffix=" Days">0</div>
+                        <div class="text-sm sm:text-base" style="color:#94a3b8;">Average Integration Launch</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: SOLUTIONS -->
+        <section id="solutions" class="relative py-16 sm:py-20 section-glow-top">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+                <h2 class="text-3xl sm:text-4xl font-bold text-center mb-4 text-white">Solutions</h2>
+                <p class="text-center mb-12" style="color:#94a3b8;">Comprehensive payment infrastructure for the Indian market</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div class="glass-card p-6 sm:p-7">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4" style="background:rgba(0,212,255,0.1);color:#00D4FF;"><i class="fas fa-mobile-alt"></i></div>
+                        <h3 class="text-lg font-semibold mb-2 text-white">UPI Processing</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Full UPI stack with instant collection, verification and settlement for merchants of all sizes.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4" style="background:rgba(29,231,130,0.1);color:#1DE782;"><i class="fas fa-store"></i></div>
+                        <h3 class="text-lg font-semibold mb-2 text-white">Merchant Solutions</h3>
+                        <p class="text-sm" style="color:#94a3b8;">End-to-end merchant onboarding, management and payout infrastructure for platforms.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4" style="background:rgba(79,70,229,0.1);color:#4F46E5;"><i class="fas fa-gamepad"></i></div>
+                        <h3 class="text-lg font-semibold mb-2 text-white">Gaming Payments</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Specialized payment flows for gaming platforms with high-frequency transaction support.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4" style="background:rgba(0,212,255,0.1);color:#00D4FF;"><i class="fas fa-route"></i></div>
+                        <h3 class="text-lg font-semibold mb-2 text-white">Payment Routing</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Intelligent routing across multiple gateways to maximize success rates and minimize costs.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4" style="background:rgba(29,231,130,0.1);color:#1DE782;"><i class="fas fa-exchange-alt"></i></div>
+                        <h3 class="text-lg font-semibold mb-2 text-white">Settlement Management</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Automated settlement reconciliation with real-time tracking and detailed reporting.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4" style="background:rgba(79,70,229,0.1);color:#4F46E5;"><i class="fas fa-shield-alt"></i></div>
+                        <h3 class="text-lg font-semibold mb-2 text-white">Risk Monitoring</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Real-time fraud detection and risk scoring to protect your transactions and reduce chargebacks.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: FAST ONBOARDING -->
+        <section class="relative py-16 sm:py-20">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+                <h2 class="text-3xl sm:text-4xl font-bold text-center mb-4 text-white">Fast Onboarding</h2>
+                <p class="text-center mb-12" style="color:#94a3b8;">Integration can begin on the day of application. Most merchants start processing within several business days.</p>
+                <!-- Timeline -->
+                <div class="relative flex flex-col items-center gap-8 sm:gap-12">
+                    <!-- Vertical line -->
+                    <div class="timeline-line" style="top:30px;bottom:30px;left:50%;transform:translateX(-50%);" id="timelineLine"></div>
+                    <!-- Steps -->
+                    <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full sm:w-auto relative z-10">
+                        <div class="flex flex-col items-center text-center sm:w-40">
+                            <div class="timeline-dot mb-3"></div>
+                            <div class="text-2xl font-bold text-white mb-1">01</div>
+                            <h4 class="font-semibold text-white">Application</h4>
+                            <p class="text-xs mt-1" style="color:#94a3b8;">Submit basic details</p>
+                        </div>
+                        <div class="hidden sm:block text-2xl" style="color:#00D4FF;">→</div>
+                        <div class="flex flex-col items-center text-center sm:w-40">
+                            <div class="timeline-dot mb-3"></div>
+                            <div class="text-2xl font-bold text-white mb-1">02</div>
+                            <h4 class="font-semibold text-white">Review</h4>
+                            <p class="text-xs mt-1" style="color:#94a3b8;">Quick verification</p>
+                        </div>
+                        <div class="hidden sm:block text-2xl" style="color:#00D4FF;">→</div>
+                        <div class="flex flex-col items-center text-center sm:w-40">
+                            <div class="timeline-dot mb-3"></div>
+                            <div class="text-2xl font-bold text-white mb-1">03</div>
+                            <h4 class="font-semibold text-white">Integration</h4>
+                            <p class="text-xs mt-1" style="color:#94a3b8;">API & testing</p>
+                        </div>
+                        <div class="hidden sm:block text-2xl" style="color:#00D4FF;">→</div>
+                        <div class="flex flex-col items-center text-center sm:w-40">
+                            <div class="timeline-dot mb-3" style="background:#1DE782;box-shadow:0 0 20px rgba(29,231,130,0.6);"></div>
+                            <div class="text-2xl font-bold mb-1" style="color:#1DE782;">04</div>
+                            <h4 class="font-semibold text-white">Launch</h4>
+                            <p class="text-xs mt-1" style="color:#94a3b8;">Go live & process</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: API -->
+        <section id="api" class="relative py-16 sm:py-20 section-glow-top">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+                <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+                    <div>
+                        <h2 class="text-3xl sm:text-4xl font-bold mb-6 text-white">Developer Friendly API</h2>
+                        <p class="text-lg mb-4" style="color:#94a3b8;">Clean RESTful APIs with comprehensive documentation, SDKs for major languages, and a sandbox environment for testing.</p>
+                        <ul class="space-y-3 mb-8" style="color:#cbd5e1;">
+                            <li><i class="fas fa-check-circle mr-2" style="color:#1DE782;"></i> REST & Webhook support</li>
+                            <li><i class="fas fa-check-circle mr-2" style="color:#1DE782;"></i> SDKs: Python, Node.js, PHP, Java</li>
+                            <li><i class="fas fa-check-circle mr-2" style="color:#1DE782;"></i> Sandbox environment included</li>
+                            <li><i class="fas fa-check-circle mr-2" style="color:#1DE782;"></i> Detailed error codes & logging</li>
+                        </ul>
+                        <div class="flex flex-wrap gap-3">
+                            <a href="#" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition hover:scale-105" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#e2e8f0;">
+                                <i class="fas fa-book"></i> Request Documentation
+                            </a>
+                            <a href="#contact" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition hover:scale-105" style="background:linear-gradient(135deg,#00D4FF,#4F46E5);color:#fff;">
+                                <i class="fas fa-code"></i> Contact Integration Team
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Code Window -->
+                    <div class="code-window">
+                        <div class="title-bar">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                            <span class="text-xs ml-2" style="color:#64748b;">API Response — /v1/payment/status</span>
+                        </div>
+                        <pre><span class="code-bracket">{</span>
+                            <span class="code-prop">  "status"</span>: <span class="code-string">"success"</span>,
+                            <span class="code-prop">  "transaction_id"</span>: <span class="code-string">"txn_8a7b3c2d1e"</span>,
+                            <span class="code-prop">  "amount"</span>: <span class="code-number">15000</span>,
+                            <span class="code-prop">  "currency"</span>: <span class="code-string">"INR"</span>,
+                            <span class="code-prop">  "method"</span>: <span class="code-string">"upi"</span>,
+                            <span class="code-prop">  "settlement_status"</span>: <span class="code-string">"completed"</span>,
+                            <span class="code-prop">  "timestamp"</span>: <span class="code-string">"2026-05-29T10:32:45Z"</span>,
+                            <span class="code-prop">  "fee"</span>: <span class="code-number">45</span>,
+                            <span class="code-prop">  "net_amount"</span>: <span class="code-number">14955</span>
+                            <span class="code-bracket">}</span><span class="blinking-cursor"></span></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 7: INDIA EXPERTISE -->
+        <section class="relative py-16 sm:py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+                <h2 class="text-3xl sm:text-4xl font-bold text-center mb-4 text-white">India Expertise</h2>
+                <p class="text-center mb-12" style="color:#94a3b8;">Deep understanding of the Indian payment ecosystem</p>
+                <!-- Abstract India Map Container -->
+                <div class="relative mx-auto max-w-2xl h-80 sm:h-96 rounded-3xl overflow-hidden" style="background:rgba(15,23,42,0.5);border:1px solid rgba(255,255,255,0.06);">
+                    <!-- Subtle grid on map -->
+                    <div class="absolute inset-0 opacity-10" style="background-image:linear-gradient(rgba(255,255,255,0.2) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.2) 1px,transparent 1px);background-size:40px 40px;"></div>
+                    <!-- Simplified India outline shape using CSS (abstract representation) -->
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <svg viewBox="0 0 400 440" class="w-full h-full max-w-sm opacity-20" style="filter:drop-shadow(0 0 30px rgba(0,212,255,0.3));">
+                            <path d="M200 30 C220 30 240 50 250 70 C260 90 255 110 240 125 C230 135 225 150 230 165 C235 180 250 190 260 205 C270 220 265 240 250 255 C240 265 235 280 240 295 C245 310 260 320 255 340 C250 355 235 365 220 370 C205 375 195 385 200 400 C190 410 175 405 165 395 C150 380 140 360 135 340 C130 320 140 300 150 285 C160 270 155 250 145 235 C135 220 125 200 130 180 C135 160 150 145 160 125 C170 105 165 85 155 70 C145 55 150 40 170 35 C180 32 190 30 200 30Z" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+                        </svg>
+                    </div>
+                    <!-- Markers -->
+                    <div class="map-marker" style="top:38%;left:32%;" title="Mumbai — Merchant Network"></div>
+                    <div class="absolute text-xs font-semibold px-2 py-1 rounded-lg" style="top:30%;left:22%;background:rgba(0,0,0,0.7);color:#00D4FF;border:1px solid rgba(0,212,255,0.3);white-space:nowrap;">Merchant Network</div>
+                    <div class="map-marker" style="top:48%;left:38%;" title="Bangalore — UPI Ecosystem"></div>
+                    <div class="absolute text-xs font-semibold px-2 py-1 rounded-lg" style="top:55%;left:28%;background:rgba(0,0,0,0.7);color:#4F46E5;border:1px solid rgba(79,70,229,0.3);white-space:nowrap;">UPI Ecosystem</div>
+                    <div class="map-marker" style="top:22%;left:40%;" title="Delhi NCR — Operational Infrastructure"></div>
+                    <div class="absolute text-xs font-semibold px-2 py-1 rounded-lg" style="top:13%;left:30%;background:rgba(0,0,0,0.7);color:#1DE782;border:1px solid rgba(29,231,130,0.3);white-space:nowrap;">Operational Infrastructure</div>
+                    <div class="map-marker" style="top:42%;left:48%;" title="Hyderabad — Local Banking Expertise"></div>
+                    <div class="absolute text-xs font-semibold px-2 py-1 rounded-lg" style="top:48%;left:44%;background:rgba(0,0,0,0.7);color:#00D4FF;border:1px solid rgba(0,212,255,0.3);white-space:nowrap;">Local Banking Expertise</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 8: INDUSTRIES -->
+        <section id="industries" class="relative py-16 sm:py-20 section-glow-top">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+                <h2 class="text-3xl sm:text-4xl font-bold text-center mb-4 text-white">Industries We Serve</h2>
+                <p class="text-center mb-12" style="color:#94a3b8;">Specialized payment solutions across high-growth verticals</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <div class="glass-card-alt p-5 text-center">
+                        <div class="text-2xl mb-2">⚽</div>
+                        <div class="font-semibold text-sm text-white">Sports Betting</div>
+                    </div>
+                    <div class="glass-card-alt p-5 text-center">
+                        <div class="text-2xl mb-2">🎮</div>
+                        <div class="font-semibold text-sm text-white">iGaming</div>
+                    </div>
+                    <div class="glass-card-alt p-5 text-center">
+                        <div class="text-2xl mb-2">🎰</div>
+                        <div class="font-semibold text-sm text-white">Online Casino</div>
+                    </div>
+                    <div class="glass-card-alt p-5 text-center">
+                        <div class="text-2xl mb-2">🔗</div>
+                        <div class="font-semibold text-sm text-white">Affiliate Networks</div>
+                    </div>
+                    <div class="glass-card-alt p-5 text-center">
+                        <div class="text-2xl mb-2">💻</div>
+                        <div class="font-semibold text-sm text-white">Digital Platforms</div>
+                    </div>
+                    <div class="glass-card-alt p-5 text-center">
+                        <div class="text-2xl mb-2">🛒</div>
+                        <div class="font-semibold text-sm text-white">E-commerce</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 9: PERFORMANCE DASHBOARD -->
+        <section class="relative py-16 sm:py-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+                <h2 class="text-3xl sm:text-4xl font-bold text-center mb-4 text-white">Performance Dashboard</h2>
+                <p class="text-center mb-12" style="color:#94a3b8;">Real-time visibility into your payment operations</p>
+                <!-- Large Monitor Mockup -->
+                <div class="dashboard-mockup max-w-4xl mx-auto" style="padding:20px 24px;">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="dot red" style="width:10px;height:10px;border-radius:50%;background:#ff5f57;"></span>
+                        <span class="dot yellow" style="width:10px;height:10px;border-radius:50%;background:#febc2e;"></span>
+                        <span class="dot green" style="width:10px;height:10px;border-radius:50%;background:#28c840;"></span>
+                        <span class="text-xs ml-3 font-semibold tracking-wide" style="color:#64748b;">AAJAPAY MONITOR — v3.2.1</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+                        <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);">
+                            <div class="text-xs" style="color:#64748b;">Transactions</div>
+                            <div class="text-lg font-bold text-white">8,492</div>
+                            <div class="text-xs" style="color:#1DE782;">↑ 12%</div>
+                        </div>
+                        <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);">
+                            <div class="text-xs" style="color:#64748b;">Volume Today</div>
+                            <div class="text-lg font-bold text-white">₹ 52L</div>
+                            <div class="text-xs" style="color:#1DE782;">↑ 8%</div>
+                        </div>
+                        <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);">
+                            <div class="text-xs" style="color:#64748b;">Success Rate</div>
+                            <div class="text-lg font-bold" style="color:#1DE782;">99.2%</div>
+                        </div>
+                        <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);">
+                            <div class="text-xs" style="color:#64748b;">Active Merchants</div>
+                            <div class="text-lg font-bold text-white">384</div>
+                        </div>
+                        <div class="rounded-xl p-3" style="background:rgba(255,255,255,0.03);">
+                            <div class="text-xs" style="color:#64748b;">Alerts</div>
+                            <div class="text-lg font-bold" style="color:#1DE782;">0</div>
+                        </div>
+                    </div>
+                    <!-- Mini chart row -->
+                    <div class="flex items-end gap-1.5 h-20 mb-3">
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:60%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:75%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:50%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:85%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:65%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:90%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:70%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:55%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:80%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:62%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:88%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:72%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:58%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:92%;opacity:0.8;"></div>
+                        <div class="flex-1 rounded-sm" style="background:linear-gradient(180deg,#00D4FF,#4F46E5);height:68%;opacity:0.8;"></div>
+                    </div>
+                    <div class="flex justify-between text-xs" style="color:#64748b;">
+                        <span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span><span>16:00</span><span>Now</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 10: OPERATIONAL STANDARDS -->
+        <section class="relative py-16 sm:py-20 section-glow-top">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+                <h2 class="text-3xl sm:text-4xl font-bold text-center mb-4 text-white">Built Around Reliability</h2>
+                <p class="text-center mb-12" style="color:#94a3b8;">Operational standards that ensure consistent performance</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div class="glass-card p-6 sm:p-7 text-center">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center text-xl" style="background:rgba(0,212,255,0.1);color:#00D4FF;"><i class="fas fa-expand-arrows-alt"></i></div>
+                        <h3 class="font-semibold text-white mb-2">Scalable Infrastructure</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Auto-scaling systems handle volume spikes without performance degradation.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7 text-center">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center text-xl" style="background:rgba(29,231,130,0.1);color:#1DE782;"><i class="fas fa-eye"></i></div>
+                        <h3 class="font-semibold text-white mb-2">Continuous Monitoring</h3>
+                        <p class="text-sm" style="color:#94a3b8;">24/7 system monitoring with automated alerts and rapid incident response.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7 text-center">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center text-xl" style="background:rgba(79,70,229,0.1);color:#4F46E5;"><i class="fas fa-user-tie"></i></div>
+                        <h3 class="font-semibold text-white mb-2">Dedicated Account Management</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Every merchant gets a dedicated account manager for personalized support.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7 text-center">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center text-xl" style="background:rgba(0,212,255,0.1);color:#00D4FF;"><i class="fas fa-rocket"></i></div>
+                        <h3 class="font-semibold text-white mb-2">Fast Merchant Onboarding</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Streamlined KYC and verification process for rapid go-live timelines.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7 text-center">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center text-xl" style="background:rgba(29,231,130,0.1);color:#1DE782;"><i class="fas fa-award"></i></div>
+                        <h3 class="font-semibold text-white mb-2">Industry Experience</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Years of specialized experience across high-risk and regulated verticals.</p>
+                    </div>
+                    <div class="glass-card p-6 sm:p-7 text-center">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center text-xl" style="background:rgba(79,70,229,0.1);color:#4F46E5;"><i class="fas fa-cogs"></i></div>
+                        <h3 class="font-semibold text-white mb-2">Operational Excellence</h3>
+                        <p class="text-sm" style="color:#94a3b8;">Proven processes and redundancy at every layer of the payment stack.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 11: FINAL CTA -->
+        <section class="relative py-20 sm:py-28">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+                <div class="text-center rounded-3xl p-10 sm:p-16 relative overflow-hidden" style="background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(79,70,229,0.08));border:1px solid rgba(255,255,255,0.08);">
+                    <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at 50% 30%,rgba(0,212,255,0.1) 0%,transparent 60%);"></div>
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 text-white relative z-10">Ready To Scale Payments In India?</h2>
+                    <p class="text-lg sm:text-xl mb-8 relative z-10" style="color:#94a3b8;">Speak with our specialists and discover how AAJAPAY can support your payment operations.</p>
+                    <div class="flex flex-wrap justify-center gap-4 relative z-10">
+                        <a href="#contact" class="inline-flex items-center gap-3 px-8 sm:px-10 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 hover:scale-105" style="background:linear-gradient(135deg,#00D4FF,#4F46E5);color:#fff;box-shadow:0 8px 40px rgba(0,212,255,0.3);">
+                            <i class="fas fa-handshake"></i> Request Partnership
+                        </a>
+                        <a href="https://t.me/" target="_blank" class="inline-flex items-center gap-3 px-8 sm:px-10 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 border hover:scale-105" style="border-color:rgba(255,255,255,0.2);color:#e2e8f0;">
+                            <i class="fab fa-telegram"></i> Telegram
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 12: CONTACT FORM -->
+        <section id="contact" class="relative py-16 sm:py-20 section-glow-top">
+            <div class="max-w-2xl mx-auto px-4 sm:px-6 relative z-10">
+                <h2 class="text-3xl sm:text-4xl font-bold text-center mb-4 text-white">Contact Our Team</h2>
+                <p class="text-center mb-10" style="color:#94a3b8;">Fill the form below and we'll get back within hours</p>
+                <form id="contactForm" class="glass-card p-6 sm:p-10 space-y-5" onsubmit="handleFormSubmit(event)">
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <input type="text" placeholder="Name" required class="w-full px-4 py-3 rounded-xl text-sm outline-none transition" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;" onfocus="this.style.borderColor='rgba(0,212,255,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                        <input type="text" placeholder="Company" required class="w-full px-4 py-3 rounded-xl text-sm outline-none transition" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;" onfocus="this.style.borderColor='rgba(0,212,255,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <input type="text" placeholder="Telegram / WhatsApp" required class="w-full px-4 py-3 rounded-xl text-sm outline-none transition" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;" onfocus="this.style.borderColor='rgba(0,212,255,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                        <input type="email" placeholder="Email" required class="w-full px-4 py-3 rounded-xl text-sm outline-none transition" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;" onfocus="this.style.borderColor='rgba(0,212,255,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    </div>
+                    <input type="text" placeholder="Monthly Volume (approx.)" class="w-full px-4 py-3 rounded-xl text-sm outline-none transition" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;" onfocus="this.style.borderColor='rgba(0,212,255,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                    <textarea placeholder="Message" rows="3" class="w-full px-4 py-3 rounded-xl text-sm outline-none transition resize-none" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;" onfocus="this.style.borderColor='rgba(0,212,255,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+                    <button type="submit" class="w-full py-4 rounded-2xl font-semibold text-base transition-all duration-300 hover:scale-[1.02]" style="background:linear-gradient(135deg,#00D4FF,#4F46E5);color:#fff;box-shadow:0 6px 30px rgba(0,212,255,0.25);">
+                        <i class="fas fa-paper-plane mr-2"></i> Send Request
+                    </button>
+                    <p id="formSuccess" class="text-center hidden" style="color:#1DE782;">✓ Our team will contact you shortly.</p>
+                </form>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="relative py-12 border-t" style="border-color:rgba(255,255,255,0.06);">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+                    <div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <video 
+                                src="1_AAJA%203.mp4" 
+                                class="logo-video w-9 h-9 rounded-xl object-cover" 
+                                autoplay 
+                                loop 
+                                muted 
+                                playsinline 
+                                disableRemotePlayback
+                                preload="auto"
+                                aria-label="AAJAPAY footer logo"
+                            ></video>
+                            <div>
+                                <div class="font-bold text-white">AAJAPAY</div>
+                                <div class="text-xs" style="color:#64748b;">India Payment Infrastructure</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-white mb-3">Navigation</div>
+                        <div class="space-y-2 text-sm" style="color:#94a3b8;">
+                            <a href="#hero" class="block hover:text-white transition">Home</a>
+                            <a href="#solutions" class="block hover:text-white transition">Solutions</a>
+                            <a href="#api" class="block hover:text-white transition">API</a>
+                            <a href="#industries" class="block hover:text-white transition">Industries</a>
+                            <a href="#contact" class="block hover:text-white transition">Contact</a>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-white mb-3">Contact</div>
+                        <div class="space-y-2 text-sm" style="color:#94a3b8;">
+                            <div><i class="fab fa-telegram mr-2"></i> Telegram</div>
+                            <div><i class="fas fa-envelope mr-2"></i> Email</div>
+                            <div><i class="fas fa-clock mr-2"></i> Business Hours: 24/7</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-white mb-3">Trust</div>
+                        <div class="space-y-2 text-sm" style="color:#94a3b8;">
+                            <div>✓ Secure Infrastructure</div>
+                            <div>✓ Compliant Operations</div>
+                            <div>✓ Dedicated Support</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center pt-6 border-t text-sm" style="border-color:rgba(255,255,255,0.06);color:#64748b;">
+                    © 2026 AAJAPAY. All Rights Reserved.
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Sticky header scroll effect
+        const header = document.getElementById('mainHeader');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Animated counters with Intersection Observer
+        const counterElements = document.querySelectorAll('.counter-num');
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const target = parseFloat(el.getAttribute('data-target'));
+                    const suffix = el.getAttribute('data-suffix') || '';
+                    const isDecimal = el.getAttribute('data-decimal') === 'true';
+                    const duration = 2000;
+                    const startTime = performance.now();
+
+                    function updateCounter(currentTime) {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3);
+                        const current = target * eased;
+
+                        if (isDecimal) {
+                            el.textContent = current.toFixed(1) + suffix;
+                        } else if (target >= 100) {
+                            el.textContent = Math.floor(current).toLocaleString() + suffix;
+                        } else {
+                            el.textContent = Math.floor(current) + suffix;
+                        }
+
+                        if (progress < 1) {
+                            requestAnimationFrame(updateCounter);
+                        } else {
+                            if (isDecimal) {
+                                el.textContent = target.toFixed(1) + suffix;
+                            } else if (target >= 100) {
+                                el.textContent = Math.floor(target).toLocaleString() + suffix;
+                            } else {
+                                el.textContent = Math.floor(target) + suffix;
+                            }
+                        }
+                    }
+                    requestAnimationFrame(updateCounter);
+                    counterObserver.unobserve(el);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        counterElements.forEach(el => counterObserver.observe(el));
+
+        // Timeline line animation
+        const timelineSection = document.querySelector('#how') || document.querySelector('.timeline-line')?.closest('section');
+        const timelineLine = document.getElementById('timelineLine');
+        if (timelineLine && timelineLine.closest('section')) {
+            const timelineObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        timelineLine.style.height = '100%';
+                        timelineLine.style.opacity = '1';
+                    }
+                });
+            }, { threshold: 0.3 });
+            timelineObserver.observe(timelineLine.closest('section'));
+        }
+
+        // Form submit handler
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const successMsg = document.getElementById('formSuccess');
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            // Simulate submission
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending...';
+
+            setTimeout(() => {
+                form.reset();
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Send Request';
+                successMsg.classList.remove('hidden');
+                setTimeout(() => successMsg.classList.add('hidden'), 5000);
+            }, 1500);
+        }
+
+        // Smooth dashboard chart animation on load
+        document.querySelectorAll('.mini-chart-bar').forEach((bar, i) => {
+            bar.style.height = '0%';
+            setTimeout(() => {
+                const originalHeight = bar.style.height || '60%';
+                bar.style.transition = 'height 1.2s cubic-bezier(0.25,0.8,0.25,1)';
+                bar.style.height = originalHeight;
+            }, 300 + i * 60);
+        });
+    </script>
+</body>
+</html>
