@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAJAPAY - India Payment Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+        }
+        
+        .logo-glow {
+            filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.6));
+        }
+        
+        .input-focus {
+            transition: all 0.3s ease;
+        }
+        
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            border-color: #3b82f6;
+        }
+        
+        .button-gradient {
+            background: linear-gradient(to right, #3b82f6, #8b5cf6);
+        }
+        
+        .neon-text {
+            text-shadow: 0 0 10px #3b82f6;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white flex items-center justify-center p-4">
+    <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 bg-[#111827]/80 backdrop-blur-xl rounded-3xl overflow-hidden border border-gray-700 shadow-2xl">
+        
+        <!-- Левая панель -->
+        <div class="relative p-12 flex flex-col justify-between bg-gradient-to-br from-[#0f172a] to-[#1e2937]">
+            <div>
+                <!-- Логотип -->
+                <div class="flex items-center gap-3 mb-12">
+                    <div class="logo-glow">
+                        <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 30 L50 10 L80 30 L80 70 L50 90 L20 70 Z" stroke="#3b82f6" stroke-width="12" stroke-linejoin="round"/>
+                            <path d="M35 45 L50 35 L65 45" stroke="#60a5fa" stroke-width="8" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="text-3xl font-bold tracking-tighter">AAJA<span class="text-blue-500">PAY</span></span>
+                        <p class="text-xs text-gray-400 tracking-widest">INDIA PAYMENT INFRASTRUCTURE</p>
+                    </div>
+                </div>
+                
+                <h1 class="text-5xl font-bold leading-tight mb-6 neon-text">
+                    Control Payment Operations<br>From <span class="text-blue-500">One Dashboard</span>
+                </h1>
+                
+                <p class="text-gray-400 text-lg mb-10">
+                    Monitor deposits, payouts, routing performance<br>
+                    and merchant activity through AAJAPAY infrastructure.
+                </p>
+            </div>
+            
+            <!-- Статистика -->
+            <div class="grid grid-cols-3 gap-4">
+                <div class="bg-[#1e2937] rounded-2xl p-6 text-center border border-gray-700">
+                    <div class="text-blue-500 text-3xl mb-2">📈</div>
+                    <div class="text-4xl font-bold">83%</div>
+                    <div class="text-sm text-gray-400 mt-1">Average Success Rate</div>
+                </div>
+                <div class="bg-[#1e2937] rounded-2xl p-6 text-center border border-gray-700">
+                    <div class="text-purple-500 text-3xl mb-2">🎧</div>
+                    <div class="text-4xl font-bold">24/7</div>
+                    <div class="text-sm text-gray-400 mt-1">Operations Support</div>
+                </div>
+                <div class="bg-[#1e2937] rounded-2xl p-6 text-center border border-gray-700">
+                    <div class="text-green-500 text-3xl mb-2">⚡</div>
+                    <div class="text-4xl font-bold">Fast</div>
+                    <div class="text-sm text-gray-400 mt-1">Merchant Onboarding</div>
+                </div>
+            </div>
+            
+            <div class="absolute bottom-8 left-12 text-xs text-gray-500">
+                © 2026 AAJAPAY
+            </div>
+        </div>
+        
+        <!-- Правая панель (форма входа) -->
+        <div class="p-12 lg:p-16 flex flex-col justify-center bg-[#0f172a]">
+            <div class="max-w-md mx-auto w-full">
+                <div class="flex justify-end mb-8">
+                    <button onclick="alert('Telegram Support opened')" 
+                            class="flex items-center gap-2 text-sm bg-gray-800 hover:bg-gray-700 px-5 py-2.5 rounded-2xl transition">
+                        <i class="fab fa-telegram text-blue-400"></i>
+                        Telegram Support
+                    </button>
+                </div>
+                
+                <h2 class="text-4xl font-semibold mb-2">Welcome Back</h2>
+                <p class="text-gray-400 mb-10">Sign in to continue.</p>
+                
+                <form class="space-y-6">
+                    <div>
+                        <label class="block text-sm mb-2 text-gray-400">Username / Email</label>
+                        <div class="relative">
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <input type="text" 
+                                   class="input-focus w-full bg-[#1e2937] border border-gray-600 rounded-2xl py-4 pl-12 pr-6 focus:outline-none text-white"
+                                   placeholder="Enter your username or email">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm mb-2 text-gray-400">Password</label>
+                        <div class="relative">
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <input type="password" 
+                                   class="input-focus w-full bg-[#1e2937] border border-gray-600 rounded-2xl py-4 pl-12 pr-12 focus:outline-none text-white"
+                                   placeholder="••••••••••">
+                            <button type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="w-5 h-5 accent-blue-600" checked>
+                            <span class="text-sm text-gray-400">Remember me</span>
+                        </label>
+                        <a href="#" class="text-blue-500 text-sm hover:underline">Forgot Password?</a>
+                    </div>
+                    
+                    <button type="button"
+                            class="button-gradient w-full py-4 rounded-2xl text-lg font-semibold flex items-center justify-center gap-3 hover:scale-[1.02] transition">
+                        Sign In
+                        <span class="text-xl">→</span>
+                    </button>
+                </form>
+                
+                <div class="my-8 flex items-center gap-4">
+                    <div class="h-px bg-gray-700 flex-1"></div>
+                    <span class="text-gray-500 text-sm">or continue with</span>
+                    <div class="h-px bg-gray-700 flex-1"></div>
+                </div>
+                
+                <button onclick="alert('2FA Login clicked')"
+                        class="w-full border border-gray-600 hover:border-gray-400 transition py-4 rounded-2xl flex items-center justify-center gap-3">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Login with 2FA Code</span>
+                </button>
+                
+                <div class="mt-10 text-center">
+                    <p class="text-sm text-gray-400">
+                        Need assistance? 
+                        <a href="#" class="text-blue-400 hover:underline">Contact Support</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
