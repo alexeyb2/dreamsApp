@@ -3,309 +3,172 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Продавливание сферы</title>
+    <title>Инь-Ян Баланс</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui; }
-        
-        #ui {
-            position: absolute; bottom: 30px; left: 0; right: 0; display: flex;
-            flex-direction: column; align-items: center; gap: 12px; pointer-events: none;
+        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
+        #bg {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            display: block;
+            cursor: grab;
         }
-        .stats-row {
-            display: flex; justify-content: center; gap: 25px; pointer-events: none;
-        }
-        .stat {
-            background: rgba(22,17,39,0.85); padding: 8px 18px; border-radius: 30px;
-            border: 1px solid #3a2f5a; color: #fff; font-size: 16px; font-weight: 600;
-            backdrop-filter: blur(8px); text-align: center; min-width: 70px;
-        }
-        .stat span { display: block; font-size: 13px; opacity: 0.6; font-weight: normal; }
-        #stat-red { border-color: #ff6b6b; color: #ff6b6b; }
-        #stat-blue { border-color: #6b9bff; color: #6b9bff; }
-        
-        .controls {
-            display: flex; gap: 10px; pointer-events: auto;
-        }
-        .btn {
-            background: rgba(22,17,39,0.85); border: 1px solid #4a3f6a;
-            padding: 8px 18px; border-radius: 30px; color: #b8a6ff;
-            font-size: 14px; font-weight: 500; backdrop-filter: blur(8px);
-            cursor: pointer; transition: all 0.2s;
-        }
-        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; border-color: #6f52c4; }
-        .btn.active { background: #6f52c4; color: #fff; border-color: #6f52c4; }
-        
+        #bg:active { cursor: grabbing; }
         #hint {
             position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.7); padding: 6px 16px; border-radius: 30px;
-            color: #b8a6ff; font-size: 13px; pointer-events: none; white-space: nowrap;
-            backdrop-filter: blur(4px); border: 1px solid #3a2f5a;
+            background: rgba(0,0,0,0.5); padding: 6px 18px; border-radius: 30px;
+            color: rgba(255,255,255,0.7); font-size: 14px; pointer-events: none;
+            backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.05);
+            white-space: nowrap;
         }
+        @media (max-width: 600px) { #hint { font-size: 12px; padding: 4px 14px; top: 20px; } }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 </head>
 <body>
-    <div id="hint">👆 Веди пальцем по сфере, чтобы двигать границу</div>
-    <div id="ui">
-        <div class="stats-row">
-            <div class="stat" id="stat-red">❤️ <span id="red-percent">50%</span></div>
-            <div class="stat" id="stat-blue">🧠 <span id="blue-percent">50%</span></div>
-        </div>
-        <div class="controls">
-            <button class="btn active" id="toggle-mode">↕️ Вертикаль / ↔️ Горизонталь</button>
-        </div>
-    </div>
+    <div id="hint">👆 Проведи пальцем, чтобы переместить границу</div>
+    <canvas id="bg"></canvas>
 
     <script>
-        // 1. Сцена
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0b0814);
+        const canvas = document.getElementById('bg');
+        const ctx = canvas.getContext('2d');
 
-        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 1.5, 5.5);
-        camera.lookAt(0, 0, 0);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        document.body.appendChild(renderer.domElement);
-
-        const labelRenderer = new THREE.CSS2DRenderer();
-        labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        labelRenderer.domElement.style.position = 'absolute';
-        labelRenderer.domElement.style.top = '0px';
-        labelRenderer.domElement.style.left = '0px';
-        labelRenderer.domElement.style.pointerEvents = 'none';
-        document.body.appendChild(labelRenderer.domElement);
-
-        // Контролы камеры (можно крутить саму сцену, но вращение отключено)
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; controls.dampingFactor = 0.05;
-        controls.target.set(0, 0, 0); controls.maxPolarAngle = Math.PI / 2.0;
-        controls.minDistance = 2.5; controls.maxDistance = 10;
-
-        // 2. Освещение
-        scene.add(new THREE.AmbientLight(0x404060));
-        const light = new THREE.DirectionalLight(0xffeedd, 1.2);
-        light.position.set(5, 10, 7); scene.add(light);
-
-        // 3. Шейдерная сфера с ПРОДАВЛИВАНИЕМ
-        const vertexShader = `
-            uniform float u_cut;
-            uniform float u_mode; // 0 = X (left/right), 1 = Y (top/bottom)
-            varying float v_axis;
-
-            void main() {
-                vec3 pos = position;
-                // Определяем ось в зависимости от режима
-                if (u_mode < 0.5) {
-                    v_axis = pos.x;
-                } else {
-                    v_axis = pos.y;
-                }
-
-                // Эффект продавливания (выпуклость на границе)
-                float distToCut = abs(v_axis - u_cut);
-                float deformation = exp(-distToCut * 4.0) * 0.06; // 0.06 - сила выгиба
-                pos += normal * deformation;
-
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-            }
-        `;
-        const fragmentShader = `
-            uniform float u_cut;
-            uniform float u_mode;
-            uniform vec3 u_red;
-            uniform vec3 u_blue;
-            varying float v_axis;
-
-            void main() {
-                float d = v_axis - u_cut;
-                float mixVal = smoothstep(-0.05, 0.05, d);
-                vec3 col = mix(u_red, u_blue, mixVal);
-                
-                // Яркое свечение на границе
-                float glow = exp(-abs(d) * 15.0) * 0.8;
-                col += glow;
-                
-                // Затемнение по краям
-                float rim = 1.0 - abs(v_axis);
-                col *= (0.8 + 0.2 * rim);
-                gl_FragColor = vec4(col, 0.95);
-            }
-        `;
-
-        const uniforms = {
-            u_cut: { value: 0.0 },
-            u_mode: { value: 0.0 }, // 0 - X, 1 - Y
-            u_red: { value: new THREE.Color(0xff4d4d) },
-            u_blue: { value: new THREE.Color(0x4d8bff) }
-        };
-
-        const material = new THREE.ShaderMaterial({
-            uniforms: uniforms,
-            vertexShader: vertexShader,
-            fragmentShader: fragmentShader,
-            transparent: true,
-            side: THREE.DoubleSide
-        });
-
-        const geometry = new THREE.SphereGeometry(1.7, 64, 64);
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.position.set(0, 0, 0);
-        scene.add(sphere);
-
-        // Прозрачная оболочка (сетка)
-        const wireframeMat = new THREE.MeshBasicMaterial({
-            color: 0x8888ff,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.08
-        });
-        const wireSphere = new THREE.Mesh(new THREE.SphereGeometry(1.72, 32, 16), wireframeMat);
-        scene.add(wireSphere);
-
-        // 4. Метки (Цвета текста наоборот)
-        function createLabel(text, color) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            div.style.color = color;
-            div.style.fontSize = '24px';
-            div.style.fontWeight = 'bold';
-            div.style.textShadow = '0 0 20px currentColor, 0 0 40px currentColor';
-            div.style.background = 'rgba(11, 8, 20, 0.5)';
-            div.style.padding = '4px 16px';
-            div.style.borderRadius = '20px';
-            div.style.backdropFilter = 'blur(4px)';
-            div.style.border = '1px solid ' + color;
-            return new THREE.CSS2DObject(div);
-        }
-
-        // ❤️ Сердце (Красная зона) -> пишем СИНИМ
-        const labelRed = createLabel('❤️ Сердце', '#4d8bff');
-        // 🧠 Ум (Синяя зона) -> пишем КРАСНЫМ
-        const labelBlue = createLabel('🧠 Ум', '#ff4d4d');
-        scene.add(labelRed);
-        scene.add(labelBlue);
-
-        // 5. Логика переключения режимов (Лево/Право <=> Верх/Низ)
-        let mode = 0; // 0 = horizontal, 1 = vertical
-        const toggleBtn = document.getElementById('toggle-mode');
-
-        toggleBtn.addEventListener('click', () => {
-            mode = 1 - mode; // Переключение между 0 и 1
-            uniforms.u_mode.value = mode;
-            toggleBtn.classList.add('active');
-            
-            // Обновляем позиции меток при смене режима
-            updateLabels();
-        });
-
-        // 6. Логика Свайпа (движения границы)
-        let currentCut = 0.0;
-        let targetCut = 0.0;
+        let w, h;
+        let cut = 0.5; // Положение границы (0.5 = 50%)
         let isDragging = false;
-        let dragStartLocalAxis = 0.0;
-        let dragStartCut = 0.0;
 
-        const raycaster = new THREE.Raycaster();
-        const pointer = new THREE.Vector2();
+        // Цвета
+        const colorBlueTop = '#4d8bff';
+        const colorRedBottom = '#ff4d4d';
+        const textRed = '#ff4d4d';
+        const textBlue = '#4d8bff';
 
-        function getPointer(e) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-            pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            draw();
         }
 
-        renderer.domElement.addEventListener('pointerdown', (e) => {
-            getPointer(e);
-            raycaster.setFromCamera(pointer, camera);
-            const intersects = raycaster.intersectObject(sphere);
-            if (intersects.length > 0) {
-                const localPoint = sphere.worldToLocal(intersects[0].point.clone());
-                // Запоминаем координату по активной оси
-                if (mode === 0) dragStartLocalAxis = localPoint.x;
-                else dragStartLocalAxis = localPoint.y;
-                
-                dragStartCut = uniforms.u_cut.value;
-                isDragging = true;
-                controls.enabled = false;
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Рисуем Синий фон (верхняя зона)
+            const gradBlue = ctx.createLinearGradient(0, 0, 0, h);
+            gradBlue.addColorStop(0, '#1e3a8a');
+            gradBlue.addColorStop(1, colorBlueTop);
+            ctx.fillStyle = gradBlue;
+            ctx.fillRect(0, 0, w, h);
+
+            // 2. Рисуем Красную зону (нижняя) через S-образный изгиб Инь-Ян
+            ctx.beginPath();
+            const amplitude = 0.12 * h; // Высота изгиба
+            ctx.moveTo(0, cut * h + amplitude * Math.sin(0));
+            
+            for (let x = 1; x <= w; x++) {
+                // Плавная синусоида (Инь-Ян изгиб)
+                const y = cut * h + amplitude * Math.sin(x / w * Math.PI);
+                ctx.lineTo(x, y);
             }
+            ctx.lineTo(w, h);
+            ctx.lineTo(0, h);
+            ctx.closePath();
+
+            const gradRed = ctx.createLinearGradient(0, h, 0, 0);
+            gradRed.addColorStop(0, '#991b1b');
+            gradRed.addColorStop(1, colorRedBottom);
+            ctx.fillStyle = gradRed;
+            ctx.fill();
+
+            // 3. Светящаяся линия границы (эффект воды/бассейна)
+            ctx.beginPath();
+            ctx.moveTo(0, cut * h + amplitude * Math.sin(0));
+            for (let x = 1; x <= w; x++) {
+                const y = cut * h + amplitude * Math.sin(x / w * Math.PI);
+                ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
+            ctx.shadowBlur = 25;
+            ctx.stroke();
+            ctx.shadowBlur = 0; // Сбросить тень
+
+            // 4. Точки Инь-Ян (противоположные цвета)
+            // Красная точка в синей зоне
+            const dotRadius = w * 0.04;
+            const dotOffsetX = w * 0.15;
+            const dotOffsetY = h * 0.1;
+            
+            ctx.beginPath();
+            ctx.arc(w / 2 - dotOffsetX, cut * h - dotOffsetY, dotRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = colorRedBottom;
+            ctx.shadowColor = 'rgba(255, 77, 77, 0.5)';
+            ctx.shadowBlur = 20;
+            ctx.fill();
+
+            // Синяя точка в красной зоне
+            ctx.beginPath();
+            ctx.arc(w / 2 + dotOffsetX, cut * h + dotOffsetY, dotRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = colorBlueTop;
+            ctx.shadowColor = 'rgba(77, 139, 255, 0.5)';
+            ctx.shadowBlur = 20;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // 5. Тексты (Цвета наоборот!)
+            ctx.font = `bold ${w * 0.06}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            ctx.shadowBlur = 10;
+
+            // Сердце (в верхней синей зоне -> пишем красным)
+            ctx.fillStyle = textRed;
+            ctx.fillText('❤️ Сердце', w / 2, cut * h * 0.45);
+
+            // Ум (в нижней красной зоне -> пишем синим)
+            ctx.fillStyle = textBlue;
+            ctx.fillText('🧠 Ум', w / 2, (h + cut * h) / 1.85);
+
+            ctx.shadowBlur = 0;
+
+            // 6. Проценты (внизу)
+            ctx.font = `bold ${w * 0.045}px system-ui, sans-serif`;
+            ctx.textBaseline = 'bottom';
+            
+            const bluePercent = Math.round(cut * 100);
+            const redPercent = 100 - bluePercent;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillText(`${bluePercent}%`, w / 4 - 20, h - 30);
+            ctx.fillText(`${redPercent}%`, w * 3 / 4 + 20, h - 30);
+        }
+
+        // Логика перетаскивания
+        canvas.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            updateCut(e.clientY);
         });
 
         window.addEventListener('pointermove', (e) => {
             if (!isDragging) return;
-            getPointer(e);
-            raycaster.setFromCamera(pointer, camera);
-            const intersects = raycaster.intersectObject(sphere);
-            if (intersects.length > 0) {
-                const localPoint = sphere.worldToLocal(intersects[0].point.clone());
-                let currentLocalAxis;
-                if (mode === 0) currentLocalAxis = localPoint.x;
-                else currentLocalAxis = localPoint.y;
-                
-                const delta = currentLocalAxis - dragStartLocalAxis;
-                targetCut = dragStartCut + delta;
-                targetCut = Math.max(-1.7, Math.min(1.7, targetCut));
-            }
+            updateCut(e.clientY);
         });
 
         window.addEventListener('pointerup', () => {
-            if (isDragging) {
-                isDragging = false;
-                controls.enabled = true;
-            }
+            isDragging = false;
         });
 
-        // 7. Обновление меток и UI
-        function updateLabels() {
-            const radius = 1.7;
-            if (mode === 0) {
-                // Горизонталь: X
-                const redCenterX = (currentCut - radius) / 2; 
-                const blueCenterX = (radius + currentCut) / 2; 
-                labelRed.position.set(redCenterX, 0.2, 0);
-                labelBlue.position.set(blueCenterX, 0.2, 0);
-            } else {
-                // Вертикаль: Y
-                const redCenterY = (currentCut + radius) / 2; // Т.к. Y растет вверх
-                const blueCenterY = (currentCut - radius) / 2;
-                labelRed.position.set(0, redCenterY, 0);
-                labelBlue.position.set(0, blueCenterY, 0);
-            }
+        function updateCut(clientY) {
+            const rect = canvas.getBoundingClientRect();
+            // Нормализуем от 0.05 до 0.95, чтобы текст не улетал за края
+            cut = Math.min(0.95, Math.max(0.05, (clientY - rect.top) / rect.height));
+            draw();
         }
 
-        function updateScene() {
-            currentCut += (targetCut - currentCut) * 0.15;
-            if (Math.abs(currentCut - targetCut) < 0.001) currentCut = targetCut;
-            uniforms.u_cut.value = currentCut;
+        // Адаптация к повороту экрана
+        window.addEventListener('resize', resize);
+        resize();
 
-            updateLabels();
-
-            // Проценты (от -1.7 до 1.7 -> 0% - 100%)
-            const redPercent = Math.round(((currentCut / 1.7) + 1) / 2 * 100);
-            const bluePercent = 100 - redPercent;
-            document.getElementById('red-percent').textContent = redPercent + '%';
-            document.getElementById('blue-percent').textContent = bluePercent + '%';
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            updateScene();
-            renderer.render(scene, camera);
-            labelRenderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        console.log('🟣🦅 Инь-Ян Баланс загружен');
     </script>
 </body>
 </html>
