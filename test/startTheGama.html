@@ -3,22 +3,35 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Сердце и Мозг</title>
+    <title>Зоны силы</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; }
-        #info {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(22,17,39,0.8); padding: 8px 20px; border-radius: 20px;
-            color: #b8a6ff; font-family: system-ui; font-size: 14px; pointer-events: none;
+        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui; }
+        #ui {
+            position: absolute; bottom: 20px; left: 0; right: 0; display: flex;
+            justify-content: center; gap: 20px; pointer-events: none;
+        }
+        .stat {
+            background: rgba(22,17,39,0.85); padding: 8px 18px; border-radius: 30px;
+            border: 1px solid #3a2f5a; color: #e0d6ff; font-size: 15px; font-weight: 500;
+            backdrop-filter: blur(6px); text-align: center;
+        }
+        .stat span { display: block; font-size: 12px; opacity: 0.5; font-weight: normal; }
+        #hint {
+            position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.6); padding: 6px 16px; border-radius: 20px;
+            color: #b8a6ff; font-size: 13px; pointer-events: none; white-space: nowrap;
         }
     </style>
-</head>
-<body>
-    <div id="info">👆 Коснись, чтобы вращать (жест двумя пальцами для зума)</div>
-
-    <!-- Подключаем Three.js и OrbitControls через старые скрипты (гарантированно работает на мобилках) -->
+    <!-- Надёжные библиотеки для мобильных -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="hint">👆 Тащи эмодзи, чтобы изменить зоны</div>
+    <div id="ui">
+        <div class="stat" id="s1"><span>❤️ Зона</span> 2.0 м</div>
+        <div class="stat" id="s2"><span>🧠 Зона</span> 2.0 м</div>
+    </div>
 
     <script>
         // 1. Сцена, Камера, Рендерер
@@ -26,95 +39,166 @@
         scene.background = new THREE.Color(0x0b0814);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(4, 5, 7); // Вид немного сверху сбоку
+        camera.position.set(4, 4, 9);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.target.set(0, 0, 0);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.target.set(0, 0, 0); controls.maxPolarAngle = Math.PI / 2.1;
 
-        // 2. Освещение
+        // Освещение
         scene.add(new THREE.AmbientLight(0x404060));
-        const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
-        dirLight.position.set(5, 10, 7);
-        scene.add(dirLight);
+        const light = new THREE.DirectionalLight(0xffeedd, 1.2);
+        light.position.set(5, 10, 7); light.castShadow = true; scene.add(light);
 
-        // 3. Создаём спрайт (эмодзи) в 3D
-        function createEmoji(emoji, position) {
+        // 2. Функция создания эмодзи с надписью (все в одной текстуре)
+        function createEmojiSprite(emoji, label, color) {
             const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 256;
+            canvas.width = 256; canvas.height = 320;
             const ctx = canvas.getContext('2d');
-            ctx.font = '180px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(emoji, 128, 128);
-            
+
+            // Свечение
+            const c = new THREE.Color(color);
+            const grad = ctx.createRadialGradient(128, 100, 20, 128, 100, 130);
+            grad.addColorStop(0, `rgba(${c.r*255|0}, ${c.g*255|0}, ${c.b*255|0}, 0.3)`);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, 256, 320);
+
+            ctx.font = '140px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, 128, 110);
+
+            ctx.font = 'bold 34px sans-serif';
+            ctx.fillStyle = color; ctx.fillText(label, 128, 230);
+
             const texture = new THREE.CanvasTexture(canvas);
             const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
-            sprite.scale.set(1.8, 1.8, 1);
-            sprite.position.set(position.x, position.y, position.z);
+            sprite.scale.set(1.6, 2.0, 1);
             return sprite;
         }
 
-        // Расставляем ровно так, как на твоём рисунке
-        const heart = createEmoji('❤️', { x: -2.0, y: 1.5, z: 0 });
-        const brain = createEmoji('🧠', { x: 2.0, y: -1.5, z: 0 });
+        // 3. Создаём объекты
+        const heart = createEmojiSprite('❤️', 'Сердце', '#ff6b6b');
+        heart.position.set(-2.0, 0, 0);
         scene.add(heart);
+
+        const brain = createEmojiSprite('🧠', 'Ум', '#6b9bff');
+        brain.position.set(2.0, 0, 0);
         scene.add(brain);
 
-        // 4. Белые оси (перекрестие)
-        function drawLine(points, color = 0xffffff, opacity = 0.7) {
-            const geometry = new THREE.BufferGeometry().setFromPoints(
-                points.map(p => new THREE.Vector3(p.x, p.y, p.z))
-            );
-            const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
-            const line = new THREE.Line(geometry, material);
-            scene.add(line);
-            return line;
-        }
-
-        drawLine([{x:-5,y:0,z:0}, {x:5,y:0,z:0}]); // Горизонталь
-        drawLine([{x:0,y:-5,z:0}, {x:0,y:5,z:0}]); // Вертикаль
-
-        // 5. Жёлтые линии (как на рисунке - контур и связи)
-        // Имитируем жёлтую петлю, которую ты нарисовал
-        const yellowColor = 0xffcc00;
-        
-        // Линия от сердца к центру
-        drawLine([{x:-2,y:1.5,z:0}, {x:0,y:0,z:0}], yellowColor);
-        // Линия от мозга к центру
-        drawLine([{x:2,y:-1.5,z:0}, {x:0,y:0,z:0}], yellowColor);
-        
-        // Жёлтый контур-петля вокруг них (эллипс/овал)
-        const contourPoints = [];
-        const a = 3.0; // ширина
-        const b = 2.5; // высота
-        for (let i = 0; i <= 50; i++) {
-            const angle = (i / 50) * Math.PI * 2;
-            contourPoints.push({
-                x: Math.cos(angle) * a - 0.2, // чуть смещён, как на рисунке
-                y: Math.sin(angle) * b + 0.1,
-                z: 0
+        // 4. Зоны влияния (прозрачные сферы)
+        function createZone(color) {
+            const geom = new THREE.SphereGeometry(1, 20, 20);
+            const mat = new THREE.MeshBasicMaterial({ 
+                color, wireframe: true, transparent: true, opacity: 0.2 
             });
+            const mesh = new THREE.Mesh(geom, mat);
+            return mesh;
         }
-        drawLine(contourPoints, yellowColor, 0.5); // Полупрозрачный контур
+        const zone1 = createZone('#ff6b6b'); zone1.position.copy(heart.position); scene.add(zone1);
+        const zone2 = createZone('#6b9bff'); zone2.position.copy(brain.position); scene.add(zone2);
 
-        // 6. Жёлтый центр (точка 0,0)
-        const centerSphere = new THREE.Mesh(
-            new THREE.SphereGeometry(0.15, 16, 16),
-            new THREE.MeshBasicMaterial({ color: 0xffcc00 })
-        );
-        centerSphere.position.set(0, 0, 0);
-        scene.add(centerSphere);
+        // 5. Живая стенка (сетка)
+        const wallGeom = new THREE.PlaneGeometry(6, 4, 40, 40);
+        const wallMat = new THREE.MeshBasicMaterial({
+            color: 0x8877ff, transparent: true, opacity: 0.15, side: THREE.DoubleSide,
+            wireframe: true
+        });
+        const wall = new THREE.Mesh(wallGeom, wallMat);
+        // Ставим стенку поперёк (лицом к Z)
+        scene.add(wall);
 
-        // 7. Анимация
+        // 6. Логика движения и силы
+        let dragging = null; // 'heart' or 'brain'
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Плоскость X-Y
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+
+        function getPointer(e) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        // Обработчики касаний
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+            getPointer(e);
+            raycaster.setFromCamera(pointer, camera);
+            const intersects = raycaster.intersectObjects([heart, brain]);
+            if (intersects.length > 0) {
+                const hit = intersects[0].object;
+                dragging = hit === heart ? 'heart' : 'brain';
+                controls.enabled = false;
+                renderer.domElement.style.cursor = 'grabbing';
+            }
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            getPointer(e);
+            raycaster.setFromCamera(pointer, camera);
+            const pt = new THREE.Vector3();
+            raycaster.ray.intersectPlane(plane, pt);
+            if (pt) {
+                pt.x = Math.max(-4.5, Math.min(4.5, pt.x));
+                pt.y = Math.max(-3.0, Math.min(3.0, pt.y));
+                if (dragging === 'heart') {
+                    heart.position.copy(pt);
+                    zone1.position.copy(pt);
+                } else {
+                    brain.position.copy(pt);
+                    zone2.position.copy(pt);
+                }
+                updateScene();
+            }
+        });
+
+        window.addEventListener('pointerup', () => {
+            if (dragging) {
+                dragging = null;
+                controls.enabled = true;
+                renderer.domElement.style.cursor = 'default';
+            }
+        });
+
+        // 7. Функция обновления всего в реальном времени
+        function updateScene() {
+            // A. Радиус зон (чем дальше от центра (0,0), тем больше)
+            const r1 = 0.8 + 0.3 * Math.abs(heart.position.x);
+            const r2 = 0.8 + 0.3 * Math.abs(brain.position.x);
+            zone1.scale.set(r1, r1, r1);
+            zone2.scale.set(r2, r2, r2);
+            document.getElementById('s1').innerHTML = `<span>❤️ Зона</span> ${r1.toFixed(1)} м`;
+            document.getElementById('s2').innerHTML = `<span>🧠 Зона</span> ${r2.toFixed(1)} м`;
+
+            // B. Изгиб стенки
+            const positions = wallGeom.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                const vx = positions[i];     // координата X на стенке
+                const vy = positions[i+1];   // координата Y на стенке
+                
+                // Сила — это расстояние от этой точки стенки до сердца и ума
+                const fH = Math.sqrt((vx - heart.position.x)**2 + (vy - heart.position.y)**2);
+                const fB = Math.sqrt((vx - brain.position.x)**2 + (vy - brain.position.y)**2);
+                
+                // Чем сильнее тянет (дальше), тем больше давит.
+                // Если Heart сильнее, стенка прогибается в сторону Brain
+                positions[i+2] = (fH - fB) * 0.15;
+            }
+            wallGeom.attributes.position.needsUpdate = true;
+            wallGeom.computeVertexNormals();
+        }
+
+        // Первичный просчёт
+        updateScene();
+
+        // 8. Анимация
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
@@ -122,7 +206,7 @@
         }
         animate();
 
-        // 8. Адаптация под экран
+        // Адаптация под поворот экрана
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
