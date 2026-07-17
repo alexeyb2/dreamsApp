@@ -147,11 +147,11 @@
         const addBtn = document.getElementById('add-btn');
 
         // Чакры: Живот (🟠), Грудь (🟢), Шея (🔵), Голова (🟣)
-        let bodyZones = [
+let bodyZones = [
     { id: 'голова', anchorX: 0, anchorY: -0.35, x: 0, y: -0.35, color: '#9b59b6', outerR: 0.1, innerR: 0.045 },
     { id: 'шея',   anchorX: 0, anchorY: -0.18, x: 0, y: -0.18, color: '#5dade2', outerR: 0.08, innerR: 0.035 },
-    { id: 'грудь', anchorX: 0, anchorY: 0,    x: 0, y: 0,    color: '#2ecc71', outerR: 0.1, innerR: 0.045 },
-    { id: 'живот', anchorX: 0, anchorY: 0.18, x: 0, y: 0.18, color: '#e67e22', outerR: 0.09, innerR: 0.04 }
+    { id: 'грудь', anchorX: 0, anchorY: 0,     x: 0, y: 0,     color: '#2ecc71', outerR: 0.1, innerR: 0.045 },
+    { id: 'живот', anchorX: 0, anchorY: 0.10,  x: 0, y: 0.10,  color: '#e67e22', outerR: 0.09, innerR: 0.04 }
 ];
 
         function getBodyCoord(id) { return bodyZones.find(z => z.id === id) || null; }
