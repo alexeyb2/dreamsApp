@@ -63,7 +63,7 @@
     </style>
 </head>
 <body>
-    <div id="hint">👆 Привяжи силу к зоне — она сместит зону. Верни зоны на место!</div>
+    <div id="hint">👆 Привяжи силу к зоне. Кольцо сместится, якорь останется на месте.</div>
     <canvas id="canvas"></canvas>
 
     <div id="ui-panel">
@@ -135,12 +135,12 @@
         const editSizeVal = document.getElementById('edit-size-val');
         const delBtn = document.getElementById('del-point-btn');
 
-        // 1. Динамические зоны (кольца с дыркой)
+        // 1. Статические якоря и подвижные кольца
         let bodyZones = [
-            { id: 'голова', baseX: 0, baseY: -0.35, x: 0, y: -0.35, color: '#9b59b6', outerR: 0.1, innerR: 0.045, attached: [] },
-            { id: 'шея', baseX: 0, baseY: -0.18, x: 0, y: -0.18, color: '#5dade2', outerR: 0.08, innerR: 0.035, attached: [] },
-            { id: 'грудь', baseX: 0, baseY: 0, x: 0, y: 0, color: '#2ecc71', outerR: 0.1, innerR: 0.045, attached: [] },
-            { id: 'живот', baseX: 0, baseY: 0.18, x: 0, y: 0.18, color: '#e67e22', outerR: 0.09, innerR: 0.04, attached: [] }
+            { id: 'голова', anchorX: 0, anchorY: -0.35, x: 0, y: -0.35, color: '#9b59b6', outerR: 0.1, innerR: 0.045, attached: [] },
+            { id: 'шея', anchorX: 0, anchorY: -0.18, x: 0, y: -0.18, color: '#5dade2', outerR: 0.08, innerR: 0.035, attached: [] },
+            { id: 'грудь', anchorX: 0, anchorY: 0, x: 0, y: 0, color: '#2ecc71', outerR: 0.1, innerR: 0.045, attached: [] },
+            { id: 'живот', anchorX: 0, anchorY: 0.18, x: 0, y: 0.18, color: '#e67e22', outerR: 0.09, innerR: 0.04, attached: [] }
         ];
 
         function getBodyCoord(bodyPart) {
@@ -169,18 +169,9 @@
         }
 
         function updateBodyZones() {
-            // Сначала очищаем списки привязанных сил у всех зон
             bodyZones.forEach(z => z.attached = []);
+            points.forEach(p => { if (p.bodyPart) { const zone = bodyZones.find(z => z.id === p.bodyPart); if (zone) zone.attached.push(p); } });
 
-            // Привязываем силы к зонам
-            points.forEach(p => {
-                if (p.bodyPart) {
-                    const zone = bodyZones.find(z => z.id === p.bodyPart);
-                    if (zone) zone.attached.push(p);
-                }
-            });
-
-            // Двигаем зоны на основе привязанных сил
             bodyZones.forEach(z => {
                 let totalWeight = 0;
                 let dispX = 0, dispY = 0;
@@ -189,52 +180,73 @@
                     const px = (p.x - cx) / w;
                     const py = (p.y - cy) / h;
                     const weight = p.radius / 30;
-                    dispX += (px - z.x) * weight;
-                    dispY += (py - z.y) * weight;
+                    dispX += (px - z.anchorX) * weight;
+                    dispY += (py - z.anchorY) * weight;
                     totalWeight += weight;
                 });
 
+                let targetX = z.anchorX, targetY = z.anchorY;
                 if (totalWeight > 0) {
-                    // Смещаем зону в сторону притяжения с возвращающей силой к базе
-                    const targetX = z.baseX + dispX * 0.3;
-                    const targetY = z.baseY + dispY * 0.3;
-                    z.x += (targetX - z.x) * 0.08;
-                    z.y += (targetY - z.y) * 0.08;
+                    // Кольцо смещается от якоря в сторону сил
+                    const avgX = dispX / totalWeight;
+                    const avgY = dispY / totalWeight;
+                    // Ограничиваем максимальное смещение кольца, чтобы оно не улетало далеко
+                    const maxOffset = 0.15; 
+                    const dist = Math.sqrt(avgX*avgX + avgY*avgY);
+                    const limitedX = dist > maxOffset ? (avgX / dist) * maxOffset : avgX;
+                    const limitedY = dist > maxOffset ? (avgY / dist) * maxOffset : avgY;
+                    targetX = z.anchorX + limitedX;
+                    targetY = z.anchorY + limitedY;
                 } else {
-                    // Плавно возвращаем на место, если сил нет
-                    z.x += (z.baseX - z.x) * 0.05;
-                    z.y += (z.baseY - z.y) * 0.05;
+                    // Если сил нет, мягко возвращаемся строго на якорь
+                    targetX = z.anchorX;
+                    targetY = z.anchorY;
                 }
+
+                // Плавная физика движения к цели
+                z.x += (targetX - z.x) * 0.06;
+                z.y += (targetY - z.y) * 0.06;
             });
         }
 
         function drawZones() {
             bodyZones.forEach(z => {
+                const ax = cx + z.anchorX * w;
+                const ay = cy + z.anchorY * h;
                 const mx = cx + z.x * w;
                 const my = cy + z.y * h;
                 const outer = z.outerR * Math.min(w, h);
                 const inner = z.innerR * Math.min(w, h);
 
-                // Рисуем кольцо с дыркой (2 пути - внешний по часовой, внутренний против)
+                // 1. Рисуем подвижное кольцо (шар с дыркой)
                 ctx.beginPath();
                 ctx.arc(mx, my, outer, 0, Math.PI * 2, false);
-                ctx.arc(mx, my, inner, 0, Math.PI * 2, true); // true = против часовой (вырезает дырку)
+                ctx.arc(mx, my, inner, 0, Math.PI * 2, true);
                 ctx.closePath();
                 
                 ctx.fillStyle = z.color;
                 ctx.shadowColor = z.color;
-                ctx.shadowBlur = 25;
-                ctx.globalAlpha = 0.6;
+                ctx.shadowBlur = 30;
+                ctx.globalAlpha = 0.5;
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 ctx.globalAlpha = 1.0;
 
-                // Название зоны
+                // Подпись зоны над кольцом
                 ctx.font = 'bold 11px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                 ctx.fillText(z.id.charAt(0).toUpperCase() + z.id.slice(1), mx, my - outer - 6);
+
+                // 2. Рисуем неподвижный якорь (белая точка, которая не двигается)
+                ctx.beginPath();
+                ctx.arc(ax, ay, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
             });
         }
 
@@ -298,19 +310,11 @@
             document.getElementById('total-points').textContent = `Точек: ${points.length}`;
         }
 
-        function physicsLoop() {
-            updateBodyZones(); // Обновляем движение зон
-            updatePhysics();   // Обновляем движение центра
-            draw();
-            requestAnimationFrame(physicsLoop);
-        }
-
         function updatePhysics() {
             if (points.length === 0) return;
             let totalWeight = 0;
             let weightedX = 0;
             let weightedY = 0;
-
             points.forEach(p => {
                 const dx = p.x - center.x;
                 const dy = p.y - center.y;
@@ -320,13 +324,19 @@
                 weightedY += p.y * strength;
                 totalWeight += strength;
             });
-
             if (totalWeight > 0) {
                 const targetX = weightedX / totalWeight;
                 const targetY = weightedY / totalWeight;
                 center.x += (targetX - center.x) * 0.04;
                 center.y += (targetY - center.y) * 0.04;
             }
+        }
+
+        function physicsLoop() {
+            updateBodyZones();
+            updatePhysics();
+            draw();
+            requestAnimationFrame(physicsLoop);
         }
 
         // ============= ИНТЕРАКТИВНОСТЬ =============
@@ -347,7 +357,6 @@
         canvas.addEventListener('pointerdown', (e) => {
             const pos = getPointerPos(e);
             const hit = checkHit(pos);
-            
             if (hit) {
                 isDragging = true;
                 draggedPoint = hit;
@@ -355,9 +364,7 @@
                 startPointPos = { x: hit.x, y: hit.y };
                 canvas.style.cursor = 'grabbing';
                 selectPoint(hit);
-            } else {
-                selectPoint(null);
-            }
+            } else { selectPoint(null); }
         });
 
         window.addEventListener('pointermove', (e) => {
@@ -365,11 +372,8 @@
             const pos = getPointerPos(e);
             const dx = pos.x - startMouse.x;
             const dy = pos.y - startMouse.y;
-            
             draggedPoint.x = Math.max(10, Math.min(w - 10, startPointPos.x + dx));
             draggedPoint.y = Math.max(10, Math.min(h - 10, startPointPos.y + dy));
-            
-            // Если перетащили рукой - открепляем от зоны
             if (draggedPoint.bodyPart) {
                 draggedPoint.bodyPart = '';
                 if (isEditPanelVisible && selectedPoint && selectedPoint.id === draggedPoint.id) {
@@ -411,14 +415,13 @@
             selectedPoint.color = editColor.value;
             selectedPoint.radius = parseInt(editSize.value);
             editSizeVal.textContent = selectedPoint.radius;
-            
             const newBodyPart = editBodypart.value;
             if (newBodyPart !== selectedPoint.bodyPart) {
                 selectedPoint.bodyPart = newBodyPart;
                 if (newBodyPart) {
                     const zone = getBodyCoord(newBodyPart);
                     if (zone) {
-                        // Привязываем ровно к центру этой зоны
+                        // Привязываем ровно к текущему положению кольца (чтобы не было скачка)
                         selectedPoint.x = cx + zone.x * w;
                         selectedPoint.y = cy + zone.y * h;
                     }
@@ -428,10 +431,7 @@
         }
 
         editToggleBtn.addEventListener('click', () => {
-            if (!selectedPoint) {
-                alert('Сначала коснитесь точки, чтобы выбрать её!');
-                return;
-            }
+            if (!selectedPoint) { alert('Сначала коснитесь точки!'); return; }
             isEditPanelVisible = !isEditPanelVisible;
             editPanel.style.display = isEditPanelVisible ? 'flex' : 'none';
             if (isEditPanelVisible) {
@@ -444,11 +444,7 @@
             }
         });
 
-        closeEditBtn.addEventListener('click', () => {
-            isEditPanelVisible = false;
-            editPanel.style.display = 'none';
-        });
-
+        closeEditBtn.addEventListener('click', () => { isEditPanelVisible = false; editPanel.style.display = 'none'; });
         editEmoji.addEventListener('input', updateSelectedPoint);
         editName.addEventListener('input', updateSelectedPoint);
         editColor.addEventListener('input', updateSelectedPoint);
@@ -470,17 +466,14 @@
         // ============= ДОБАВЛЕНИЕ И СОХРАНЕНИЕ =============
         function addPair() {
             const newPoints = getNewPair();
-            newPoints[0].x = center.x - 90;
-            newPoints[0].y = center.y - (Math.random() * 40 - 20);
-            newPoints[1].x = center.x + 90;
-            newPoints[1].y = center.y - (Math.random() * 40 - 20);
-            
+            newPoints[0].x = center.x - 90; newPoints[0].y = center.y - (Math.random() * 40 - 20);
+            newPoints[1].x = center.x + 90; newPoints[1].y = center.y - (Math.random() * 40 - 20);
             points.push(...newPoints);
             saveToLocal();
         }
 
         function resetAll() {
-            if (confirm('Сбросить все точки к начальному состоянию?')) {
+            if (confirm('Сбросить все точки?')) {
                 localStorage.removeItem('dreams_state_0');
                 localStorage.removeItem('dreams_config');
                 location.reload();
@@ -505,60 +498,28 @@
             } catch { return false; }
         }
 
-        // Загрузка из анкеты
         function loadFromOnboarding() {
             const raw = localStorage.getItem('dreams_config');
             if (!raw) return false;
             try {
                 const config = JSON.parse(raw);
-                const id1 = pointIdCounter++;
-                const id2 = pointIdCounter++;
-                
-                // Размещаем чувство в выбранной зоне тела
+                const id1 = pointIdCounter++; const id2 = pointIdCounter++;
                 const zone = getBodyCoord(config.bodyPart) || getBodyCoord('грудь');
-                const x1 = cx + (zone?.x || 0) * w;
-                const y1 = cy + (zone?.y || 0) * h;
-                
-                const p1 = {
-                    id: id1, x: x1, y: y1,
-                    color: '#4d8bff',
-                    emoji: config.emoji || '😌',
-                    label: config.feeling || 'Чувство',
-                    radius: Math.min(30 + config.power / 4, 60),
-                    bodyPart: config.bodyPart || 'грудь'
-                };
-                
-                // Противоположность размещаем зеркально
-                const p2 = {
-                    id: id2, x: cx + (zone?.x ? -zone.x : 0) * w + 60, 
-                    y: cy + (zone?.y ? -zone.y : 0) * h - 40,
-                    color: '#ff4d4d',
-                    emoji: config.oppEmoji || '😰',
-                    label: config.opposite || 'Противоположность',
-                    radius: 30,
-                    bodyPart: ''
-                };
+                const x1 = cx + (zone?.anchorX || 0) * w;
+                const y1 = cy + (zone?.anchorY || 0) * h;
+                const p1 = { id: id1, x: x1, y: y1, color: '#4d8bff', emoji: config.emoji || '😌', label: config.feeling || 'Чувство', radius: Math.min(30 + config.power / 4, 60), bodyPart: config.bodyPart || 'грудь' };
+                const p2 = { id: id2, x: cx + (zone?.anchorX ? -zone.anchorX : 0) * w + 60, y: cy + (zone?.anchorY ? -zone.anchorY : 0) * h - 40, color: '#ff4d4d', emoji: config.oppEmoji || '😰', label: config.opposite || 'Противоположность', radius: 30, bodyPart: '' };
                 points.push(p1, p2);
                 return true;
             } catch { return false; }
         }
 
-        // ============= ЗАПУСК =============
         document.getElementById('add-pair-btn').addEventListener('click', addPair);
         document.getElementById('reset-btn').addEventListener('click', resetAll);
-
         setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 8000);
-
         window.addEventListener('resize', resize);
         resize();
-
-        if (!loadFromLocal()) {
-            if (!loadFromOnboarding()) {
-                addPair();
-            }
-            saveToLocal();
-        }
-        
+        if (!loadFromLocal()) { if (!loadFromOnboarding()) addPair(); saveToLocal(); }
         physicsLoop();
     </script>
 </body>
