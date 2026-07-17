@@ -41,18 +41,19 @@
                 color: rgba(255,255,255,0.5); font-size: 14px; pointer-events: none; 
                 background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 30px; }
 
-        /* Панель редактирования - СКРЫТА ПО УМОЛЧАНИЮ */
+        /* Панель редактирования */
         #edit-panel {
             display: none;
             background: rgba(16, 13, 30, 0.95); backdrop-filter: blur(12px);
             border: 1px solid #3a2f5a; border-radius: 30px; padding: 12px 18px;
-            width: 90%; max-width: 400px; pointer-events: auto;
+            width: 90%; max-width: 420px; pointer-events: auto;
             flex-direction: column; gap: 10px;
         }
         #edit-panel input, #edit-panel select {
             background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
             color: #fff; padding: 6px 10px; font-size: 14px; outline: none;
         }
+        #edit-panel select { cursor: pointer; }
         #edit-panel input[type="color"] { width: 40px; height: 40px; padding: 2px; border-radius: 50%; cursor: pointer; }
         #edit-panel input[type="range"] { flex: 1; accent-color: #6f52c4; }
         .edit-label { font-size: 11px; opacity: 0.6; margin-right: -4px; }
@@ -72,7 +73,6 @@
             <span class="tag" id="total-points">Точек: 0</span>
         </div>
 
-        <!-- Панель редактирования -->
         <div id="edit-panel">
             <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
                 <span style="font-size:14px; color:#b8a6ff;">⚙️ Редактирование</span>
@@ -83,6 +83,18 @@
                 <input type="text" id="edit-name" placeholder="Имя силы" style="flex: 1;" />
                 <input type="color" id="edit-color" />
                 <button class="btn-del" id="del-point-btn">✕</button>
+            </div>
+            <div class="edit-row">
+                <span class="edit-label">📍 Часть тела</span>
+                <select id="edit-bodypart">
+                    <option value="">— Свободная —</option>
+                    <option value="голова">🧠 Голова</option>
+                    <option value="шея">🌀 Шея</option>
+                    <option value="грудь">💓 Грудь</option>
+                    <option value="живот">🫀 Живот</option>
+                    <option value="руки">🤲 Руки</option>
+                    <option value="ноги">🦶 Ноги</option>
+                </select>
             </div>
             <div class="edit-row">
                 <span class="edit-label">🔮 Размер (Сила)</span>
@@ -107,36 +119,46 @@
         let pointIdCounter = 0;
         let center = { x: 0, y: 0 };
         
-        // Для перетаскивания
         let isDragging = false;
         let draggedPoint = null;
         let startMouse = { x: 0, y: 0 };
         let startPointPos = { x: 0, y: 0 };
 
-        // Выбранная точка
         let selectedPoint = null;
         let isEditPanelVisible = false;
 
-        // DOM элементы
         const editPanel = document.getElementById('edit-panel');
         const closeEditBtn = document.getElementById('close-edit-btn');
         const editToggleBtn = document.getElementById('edit-toggle-btn');
         const editEmoji = document.getElementById('edit-emoji');
         const editName = document.getElementById('edit-name');
         const editColor = document.getElementById('edit-color');
+        const editBodypart = document.getElementById('edit-bodypart');
         const editSize = document.getElementById('edit-size');
         const editSizeVal = document.getElementById('edit-size-val');
         const delBtn = document.getElementById('del-point-btn');
 
-        // Новая пара
+        // Координаты для частей тела (в процентах, чтобы адаптироваться под экран)
+        function getBodyCoord(bodyPart) {
+            const map = {
+                'голова': { x: 0, y: -0.35 },
+                'шея': { x: 0, y: -0.18 },
+                'грудь': { x: 0, y: 0 },
+                'живот': { x: 0, y: 0.18 },
+                'руки': { x: 0.28, y: 0.05 },
+                'ноги': { x: 0.12, y: 0.35 }
+            };
+            return map[bodyPart] || null;
+        }
+
         function getNewPair() {
             const id1 = pointIdCounter++;
             const id2 = pointIdCounter++;
             const hue1 = Math.random() * 360;
             const hue2 = (hue1 + 180) % 360;
             return [
-                { id: id1, x: -80, y: -20, color: `hsl(${hue1}, 80%, 60%)`, emoji: '🔥', label: 'Сила 1', radius: 30 },
-                { id: id2, x: 80, y: 20, color: `hsl(${hue2}, 80%, 60%)`, emoji: '💧', label: 'Сила 2', radius: 30 }
+                { id: id1, x: -80, y: -20, color: `hsl(${hue1}, 80%, 60%)`, emoji: '🔥', label: 'Сила 1', radius: 30, bodyPart: '' },
+                { id: id2, x: 80, y: 20, color: `hsl(${hue2}, 80%, 60%)`, emoji: '💧', label: 'Сила 2', radius: 30, bodyPart: '' }
             ];
         }
 
@@ -149,7 +171,6 @@
             draw();
         }
 
-        // Физика
         function updatePhysics() {
             if (points.length === 0) return;
             let totalWeight = 0;
@@ -174,8 +195,58 @@
             }
         }
 
+        function drawBody() {
+            ctx.save();
+            ctx.globalAlpha = 0.2;
+            ctx.strokeStyle = '#6f52c4';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 0;
+
+            // Голова
+            const headR = w * 0.08;
+            const headY = cy - h * 0.3;
+            ctx.beginPath();
+            ctx.arc(cx, headY, headR, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Шея
+            ctx.beginPath();
+            ctx.moveTo(cx - headR * 0.4, headY + headR * 0.8);
+            ctx.lineTo(cx - w * 0.05, cy - h * 0.08);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + headR * 0.4, headY + headR * 0.8);
+            ctx.lineTo(cx + w * 0.05, cy - h * 0.08);
+            ctx.stroke();
+
+            // Грудь / Плечи
+            const shoulderY = cy - h * 0.05;
+            ctx.beginPath();
+            ctx.moveTo(cx - w * 0.25, shoulderY);
+            ctx.quadraticCurveTo(cx - w * 0.28, shoulderY + h * 0.1, cx - w * 0.2, shoulderY + h * 0.2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + w * 0.25, shoulderY);
+            ctx.quadraticCurveTo(cx + w * 0.28, shoulderY + h * 0.1, cx + w * 0.2, shoulderY + h * 0.2);
+            ctx.stroke();
+
+            // Торс (грудь-живот)
+            ctx.beginPath();
+            ctx.moveTo(cx - w * 0.12, cy - h * 0.08);
+            ctx.quadraticCurveTo(cx - w * 0.18, cy + h * 0.15, cx - w * 0.1, cy + h * 0.3);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + w * 0.12, cy - h * 0.08);
+            ctx.quadraticCurveTo(cx + w * 0.18, cy + h * 0.15, cx + w * 0.1, cy + h * 0.3);
+            ctx.stroke();
+
+            ctx.globalAlpha = 1.0;
+            ctx.restore();
+        }
+
         function draw() {
             ctx.clearRect(0, 0, w, h);
+            drawBody();
 
             points.forEach(p => {
                 ctx.beginPath();
@@ -218,6 +289,13 @@
                 ctx.shadowBlur = 8;
                 ctx.fillText(p.label, p.x, p.y + radius + 14);
                 ctx.shadowBlur = 0;
+
+                // Если выбрана часть тела - пишем метку рядом
+                if (p.bodyPart && isSelected) {
+                    ctx.font = '12px system-ui';
+                    ctx.fillStyle = '#b8a6ff';
+                    ctx.fillText(`📍 ${p.bodyPart}`, p.x, p.y - radius - 12);
+                }
             });
 
             ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
@@ -278,6 +356,14 @@
             
             draggedPoint.x = Math.max(10, Math.min(w - 10, startPointPos.x + dx));
             draggedPoint.y = Math.max(10, Math.min(h - 10, startPointPos.y + dy));
+            
+            // Как только двигаем точку рукой - открепляем от тела
+            if (draggedPoint.bodyPart) {
+                draggedPoint.bodyPart = '';
+                if (isEditPanelVisible && selectedPoint && selectedPoint.id === draggedPoint.id) {
+                    editBodypart.value = '';
+                }
+            }
             saveToLocal();
         });
 
@@ -293,16 +379,14 @@
         // ============= РЕДАКТИРОВАНИЕ =============
         function selectPoint(point) {
             selectedPoint = point;
-            if (point) {
-                if (isEditPanelVisible) {
-                    editEmoji.value = point.emoji;
-                    editName.value = point.label;
-                    editColor.value = point.color;
-                    editSize.value = point.radius;
-                    editSizeVal.textContent = point.radius;
-                }
+            if (point && isEditPanelVisible) {
+                editEmoji.value = point.emoji;
+                editName.value = point.label;
+                editColor.value = point.color;
+                editBodypart.value = point.bodyPart || '';
+                editSize.value = point.radius;
+                editSizeVal.textContent = point.radius;
             } else {
-                // Если выбрали пустое место, скрываем панель
                 isEditPanelVisible = false;
                 editPanel.style.display = 'none';
             }
@@ -315,10 +399,22 @@
             selectedPoint.color = editColor.value;
             selectedPoint.radius = parseInt(editSize.value);
             editSizeVal.textContent = selectedPoint.radius;
+            
+            // Привязка к телу
+            const newBodyPart = editBodypart.value;
+            if (newBodyPart !== selectedPoint.bodyPart) {
+                selectedPoint.bodyPart = newBodyPart;
+                if (newBodyPart) {
+                    const coord = getBodyCoord(newBodyPart);
+                    if (coord) {
+                        selectedPoint.x = cx + coord.x * w;
+                        selectedPoint.y = cy + coord.y * h;
+                    }
+                }
+            }
             saveToLocal();
         }
 
-        // Кнопка открытия/закрытия редактирования
         editToggleBtn.addEventListener('click', () => {
             if (!selectedPoint) {
                 alert('Сначала коснитесь точки, чтобы выбрать её!');
@@ -330,6 +426,7 @@
                 editEmoji.value = selectedPoint.emoji;
                 editName.value = selectedPoint.label;
                 editColor.value = selectedPoint.color;
+                editBodypart.value = selectedPoint.bodyPart || '';
                 editSize.value = selectedPoint.radius;
                 editSizeVal.textContent = selectedPoint.radius;
             }
@@ -343,6 +440,7 @@
         editEmoji.addEventListener('input', updateSelectedPoint);
         editName.addEventListener('input', updateSelectedPoint);
         editColor.addEventListener('input', updateSelectedPoint);
+        editBodypart.addEventListener('change', updateSelectedPoint);
         editSize.addEventListener('input', updateSelectedPoint);
 
         delBtn.addEventListener('click', () => {
@@ -395,7 +493,7 @@
             } catch { return false; }
         }
 
-        // Инициализация из первого экрана
+        // Загрузка из анкеты
         function loadFromOnboarding() {
             const raw = localStorage.getItem('dreams_config');
             if (!raw) return false;
@@ -403,19 +501,30 @@
                 const config = JSON.parse(raw);
                 const id1 = pointIdCounter++;
                 const id2 = pointIdCounter++;
+                
+                // Размещаем чувство в выбранной части тела
+                const coord = getBodyCoord(config.bodyPart) || getBodyCoord('грудь');
+                const x1 = cx + (coord?.x || 0) * w;
+                const y1 = cy + (coord?.y || 0) * h;
+                
                 const p1 = {
-                    id: id1, x: cx - 90, y: cy - 20,
+                    id: id1, x: x1, y: y1,
                     color: '#4d8bff',
                     emoji: config.emoji || '😌',
                     label: config.feeling || 'Чувство',
-                    radius: Math.min(30 + config.power / 4, 60)
+                    radius: Math.min(30 + config.power / 4, 60),
+                    bodyPart: config.bodyPart || 'грудь'
                 };
+                
+                // Противоположность размещаем зеркально или на другую часть
                 const p2 = {
-                    id: id2, x: cx + 90, y: cy + 20,
+                    id: id2, x: cx + (coord?.x ? -coord.x : 0) * w + 60, 
+                    y: cy + (coord?.y ? -coord.y : 0) * h - 40,
                     color: '#ff4d4d',
                     emoji: config.oppEmoji || '😰',
                     label: config.opposite || 'Противоположность',
-                    radius: 30
+                    radius: 30,
+                    bodyPart: ''
                 };
                 points.push(p1, p2);
                 return true;
@@ -431,18 +540,13 @@
         window.addEventListener('resize', resize);
         resize();
 
+        // Логика: если есть сохраненка - грузим. Если нет - грузим из анкеты.
         if (!loadFromLocal()) {
-            // Если нет сохраненного состояния, грузим из анкеты
+            // Если анкеты нет, создаем дефолтную пару
             if (!loadFromOnboarding()) {
-                // Если анкеты нет, создаем дефолтную пару
                 addPair();
-            } else {
-                // Добавляем пару случайных сил для разнообразия
-                const extra = getNewPair();
-                extra[0].x = cx - 60; extra[0].y = cy - 70;
-                extra[1].x = cx + 60; extra[1].y = cy + 70;
-                points.push(...extra);
             }
+            // Сохраняем полученное состояние
             saveToLocal();
         }
         
