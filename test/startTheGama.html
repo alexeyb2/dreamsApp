@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>🟣🦅 Карта Состояния</title>
+    <title>🟣🦅 Карта состояний</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -21,7 +21,7 @@
         #app {
             background: #161127;
             width: 100%;
-            max-width: 440px;
+            max-width: 480px;
             padding: 24px 20px;
             border-radius: 32px;
             box-shadow: 0 12px 40px #000000cc;
@@ -59,6 +59,7 @@
             border-radius: 16px;
             color: #f0eaff;
             outline: none;
+            transition: border 0.2s;
         }
 
         input[type="text"]:focus { border-color: #7c65c2; }
@@ -123,9 +124,15 @@
             border-radius: 28px;
             cursor: pointer;
             margin-top: 8px;
+            transition: background 0.2s;
         }
 
         .btn-primary:active { transform: scale(0.97); background: #5d43a8; }
+        .btn-secondary {
+            background: #2a2348;
+            color: #b8a6ff;
+        }
+        .btn-secondary:active { background: #1f1937; }
 
         #status {
             margin-top: 12px;
@@ -178,6 +185,47 @@
             white-space: nowrap;
             color: #b8a6ff;
             border: 1px solid #3a2f5a;
+            pointer-events: none;
+        }
+
+        /* Редактирование на карте */
+        .edit-block {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 12px;
+            background: #100d1e;
+            border-radius: 20px;
+        }
+
+        .edit-item {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .edit-item label {
+            display: block;
+            font-size: 12px;
+            opacity: 0.6;
+            margin-bottom: 4px;
+        }
+
+        .edit-item .row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .edit-item input[type="text"] {
+            padding: 6px 10px;
+            font-size: 15px;
+            background: #1f1937;
+            border-color: #2e2452;
+        }
+
+        .edit-item input.small {
+            width: 60px;
+            flex-shrink: 0;
         }
 
         .scale-control {
@@ -201,6 +249,14 @@
             color: #4a3f6a;
             margin-top: -6px;
         }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .btn-group .btn-primary { flex: 1; }
+        .btn-group .btn-secondary { flex: 1; }
 
         @media (max-width: 400px) {
             #app { padding: 16px; }
@@ -274,13 +330,37 @@
             <span>⬇️ Спереди (ближе)</span>
         </div>
 
+        <!-- Редактирование имён и смайлов -->
+        <div class="edit-block">
+            <div class="edit-item">
+                <label>Чувство</label>
+                <div class="row">
+                    <input type="text" id="edit-emoji1" class="small" placeholder="😌" />
+                    <input type="text" id="edit-label1" placeholder="имя" />
+                </div>
+            </div>
+            <div class="edit-item">
+                <label>Противоположность</label>
+                <div class="row">
+                    <input type="text" id="edit-emoji2" class="small" placeholder="😢" />
+                    <input type="text" id="edit-label2" placeholder="имя" />
+                </div>
+            </div>
+        </div>
+
         <div class="scale-control">
-            <label>📏 Дистанция</label>
+            <label>📏 Дистанция (масштаб)</label>
             <input type="range" id="scale-slider" min="0.4" max="2.0" step="0.01" value="1.0" />
             <span id="scale-val">1.0</span>
         </div>
-        <button class="btn-primary" id="reset-positions">🔄 Сбросить позиции</button>
-        <div id="stage-status" style="text-align:center; margin-top:10px; font-size:13px; opacity:0.5;">Перетащи смайлы пальцем. Дистанция меняет размер.</div>
+
+        <div class="btn-group">
+            <button class="btn-primary" id="reset-positions">🔄 Сброс позиций</button>
+            <button class="btn-secondary" id="reset-all">❌ Сбросить всё</button>
+        </div>
+        <div id="stage-status" style="text-align:center; margin-top:10px; font-size:13px; opacity:0.5;">
+            Перетащи смайлы пальцем. Дистанция меняет размер.
+        </div>
     </div>
 </div>
 
@@ -303,15 +383,22 @@
         const stageArea = document.getElementById('stage-area');
         const scaleSlider = document.getElementById('scale-slider');
         const scaleVal = document.getElementById('scale-val');
-        const resetBtn = document.getElementById('reset-positions');
+        const resetPosBtn = document.getElementById('reset-positions');
+        const resetAllBtn = document.getElementById('reset-all');
 
-        // Кнопки переходов
+        // Поля редактирования на карте
+        const editEmoji1 = document.getElementById('edit-emoji1');
+        const editLabel1 = document.getElementById('edit-label1');
+        const editEmoji2 = document.getElementById('edit-emoji2');
+        const editLabel2 = document.getElementById('edit-label2');
+
         const toStep2Btn = document.getElementById('to-step2');
         const toStageBtn = document.getElementById('to-stage');
 
-        let activeEmojiId = null; // для работы с масштабом
+        let activeEmojiId = null;
+        let emojiData = {};
 
-        // Выбор тела
+        // =========== УПРАВЛЕНИЕ ТЕЛОМ ===========
         bodyBtns.forEach(b => b.addEventListener('click', function() {
             bodyBtns.forEach(x => x.classList.remove('active'));
             this.classList.add('active');
@@ -319,7 +406,7 @@
 
         power.addEventListener('input', () => powerVal.textContent = power.value + '%');
 
-        // Переход к шагу 2
+        // =========== ПЕРЕХОДЫ ===========
         toStep2Btn.addEventListener('click', function() {
             if (!feeling.value.trim() || !emoji1.value.trim() || !document.querySelector('#bodyMap button.active')) {
                 document.getElementById('status').textContent = '⚠️ Заполни всё и выбери часть тела';
@@ -330,7 +417,6 @@
             document.getElementById('status').textContent = '';
         });
 
-        // Переход к полю
         toStageBtn.addEventListener('click', function() {
             if (!oppText.value.trim() || !emoji2.value.trim()) {
                 document.getElementById('status').textContent = '⚠️ Введи противоположность и её смайл';
@@ -338,30 +424,33 @@
             }
             s2.classList.add('hidden');
             s3.classList.remove('hidden');
+            // сохраняем все данные перед открытием карты
+            saveFullState();
             initStage();
         });
 
-        // ================= ПОЛЕ =================
-        let emojiData = {};
-
-        function getCenterPos() {
-            const rect = stageArea.getBoundingClientRect();
-            return { x: rect.width / 2, y: rect.height / 2 };
-        }
-
+        // =========== ИНИЦИАЛИЗАЦИЯ КАРТЫ ===========
         function initStage() {
-            const e1 = emoji1.value.trim();
-            const e2 = emoji2.value.trim();
-
-            // Загружаем сохраненные позиции
             const saved = loadFullState();
+            // Если данных нет, используем значения из полей
+            const e1 = saved.emoji1 || emoji1.value.trim();
+            const e2 = saved.emoji2 || emoji2.value.trim();
+            const l1 = saved.feeling || feeling.value.trim();
+            const l2 = saved.oppText || oppText.value.trim();
+
             const pos1 = saved.pos1 || { x: 35, y: 45, scale: 1.0 };
             const pos2 = saved.pos2 || { x: 65, y: 55, scale: 1.0 };
 
             emojiData = {
-                1: { emoji: e1, label: feeling.value.trim(), x: pos1.x, y: pos1.y, scale: pos1.scale },
-                2: { emoji: e2, label: oppText.value.trim(), x: pos2.x, y: pos2.y, scale: pos2.scale }
+                1: { emoji: e1, label: l1, x: pos1.x, y: pos1.y, scale: pos1.scale },
+                2: { emoji: e2, label: l2, x: pos2.x, y: pos2.y, scale: pos2.scale }
             };
+
+            // Заполнить поля редактирования
+            editEmoji1.value = e1;
+            editLabel1.value = l1;
+            editEmoji2.value = e2;
+            editLabel2.value = l2;
 
             renderEmojis();
             applyScales();
@@ -390,12 +479,11 @@
             document.querySelectorAll('.emoji-draggable').forEach(el => {
                 const id = el.dataset.id;
                 const d = emojiData[id];
-                const parts = el.style.transform.split(' ');
                 el.style.transform = `translate(-50%, -50%) scale(${d.scale})`;
             });
         }
 
-        // Drag & Drop (Pointer events)
+        // =========== ПЕРЕТАСКИВАНИЕ ===========
         function setupDrag() {
             const emojis = document.querySelectorAll('.emoji-draggable');
             let dragging = false;
@@ -409,7 +497,7 @@
                 dragging = true;
                 currentEl = el;
                 activeEmojiId = parseInt(el.dataset.id);
-                // обновить слайдер под активный
+                // обновить слайдер
                 scaleSlider.value = emojiData[activeEmojiId].scale;
                 scaleVal.textContent = emojiData[activeEmojiId].scale.toFixed(2);
 
@@ -459,7 +547,7 @@
             document.addEventListener('pointerup', onPointerUp);
         }
 
-        // Масштаб (дистанция)
+        // =========== МАСШТАБ ===========
         scaleSlider.addEventListener('input', function() {
             if (activeEmojiId === null) activeEmojiId = 1;
             const val = parseFloat(this.value);
@@ -472,9 +560,28 @@
             saveFullState();
         });
 
-        // Сброс
-        resetBtn.addEventListener('click', function() {
-            const mid = getCenterPos();
+        // =========== РЕДАКТИРОВАНИЕ ИМЁН И СМАЙЛОВ ===========
+        function updateEmojiFromEdit(id) {
+            const emojiInput = id === 1 ? editEmoji1 : editEmoji2;
+            const labelInput = id === 1 ? editLabel1 : editLabel2;
+            const newEmoji = emojiInput.value.trim() || (id === 1 ? '😌' : '😢');
+            const newLabel = labelInput.value.trim() || (id === 1 ? 'Чувство' : 'Противоположность');
+
+            emojiData[id].emoji = newEmoji;
+            emojiData[id].label = newLabel;
+            renderEmojis();
+            applyScales();
+            saveFullState();
+        }
+
+        editEmoji1.addEventListener('input', () => updateEmojiFromEdit(1));
+        editLabel1.addEventListener('input', () => updateEmojiFromEdit(1));
+        editEmoji2.addEventListener('input', () => updateEmojiFromEdit(2));
+        editLabel2.addEventListener('input', () => updateEmojiFromEdit(2));
+
+        // =========== СБРОС ПОЗИЦИЙ ===========
+        resetPosBtn.addEventListener('click', function() {
+            const mid = { x: 50, y: 50 };
             emojiData[1].x = 35; emojiData[1].y = 45; emojiData[1].scale = 1.0;
             emojiData[2].x = 65; emojiData[2].y = 55; emojiData[2].scale = 1.0;
             renderEmojis();
@@ -486,15 +593,23 @@
             saveFullState();
         });
 
-        // ================= СОХРАНЕНИЕ =================
+        // =========== ПОЛНЫЙ СБРОС ===========
+        resetAllBtn.addEventListener('click', function() {
+            if (confirm('Сбросить все данные и вернуться к началу?')) {
+                localStorage.removeItem('mind_state_full');
+                location.reload();
+            }
+        });
+
+        // =========== СОХРАНЕНИЕ / ЗАГРУЗКА ===========
         function saveFullState() {
             const data = {
-                feeling: feeling.value.trim(),
-                emoji1: emoji1.value.trim(),
+                feeling: feeling.value.trim() || (emojiData[1]?.label || ''),
+                emoji1: emoji1.value.trim() || (emojiData[1]?.emoji || ''),
                 bodyPart: document.querySelector('#bodyMap button.active')?.dataset?.part || '',
                 power: power.value,
-                oppText: oppText.value.trim(),
-                emoji2: emoji2.value.trim(),
+                oppText: oppText.value.trim() || (emojiData[2]?.label || ''),
+                emoji2: emoji2.value.trim() || (emojiData[2]?.emoji || ''),
                 pos1: { x: emojiData[1]?.x || 35, y: emojiData[1]?.y || 45, scale: emojiData[1]?.scale || 1.0 },
                 pos2: { x: emojiData[2]?.x || 65, y: emojiData[2]?.y || 55, scale: emojiData[2]?.scale || 1.0 }
             };
@@ -507,26 +622,44 @@
             try { return JSON.parse(raw); } catch { return {}; }
         }
 
-        // Автозагрузка при старте
-        function loadInitial() {
+        // =========== АВТОЗАГРУЗКА ===========
+        function checkAndLoad() {
             const data = loadFullState();
-            if (data.feeling) feeling.value = data.feeling;
-            if (data.emoji1) emoji1.value = data.emoji1;
-            if (data.power) { power.value = data.power; powerVal.textContent = data.power + '%'; }
-            if (data.bodyPart) {
-                const t = document.querySelector(`#bodyMap button[data-part="${data.bodyPart}"]`);
-                if (t) t.classList.add('active');
-            }
-            if (data.oppText) oppText.value = data.oppText;
-            if (data.emoji2) emoji2.value = data.emoji2;
-
-            // Если есть все данные, можно сразу открыть поле (по желанию)
+            // Если есть все ключевые поля — показываем карту сразу
             if (data.feeling && data.emoji1 && data.bodyPart && data.oppText && data.emoji2) {
-                // Оставляем на шаге 1, но пользователь может нажать "Далее" сам
+                // заполним скрытые поля, чтобы при сохранении они не потерялись
+                feeling.value = data.feeling;
+                emoji1.value = data.emoji1;
+                oppText.value = data.oppText;
+                emoji2.value = data.emoji2;
+                power.value = data.power || 50;
+                powerVal.textContent = power.value + '%';
+                const btn = document.querySelector(`#bodyMap button[data-part="${data.bodyPart}"]`);
+                if (btn) btn.classList.add('active');
+
+                s1.classList.add('hidden');
+                s2.classList.add('hidden');
+                s3.classList.remove('hidden');
+                initStage();
+            } else {
+                // иначе показываем шаг 1
+                s1.classList.remove('hidden');
+                s2.classList.add('hidden');
+                s3.classList.add('hidden');
+                // восстановим, что можно
+                if (data.feeling) feeling.value = data.feeling;
+                if (data.emoji1) emoji1.value = data.emoji1;
+                if (data.power) { power.value = data.power; powerVal.textContent = data.power + '%'; }
+                if (data.bodyPart) {
+                    const btn = document.querySelector(`#bodyMap button[data-part="${data.bodyPart}"]`);
+                    if (btn) btn.classList.add('active');
+                }
+                if (data.oppText) oppText.value = data.oppText;
+                if (data.emoji2) emoji2.value = data.emoji2;
             }
         }
 
-        loadInitial();
+        checkAndLoad();
     })();
 </script>
 </body>
