@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>🟣🦅 3D Карта состояний</title>
-    <!-- Three.js через import map -->
+    <title>🟣🦅 3D Карта состояний с характеристиками</title>
     <script type="importmap">
         {
             "imports": {
@@ -31,7 +30,7 @@
             max-width: 100%;
         }
 
-        /* 3D-холст занимает верхнюю часть */
+        /* 3D-холст */
         #canvas-container {
             flex: 1;
             position: relative;
@@ -45,12 +44,12 @@
             height: 100%;
         }
 
-        /* Панель управления внизу */
+        /* Нижняя панель */
         #ui-panel {
             background: #161127;
             padding: 16px 20px;
             border-radius: 32px 32px 0 0;
-            max-height: 45vh;
+            max-height: 55vh;
             overflow-y: auto;
             backdrop-filter: blur(12px);
             box-shadow: 0 -8px 30px rgba(0,0,0,0.8);
@@ -123,6 +122,51 @@
             cursor: pointer;
         }
 
+        /* Блок характеристики */
+        #attr-panel {
+            margin-top: 12px;
+            padding: 12px;
+            background: #100d1e;
+            border-radius: 20px;
+        }
+
+        #attr-panel h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #b8a6ff;
+        }
+
+        .attr-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .attr-row input {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .attr-slider-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .attr-slider-group span {
+            font-size: 13px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        #attr-value-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: #8f78e6;
+            min-width: 80px;
+        }
+
         .btn-group {
             display: flex;
             gap: 10px;
@@ -157,7 +201,6 @@
             margin-top: 8px;
         }
 
-        /* Индикатор активного объекта */
         #active-indicator {
             position: absolute;
             bottom: 10px;
@@ -205,7 +248,7 @@
             </div>
         </div>
 
-        <!-- Слайдеры -->
+        <!-- Слайдеры масштаба и высоты -->
         <div class="slider-group">
             <label>📏 Масштаб</label>
             <input type="range" id="scale-slider" min="0.3" max="2.5" step="0.01" value="1.0" />
@@ -216,6 +259,22 @@
             <label>⬆ Высота (Y)</label>
             <input type="range" id="height-slider" min="-2" max="4" step="0.01" value="0" />
             <span id="height-val" style="min-width:36px;">0.0</span>
+        </div>
+
+        <!-- Характеристика активного чувства -->
+        <div id="attr-panel">
+            <h4>⚙️ Характеристика</h4>
+            <div class="attr-row">
+                <input type="text" id="attr-name" placeholder="Название (например, Температура)" />
+                <input type="text" id="attr-left" placeholder="Слева (например, Холодное)" />
+                <input type="text" id="attr-right" placeholder="Справа (например, Горячее)" />
+            </div>
+            <div class="attr-slider-group">
+                <span id="attr-left-label">Холодное</span>
+                <input type="range" id="attr-slider" min="0" max="100" step="1" value="50" />
+                <span id="attr-right-label">Горячее</span>
+                <span id="attr-value-text">50% (Тёплое)</span>
+            </div>
         </div>
 
         <div class="btn-group">
@@ -249,32 +308,37 @@
     const resetPosBtn = document.getElementById('reset-positions');
     const resetAllBtn = document.getElementById('reset-all');
 
+    // Элементы характеристики
+    const attrName = document.getElementById('attr-name');
+    const attrLeft = document.getElementById('attr-left');
+    const attrRight = document.getElementById('attr-right');
+    const attrSlider = document.getElementById('attr-slider');
+    const attrLeftLabel = document.getElementById('attr-left-label');
+    const attrRightLabel = document.getElementById('attr-right-label');
+    const attrValueText = document.getElementById('attr-value-text');
+
     // ===== Three.js Setup =====
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x100d1e);
 
-    // Камера
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
     camera.position.set(6, 4, 8);
     camera.lookAt(0, 0, 0);
 
-    // Рендерер WebGL
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     container.appendChild(renderer.domElement);
 
-    // CSS2D Renderer для меток
     const labelRenderer = new CSS2DRenderer();
     labelRenderer.setSize(container.clientWidth, container.clientHeight);
     labelRenderer.domElement.style.position = 'absolute';
     labelRenderer.domElement.style.top = '0';
     labelRenderer.domElement.style.left = '0';
-    labelRenderer.domElement.style.pointerEvents = 'none'; // метки не перехватывают клики
+    labelRenderer.domElement.style.pointerEvents = 'none';
     container.appendChild(labelRenderer.domElement);
 
-    // Орбитальные контролы
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -304,7 +368,6 @@
     gridHelper.position.y = -0.01;
     scene.add(gridHelper);
 
-    // Декоративная плоскость пола (прозрачная, для теней)
     const floorMat = new THREE.ShadowMaterial({ opacity: 0.3, color: 0x000000 });
     const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(12, 12),
@@ -317,16 +380,11 @@
 
     // ===== Создание спрайтов с эмодзи =====
     function createEmojiSprite(emoji, label, color = '#b8a6ff') {
-        // Создаём Canvas с текстом
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
-
-        // Очистка
         ctx.clearRect(0, 0, 256, 256);
-
-        // Рисуем круглый фон (прозрачный, чуть свечение)
         const gradient = ctx.createRadialGradient(128, 128, 20, 128, 128, 120);
         gradient.addColorStop(0, 'rgba(111, 82, 196, 0.3)');
         gradient.addColorStop(1, 'rgba(111, 82, 196, 0)');
@@ -334,28 +392,21 @@
         ctx.beginPath();
         ctx.arc(128, 128, 120, 0, Math.PI * 2);
         ctx.fill();
-
-        // Эмодзи по центру
         ctx.font = '120px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(emoji, 128, 128);
-
-        // Создаём текстуру и спрайт
         const texture = new THREE.CanvasTexture(canvas);
         texture.needsUpdate = true;
-
         const material = new THREE.SpriteMaterial({
             map: texture,
             transparent: true,
             depthWrite: false,
             blending: THREE.NormalBlending
         });
-
         const sprite = new THREE.Sprite(material);
         sprite.scale.set(1.5, 1.5, 1);
 
-        // Метка (CSS2D) под спрайтом
         const labelDiv = document.createElement('div');
         labelDiv.textContent = label;
         labelDiv.style.color = color;
@@ -370,26 +421,32 @@
         labelDiv.style.pointerEvents = 'none';
 
         const labelObj = new CSS2DObject(labelDiv);
-        labelObj.position.set(0, -1.2, 0); // ниже спрайта
+        labelObj.position.set(0, -1.2, 0);
 
-        // Группируем спрайт и метку
         const group = new THREE.Group();
         group.add(sprite);
         group.add(labelObj);
-
-        // Сохраняем ссылки для обновления
         group.userData = { sprite, labelObj, labelDiv, emoji, label };
-
         return group;
     }
 
     // ===== Данные =====
+    // Каждый объект теперь содержит поле attr: { name, left, right, value }
     let emojiData = {
-        1: { emoji: '😌', label: 'Спокойствие', x: -1.5, z: 0, y: 0, scale: 1.0 },
-        2: { emoji: '😢', label: 'Печаль', x: 1.5, z: 0, y: 0, scale: 1.0 }
+        1: {
+            emoji: '😌',
+            label: 'Спокойствие',
+            x: -1.5, z: 0, y: 0, scale: 1.0,
+            attr: { name: 'Температура', left: 'Холодное', right: 'Горячее', value: 50 }
+        },
+        2: {
+            emoji: '😢',
+            label: 'Печаль',
+            x: 1.5, z: 0, y: 0, scale: 1.0,
+            attr: { name: 'Температура', left: 'Холодное', right: 'Горячее', value: 50 }
+        }
     };
 
-    // Загружаем из localStorage
     function loadState() {
         const raw = localStorage.getItem('mind_3d_state');
         if (!raw) return;
@@ -411,6 +468,13 @@
                 emojiData[2].z = saved.pos2.z ?? 0;
                 emojiData[2].scale = saved.pos2.scale ?? 1.0;
             }
+            // Загрузка характеристик
+            if (saved.attr1) {
+                emojiData[1].attr = saved.attr1;
+            }
+            if (saved.attr2) {
+                emojiData[2].attr = saved.attr2;
+            }
         } catch (e) {}
     }
 
@@ -421,7 +485,9 @@
             emoji2: emojiData[2].emoji,
             label2: emojiData[2].label,
             pos1: { x: emojiData[1].x, y: emojiData[1].y, z: emojiData[1].z, scale: emojiData[1].scale },
-            pos2: { x: emojiData[2].x, y: emojiData[2].y, z: emojiData[2].z, scale: emojiData[2].scale }
+            pos2: { x: emojiData[2].x, y: emojiData[2].y, z: emojiData[2].z, scale: emojiData[2].scale },
+            attr1: emojiData[1].attr,
+            attr2: emojiData[2].attr
         };
         localStorage.setItem('mind_3d_state', JSON.stringify(data));
     }
@@ -439,28 +505,12 @@
     group2.scale.set(emojiData[2].scale, emojiData[2].scale, emojiData[2].scale);
     scene.add(group2);
 
-    // Обновляем UI
-    function updateUI() {
-        editEmoji1.value = emojiData[1].emoji;
-        editLabel1.value = emojiData[1].label;
-        editEmoji2.value = emojiData[2].emoji;
-        editLabel2.value = emojiData[2].label;
-        scaleSlider.value = emojiData[activeId].scale;
-        scaleVal.textContent = emojiData[activeId].scale.toFixed(2);
-        heightSlider.value = emojiData[activeId].y;
-        heightVal.textContent = emojiData[activeId].y.toFixed(2);
-    }
-
-    let activeId = 1;
-    updateUI();
-
     // ===== Обновление спрайтов при изменении эмодзи/имени =====
     function updateSprite(group, id) {
         const data = emojiData[id];
         const sprite = group.userData.sprite;
         const labelDiv = group.userData.labelDiv;
 
-        // Обновляем текстуру
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
@@ -481,18 +531,58 @@
         sprite.material.map = texture;
         sprite.material.needsUpdate = true;
 
-        // Обновляем метку
         labelDiv.textContent = data.label;
 
-        // Масштаб
         const s = data.scale;
         group.scale.set(s, s, s);
-
-        // Позиция
         group.position.set(data.x, data.y, data.z);
     }
 
+    // ===== Управление активным объектом =====
+    let activeId = 1;
+
+    function updateUI() {
+        // Основные поля
+        editEmoji1.value = emojiData[1].emoji;
+        editLabel1.value = emojiData[1].label;
+        editEmoji2.value = emojiData[2].emoji;
+        editLabel2.value = emojiData[2].label;
+        scaleSlider.value = emojiData[activeId].scale;
+        scaleVal.textContent = emojiData[activeId].scale.toFixed(2);
+        heightSlider.value = emojiData[activeId].y;
+        heightVal.textContent = emojiData[activeId].y.toFixed(2);
+
+        // Характеристики
+        const attr = emojiData[activeId].attr;
+        attrName.value = attr.name;
+        attrLeft.value = attr.left;
+        attrRight.value = attr.right;
+        attrSlider.value = attr.value;
+        updateAttrDisplay();
+    }
+
+    function updateAttrDisplay() {
+        const attr = emojiData[activeId].attr;
+        attrLeftLabel.textContent = attr.left;
+        attrRightLabel.textContent = attr.right;
+        const val = parseInt(attrSlider.value);
+        attr.value = val;
+        // Текстовое описание
+        let desc;
+        if (val === 50) {
+            desc = 'Нейтральное';
+        } else if (val < 50) {
+            desc = `скорее ${attr.left}`;
+        } else {
+            desc = `скорее ${attr.right}`;
+        }
+        attrValueText.textContent = `${val}% (${desc})`;
+    }
+
+    updateUI();
+
     // ===== Обработчики UI =====
+    // Изменение эмодзи и имён
     editEmoji1.addEventListener('input', () => {
         emojiData[1].emoji = editEmoji1.value.trim() || '😌';
         updateSprite(group1, 1);
@@ -534,7 +624,27 @@
         saveState();
     });
 
-    // Сброс позиций (всех)
+    // Характеристики
+    attrName.addEventListener('input', () => {
+        emojiData[activeId].attr.name = attrName.value.trim() || 'Характеристика';
+        saveState();
+    });
+    attrLeft.addEventListener('input', () => {
+        emojiData[activeId].attr.left = attrLeft.value.trim() || 'Слева';
+        updateAttrDisplay();
+        saveState();
+    });
+    attrRight.addEventListener('input', () => {
+        emojiData[activeId].attr.right = attrRight.value.trim() || 'Справа';
+        updateAttrDisplay();
+        saveState();
+    });
+    attrSlider.addEventListener('input', () => {
+        updateAttrDisplay();
+        saveState();
+    });
+
+    // Сброс позиций
     resetPosBtn.addEventListener('click', () => {
         emojiData[1].x = -1.5; emojiData[1].z = 0; emojiData[1].y = 0; emojiData[1].scale = 1.0;
         emojiData[2].x = 1.5; emojiData[2].z = 0; emojiData[2].y = 0; emojiData[2].scale = 1.0;
@@ -564,17 +674,19 @@
         pointer.y = -((event.clientY || event.pageY) - rect.top) / rect.height * 2 + 1;
     }
 
+    let isDragging = false;
+    let dragGroup = null;
+    const dragOffset = new THREE.Vector3();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
     function onPointerDown(event) {
         getPointer(event);
         raycaster.setFromCamera(pointer, camera);
-
-        // Собираем спрайты из групп
         const sprites = [group1.children[0], group2.children[0]];
         const intersects = raycaster.intersectObjects(sprites);
 
         if (intersects.length > 0) {
             const hit = intersects[0].object;
-            // Определяем, к какой группе принадлежит
             if (hit === group1.children[0]) {
                 activeId = 1;
                 activeIndicator.textContent = '👉 ' + emojiData[1].emoji + ' ' + emojiData[1].label;
@@ -583,44 +695,28 @@
                 activeIndicator.textContent = '👉 ' + emojiData[2].emoji + ' ' + emojiData[2].label;
             }
             updateUI();
-            // Включаем режим перетаскивания (запоминаем)
             isDragging = true;
             dragGroup = activeId === 1 ? group1 : group2;
-            // Запоминаем смещение
             const intersectPoint = intersects[0].point;
             dragOffset.copy(intersectPoint).sub(dragGroup.position);
-            controls.enabled = false; // отключаем орбиту на время перетаскивания
+            controls.enabled = false;
         } else {
-            // Клик по пустому месту – можно сбросить выделение, но оставим активным
+            // можно сбросить выделение, но оставим активным
         }
     }
 
-    let isDragging = false;
-    let dragGroup = null;
-    const dragOffset = new THREE.Vector3();
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // горизонтальная плоскость
-
     function onPointerMove(event) {
-        if (!isDragging || !dragGroup) {
-            // OrbitControls сам обрабатывает вращение
-            return;
-        }
+        if (!isDragging || !dragGroup) return;
         getPointer(event);
         raycaster.setFromCamera(pointer, camera);
-
-        // Проецируем луч на горизонтальную плоскость Y=0 (или на текущую высоту объекта?)
-        // Для простоты используем плоскость Y = dragGroup.position.y (чтобы двигать по горизонтали на той же высоте)
         plane.set(new THREE.Vector3(0, 1, 0), -dragGroup.position.y);
         const intersectPoint = new THREE.Vector3();
         raycaster.ray.intersectPlane(plane, intersectPoint);
-
         if (intersectPoint) {
             const newPos = intersectPoint.clone().sub(dragOffset);
-            // Ограничиваем по XZ
             newPos.x = Math.max(-4, Math.min(4, newPos.x));
             newPos.z = Math.max(-4, Math.min(4, newPos.z));
             dragGroup.position.copy(newPos);
-            // Обновляем данные
             const id = activeId;
             emojiData[id].x = newPos.x;
             emojiData[id].z = newPos.z;
@@ -637,7 +733,6 @@
         }
     }
 
-    // Подключаем события к canvas
     const canvas = renderer.domElement;
     canvas.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
@@ -664,11 +759,7 @@
     }
     animate();
 
-    // Начальное обновление UI
-    updateUI();
-    activeIndicator.textContent = '👉 ' + emojiData[1].emoji + ' ' + emojiData[1].label;
-
-    // ===== Дополнительно: Звезды на заднем фоне =====
+    // Звёзды
     function addStars() {
         const vertices = [];
         for (let i = 0; i < 1000; i++) {
@@ -685,7 +776,7 @@
     }
     addStars();
 
-    console.log('🟣🦅 3D Карта состояний загружена');
+    console.log('🟣🦅 3D Карта состояний с характеристиками загружена');
 </script>
 </body>
 </html>
