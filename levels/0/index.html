@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Инь-Ян Вращение</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
+        #canvas { 
+            position: fixed; top: 0; left: 0; 
+            width: 100vw; height: 100vh; 
+            display: block; cursor: grab; 
+        }
+        #canvas:active { cursor: grabbing; }
+        
+        #hint {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.4); padding: 6px 16px; border-radius: 30px;
+            color: rgba(255,255,255,0.6); font-size: 14px; pointer-events: none;
+            backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.05);
+            white-space: nowrap; transition: opacity 0.5s;
+        }
+        @media (max-width: 600px) { #hint { font-size: 12px; padding: 4px 12px; top: 12px; } }
+    </style>
+</head>
+<body>
+    <div id="hint">👆 Проведи вверх или вниз — шар вращается</div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let w, h;
+        // Смещение прокрутки. Может уходить в минус и бесконечность.
+        let scroll = 0.0; 
+        let isDragging = false;
+        let startTouchY = 0;
+        let startScroll = 0;
+
+        // Цвета
+        const colorBlue = '#4d8bff';
+        const colorBlueDark = '#1e3a8a';
+        const colorRed = '#ff4d4d';
+        const colorRedDark = '#991b1b';
+        const colorCenter = '#ffcc00';
+
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            draw();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+
+            // Основные параметры
+            const R = Math.min(w, h) * 0.42; // Радиус шара
+            const cx = w / 2;
+            const cy = h / 2;
+
+            // Угол вращения шара (0 ... 2PI)
+            const angle = scroll * Math.PI;
+            
+            // Определяем фазу: 0 или 1 (меняет зоны местами)
+            const phase = Math.floor(scroll) % 2;
+
+            let topColor, bottomColor, topDark, bottomDark;
+            let topText, bottomText;
+            let topTextColor, bottomTextColor;
+            let point1Color, point2Color;
+
+            if (phase === 0) {
+                // Синяя сверху, Красная снизу
+                topColor = colorBlue; bottomColor = colorRed;
+                topDark = colorBlueDark; bottomDark = colorRedDark;
+                topText = '❤️ Сердце'; bottomText = '🧠 Ум';
+                topTextColor = colorRed; bottomTextColor = colorBlue;
+                point1Color = colorRed; point2Color = colorBlue;
+            } else {
+                // Красная сверху, Синяя снизу (инверсия)
+                topColor = colorRed; bottomColor = colorBlue;
+                topDark = colorRedDark; bottomDark = colorBlueDark;
+                topText = '🧠 Ум'; bottomText = '❤️ Сердце';
+                topTextColor = colorBlue; bottomTextColor = colorRed;
+                point1Color = colorBlue; point2Color = colorRed;
+            }
+
+            // 1. Рисуем внешний овал (сферу)
+            const gradBg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+            gradBg.addColorStop(0, '#1a1530');
+            gradBg.addColorStop(1, '#0b0814');
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, R * 1.04, R * 1.08, 0, 0, Math.PI * 2);
+            ctx.fillStyle = gradBg;
+            ctx.shadowColor = 'rgba(255,255,255,0.05)';
+            ctx.shadowBlur = 40;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // 2. Рисуем сам шар Инь-Ян с вращением
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(angle);
+
+            // Верхняя половина шара (Тёмная часть)
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2);
+            ctx.closePath();
+            const gradTop = ctx.createLinearGradient(0, -R, 0, R);
+            gradTop.addColorStop(0, topDark);
+            gradTop.addColorStop(1, topColor);
+            ctx.fillStyle = gradTop;
+            ctx.fill();
+
+            // Нижняя половина шара (Светлая часть)
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, R, Math.PI / 2, 3 * Math.PI / 2);
+            ctx.closePath();
+            const gradBottom = ctx.createLinearGradient(0, R, 0, -R);
+            gradBottom.addColorStop(0, bottomDark);
+            gradBottom.addColorStop(1, bottomColor);
+            ctx.fillStyle = gradBottom;
+            ctx.fill();
+
+            // S-образная граница
+            ctx.beginPath();
+            ctx.moveTo(0, -R);
+            ctx.quadraticCurveTo(R * 0.7, 0, 0, 0);
+            ctx.quadraticCurveTo(-R * 0.7, 0, 0, R);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = 'rgba(255,255,255,0.7)';
+            ctx.shadowBlur = 15;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // 3. Точки Инь-Ян (вращаются вместе с шаром)
+            const dotR = R * 0.15;
+            const dotDist = R * 0.5;
+
+            // Точка 1 (в верхней зоне, смещена вправо от центра)
+            ctx.beginPath();
+            ctx.arc(dotDist, 0, dotR, 0, Math.PI * 2);
+            ctx.fillStyle = point1Color;
+            ctx.shadowColor = 'rgba(255,255,255,0.6)';
+            ctx.shadowBlur = 30;
+            ctx.fill();
+
+            // Точка 2 (в нижней зоне, смещена влево от центра)
+            ctx.beginPath();
+            ctx.arc(-dotDist, 0, dotR, 0, Math.PI * 2);
+            ctx.fillStyle = point2Color;
+            ctx.shadowColor = 'rgba(255,255,255,0.6)';
+            ctx.shadowBlur = 30;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // 4. Желтый центр (База) и линии натяжения
+            // Рисуем линии от точек к центру, чтобы показать "тягу"
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(dotDist, 0);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-dotDist, 0);
+            ctx.stroke();
+
+            // Желтая звезда/точка в центре
+            ctx.beginPath();
+            ctx.arc(0, 0, R * 0.06, 0, Math.PI * 2);
+            ctx.fillStyle = colorCenter;
+            ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
+            ctx.shadowBlur = 40;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // 5. Тексты (на вращающемся холсте, но позиционируем вертикально)
+            ctx.rotate(-angle); // Сбрасываем вращение, чтобы текст не переворачивался
+            ctx.shadowColor = 'rgba(0,0,0,0.9)';
+            ctx.shadowBlur = 20;
+            ctx.font = `bold ${w * 0.055}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Текст сверху
+            ctx.fillStyle = topTextColor;
+            ctx.fillText(topText, 0, -R * 0.45);
+
+            // Текст снизу
+            ctx.fillStyle = bottomTextColor;
+            ctx.fillText(bottomText, 0, R * 0.45);
+            
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+            // 6. Проценты внизу (вне вращения)
+            ctx.font = `bold ${w * 0.04}px system-ui, sans-serif`;
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            
+            // Проценты всегда показывают доминирование верхней зоны
+            let topPercent = Math.round(Math.abs(Math.sin(angle)) * 100);
+            let bottomPercent = 100 - topPercent;
+
+            ctx.fillText(`${topPercent}%`, w / 4 - 20, h - 30);
+            ctx.fillText(`${bottomPercent}%`, w * 3 / 4 + 20, h - 30);
+        }
+
+        // ========= ЛОГИКА ИДЕАЛЬНОГО ПЕРЕТАСКИВАНИЯ =========
+        canvas.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            startTouchY = e.clientY;
+            startScroll = scroll;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            // Двигаем палец — вращаем шар
+            const deltaY = (e.clientY - startTouchY) / h * 2.0; // Чувствительность
+            scroll = startScroll + deltaY;
+            draw();
+        });
+
+        window.addEventListener('pointerup', () => {
+            isDragging = false;
+        });
+
+        // ========= АДАПТАЦИЯ И ЗАПУСК =========
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Скрываем подсказку
+        setTimeout(() => {
+            document.getElementById('hint').style.opacity = '0';
+        }, 5000);
+
+        console.log('🟣🦅 Инь-Ян вращение с центром запущено');
+    </script>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Инь-Ян Прокрутка</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
+        #canvas { 
+            position: fixed; top: 0; left: 0; 
+            width: 100vw; height: 100vh; 
+            display: block; cursor: grab; 
+        }
+        #canvas:active { cursor: grabbing; }
+        
+        #hint {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.4); padding: 6px 16px; border-radius: 30px;
+            color: rgba(255,255,255,0.6); font-size: 14px; pointer-events: none;
+            backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.05);
+            white-space: nowrap; transition: opacity 0.5s;
+        }
+        @media (max-width: 600px) { #hint { font-size: 12px; padding: 4px 12px; top: 12px; } }
+    </style>
+</head>
+<body>
+    <div id="hint">👆 Коснись экрана — граница появится под пальцем</div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let w, h;
+        let rawY = 0.0; // Накопительная прокрутка (может уходить в минус и бесконечность)
+        let isDragging = false;
+        let startTouchY = 0;
+        let startRawY = 0;
+
+        // Цвета
+        const colorBlue = '#4d8bff';
+        const colorBlueDark = '#1e3a8a';
+        const colorRed = '#ff4d4d';
+        const colorRedDark = '#991b1b';
+
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            draw();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Вычисляем текущую фазу и положение границы (от 0 до 1)
+            let cut = ((rawY % 1.0) + 1.0) % 1.0;
+            let phase = Math.floor(rawY) % 2; // 0 или 1
+
+            // Определяем, какая зона сверху, а какая снизу
+            let topColor, bottomColor, topDark, bottomDark;
+            let topText, bottomText;
+            let topTextColor, bottomTextColor;
+            let dotTopColor, dotBottomColor;
+
+            if (phase === 0) {
+                // Синяя сверху, Красная снизу
+                topColor = colorBlue; bottomColor = colorRed;
+                topDark = colorBlueDark; bottomDark = colorRedDark;
+                topText = '❤️ Сердце'; bottomText = '🧠 Ум';
+                topTextColor = colorRed; bottomTextColor = colorBlue;
+                dotTopColor = colorRed; dotBottomColor = colorBlue;
+            } else {
+                // Красная сверху, Синяя снизу (инверсия)
+                topColor = colorRed; bottomColor = colorBlue;
+                topDark = colorRedDark; bottomDark = colorBlueDark;
+                topText = '🧠 Ум'; bottomText = '❤️ Сердце';
+                topTextColor = colorBlue; bottomTextColor = colorRed;
+                dotTopColor = colorBlue; dotBottomColor = colorRed;
+            }
+
+            // 2. Рассчитываем S-образный изгиб (Инь-Ян дуга)
+            // Если верхняя зона растет (cut < 0.5), дуга выгибается вниз.
+            // Если нижняя зона растет (cut > 0.5), дуга выгибается вверх.
+            const amplitude = 0.15 * h * (1 - 2 * cut);
+            const cutY = cut * h;
+
+            // 3. Рисуем верхнюю зону
+            const gradTop = ctx.createLinearGradient(0, 0, 0, h);
+            gradTop.addColorStop(0, topDark);
+            gradTop.addColorStop(1, topColor);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            for (let x = 1; x <= w; x++) {
+                const y = cutY + amplitude * Math.sin(x / w * Math.PI);
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(w, 0);
+            ctx.closePath();
+            ctx.fillStyle = gradTop;
+            ctx.fill();
+
+            // 4. Рисуем нижнюю зону
+            const gradBottom = ctx.createLinearGradient(0, h, 0, 0);
+            gradBottom.addColorStop(0, bottomDark);
+            gradBottom.addColorStop(1, bottomColor);
+
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            for (let x = 1; x <= w; x++) {
+                const y = cutY + amplitude * Math.sin(x / w * Math.PI);
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(w, h);
+            ctx.closePath();
+            ctx.fillStyle = gradBottom;
+            ctx.fill();
+
+            // 5. Светящаяся линия границы
+            ctx.beginPath();
+            for (let x = 0; x <= w; x++) {
+                const y = cutY + amplitude * Math.sin(x / w * Math.PI);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+            ctx.shadowBlur = 30;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // 6. Точки Инь-Ян (внутри зон)
+            const dotRadius = w * 0.04;
+            const dotOffsetX = w * 0.15;
+            const dotOffsetY = h * 0.12;
+
+            // Точка в верхней зоне
+            let topDotY = cutY - dotOffsetY;
+            if (topDotY < 0) topDotY = 0 + dotRadius;
+            
+            ctx.beginPath();
+            ctx.arc(w / 2 - dotOffsetX, topDotY, dotRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = dotTopColor;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+            ctx.shadowBlur = 25;
+            ctx.fill();
+
+            // Точка в нижней зоне
+            let bottomDotY = cutY + dotOffsetY;
+            if (bottomDotY > h) bottomDotY = h - dotRadius;
+
+            ctx.beginPath();
+            ctx.arc(w / 2 + dotOffsetX, bottomDotY, dotRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = dotBottomColor;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+            ctx.shadowBlur = 25;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // 7. Тексты (Цвета текста противоположны фону)
+            ctx.font = `bold ${w * 0.06}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 15;
+
+            // Верхний текст
+            let topTextY = cutY * 0.45;
+            if (cutY < 0.1 * h) topTextY = 0.05 * h;
+            ctx.fillStyle = topTextColor;
+            ctx.fillText(topText, w / 2, topTextY);
+
+            // Нижний текст
+            let bottomTextY = (h + cutY) / 1.85;
+            if (cutY > 0.9 * h) bottomTextY = h - 0.05 * h;
+            ctx.fillStyle = bottomTextColor;
+            ctx.fillText(bottomText, w / 2, bottomTextY);
+
+            ctx.shadowBlur = 0;
+
+            // 8. Проценты внизу
+            ctx.font = `bold ${w * 0.04}px system-ui, sans-serif`;
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            
+            let topPercent = Math.round(cut * 100);
+            let bottomPercent = 100 - topPercent;
+
+            ctx.fillText(`${topPercent}%`, w / 4 - 20, h - 30);
+            ctx.fillText(`${bottomPercent}%`, w * 3 / 4 + 20, h - 30);
+        }
+
+        // ========= ЛОГИКА ИДЕАЛЬНОГО ПЕРЕТАСКИВАНИЯ =========
+        canvas.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            startTouchY = e.clientY;
+            startRawY = rawY;
+            
+            // ВАЖНО: Сразу же при нажатии "примагничиваем" границу под палец!
+            const touchY = e.clientY / h;
+            const currentCut = ((rawY % 1.0) + 1.0) % 1.0;
+            const diff = touchY - currentCut;
+            rawY += diff; // Мгновенный скачок под палец
+            
+            draw();
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            // Двигаем границу строго за пальцем
+            const deltaY = (e.clientY - startTouchY) / h;
+            rawY = startRawY + deltaY;
+            draw();
+        });
+
+        window.addEventListener('pointerup', () => {
+            isDragging = false;
+        });
+
+        // ========= АДАПТАЦИЯ И ЗАПУСК =========
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Скрываем подсказку через 5 секунд
+        setTimeout(() => {
+            const hint = document.getElementById('hint');
+            if(hint) hint.style.opacity = '0';
+        }, 5000);
+
+        console.log('🟣🦅 Точная прокрутка запущена');
+    </script>
+</body>
+</html>
