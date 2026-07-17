@@ -63,7 +63,7 @@
     </style>
 </head>
 <body>
-    <div id="hint">👆 Нажми на точку, чтобы выбрать её. Затем нажми ⚙️ Правка.</div>
+    <div id="hint">👆 Привяжи силу к зоне — она сместит зону. Верни зоны на место!</div>
     <canvas id="canvas"></canvas>
 
     <div id="ui-panel">
@@ -84,7 +84,7 @@
                 <button class="btn-del" id="del-point-btn">✕</button>
             </div>
             <div class="edit-row">
-                <span class="edit-label">📍 Часть тела</span>
+                <span class="edit-label">📍 Зона</span>
                 <select id="edit-bodypart">
                     <option value="">— Свободная —</option>
                     <option value="голова">🟣 Голова</option>
@@ -135,16 +135,16 @@
         const editSizeVal = document.getElementById('edit-size-val');
         const delBtn = document.getElementById('del-point-btn');
 
-        // 1. Цветные точки-якоря на теле
-        const bodyMarkers = [
-            { id: 'голова', x: 0, y: -0.35, color: '#9b59b6', label: 'Голова' },
-            { id: 'шея', x: 0, y: -0.18, color: '#5dade2', label: 'Шея' },
-            { id: 'грудь', x: 0, y: 0, color: '#2ecc71', label: 'Грудь' },
-            { id: 'живот', x: 0, y: 0.18, color: '#e67e22', label: 'Живот' }
+        // 1. Динамические зоны (кольца с дыркой)
+        let bodyZones = [
+            { id: 'голова', baseX: 0, baseY: -0.35, x: 0, y: -0.35, color: '#9b59b6', outerR: 0.1, innerR: 0.045, attached: [] },
+            { id: 'шея', baseX: 0, baseY: -0.18, x: 0, y: -0.18, color: '#5dade2', outerR: 0.08, innerR: 0.035, attached: [] },
+            { id: 'грудь', baseX: 0, baseY: 0, x: 0, y: 0, color: '#2ecc71', outerR: 0.1, innerR: 0.045, attached: [] },
+            { id: 'живот', baseX: 0, baseY: 0.18, x: 0, y: 0.18, color: '#e67e22', outerR: 0.09, innerR: 0.04, attached: [] }
         ];
 
         function getBodyCoord(bodyPart) {
-            const found = bodyMarkers.find(m => m.id === bodyPart);
+            const found = bodyZones.find(m => m.id === bodyPart);
             return found || null;
         }
 
@@ -168,66 +168,79 @@
             draw();
         }
 
-        function updatePhysics() {
-            if (points.length === 0) return;
-            let totalWeight = 0;
-            let weightedX = 0;
-            let weightedY = 0;
+        function updateBodyZones() {
+            // Сначала очищаем списки привязанных сил у всех зон
+            bodyZones.forEach(z => z.attached = []);
 
+            // Привязываем силы к зонам
             points.forEach(p => {
-                const dx = p.x - center.x;
-                const dy = p.y - center.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const strength = Math.max(0, dist - 10) * (p.radius / 25);
-                weightedX += p.x * strength;
-                weightedY += p.y * strength;
-                totalWeight += strength;
+                if (p.bodyPart) {
+                    const zone = bodyZones.find(z => z.id === p.bodyPart);
+                    if (zone) zone.attached.push(p);
+                }
             });
 
-            if (totalWeight > 0) {
-                const targetX = weightedX / totalWeight;
-                const targetY = weightedY / totalWeight;
-                center.x += (targetX - center.x) * 0.04;
-                center.y += (targetY - center.y) * 0.04;
-            }
+            // Двигаем зоны на основе привязанных сил
+            bodyZones.forEach(z => {
+                let totalWeight = 0;
+                let dispX = 0, dispY = 0;
+                
+                z.attached.forEach(p => {
+                    const px = (p.x - cx) / w;
+                    const py = (p.y - cy) / h;
+                    const weight = p.radius / 30;
+                    dispX += (px - z.x) * weight;
+                    dispY += (py - z.y) * weight;
+                    totalWeight += weight;
+                });
+
+                if (totalWeight > 0) {
+                    // Смещаем зону в сторону притяжения с возвращающей силой к базе
+                    const targetX = z.baseX + dispX * 0.3;
+                    const targetY = z.baseY + dispY * 0.3;
+                    z.x += (targetX - z.x) * 0.08;
+                    z.y += (targetY - z.y) * 0.08;
+                } else {
+                    // Плавно возвращаем на место, если сил нет
+                    z.x += (z.baseX - z.x) * 0.05;
+                    z.y += (z.baseY - z.y) * 0.05;
+                }
+            });
         }
 
-        function drawMarkers() {
-            bodyMarkers.forEach(m => {
-                const mx = cx + m.x * w;
-                const my = cy + m.y * h;
-                const radius = w * 0.04; // Размер якоря
+        function drawZones() {
+            bodyZones.forEach(z => {
+                const mx = cx + z.x * w;
+                const my = cy + z.y * h;
+                const outer = z.outerR * Math.min(w, h);
+                const inner = z.innerR * Math.min(w, h);
 
-                // Мягкое свечение зоны
-                const grad = ctx.createRadialGradient(mx, my, 0, mx, my, radius * 1.5);
-                grad.addColorStop(0, m.color);
-                grad.addColorStop(1, 'transparent');
+                // Рисуем кольцо с дыркой (2 пути - внешний по часовой, внутренний против)
                 ctx.beginPath();
-                ctx.arc(mx, my, radius * 1.5, 0, Math.PI * 2);
-                ctx.fillStyle = grad;
-                ctx.fill();
-
-                // Сама точка
-                ctx.shadowColor = m.color;
-                ctx.shadowBlur = 20;
-                ctx.beginPath();
-                ctx.arc(mx, my, radius, 0, Math.PI * 2);
-                ctx.fillStyle = m.color;
+                ctx.arc(mx, my, outer, 0, Math.PI * 2, false);
+                ctx.arc(mx, my, inner, 0, Math.PI * 2, true); // true = против часовой (вырезает дырку)
+                ctx.closePath();
+                
+                ctx.fillStyle = z.color;
+                ctx.shadowColor = z.color;
+                ctx.shadowBlur = 25;
+                ctx.globalAlpha = 0.6;
                 ctx.fill();
                 ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1.0;
 
-                // Подпись
+                // Название зоны
                 ctx.font = 'bold 11px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'bottom';
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-                ctx.fillText(m.label, mx, my - radius - 6);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.fillText(z.id.charAt(0).toUpperCase() + z.id.slice(1), mx, my - outer - 6);
             });
         }
 
         function draw() {
             ctx.clearRect(0, 0, w, h);
-            drawMarkers();
+            drawZones();
 
             points.forEach(p => {
                 ctx.beginPath();
@@ -286,9 +299,34 @@
         }
 
         function physicsLoop() {
-            updatePhysics();
+            updateBodyZones(); // Обновляем движение зон
+            updatePhysics();   // Обновляем движение центра
             draw();
             requestAnimationFrame(physicsLoop);
+        }
+
+        function updatePhysics() {
+            if (points.length === 0) return;
+            let totalWeight = 0;
+            let weightedX = 0;
+            let weightedY = 0;
+
+            points.forEach(p => {
+                const dx = p.x - center.x;
+                const dy = p.y - center.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const strength = Math.max(0, dist - 10) * (p.radius / 25);
+                weightedX += p.x * strength;
+                weightedY += p.y * strength;
+                totalWeight += strength;
+            });
+
+            if (totalWeight > 0) {
+                const targetX = weightedX / totalWeight;
+                const targetY = weightedY / totalWeight;
+                center.x += (targetX - center.x) * 0.04;
+                center.y += (targetY - center.y) * 0.04;
+            }
         }
 
         // ============= ИНТЕРАКТИВНОСТЬ =============
@@ -331,7 +369,7 @@
             draggedPoint.x = Math.max(10, Math.min(w - 10, startPointPos.x + dx));
             draggedPoint.y = Math.max(10, Math.min(h - 10, startPointPos.y + dy));
             
-            // Как только двигаем точку рукой - открепляем от тела
+            // Если перетащили рукой - открепляем от зоны
             if (draggedPoint.bodyPart) {
                 draggedPoint.bodyPart = '';
                 if (isEditPanelVisible && selectedPoint && selectedPoint.id === draggedPoint.id) {
@@ -374,15 +412,15 @@
             selectedPoint.radius = parseInt(editSize.value);
             editSizeVal.textContent = selectedPoint.radius;
             
-            // Привязка к телу
             const newBodyPart = editBodypart.value;
             if (newBodyPart !== selectedPoint.bodyPart) {
                 selectedPoint.bodyPart = newBodyPart;
                 if (newBodyPart) {
-                    const coord = getBodyCoord(newBodyPart);
-                    if (coord) {
-                        selectedPoint.x = cx + coord.x * w;
-                        selectedPoint.y = cy + coord.y * h;
+                    const zone = getBodyCoord(newBodyPart);
+                    if (zone) {
+                        // Привязываем ровно к центру этой зоны
+                        selectedPoint.x = cx + zone.x * w;
+                        selectedPoint.y = cy + zone.y * h;
                     }
                 }
             }
@@ -476,10 +514,10 @@
                 const id1 = pointIdCounter++;
                 const id2 = pointIdCounter++;
                 
-                // Размещаем чувство в выбранной части тела
-                const coord = getBodyCoord(config.bodyPart) || getBodyCoord('грудь');
-                const x1 = cx + (coord?.x || 0) * w;
-                const y1 = cy + (coord?.y || 0) * h;
+                // Размещаем чувство в выбранной зоне тела
+                const zone = getBodyCoord(config.bodyPart) || getBodyCoord('грудь');
+                const x1 = cx + (zone?.x || 0) * w;
+                const y1 = cy + (zone?.y || 0) * h;
                 
                 const p1 = {
                     id: id1, x: x1, y: y1,
@@ -490,10 +528,10 @@
                     bodyPart: config.bodyPart || 'грудь'
                 };
                 
-                // Противоположность размещаем зеркально или на другую часть
+                // Противоположность размещаем зеркально
                 const p2 = {
-                    id: id2, x: cx + (coord?.x ? -coord.x : 0) * w + 60, 
-                    y: cy + (coord?.y ? -coord.y : 0) * h - 40,
+                    id: id2, x: cx + (zone?.x ? -zone.x : 0) * w + 60, 
+                    y: cy + (zone?.y ? -zone.y : 0) * h - 40,
                     color: '#ff4d4d',
                     emoji: config.oppEmoji || '😰',
                     label: config.opposite || 'Противоположность',
@@ -514,13 +552,10 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // Логика: если есть сохраненка - грузим. Если нет - грузим из анкеты.
         if (!loadFromLocal()) {
-            // Если анкеты нет, создаем дефолтную пару
             if (!loadFromOnboarding()) {
                 addPair();
             }
-            // Сохраняем полученное состояние
             saveToLocal();
         }
         
