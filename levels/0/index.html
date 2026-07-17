@@ -35,6 +35,7 @@
             backdrop-filter: blur(8px); border: 1px solid #3a2f5a; pointer-events: auto;
         }
         .tag { font-size: 13px; font-weight: 500; padding: 2px 10px; border-radius: 12px; background: rgba(0,0,0,0.3); white-space: nowrap; }
+        .center-info { color: #ffcc00; font-weight: bold; }
         
         #hint { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); 
                 color: rgba(255,255,255,0.5); font-size: 14px; pointer-events: none; 
@@ -58,26 +59,16 @@
         .edit-row { display: flex; gap: 8px; align-items: center; width: 100%; justify-content: space-between; }
         .btn-del { background: #a03a3a; color: #fff; border-radius: 50%; width: 32px; height: 32px; border: none; cursor: pointer; }
 
-        #add-btn {
-            display: none;
-            position: absolute;
-            transform: translate(-50%, -180%);
-            background: #6f52c4; color: #fff;
-            border: none; border-radius: 30px;
-            padding: 10px 24px; font-size: 16px; font-weight: 600;
-            cursor: pointer; pointer-events: auto;
-            box-shadow: 0 0 30px rgba(111,82,196,0.8);
-            z-index: 10; transition: 0.2s;
-        }
-        #add-btn:active { transform: translate(-50%, -180%) scale(0.95); }
+        @media (max-width: 600px) { #edit-panel { padding: 10px; } }
     </style>
 </head>
 <body>
-    <div id="hint">🟠 Живот / 🟢 Грудь / 🔵 Шея / 🟣 Голова. Нажми на чакру, чтобы добавить силы.</div>
+    <div id="hint">👆 Перетащи эмодзи или цветное кольцо. Якорь всегда на месте.</div>
     <canvas id="canvas"></canvas>
 
     <div id="ui-panel">
         <div class="stats-panel">
+            <span class="center-info">⚖️ Центр: <span id="center-coords">(0.0, 0.0)</span></span>
             <span class="tag" id="total-points">Точек: 0</span>
         </div>
 
@@ -93,7 +84,7 @@
                 <button class="btn-del" id="del-point-btn">✕</button>
             </div>
             <div class="edit-row">
-                <span class="edit-label">📍 Привязка</span>
+                <span class="edit-label">📍 Зона</span>
                 <select id="edit-bodypart">
                     <option value="">— Свободная —</option>
                     <option value="голова">🟣 Голова</option>
@@ -111,11 +102,10 @@
 
         <div class="btn-group">
             <button class="btn" id="edit-toggle-btn">⚙️ Правка</button>
+            <button class="btn" id="add-pair-btn">➕ Пара</button>
             <button class="btn" id="reset-btn">🔄 Сброс</button>
         </div>
     </div>
-
-    <button id="add-btn">➕ Добавить силу</button>
 
     <script>
         const canvas = document.getElementById('canvas');
@@ -124,15 +114,19 @@
         let w, h, cx, cy;
         let points = [];
         let pointIdCounter = 0;
+        let center = { x: 0, y: 0 };
         
         let isDragging = false;
         let draggedPoint = null;
         let startMouse = { x: 0, y: 0 };
         let startPointPos = { x: 0, y: 0 };
 
+        let isDraggingZone = false;
+        let draggedZone = null;
+        let startZonePos = { x: 0, y: 0 };
+
         let selectedPoint = null;
         let isEditPanelVisible = false;
-        let selectedZone = null;
 
         const editPanel = document.getElementById('edit-panel');
         const closeEditBtn = document.getElementById('close-edit-btn');
@@ -144,155 +138,198 @@
         const editSize = document.getElementById('edit-size');
         const editSizeVal = document.getElementById('edit-size-val');
         const delBtn = document.getElementById('del-point-btn');
-        const addBtn = document.getElementById('add-btn');
 
-        // Чакры: Живот (🟠), Грудь (🟢), Шея (🔵), Голова (🟣)
+        // 1. Цветные зоны (кольца) и их якоря (ОБНОВЛЕННЫЕ КООРДИНАТЫ)
         let bodyZones = [
-            { id: 'голова', anchorX: 0, anchorY: -0.35, x: 0, y: -0.35, color: '#9b59b6', outerR: 0.1, innerR: 0.045 },
-            { id: 'шея', anchorX: 0, anchorY: -0.18, x: 0, y: -0.18, color: '#5dade2', outerR: 0.08, innerR: 0.035 },
-            { id: 'грудь', anchorX: 0, anchorY: 0, x: 0, y: 0, color: '#2ecc71', outerR: 0.1, innerR: 0.045 },
-            { id: 'живот', anchorX: 0, anchorY: 0.18, x: 0, y: 0.18, color: '#e67e22', outerR: 0.09, innerR: 0.04 }
+            { id: 'голова', anchorX: 0, anchorY: -0.30, x: 0, y: -0.30, color: '#9b59b6', outerR: 0.1, innerR: 0.045, attached: [] },
+            { id: 'шея', anchorX: 0, anchorY: -0.10, x: 0, y: -0.10, color: '#5dade2', outerR: 0.08, innerR: 0.035, attached: [] },
+            { id: 'грудь', anchorX: 0, anchorY: 0.10, x: 0, y: 0.10, color: '#2ecc71', outerR: 0.1, innerR: 0.045, attached: [] },
+            { id: 'живот', anchorX: 0, anchorY: 0.30, x: 0, y: 0.30, color: '#e67e22', outerR: 0.09, innerR: 0.04, attached: [] }
         ];
 
-        function getBodyCoord(id) { return bodyZones.find(z => z.id === id) || null; }
-        function countAttached(zoneId) { return points.filter(p => p.bodyPart === zoneId).length; }
-
-        function getRandomEmoji() {
-            return ['🦁', '🐉', '⚡', '🌊', '🔥', '💫', '🌟', '🌙', '☀️', '🌪️'][Math.floor(Math.random() * 10)];
-        }
-        function getRandomName(suffix) {
-            return ['Сила', 'Энергия', 'Дух', 'Свет', 'Тьма', 'Жар', 'Хлад'][Math.floor(Math.random() * 7)] + ' ' + suffix;
+        function getBodyCoord(bodyPart) {
+            const found = bodyZones.find(m => m.id === bodyPart);
+            return found || null;
         }
 
-        // Создание одной силы со смещением (offsetX, offsetY в процентах)
-        function createPointForZone(zoneId, customColor = null, customEmoji = null, customName = null, offsetX = 0, offsetY = 0) {
-            const zone = bodyZones.find(z => z.id === zoneId);
-            if (!zone) return null;
-            const id = pointIdCounter++;
-            const count = countAttached(zoneId) + 1;
-            const newPoint = {
-                id: id, 
-                x: cx + zone.x * w + offsetX * w, 
-                y: cy + zone.y * h + offsetY * h,
-                color: customColor || zone.color, 
-                emoji: customEmoji || getRandomEmoji(), 
-                label: customName || getRandomName(count),
-                radius: 25 + Math.random() * 20, 
-                bodyPart: zoneId
-            };
-            points.push(newPoint);
-            saveToLocal();
-            return newPoint;
-        }
-
-        function createPairForZone(zoneId) {
-            const zone = bodyZones.find(z => z.id === zoneId);
-            if (!zone) return null;
-            // Создаём две противоположные силы: одна тянет влево-вверх, другая вправо-вниз
-            const p1 = createPointForZone(zoneId, null, '⚡', null, -0.08, -0.05);
-            const p2 = createPointForZone(zoneId, null, '🔥', null, 0.08, 0.05);
-            return [p1, p2];
+        function getNewPair() {
+            const id1 = pointIdCounter++;
+            const id2 = pointIdCounter++;
+            const hue1 = Math.random() * 360;
+            const hue2 = (hue1 + 180) % 360;
+            return [
+                { id: id1, x: -80, y: -20, color: `hsl(${hue1}, 80%, 60%)`, emoji: '🔥', label: 'Сила 1', radius: 30, bodyPart: '' },
+                { id: id2, x: 80, y: 20, color: `hsl(${hue2}, 80%, 60%)`, emoji: '💧', label: 'Сила 2', radius: 30, bodyPart: '' }
+            ];
         }
 
         function resize() {
             w = canvas.width = window.innerWidth;
             h = canvas.height = window.innerHeight;
-            cx = w / 2; cy = h / 2;
+            cx = w / 2;
+            cy = h / 2;
+            if (!center.x && !center.y) { center.x = cx; center.y = cy; }
             draw();
         }
 
-        // Физика: каждая чакра оттягивается своими привязанными силами
         function updateBodyZones() {
             bodyZones.forEach(z => z.attached = []);
-            points.forEach(p => { if (p.bodyPart) { const z = bodyZones.find(z => z.id === p.bodyPart); if (z) z.attached.push(p); } });
+            points.forEach(p => { if (p.bodyPart) { const zone = bodyZones.find(z => z.id === p.bodyPart); if (zone) zone.attached.push(p); } });
 
             bodyZones.forEach(z => {
-                let totalWeight = 0, dispX = 0, dispY = 0;
+                if (isDraggingZone && draggedZone && draggedZone.id === z.id) return;
+
+                let totalWeight = 0;
+                let dispX = 0, dispY = 0;
+                
                 z.attached.forEach(p => {
-                    const px = (p.x - cx) / w, py = (p.y - cy) / h;
+                    const px = (p.x - cx) / w;
+                    const py = (p.y - cy) / h;
                     const weight = p.radius / 30;
-                    dispX += (px - z.anchorX) * weight; dispY += (py - z.anchorY) * weight;
+                    dispX += (px - z.anchorX) * weight;
+                    dispY += (py - z.anchorY) * weight;
                     totalWeight += weight;
                 });
+
                 let targetX = z.anchorX, targetY = z.anchorY;
                 if (totalWeight > 0) {
-                    const avgX = dispX / totalWeight, avgY = dispY / totalWeight;
-                    const maxOffset = 0.3;
+                    const avgX = dispX / totalWeight;
+                    const avgY = dispY / totalWeight;
+                    const maxOffset = 0.15; 
                     const dist = Math.sqrt(avgX*avgX + avgY*avgY);
                     const limitedX = dist > maxOffset ? (avgX / dist) * maxOffset : avgX;
                     const limitedY = dist > maxOffset ? (avgY / dist) * maxOffset : avgY;
-                    targetX = z.anchorX + limitedX; targetY = z.anchorY + limitedY;
+                    targetX = z.anchorX + limitedX;
+                    targetY = z.anchorY + limitedY;
+                } else {
+                    targetX = z.anchorX; targetY = z.anchorY;
                 }
-                z.x += (targetX - z.x) * 0.06; z.y += (targetY - z.y) * 0.06;
+
+                z.x += (targetX - z.x) * 0.06;
+                z.y += (targetY - z.y) * 0.06;
             });
         }
 
-        function drawZonesAndLines() {
+        function drawZones() {
             bodyZones.forEach(z => {
-                const ax = cx + z.anchorX * w, ay = cy + z.anchorY * h;
-                const mx = cx + z.x * w, my = cy + z.y * h;
-                const outer = z.outerR * Math.min(w, h), inner = z.innerR * Math.min(w, h);
+                const ax = cx + z.anchorX * w;
+                const ay = cy + z.anchorY * h;
+                const mx = cx + z.x * w;
+                const my = cy + z.y * h;
+                const outer = z.outerR * Math.min(w, h);
+                const inner = z.innerR * Math.min(w, h);
 
-                // 1. Линии натяжения: от ЧАКРЫ к её силам (не от жёлтого центра!)
-                points.forEach(p => {
-                    if (p.bodyPart === z.id) {
-                        ctx.beginPath();
-                        ctx.moveTo(mx, my);
-                        ctx.lineTo(p.x, p.y);
-                        ctx.strokeStyle = p.color;
-                        ctx.globalAlpha = 0.4;
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                        ctx.globalAlpha = 1.0;
-                    }
-                });
+                ctx.beginPath();
+                ctx.arc(mx, my, outer, 0, Math.PI * 2, false);
+                ctx.arc(mx, my, inner, 0, Math.PI * 2, true);
+                ctx.closePath();
+                ctx.fillStyle = z.color;
+                ctx.shadowColor = z.color;
+                ctx.shadowBlur = 30;
+                ctx.globalAlpha = 0.5;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1.0;
 
-                // 2. Линия от якоря к кольцу (пунктир, показывает смещение)
-                ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(mx, my);
-                ctx.strokeStyle = z.color; ctx.globalAlpha = 0.2; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1.0;
+                ctx.font = 'bold 11px system-ui';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.fillText(z.id.charAt(0).toUpperCase() + z.id.slice(1), mx, my - outer - 6);
 
-                // 3. Кольцо чакры
-                ctx.beginPath(); ctx.arc(mx, my, outer, 0, Math.PI * 2, false); ctx.arc(mx, my, inner, 0, Math.PI * 2, true); ctx.closePath();
-                ctx.fillStyle = z.color; ctx.shadowColor = z.color; ctx.shadowBlur = 30; ctx.globalAlpha = 0.45; ctx.fill(); ctx.shadowBlur = 0; ctx.globalAlpha = 1.0;
-
-                // Подпись
-                ctx.font = 'bold 12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-                ctx.fillStyle = 'rgba(255,255,255,0.9)';
-                ctx.fillText(z.id.charAt(0).toUpperCase() + z.id.slice(1), mx, my - outer - 8);
-
-                // 4. Якорь
-                ctx.beginPath(); ctx.arc(ax, ay, 5, 0, Math.PI * 2);
-                ctx.fillStyle = z.color; ctx.shadowColor = z.color; ctx.shadowBlur = 15; ctx.fill(); ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.arc(ax, ay, 5, 0, Math.PI * 2);
+                ctx.fillStyle = z.color;
+                ctx.shadowColor = z.color;
+                ctx.shadowBlur = 15;
+                ctx.fill();
+                ctx.shadowBlur = 0;
             });
         }
 
         function draw() {
-            ctx.clearRect(0, 0, w, h); 
-            drawZonesAndLines();
+            ctx.clearRect(0, 0, w, h);
+            drawZones();
 
-            // Рисуем сами силы
             points.forEach(p => {
-                const isSel = selectedPoint && selectedPoint.id === p.id;
-                const radius = p.radius;
-                if (isSel) { ctx.shadowColor = '#fff'; ctx.shadowBlur = 30; }
-
-                const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 0, p.x, p.y, radius + 12);
-                grad.addColorStop(0, p.color); grad.addColorStop(1, 'transparent');
-                ctx.beginPath(); ctx.arc(p.x, p.y, radius + 10, 0, Math.PI * 2); ctx.fillStyle = grad; ctx.fill(); ctx.shadowBlur = 0;
-
-                ctx.font = `${Math.max(20, radius * 1.2)}px "Segoe UI Emoji", "Apple Color Emoji"`;
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.emoji, p.x, p.y - 4);
-
-                ctx.font = 'bold 12px system-ui'; ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 8; ctx.fillText(p.label, p.x, p.y + radius + 14); ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.moveTo(center.x, center.y);
+                ctx.lineTo(p.x, p.y);
+                ctx.strokeStyle = p.color;
+                ctx.globalAlpha = 0.2 + (p.radius / 100);
+                ctx.lineWidth = 1.5 + (p.radius / 30);
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
             });
 
+            points.forEach(p => {
+                const isSelected = (selectedPoint && selectedPoint.id === p.id);
+                const radius = p.radius;
+
+                if (isSelected) { ctx.shadowColor = '#fff'; ctx.shadowBlur = 30; }
+
+                const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 0, p.x, p.y, radius + 12);
+                grad.addColorStop(0, p.color);
+                grad.addColorStop(1, 'transparent');
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, radius + 10, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                const fontSize = Math.max(20, radius * 1.2);
+                ctx.font = `${fontSize}px "Segoe UI Emoji", "Apple Color Emoji"`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(p.emoji, p.x, p.y - 4);
+
+                ctx.font = 'bold 12px system-ui';
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0,0,0,0.9)';
+                ctx.shadowBlur = 8;
+                ctx.fillText(p.label, p.x, p.y + radius + 14);
+                ctx.shadowBlur = 0;
+            });
+
+            ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
+            ctx.shadowBlur = 40;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffcc00';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            document.getElementById('center-coords').textContent = 
+                `(${Math.round(center.x - cx)}, ${Math.round(center.y - cy)})`;
             document.getElementById('total-points').textContent = `Точек: ${points.length}`;
         }
 
+        function updatePhysics() {
+            if (points.length === 0) return;
+            let totalWeight = 0;
+            let weightedX = 0;
+            let weightedY = 0;
+            points.forEach(p => {
+                const dx = p.x - center.x;
+                const dy = p.y - center.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const strength = Math.max(0, dist - 10) * (p.radius / 25);
+                weightedX += p.x * strength;
+                weightedY += p.y * strength;
+                totalWeight += strength;
+            });
+            if (totalWeight > 0) {
+                const targetX = weightedX / totalWeight;
+                const targetY = weightedY / totalWeight;
+                center.x += (targetX - center.x) * 0.04;
+                center.y += (targetY - center.y) * 0.04;
+            }
+        }
+
         function physicsLoop() {
-            updateBodyZones(); 
-            draw(); 
+            updateBodyZones();
+            updatePhysics();
+            draw();
             requestAnimationFrame(physicsLoop);
         }
 
@@ -301,19 +338,24 @@
             const rect = canvas.getBoundingClientRect();
             return { x: e.clientX - rect.left, y: e.clientY - rect.top };
         }
+
         function checkHit(pointer) {
             for (let i = points.length - 1; i >= 0; i--) {
                 const p = points[i];
-                if (Math.hypot(pointer.x - p.x, pointer.y - p.y) < p.radius + 20) return p;
+                const dist = Math.hypot(pointer.x - p.x, pointer.y - p.y);
+                if (dist < p.radius + 20) return p;
             }
             return null;
         }
+
         function checkZoneHit(pointer) {
             for (let i = bodyZones.length - 1; i >= 0; i--) {
                 const z = bodyZones[i];
-                const mx = cx + z.x * w, my = cy + z.y * h;
-                const outer = z.outerR * Math.min(w, h), inner = z.innerR * Math.min(w, h);
+                const mx = cx + z.x * w;
+                const my = cy + z.y * h;
+                const outer = z.outerR * Math.min(w, h);
                 const dist = Math.hypot(pointer.x - mx, pointer.y - my);
+                const inner = z.innerR * Math.min(w, h);
                 if (dist < outer && dist > inner) return z;
             }
             return null;
@@ -323,67 +365,93 @@
             const pos = getPointerPos(e);
             const hitPoint = checkHit(pos);
             if (hitPoint) {
-                isDragging = true; draggedPoint = hitPoint;
-                startMouse = pos; startPointPos = { x: hitPoint.x, y: hitPoint.y };
-                canvas.style.cursor = 'grabbing'; selectPoint(hitPoint);
-                selectedZone = null; addBtn.style.display = 'none';
+                isDragging = true;
+                draggedPoint = hitPoint;
+                startMouse = pos;
+                startPointPos = { x: hitPoint.x, y: hitPoint.y };
+                canvas.style.cursor = 'grabbing';
+                selectPoint(hitPoint);
                 return;
             }
+            
             const hitZone = checkZoneHit(pos);
             if (hitZone) {
-                selectedZone = hitZone;
-                if (countAttached(hitZone.id) === 0) {
-                    createPairForZone(hitZone.id);
-                    addBtn.style.display = 'none';
-                    const firstCreated = points.filter(p => p.bodyPart === hitZone.id)[0];
-                    if (firstCreated) selectPoint(firstCreated);
-                    draw(); saveToLocal();
-                } else {
-                    const mx = cx + hitZone.x * w, my = cy + hitZone.y * h;
-                    addBtn.style.display = 'block';
-                    addBtn.style.left = (mx + window.scrollX) + 'px';
-                    addBtn.style.top = (my + window.scrollY) + 'px';
-                    selectPoint(null);
-                }
+                isDraggingZone = true;
+                draggedZone = hitZone;
+                startMouse = pos;
+                startZonePos = { x: hitZone.x, y: hitZone.y };
+                canvas.style.cursor = 'grabbing';
+                selectPoint(null);
                 return;
             }
-            selectedZone = null; addBtn.style.display = 'none'; selectPoint(null);
+            selectPoint(null);
         });
 
         window.addEventListener('pointermove', (e) => {
-            if (!isDragging || !draggedPoint) return;
-            const pos = getPointerPos(e);
-            const dx = pos.x - startMouse.x, dy = pos.y - startMouse.y;
-            draggedPoint.x = Math.max(10, Math.min(w - 10, startPointPos.x + dx));
-            draggedPoint.y = Math.max(10, Math.min(h - 10, startPointPos.y + dy));
-            saveToLocal();
-        });
+            if (isDragging && draggedPoint) {
+                const pos = getPointerPos(e);
+                const dx = pos.x - startMouse.x;
+                const dy = pos.y - startMouse.y;
+                draggedPoint.x = Math.max(10, Math.min(w - 10, startPointPos.x + dx));
+                draggedPoint.y = Math.max(10, Math.min(h - 10, startPointPos.y + dy));
+                if (draggedPoint.bodyPart) {
+                    draggedPoint.bodyPart = '';
+                    if (isEditPanelVisible && selectedPoint && selectedPoint.id === draggedPoint.id) {
+                        editBodypart.value = '';
+                    }
+                }
+                saveToLocal();
+                return;
+            }
 
-        window.addEventListener('pointerup', () => {
-            if (isDragging) { isDragging = false; draggedPoint = null; canvas.style.cursor = 'grab'; saveToLocal(); }
-        });
-
-        addBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (selectedZone) {
-                createPointForZone(selectedZone.id);
-                const mx = cx + selectedZone.x * w;
-                const my = cy + selectedZone.y * h;
-                addBtn.style.left = (mx + window.scrollX) + 'px';
-                addBtn.style.top = (my + window.scrollY) + 'px';
-                draw(); saveToLocal();
+            if (isDraggingZone && draggedZone) {
+                const pos = getPointerPos(e);
+                const dx = (pos.x - startMouse.x) / w;
+                const dy = (pos.y - startMouse.y) / h;
+                draggedZone.x = Math.max(-1, Math.min(1, startZonePos.x + dx));
+                draggedZone.y = Math.max(-1, Math.min(1, startZonePos.y + dy));
+                
+                points.forEach(p => {
+                    if (p.bodyPart === draggedZone.id) {
+                        p.x += (pos.x - startMouse.x);
+                        p.y += (pos.y - startMouse.y);
+                    }
+                });
+                startMouse = pos;
+                startZonePos = { x: draggedZone.x, y: draggedZone.y };
+                saveToLocal();
+                return;
             }
         });
 
-        // ============= РЕДАКТИРОВАНИЕ И СОХРАНЕНИЕ =============
+        window.addEventListener('pointerup', () => {
+            if (isDragging) {
+                isDragging = false;
+                draggedPoint = null;
+                canvas.style.cursor = 'grab';
+                saveToLocal();
+            }
+            if (isDraggingZone) {
+                isDraggingZone = false;
+                draggedZone = null;
+                canvas.style.cursor = 'grab';
+                saveToLocal();
+            }
+        });
+
+        // ============= РЕДАКТИРОВАНИЕ =============
         function selectPoint(point) {
             selectedPoint = point;
             if (point && isEditPanelVisible) {
-                editEmoji.value = point.emoji; editName.value = point.label;
-                editColor.value = point.color; editBodypart.value = point.bodyPart || '';
-                editSize.value = point.radius; editSizeVal.textContent = point.radius;
+                editEmoji.value = point.emoji;
+                editName.value = point.label;
+                editColor.value = point.color;
+                editBodypart.value = point.bodyPart || '';
+                editSize.value = point.radius;
+                editSizeVal.textContent = point.radius;
             } else {
-                isEditPanelVisible = false; editPanel.style.display = 'none';
+                isEditPanelVisible = false;
+                editPanel.style.display = 'none';
             }
         }
 
@@ -391,76 +459,113 @@
             if (!selectedPoint) return;
             selectedPoint.emoji = editEmoji.value.trim() || '👾';
             selectedPoint.label = editName.value.trim() || 'Без имени';
-            selectedPoint.color = editColor.value; selectedPoint.radius = parseInt(editSize.value);
+            selectedPoint.color = editColor.value;
+            selectedPoint.radius = parseInt(editSize.value);
             editSizeVal.textContent = selectedPoint.radius;
             const newBodyPart = editBodypart.value;
             if (newBodyPart !== selectedPoint.bodyPart) {
                 selectedPoint.bodyPart = newBodyPart;
-                if (newBodyPart) { const zone = getBodyCoord(newBodyPart); if (zone) {
-                    selectedPoint.x = cx + zone.x * w; selectedPoint.y = cy + zone.y * h;
-                }}
+                if (newBodyPart) {
+                    const zone = getBodyCoord(newBodyPart);
+                    if (zone) {
+                        selectedPoint.x = cx + zone.x * w;
+                        selectedPoint.y = cy + zone.y * h;
+                    }
+                }
             }
             saveToLocal();
         }
 
         editToggleBtn.addEventListener('click', () => {
-            if (!selectedPoint) { alert('Сначала коснитесь силы!'); return; }
+            if (!selectedPoint) { alert('Сначала коснитесь точки!'); return; }
             isEditPanelVisible = !isEditPanelVisible;
             editPanel.style.display = isEditPanelVisible ? 'flex' : 'none';
             if (isEditPanelVisible) {
-                editEmoji.value = selectedPoint.emoji; editName.value = selectedPoint.label;
-                editColor.value = selectedPoint.color; editBodypart.value = selectedPoint.bodyPart || '';
-                editSize.value = selectedPoint.radius; editSizeVal.textContent = selectedPoint.radius;
+                editEmoji.value = selectedPoint.emoji;
+                editName.value = selectedPoint.label;
+                editColor.value = selectedPoint.color;
+                editBodypart.value = selectedPoint.bodyPart || '';
+                editSize.value = selectedPoint.radius;
+                editSizeVal.textContent = selectedPoint.radius;
             }
         });
+
         closeEditBtn.addEventListener('click', () => { isEditPanelVisible = false; editPanel.style.display = 'none'; });
         editEmoji.addEventListener('input', updateSelectedPoint);
         editName.addEventListener('input', updateSelectedPoint);
         editColor.addEventListener('input', updateSelectedPoint);
         editBodypart.addEventListener('change', updateSelectedPoint);
         editSize.addEventListener('input', updateSelectedPoint);
+
         delBtn.addEventListener('click', () => {
             if (!selectedPoint) return;
-            const idx = points.findIndex(p => p.id === selectedPoint.id);
-            if (idx !== -1) { points.splice(idx, 1); selectPoint(null); isEditPanelVisible = false; editPanel.style.display = 'none'; saveToLocal(); }
+            const index = points.findIndex(p => p.id === selectedPoint.id);
+            if (index !== -1) {
+                points.splice(index, 1);
+                selectPoint(null);
+                isEditPanelVisible = false;
+                editPanel.style.display = 'none';
+                saveToLocal();
+            }
         });
+
+        // ============= ДОБАВЛЕНИЕ И СОХРАНЕНИЕ =============
+        function addPair() {
+            const newPoints = getNewPair();
+            newPoints[0].x = center.x - 90; newPoints[0].y = center.y - (Math.random() * 40 - 20);
+            newPoints[1].x = center.x + 90; newPoints[1].y = center.y - (Math.random() * 40 - 20);
+            points.push(...newPoints);
+            saveToLocal();
+        }
+
+        function resetAll() {
+            if (confirm('Сбросить все точки?')) {
+                localStorage.removeItem('dreams_state_0');
+                localStorage.removeItem('dreams_config');
+                location.reload();
+            }
+        }
 
         function saveToLocal() {
-            localStorage.setItem('dreams_state_0', JSON.stringify({ points, idCounter: pointIdCounter }));
+            const data = { points, centerX: center.x, centerY: center.y, idCounter: pointIdCounter };
+            localStorage.setItem('dreams_state_0', JSON.stringify(data));
         }
+
         function loadFromLocal() {
+            const raw = localStorage.getItem('dreams_state_0');
+            if (!raw) return false;
             try {
-                const raw = localStorage.getItem('dreams_state_0');
-                if (!raw) return false;
                 const data = JSON.parse(raw);
-                points = data.points || []; pointIdCounter = data.idCounter || 0;
+                points = data.points || [];
+                center.x = data.centerX || w/2;
+                center.y = data.centerY || h/2;
+                pointIdCounter = data.idCounter || 0;
                 return true;
             } catch { return false; }
         }
+
         function loadFromOnboarding() {
+            const raw = localStorage.getItem('dreams_config');
+            if (!raw) return false;
             try {
-                const raw = localStorage.getItem('dreams_config');
-                if (!raw) return false;
-                const cfg = JSON.parse(raw);
-                const z = getBodyCoord(cfg.bodyPart) || getBodyCoord('грудь');
-                points.push({ id: pointIdCounter++, x: cx + (z?.anchorX||0)*w, y: cy + (z?.anchorY||0)*h, color: '#4d8bff', emoji: cfg.emoji||'😌', label: cfg.feeling||'Чувство', radius: Math.min(30 + cfg.power/4, 60), bodyPart: cfg.bodyPart||'грудь' });
-                points.push({ id: pointIdCounter++, x: cx + (z?.anchorX? -z.anchorX:0)*w + 60, y: cy + (z?.anchorY? -z.anchorY:0)*h - 40, color: '#ff4d4d', emoji: cfg.oppEmoji||'😰', label: cfg.opposite||'Противоположность', radius: 30, bodyPart: '' });
+                const config = JSON.parse(raw);
+                const id1 = pointIdCounter++; const id2 = pointIdCounter++;
+                const zone = getBodyCoord(config.bodyPart) || getBodyCoord('грудь');
+                const x1 = cx + (zone?.anchorX || 0) * w;
+                const y1 = cy + (zone?.anchorY || 0) * h;
+                const p1 = { id: id1, x: x1, y: y1, color: '#4d8bff', emoji: config.emoji || '😌', label: config.feeling || 'Чувство', radius: Math.min(30 + config.power / 4, 60), bodyPart: config.bodyPart || 'грудь' };
+                const p2 = { id: id2, x: cx + (zone?.anchorX ? -zone.anchorX : 0) * w + 60, y: cy + (zone?.anchorY ? -zone.anchorY : 0) * h - 40, color: '#ff4d4d', emoji: config.oppEmoji || '😰', label: config.opposite || 'Противоположность', radius: 30, bodyPart: '' };
+                points.push(p1, p2);
                 return true;
             } catch { return false; }
         }
 
-        document.getElementById('reset-btn').addEventListener('click', () => {
-            if (confirm('Сбросить всё?')) { localStorage.removeItem('dreams_state_0'); localStorage.removeItem('dreams_config'); location.reload(); }
-        });
-
+        document.getElementById('add-pair-btn').addEventListener('click', addPair);
+        document.getElementById('reset-btn').addEventListener('click', resetAll);
+        setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 8000);
         window.addEventListener('resize', resize);
         resize();
-        if (!loadFromLocal()) { if (!loadFromOnboarding()) { 
-            const p = { id: pointIdCounter++, x: cx - 80, y: cy, color: '#4d8bff', emoji: '🔥', label: 'Сила 1', radius: 30, bodyPart: '' };
-            const p2 = { id: pointIdCounter++, x: cx + 80, y: cy, color: '#ff4d4d', emoji: '💧', label: 'Сила 2', radius: 30, bodyPart: '' };
-            points.push(p, p2);
-        } saveToLocal(); }
-        
+        if (!loadFromLocal()) { if (!loadFromOnboarding()) addPair(); saveToLocal(); }
         physicsLoop();
     </script>
 </body>
