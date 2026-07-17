@@ -3,232 +3,326 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Инь-Ян Прокрутка</title>
+    <title>Мульти-Инь-Ян</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
         #canvas { 
             position: fixed; top: 0; left: 0; 
             width: 100vw; height: 100vh; 
             display: block; cursor: grab; 
+            background: radial-gradient(circle at center, #131022 0%, #08060e 100%);
         }
         #canvas:active { cursor: grabbing; }
         
-        #hint {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.4); padding: 6px 16px; border-radius: 30px;
-            color: rgba(255,255,255,0.6); font-size: 14px; pointer-events: none;
-            backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.05);
-            white-space: nowrap; transition: opacity 0.5s;
+        #ui {
+            position: absolute; bottom: 20px; left: 0; right: 0;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+            padding: 10px; pointer-events: none;
         }
-        @media (max-width: 600px) { #hint { font-size: 12px; padding: 4px 12px; top: 12px; } }
+        
+        .btn-group {
+            background: rgba(22,17,39,0.85); 
+            padding: 8px 16px; border-radius: 40px;
+            backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
+            display: flex; gap: 12px; pointer-events: auto;
+        }
+        
+        .btn {
+            border: none; background: #2a2348; color: #b8a6ff;
+            padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        
+        .stats-panel {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+            background: rgba(22,17,39,0.85); padding: 8px 14px; border-radius: 40px;
+            backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
+            pointer-events: auto; max-width: 90%;
+        }
+        .tag {
+            font-size: 13px; font-weight: 500; padding: 2px 10px;
+            border-radius: 12px; background: rgba(0,0,0,0.3); white-space: nowrap;
+        }
+        .center-info {
+            color: #ffcc00; font-weight: bold;
+        }
+        #hint { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); 
+                color: rgba(255,255,255,0.5); font-size: 14px; pointer-events: none; 
+                background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 30px; 
+                backdrop-filter: blur(4px); }
     </style>
 </head>
 <body>
-    <div id="hint">👆 Коснись экрана — граница появится под пальцем</div>
+
+    <div id="hint">👆 Перетащи любую точку, чтобы изменить баланс</div>
     <canvas id="canvas"></canvas>
+
+    <div id="ui">
+        <div class="stats-panel" id="stats-panel">
+            <span class="center-info">⚖️ Центр: <span id="center-coords">(0.0, 0.0)</span></span>
+            <span class="tag" id="total-points">Точек: 0</span>
+        </div>
+        <div class="btn-group">
+            <button class="btn" id="add-pair-btn">➕ Пара (Инь-Ян)</button>
+            <button class="btn" id="reset-btn">🔄 Сброс</button>
+        </div>
+    </div>
 
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
-        let w, h;
-        let rawY = 0.0; // Накопительная прокрутка (может уходить в минус и бесконечность)
-        let isDragging = false;
-        let startTouchY = 0;
-        let startRawY = 0;
+        let w, h, cx, cy;
+        let points = [];
+        let pointIdCounter = 0;
 
-        // Цвета
-        const colorBlue = '#4d8bff';
-        const colorBlueDark = '#1e3a8a';
-        const colorRed = '#ff4d4d';
-        const colorRedDark = '#991b1b';
+        // Состояние центра и перетаскивания
+        let center = { x: 0, y: 0 };
+        let isDragging = false;
+        let draggedPoint = null;
+        let startMouse = { x: 0, y: 0 };
+        let startPointPos = { x: 0, y: 0 };
+
+        // Данные
+        function getNewPair() {
+            const id1 = pointIdCounter++;
+            const id2 = pointIdCounter++;
+            // Случайный базовый цвет
+            const hue1 = Math.random() * 360;
+            const hue2 = (hue1 + 180) % 360;
+            const color1 = `hsl(${hue1}, 80%, 60%)`;
+            const color2 = `hsl(${hue2}, 80%, 60%)`;
+            
+            // Добавляем две точки симметрично
+            return [
+                { id: id1, x: -80, y: 0, color: color1, emoji: '🔴', label: 'Сила 1' },
+                { id: id2, x: 80, y: 0, color: color2, emoji: '🔵', label: 'Сила 2' }
+            ];
+        }
 
         function resize() {
             w = canvas.width = window.innerWidth;
             h = canvas.height = window.innerHeight;
+            cx = w / 2;
+            cy = h / 2;
+            
+            // Центрируем центр, если он не сохранился
+            if (!center.x && !center.y) {
+                center.x = cx;
+                center.y = cy;
+            }
             draw();
+        }
+
+        // Логика взаимодействия
+        function updatePhysics() {
+            if (points.length === 0) return;
+
+            // Вычисляем общий вектор смещения центра по ВЗВЕШЕННОМУ СРЕДНЕМУ
+            let totalWeight = 0;
+            let weightedX = 0;
+            let weightedY = 0;
+
+            points.forEach(p => {
+                const dx = p.x - center.x;
+                const dy = p.y - center.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // Чем дальше точка от центра, тем сильнее она его тянет.
+                // Это и есть "перетягивание каната".
+                const weight = Math.max(0, dist - 10); // Порог чувствительности
+                weightedX += p.x * weight;
+                weightedY += p.y * weight;
+                totalWeight += weight;
+            });
+
+            if (totalWeight > 0) {
+                const targetX = weightedX / totalWeight;
+                const targetY = weightedY / totalWeight;
+                
+                // Плавное притяжение центра к точке равновесия (без рывков)
+                center.x += (targetX - center.x) * 0.05;
+                center.y += (targetY - center.y) * 0.05;
+            }
         }
 
         function draw() {
             ctx.clearRect(0, 0, w, h);
 
-            // 1. Вычисляем текущую фазу и положение границы (от 0 до 1)
-            let cut = ((rawY % 1.0) + 1.0) % 1.0;
-            let phase = Math.floor(rawY) % 2; // 0 или 1
+            // 1. Рисуем линии связи от точек к центру
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.moveTo(center.x, center.y);
+                ctx.lineTo(p.x, p.y);
+                ctx.strokeStyle = p.color;
+                ctx.globalAlpha = 0.3;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            });
 
-            // Определяем, какая зона сверху, а какая снизу
-            let topColor, bottomColor, topDark, bottomDark;
-            let topText, bottomText;
-            let topTextColor, bottomTextColor;
-            let dotTopColor, dotBottomColor;
+            // 2. Рисуем сами точки
+            points.forEach(p => {
+                const radius = 28;
+                
+                // Круглый фон для эмодзи
+                const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 0, p.x, p.y, radius + 10);
+                grad.addColorStop(0, p.color);
+                grad.addColorStop(1, 'transparent');
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, radius + 8, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
 
-            if (phase === 0) {
-                // Синяя сверху, Красная снизу
-                topColor = colorBlue; bottomColor = colorRed;
-                topDark = colorBlueDark; bottomDark = colorRedDark;
-                topText = '❤️ Сердце'; bottomText = '🧠 Ум';
-                topTextColor = colorRed; bottomTextColor = colorBlue;
-                dotTopColor = colorRed; dotBottomColor = colorBlue;
-            } else {
-                // Красная сверху, Синяя снизу (инверсия)
-                topColor = colorRed; bottomColor = colorBlue;
-                topDark = colorRedDark; bottomDark = colorBlueDark;
-                topText = '🧠 Ум'; bottomText = '❤️ Сердце';
-                topTextColor = colorBlue; bottomTextColor = colorRed;
-                dotTopColor = colorBlue; dotBottomColor = colorRed;
-            }
+                // Эмодзи
+                ctx.font = '32px "Segoe UI Emoji", "Apple Color Emoji"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(p.emoji, p.x, p.y - 6);
 
-            // 2. Рассчитываем S-образный изгиб (Инь-Ян дуга)
-            // Если верхняя зона растет (cut < 0.5), дуга выгибается вниз.
-            // Если нижняя зона растет (cut > 0.5), дуга выгибается вверх.
-            const amplitude = 0.15 * h * (1 - 2 * cut);
-            const cutY = cut * h;
+                // Текст (всегда контрастным цветом)
+                ctx.font = 'bold 12px system-ui';
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 8;
+                ctx.fillText(p.label, p.x, p.y + 26);
+                ctx.shadowBlur = 0;
+            });
 
-            // 3. Рисуем верхнюю зону
-            const gradTop = ctx.createLinearGradient(0, 0, 0, h);
-            gradTop.addColorStop(0, topDark);
-            gradTop.addColorStop(1, topColor);
+            // 3. Рисуем ЖЕЛТЫЙ ЦЕНТР
+            ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
+            ctx.shadowBlur = 40;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffcc00';
+            ctx.fill();
             
+            // Внутреннее свечение центра
             ctx.beginPath();
-            ctx.moveTo(0, 0);
-            for (let x = 1; x <= w; x++) {
-                const y = cutY + amplitude * Math.sin(x / w * Math.PI);
-                ctx.lineTo(x, y);
-            }
-            ctx.lineTo(w, 0);
-            ctx.closePath();
-            ctx.fillStyle = gradTop;
-            ctx.fill();
-
-            // 4. Рисуем нижнюю зону
-            const gradBottom = ctx.createLinearGradient(0, h, 0, 0);
-            gradBottom.addColorStop(0, bottomDark);
-            gradBottom.addColorStop(1, bottomColor);
-
-            ctx.beginPath();
-            ctx.moveTo(0, h);
-            for (let x = 1; x <= w; x++) {
-                const y = cutY + amplitude * Math.sin(x / w * Math.PI);
-                ctx.lineTo(x, y);
-            }
-            ctx.lineTo(w, h);
-            ctx.closePath();
-            ctx.fillStyle = gradBottom;
-            ctx.fill();
-
-            // 5. Светящаяся линия границы
-            ctx.beginPath();
-            for (let x = 0; x <= w; x++) {
-                const y = cutY + amplitude * Math.sin(x / w * Math.PI);
-                if (x === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.lineWidth = 2;
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-            ctx.shadowBlur = 30;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // 6. Точки Инь-Ян (внутри зон)
-            const dotRadius = w * 0.04;
-            const dotOffsetX = w * 0.15;
-            const dotOffsetY = h * 0.12;
-
-            // Точка в верхней зоне
-            let topDotY = cutY - dotOffsetY;
-            if (topDotY < 0) topDotY = 0 + dotRadius;
-            
-            ctx.beginPath();
-            ctx.arc(w / 2 - dotOffsetX, topDotY, dotRadius, 0, 2 * Math.PI);
-            ctx.fillStyle = dotTopColor;
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
-            ctx.shadowBlur = 25;
-            ctx.fill();
-
-            // Точка в нижней зоне
-            let bottomDotY = cutY + dotOffsetY;
-            if (bottomDotY > h) bottomDotY = h - dotRadius;
-
-            ctx.beginPath();
-            ctx.arc(w / 2 + dotOffsetX, bottomDotY, dotRadius, 0, 2 * Math.PI);
-            ctx.fillStyle = dotBottomColor;
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
-            ctx.shadowBlur = 25;
+            ctx.arc(center.x, center.y, 20, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 204, 0, 0.2)';
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // 7. Тексты (Цвета текста противоположны фону)
-            ctx.font = `bold ${w * 0.06}px system-ui, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 15;
-
-            // Верхний текст
-            let topTextY = cutY * 0.45;
-            if (cutY < 0.1 * h) topTextY = 0.05 * h;
-            ctx.fillStyle = topTextColor;
-            ctx.fillText(topText, w / 2, topTextY);
-
-            // Нижний текст
-            let bottomTextY = (h + cutY) / 1.85;
-            if (cutY > 0.9 * h) bottomTextY = h - 0.05 * h;
-            ctx.fillStyle = bottomTextColor;
-            ctx.fillText(bottomText, w / 2, bottomTextY);
-
-            ctx.shadowBlur = 0;
-
-            // 8. Проценты внизу
-            ctx.font = `bold ${w * 0.04}px system-ui, sans-serif`;
-            ctx.textBaseline = 'bottom';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            
-            let topPercent = Math.round(cut * 100);
-            let bottomPercent = 100 - topPercent;
-
-            ctx.fillText(`${topPercent}%`, w / 4 - 20, h - 30);
-            ctx.fillText(`${bottomPercent}%`, w * 3 / 4 + 20, h - 30);
+            // 4. Обновление UI (координаты и количество)
+            document.getElementById('center-coords').textContent = 
+                `(${Math.round(center.x - cx)}, ${Math.round(center.y - cy)})`;
+            document.getElementById('total-points').textContent = `Точек: ${points.length}`;
         }
 
-        // ========= ЛОГИКА ИДЕАЛЬНОГО ПЕРЕТАСКИВАНИЯ =========
-        canvas.addEventListener('pointerdown', (e) => {
-            isDragging = true;
-            startTouchY = e.clientY;
-            startRawY = rawY;
-            
-            // ВАЖНО: Сразу же при нажатии "примагничиваем" границу под палец!
-            const touchY = e.clientY / h;
-            const currentCut = ((rawY % 1.0) + 1.0) % 1.0;
-            const diff = touchY - currentCut;
-            rawY += diff; // Мгновенный скачок под палец
-            
+        function physicsLoop() {
+            updatePhysics();
             draw();
+            requestAnimationFrame(physicsLoop);
+        }
+
+        // ============= ИНТЕРАКТИВНОСТЬ =============
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        function checkHit(pointer) {
+            for (let i = points.length - 1; i >= 0; i--) {
+                const p = points[i];
+                const dist = Math.hypot(pointer.x - p.x, pointer.y - p.y);
+                if (dist < 40) return p;
+            }
+            return null;
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            const pos = getPointerPos(e);
+            const hit = checkHit(pos);
+            if (hit) {
+                isDragging = true;
+                draggedPoint = hit;
+                startMouse = pos;
+                startPointPos = { x: hit.x, y: hit.y };
+                canvas.style.cursor = 'grabbing';
+            }
         });
 
         window.addEventListener('pointermove', (e) => {
-            if (!isDragging) return;
-            // Двигаем границу строго за пальцем
-            const deltaY = (e.clientY - startTouchY) / h;
-            rawY = startRawY + deltaY;
-            draw();
+            if (!isDragging || !draggedPoint) return;
+            const pos = getPointerPos(e);
+            const dx = pos.x - startMouse.x;
+            const dy = pos.y - startMouse.y;
+            
+            draggedPoint.x = startPointPos.x + dx;
+            draggedPoint.y = startPointPos.y + dy;
+
+            // Не даём точке улететь за пределы экрана
+            draggedPoint.x = Math.max(10, Math.min(w - 10, draggedPoint.x));
+            draggedPoint.y = Math.max(10, Math.min(h - 10, draggedPoint.y));
+
+            saveToLocal();
         });
 
         window.addEventListener('pointerup', () => {
-            isDragging = false;
+            if (isDragging) {
+                isDragging = false;
+                draggedPoint = null;
+                canvas.style.cursor = 'grab';
+                saveToLocal();
+            }
         });
 
-        // ========= АДАПТАЦИЯ И ЗАПУСК =========
+        // ============= ДОБАВЛЕНИЕ ТОЧЕК И СОХРАНЕНИЕ =============
+        function addPair() {
+            const newPoints = getNewPair();
+            // Размещаем их относительно текущего центра
+            newPoints[0].x = center.x - 80;
+            newPoints[0].y = center.y - (Math.random() * 60 - 30);
+            newPoints[1].x = center.x + 80;
+            newPoints[1].y = center.y - (Math.random() * 60 - 30);
+            
+            points.push(...newPoints);
+            saveToLocal();
+        }
+
+        function resetAll() {
+            if (confirm('Сбросить все точки к начальному состоянию?')) {
+                localStorage.removeItem('dreams_state_0');
+                location.reload();
+            }
+        }
+
+        function saveToLocal() {
+            const data = { points, centerX: center.x, centerY: center.y, idCounter: pointIdCounter };
+            localStorage.setItem('dreams_state_0', JSON.stringify(data));
+        }
+
+        function loadFromLocal() {
+            const raw = localStorage.getItem('dreams_state_0');
+            if (!raw) return false;
+            try {
+                const data = JSON.parse(raw);
+                points = data.points || [];
+                center.x = data.centerX || w/2;
+                center.y = data.centerY || h/2;
+                pointIdCounter = data.idCounter || 0;
+                return true;
+            } catch { return false; }
+        }
+
+        // ============= ЗАПУСК =============
+        document.getElementById('add-pair-btn').addEventListener('click', addPair);
+        document.getElementById('reset-btn').addEventListener('click', resetAll);
+
+        // Скрытие подсказки
+        setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 6000);
+
         window.addEventListener('resize', resize);
         resize();
 
-        // Скрываем подсказку через 5 секунд
-        setTimeout(() => {
-            const hint = document.getElementById('hint');
-            if(hint) hint.style.opacity = '0';
-        }, 5000);
-
-        console.log('🟣🦅 Точная прокрутка запущена');
+        if (!loadFromLocal() || points.length === 0) {
+            // Если загрузка не удалась или точек нет, создаем дефолтную пару
+            addPair();
+        }
+        
+        physicsLoop();
     </script>
 </body>
 </html>
