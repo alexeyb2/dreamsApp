@@ -6,12 +6,12 @@
     <title>Инь-Ян Прокрутка</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
-        #canvas-container { 
+        #canvas { 
             position: fixed; top: 0; left: 0; 
             width: 100vw; height: 100vh; 
             display: block; cursor: grab; 
         }
-        #canvas-container:active { cursor: grabbing; }
+        #canvas:active { cursor: grabbing; }
         
         #hint {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
@@ -24,25 +24,23 @@
     </style>
 </head>
 <body>
-    <div id="hint">👆 Проведи вверх или вниз — граница прокручивается</div>
-    <canvas id="canvas-container"></canvas>
+    <div id="hint">👆 Коснись экрана — граница появится под пальцем</div>
+    <canvas id="canvas"></canvas>
 
     <script>
-        const canvas = document.getElementById('canvas-container');
+        const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
         let w, h;
-        
-        // Ползунок прокрутки (может уходить в минус и за 1)
-        let offset = 0.0; 
+        let rawY = 0.0; // Накопительная прокрутка (может уходить в минус и бесконечность)
         let isDragging = false;
-        let startY = 0;
-        let startOffset = 0;
+        let startTouchY = 0;
+        let startRawY = 0;
 
-        // Базовые цвета зон
-        const colorBlueTop = '#4d8bff';
-        const colorRedBottom = '#ff4d4d';
+        // Цвета
+        const colorBlue = '#4d8bff';
         const colorBlueDark = '#1e3a8a';
+        const colorRed = '#ff4d4d';
         const colorRedDark = '#991b1b';
 
         function resize() {
@@ -54,35 +52,35 @@
         function draw() {
             ctx.clearRect(0, 0, w, h);
 
-            // 1. Рассчитываем циклическую фазу (прокрутку 0..2)
-            let phase = ((offset % 2.0) + 2.0) % 2.0;
-            let cut; // 0..1 в пределах текущей фазы
+            // 1. Вычисляем текущую фазу и положение границы (от 0 до 1)
+            let cut = ((rawY % 1.0) + 1.0) % 1.0;
+            let phase = Math.floor(rawY) % 2; // 0 или 1
+
+            // Определяем, какая зона сверху, а какая снизу
             let topColor, bottomColor, topDark, bottomDark;
             let topText, bottomText;
             let topTextColor, bottomTextColor;
             let dotTopColor, dotBottomColor;
 
-            // Фаза 0..1: Синяя сверху, Красная снизу
-            if (phase < 1.0) {
-                cut = phase;
-                topColor = colorBlueTop; bottomColor = colorRedBottom;
+            if (phase === 0) {
+                // Синяя сверху, Красная снизу
+                topColor = colorBlue; bottomColor = colorRed;
                 topDark = colorBlueDark; bottomDark = colorRedDark;
                 topText = '❤️ Сердце'; bottomText = '🧠 Ум';
-                topTextColor = colorRedBottom; bottomTextColor = colorBlueTop;
-                dotTopColor = colorRedBottom; dotBottomColor = colorBlueTop;
-            } 
-            // Фаза 1..2: Красная сверху, Синяя снизу (инверсия)
-            else {
-                cut = phase - 1.0;
-                topColor = colorRedBottom; bottomColor = colorBlueTop;
+                topTextColor = colorRed; bottomTextColor = colorBlue;
+                dotTopColor = colorRed; dotBottomColor = colorBlue;
+            } else {
+                // Красная сверху, Синяя снизу (инверсия)
+                topColor = colorRed; bottomColor = colorBlue;
                 topDark = colorRedDark; bottomDark = colorBlueDark;
                 topText = '🧠 Ум'; bottomText = '❤️ Сердце';
-                topTextColor = colorBlueTop; bottomTextColor = colorRedBottom;
-                dotTopColor = colorBlueTop; dotBottomColor = colorRedBottom;
+                topTextColor = colorBlue; bottomTextColor = colorRed;
+                dotTopColor = colorBlue; dotBottomColor = colorRed;
             }
 
-            // 2. Рассчитываем амплитуду изгиба и положение границы
-            // Амплитуда всегда направлена в сторону сжимающейся зоны
+            // 2. Рассчитываем S-образный изгиб (Инь-Ян дуга)
+            // Если верхняя зона растет (cut < 0.5), дуга выгибается вниз.
+            // Если нижняя зона растет (cut > 0.5), дуга выгибается вверх.
             const amplitude = 0.15 * h * (1 - 2 * cut);
             const cutY = cut * h;
 
@@ -118,7 +116,7 @@
             ctx.fillStyle = gradBottom;
             ctx.fill();
 
-            // 5. Светящаяся линия границы (рябь воды)
+            // 5. Светящаяся линия границы
             ctx.beginPath();
             for (let x = 0; x <= w; x++) {
                 const y = cutY + amplitude * Math.sin(x / w * Math.PI);
@@ -132,14 +130,14 @@
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // 6. Точки Инь-Ян (противоположного цвета внутри зон)
+            // 6. Точки Инь-Ян (внутри зон)
             const dotRadius = w * 0.04;
             const dotOffsetX = w * 0.15;
             const dotOffsetY = h * 0.12;
 
-            // Точка в верхней зоне (опускаем ниже границы, если зона мала)
+            // Точка в верхней зоне
             let topDotY = cutY - dotOffsetY;
-            if (topDotY < 0) topDotY = 0 + dotRadius; // если зона очень мала, прижимаем к верху
+            if (topDotY < 0) topDotY = 0 + dotRadius;
             
             ctx.beginPath();
             ctx.arc(w / 2 - dotOffsetX, topDotY, dotRadius, 0, 2 * Math.PI);
@@ -160,20 +158,20 @@
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // 7. Тексты с инверсией цветов
+            // 7. Тексты (Цвета текста противоположны фону)
             ctx.font = `bold ${w * 0.06}px system-ui, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.shadowColor = 'rgba(0,0,0,0.8)';
             ctx.shadowBlur = 15;
 
-            // Текст верхней зоны
+            // Верхний текст
             let topTextY = cutY * 0.45;
-            if (cutY < 0.1 * h) topTextY = 0.05 * h; // не даем улететь
+            if (cutY < 0.1 * h) topTextY = 0.05 * h;
             ctx.fillStyle = topTextColor;
             ctx.fillText(topText, w / 2, topTextY);
 
-            // Текст нижней зоны
+            // Нижний текст
             let bottomTextY = (h + cutY) / 1.85;
             if (cutY > 0.9 * h) bottomTextY = h - 0.05 * h;
             ctx.fillStyle = bottomTextColor;
@@ -181,36 +179,38 @@
 
             ctx.shadowBlur = 0;
 
-            // 8. Проценты (внизу)
+            // 8. Проценты внизу
             ctx.font = `bold ${w * 0.04}px system-ui, sans-serif`;
             ctx.textBaseline = 'bottom';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             
-            let topPercent, bottomPercent;
-            if (phase < 1.0) {
-                topPercent = Math.round(cut * 100);
-                bottomPercent = 100 - topPercent;
-            } else {
-                bottomPercent = Math.round(cut * 100);
-                topPercent = 100 - bottomPercent;
-            }
+            let topPercent = Math.round(cut * 100);
+            let bottomPercent = 100 - topPercent;
 
             ctx.fillText(`${topPercent}%`, w / 4 - 20, h - 30);
             ctx.fillText(`${bottomPercent}%`, w * 3 / 4 + 20, h - 30);
         }
 
-        // Логика перетаскивания (прокрутки)
+        // ========= ЛОГИКА ИДЕАЛЬНОГО ПЕРЕТАСКИВАНИЯ =========
         canvas.addEventListener('pointerdown', (e) => {
             isDragging = true;
-            startY = e.clientY;
-            startOffset = offset;
+            startTouchY = e.clientY;
+            startRawY = rawY;
+            
+            // ВАЖНО: Сразу же при нажатии "примагничиваем" границу под палец!
+            const touchY = e.clientY / h;
+            const currentCut = ((rawY % 1.0) + 1.0) % 1.0;
+            const diff = touchY - currentCut;
+            rawY += diff; // Мгновенный скачок под палец
+            
+            draw();
         });
 
         window.addEventListener('pointermove', (e) => {
             if (!isDragging) return;
-            // Считаем смещение по высоте, деленное на высоту. Чувствительность 1.5
-            const deltaY = (e.clientY - startY) / h * 1.5; 
-            offset = startOffset - deltaY;
+            // Двигаем границу строго за пальцем
+            const deltaY = (e.clientY - startTouchY) / h;
+            rawY = startRawY + deltaY;
             draw();
         });
 
@@ -218,17 +218,17 @@
             isDragging = false;
         });
 
-        // Адаптация к повороту экрана
+        // ========= АДАПТАЦИЯ И ЗАПУСК =========
         window.addEventListener('resize', resize);
         resize();
 
-        // Плавное обновление подсказки (скрываем через 5 сек)
+        // Скрываем подсказку через 5 секунд
         setTimeout(() => {
             const hint = document.getElementById('hint');
             if(hint) hint.style.opacity = '0';
         }, 5000);
 
-        console.log('🟣🦅 Инь-Ян Прокрутка запущена');
+        console.log('🟣🦅 Точная прокрутка запущена');
     </script>
 </body>
 </html>
