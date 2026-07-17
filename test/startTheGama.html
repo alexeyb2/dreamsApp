@@ -3,43 +3,47 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Инь-Ян Баланс</title>
+    <title>Инь-Ян Прокрутка</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
-        #bg {
-            position: fixed; top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            display: block;
-            cursor: grab;
+        #canvas-container { 
+            position: fixed; top: 0; left: 0; 
+            width: 100vw; height: 100vh; 
+            display: block; cursor: grab; 
         }
-        #bg:active { cursor: grabbing; }
+        #canvas-container:active { cursor: grabbing; }
+        
         #hint {
-            position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.5); padding: 6px 18px; border-radius: 30px;
-            color: rgba(255,255,255,0.7); font-size: 14px; pointer-events: none;
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.4); padding: 6px 16px; border-radius: 30px;
+            color: rgba(255,255,255,0.6); font-size: 14px; pointer-events: none;
             backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.05);
-            white-space: nowrap;
+            white-space: nowrap; transition: opacity 0.5s;
         }
-        @media (max-width: 600px) { #hint { font-size: 12px; padding: 4px 14px; top: 20px; } }
+        @media (max-width: 600px) { #hint { font-size: 12px; padding: 4px 12px; top: 12px; } }
     </style>
 </head>
 <body>
-    <div id="hint">👆 Проведи пальцем, чтобы переместить границу</div>
-    <canvas id="bg"></canvas>
+    <div id="hint">👆 Проведи вверх или вниз — граница прокручивается</div>
+    <canvas id="canvas-container"></canvas>
 
     <script>
-        const canvas = document.getElementById('bg');
+        const canvas = document.getElementById('canvas-container');
         const ctx = canvas.getContext('2d');
 
         let w, h;
-        let cut = 0.5; // Положение границы (0.5 = 50%)
+        
+        // Ползунок прокрутки (может уходить в минус и за 1)
+        let offset = 0.0; 
         let isDragging = false;
+        let startY = 0;
+        let startOffset = 0;
 
-        // Цвета
+        // Базовые цвета зон
         const colorBlueTop = '#4d8bff';
         const colorRedBottom = '#ff4d4d';
-        const textRed = '#ff4d4d';
-        const textBlue = '#4d8bff';
+        const colorBlueDark = '#1e3a8a';
+        const colorRedDark = '#991b1b';
 
         function resize() {
             w = canvas.width = window.innerWidth;
@@ -50,125 +54,181 @@
         function draw() {
             ctx.clearRect(0, 0, w, h);
 
-            // 1. Рисуем Синий фон (верхняя зона)
-            const gradBlue = ctx.createLinearGradient(0, 0, 0, h);
-            gradBlue.addColorStop(0, '#1e3a8a');
-            gradBlue.addColorStop(1, colorBlueTop);
-            ctx.fillStyle = gradBlue;
-            ctx.fillRect(0, 0, w, h);
+            // 1. Рассчитываем циклическую фазу (прокрутку 0..2)
+            let phase = ((offset % 2.0) + 2.0) % 2.0;
+            let cut; // 0..1 в пределах текущей фазы
+            let topColor, bottomColor, topDark, bottomDark;
+            let topText, bottomText;
+            let topTextColor, bottomTextColor;
+            let dotTopColor, dotBottomColor;
 
-            // 2. Рисуем Красную зону (нижняя) через S-образный изгиб Инь-Ян
-            ctx.beginPath();
-            const amplitude = 0.12 * h; // Высота изгиба
-            ctx.moveTo(0, cut * h + amplitude * Math.sin(0));
+            // Фаза 0..1: Синяя сверху, Красная снизу
+            if (phase < 1.0) {
+                cut = phase;
+                topColor = colorBlueTop; bottomColor = colorRedBottom;
+                topDark = colorBlueDark; bottomDark = colorRedDark;
+                topText = '❤️ Сердце'; bottomText = '🧠 Ум';
+                topTextColor = colorRedBottom; bottomTextColor = colorBlueTop;
+                dotTopColor = colorRedBottom; dotBottomColor = colorBlueTop;
+            } 
+            // Фаза 1..2: Красная сверху, Синяя снизу (инверсия)
+            else {
+                cut = phase - 1.0;
+                topColor = colorRedBottom; bottomColor = colorBlueTop;
+                topDark = colorRedDark; bottomDark = colorBlueDark;
+                topText = '🧠 Ум'; bottomText = '❤️ Сердце';
+                topTextColor = colorBlueTop; bottomTextColor = colorRedBottom;
+                dotTopColor = colorBlueTop; dotBottomColor = colorRedBottom;
+            }
+
+            // 2. Рассчитываем амплитуду изгиба и положение границы
+            // Амплитуда всегда направлена в сторону сжимающейся зоны
+            const amplitude = 0.15 * h * (1 - 2 * cut);
+            const cutY = cut * h;
+
+            // 3. Рисуем верхнюю зону
+            const gradTop = ctx.createLinearGradient(0, 0, 0, h);
+            gradTop.addColorStop(0, topDark);
+            gradTop.addColorStop(1, topColor);
             
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
             for (let x = 1; x <= w; x++) {
-                // Плавная синусоида (Инь-Ян изгиб)
-                const y = cut * h + amplitude * Math.sin(x / w * Math.PI);
+                const y = cutY + amplitude * Math.sin(x / w * Math.PI);
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(w, 0);
+            ctx.closePath();
+            ctx.fillStyle = gradTop;
+            ctx.fill();
+
+            // 4. Рисуем нижнюю зону
+            const gradBottom = ctx.createLinearGradient(0, h, 0, 0);
+            gradBottom.addColorStop(0, bottomDark);
+            gradBottom.addColorStop(1, bottomColor);
+
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            for (let x = 1; x <= w; x++) {
+                const y = cutY + amplitude * Math.sin(x / w * Math.PI);
                 ctx.lineTo(x, y);
             }
             ctx.lineTo(w, h);
-            ctx.lineTo(0, h);
             ctx.closePath();
-
-            const gradRed = ctx.createLinearGradient(0, h, 0, 0);
-            gradRed.addColorStop(0, '#991b1b');
-            gradRed.addColorStop(1, colorRedBottom);
-            ctx.fillStyle = gradRed;
+            ctx.fillStyle = gradBottom;
             ctx.fill();
 
-            // 3. Светящаяся линия границы (эффект воды/бассейна)
+            // 5. Светящаяся линия границы (рябь воды)
             ctx.beginPath();
-            ctx.moveTo(0, cut * h + amplitude * Math.sin(0));
-            for (let x = 1; x <= w; x++) {
-                const y = cut * h + amplitude * Math.sin(x / w * Math.PI);
-                ctx.lineTo(x, y);
+            for (let x = 0; x <= w; x++) {
+                const y = cutY + amplitude * Math.sin(x / w * Math.PI);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
             }
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
             ctx.lineWidth = 2;
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
-            ctx.shadowBlur = 25;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+            ctx.shadowBlur = 30;
             ctx.stroke();
-            ctx.shadowBlur = 0; // Сбросить тень
+            ctx.shadowBlur = 0;
 
-            // 4. Точки Инь-Ян (противоположные цвета)
-            // Красная точка в синей зоне
+            // 6. Точки Инь-Ян (противоположного цвета внутри зон)
             const dotRadius = w * 0.04;
             const dotOffsetX = w * 0.15;
-            const dotOffsetY = h * 0.1;
+            const dotOffsetY = h * 0.12;
+
+            // Точка в верхней зоне (опускаем ниже границы, если зона мала)
+            let topDotY = cutY - dotOffsetY;
+            if (topDotY < 0) topDotY = 0 + dotRadius; // если зона очень мала, прижимаем к верху
             
             ctx.beginPath();
-            ctx.arc(w / 2 - dotOffsetX, cut * h - dotOffsetY, dotRadius, 0, 2 * Math.PI);
-            ctx.fillStyle = colorRedBottom;
-            ctx.shadowColor = 'rgba(255, 77, 77, 0.5)';
-            ctx.shadowBlur = 20;
+            ctx.arc(w / 2 - dotOffsetX, topDotY, dotRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = dotTopColor;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+            ctx.shadowBlur = 25;
             ctx.fill();
 
-            // Синяя точка в красной зоне
+            // Точка в нижней зоне
+            let bottomDotY = cutY + dotOffsetY;
+            if (bottomDotY > h) bottomDotY = h - dotRadius;
+
             ctx.beginPath();
-            ctx.arc(w / 2 + dotOffsetX, cut * h + dotOffsetY, dotRadius, 0, 2 * Math.PI);
-            ctx.fillStyle = colorBlueTop;
-            ctx.shadowColor = 'rgba(77, 139, 255, 0.5)';
-            ctx.shadowBlur = 20;
+            ctx.arc(w / 2 + dotOffsetX, bottomDotY, dotRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = dotBottomColor;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+            ctx.shadowBlur = 25;
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // 5. Тексты (Цвета наоборот!)
+            // 7. Тексты с инверсией цветов
             ctx.font = `bold ${w * 0.06}px system-ui, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.shadowColor = 'rgba(0,0,0,0.6)';
-            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 15;
 
-            // Сердце (в верхней синей зоне -> пишем красным)
-            ctx.fillStyle = textRed;
-            ctx.fillText('❤️ Сердце', w / 2, cut * h * 0.45);
+            // Текст верхней зоны
+            let topTextY = cutY * 0.45;
+            if (cutY < 0.1 * h) topTextY = 0.05 * h; // не даем улететь
+            ctx.fillStyle = topTextColor;
+            ctx.fillText(topText, w / 2, topTextY);
 
-            // Ум (в нижней красной зоне -> пишем синим)
-            ctx.fillStyle = textBlue;
-            ctx.fillText('🧠 Ум', w / 2, (h + cut * h) / 1.85);
+            // Текст нижней зоны
+            let bottomTextY = (h + cutY) / 1.85;
+            if (cutY > 0.9 * h) bottomTextY = h - 0.05 * h;
+            ctx.fillStyle = bottomTextColor;
+            ctx.fillText(bottomText, w / 2, bottomTextY);
 
             ctx.shadowBlur = 0;
 
-            // 6. Проценты (внизу)
-            ctx.font = `bold ${w * 0.045}px system-ui, sans-serif`;
+            // 8. Проценты (внизу)
+            ctx.font = `bold ${w * 0.04}px system-ui, sans-serif`;
             ctx.textBaseline = 'bottom';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
             
-            const bluePercent = Math.round(cut * 100);
-            const redPercent = 100 - bluePercent;
+            let topPercent, bottomPercent;
+            if (phase < 1.0) {
+                topPercent = Math.round(cut * 100);
+                bottomPercent = 100 - topPercent;
+            } else {
+                bottomPercent = Math.round(cut * 100);
+                topPercent = 100 - bottomPercent;
+            }
 
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.fillText(`${bluePercent}%`, w / 4 - 20, h - 30);
-            ctx.fillText(`${redPercent}%`, w * 3 / 4 + 20, h - 30);
+            ctx.fillText(`${topPercent}%`, w / 4 - 20, h - 30);
+            ctx.fillText(`${bottomPercent}%`, w * 3 / 4 + 20, h - 30);
         }
 
-        // Логика перетаскивания
+        // Логика перетаскивания (прокрутки)
         canvas.addEventListener('pointerdown', (e) => {
             isDragging = true;
-            updateCut(e.clientY);
+            startY = e.clientY;
+            startOffset = offset;
         });
 
         window.addEventListener('pointermove', (e) => {
             if (!isDragging) return;
-            updateCut(e.clientY);
+            // Считаем смещение по высоте, деленное на высоту. Чувствительность 1.5
+            const deltaY = (e.clientY - startY) / h * 1.5; 
+            offset = startOffset - deltaY;
+            draw();
         });
 
         window.addEventListener('pointerup', () => {
             isDragging = false;
         });
 
-        function updateCut(clientY) {
-            const rect = canvas.getBoundingClientRect();
-            // Нормализуем от 0.05 до 0.95, чтобы текст не улетал за края
-            cut = Math.min(0.95, Math.max(0.05, (clientY - rect.top) / rect.height));
-            draw();
-        }
-
         // Адаптация к повороту экрана
         window.addEventListener('resize', resize);
         resize();
 
-        console.log('🟣🦅 Инь-Ян Баланс загружен');
+        // Плавное обновление подсказки (скрываем через 5 сек)
+        setTimeout(() => {
+            const hint = document.getElementById('hint');
+            if(hint) hint.style.opacity = '0';
+        }, 5000);
+
+        console.log('🟣🦅 Инь-Ян Прокрутка запущена');
     </script>
 </body>
 </html>
