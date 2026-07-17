@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Мульти-Инь-Ян</title>
+    <title>Конструктор Сил</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
         #canvas { 
@@ -12,17 +12,16 @@
             display: block; cursor: grab; 
             background: radial-gradient(circle at center, #131022 0%, #08060e 100%);
         }
-        #canvas:active { cursor: grabbing; }
         
-        #ui {
+        #ui-panel {
             position: absolute; bottom: 20px; left: 0; right: 0;
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
             padding: 10px; pointer-events: none;
         }
         
         .btn-group {
             background: rgba(22,17,39,0.85); 
-            padding: 8px 16px; border-radius: 40px;
+            padding: 10px 20px; border-radius: 40px;
             backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
             display: flex; gap: 12px; pointer-events: auto;
         }
@@ -36,33 +35,63 @@
         
         .stats-panel {
             display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
-            background: rgba(22,17,39,0.85); padding: 8px 14px; border-radius: 40px;
-            backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
-            pointer-events: auto; max-width: 90%;
+            background: rgba(22,17,39,0.85); padding: 8px 16px; border-radius: 40px;
+            backdrop-filter: blur(8px); border: 1px solid #3a2f5a; pointer-events: auto;
         }
-        .tag {
-            font-size: 13px; font-weight: 500; padding: 2px 10px;
-            border-radius: 12px; background: rgba(0,0,0,0.3); white-space: nowrap;
-        }
-        .center-info {
-            color: #ffcc00; font-weight: bold;
-        }
+        .tag { font-size: 13px; font-weight: 500; padding: 2px 10px; border-radius: 12px; background: rgba(0,0,0,0.3); white-space: nowrap; }
+        .center-info { color: #ffcc00; font-weight: bold; }
+        
         #hint { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); 
                 color: rgba(255,255,255,0.5); font-size: 14px; pointer-events: none; 
-                background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 30px; 
-                backdrop-filter: blur(4px); }
+                background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 30px; }
+
+        /* Панель редактирования точки */
+        #edit-panel {
+            display: none; /* По умолчанию скрыта */
+            background: rgba(16, 13, 30, 0.95); backdrop-filter: blur(12px);
+            border: 1px solid #3a2f5a; border-radius: 30px; padding: 12px 18px;
+            width: 90%; max-width: 400px; pointer-events: auto;
+            align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+        }
+        #edit-panel input, #edit-panel select {
+            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
+            color: #fff; padding: 6px 10px; font-size: 14px; outline: none;
+        }
+        #edit-panel input[type="color"] { width: 40px; height: 40px; padding: 2px; border-radius: 50%; cursor: pointer; }
+        #edit-panel input[type="range"] { flex: 1; accent-color: #6f52c4; }
+        .edit-label { font-size: 11px; opacity: 0.6; margin-right: -4px; }
+        .edit-row { display: flex; gap: 8px; align-items: center; width: 100%; justify-content: space-between; }
+        .btn-del { background: #a03a3a; color: #fff; border-radius: 50%; width: 32px; height: 32px; border: none; cursor: pointer; }
+
+        @media (max-width: 600px) { #edit-panel { padding: 10px; } }
     </style>
 </head>
 <body>
 
-    <div id="hint">👆 Перетащи любую точку, чтобы изменить баланс</div>
+    <div id="hint">👆 Нажми на точку, чтобы редактировать. Перетащи, чтобы двигать.</div>
     <canvas id="canvas"></canvas>
 
-    <div id="ui">
-        <div class="stats-panel" id="stats-panel">
+    <div id="ui-panel">
+        <div class="stats-panel">
             <span class="center-info">⚖️ Центр: <span id="center-coords">(0.0, 0.0)</span></span>
             <span class="tag" id="total-points">Точек: 0</span>
         </div>
+
+        <!-- Блок редактирования -->
+        <div id="edit-panel">
+            <div class="edit-row">
+                <input type="text" id="edit-emoji" placeholder="😈" style="width: 45px; text-align: center;" />
+                <input type="text" id="edit-name" placeholder="Имя силы" style="flex: 1;" />
+                <input type="color" id="edit-color" />
+                <button class="btn-del" id="del-point-btn">✕</button>
+            </div>
+            <div class="edit-row">
+                <span class="edit-label">🔮 Размер (Сила)</span>
+                <input type="range" id="edit-size" min="10" max="80" value="30" />
+                <span id="edit-size-val" style="min-width: 30px; text-align: center;">30</span>
+            </div>
+        </div>
+
         <div class="btn-group">
             <button class="btn" id="add-pair-btn">➕ Пара (Инь-Ян)</button>
             <button class="btn" id="reset-btn">🔄 Сброс</button>
@@ -76,28 +105,36 @@
         let w, h, cx, cy;
         let points = [];
         let pointIdCounter = 0;
-
-        // Состояние центра и перетаскивания
         let center = { x: 0, y: 0 };
+        
+        // Для перетаскивания
         let isDragging = false;
         let draggedPoint = null;
         let startMouse = { x: 0, y: 0 };
         let startPointPos = { x: 0, y: 0 };
+        let pointerDownTime = 0;
 
-        // Данные
+        // Выбранная точка (для редактирования)
+        let selectedPoint = null;
+
+        // DOM элементы панели редактирования
+        const editPanel = document.getElementById('edit-panel');
+        const editEmoji = document.getElementById('edit-emoji');
+        const editName = document.getElementById('edit-name');
+        const editColor = document.getElementById('edit-color');
+        const editSize = document.getElementById('edit-size');
+        const editSizeVal = document.getElementById('edit-size-val');
+        const delBtn = document.getElementById('del-point-btn');
+
+        // Создание новой пары
         function getNewPair() {
             const id1 = pointIdCounter++;
             const id2 = pointIdCounter++;
-            // Случайный базовый цвет
             const hue1 = Math.random() * 360;
             const hue2 = (hue1 + 180) % 360;
-            const color1 = `hsl(${hue1}, 80%, 60%)`;
-            const color2 = `hsl(${hue2}, 80%, 60%)`;
-            
-            // Добавляем две точки симметрично
             return [
-                { id: id1, x: -80, y: 0, color: color1, emoji: '🔴', label: 'Сила 1' },
-                { id: id2, x: 80, y: 0, color: color2, emoji: '🔵', label: 'Сила 2' }
+                { id: id1, x: -80, y: -20, color: `hsl(${hue1}, 80%, 60%)`, emoji: '🔥', label: 'Сила 1', radius: 30 },
+                { id: id2, x: 80, y: 20, color: `hsl(${hue2}, 80%, 60%)`, emoji: '💧', label: 'Сила 2', radius: 30 }
             ];
         }
 
@@ -106,20 +143,13 @@
             h = canvas.height = window.innerHeight;
             cx = w / 2;
             cy = h / 2;
-            
-            // Центрируем центр, если он не сохранился
-            if (!center.x && !center.y) {
-                center.x = cx;
-                center.y = cy;
-            }
+            if (!center.x && !center.y) { center.x = cx; center.y = cy; }
             draw();
         }
 
-        // Логика взаимодействия
+        // Физика притяжения центра
         function updatePhysics() {
             if (points.length === 0) return;
-
-            // Вычисляем общий вектор смещения центра по ВЗВЕШЕННОМУ СРЕДНЕМУ
             let totalWeight = 0;
             let weightedX = 0;
             let weightedY = 0;
@@ -129,83 +159,92 @@
                 const dy = p.y - center.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 
-                // Чем дальше точка от центра, тем сильнее она его тянет.
-                // Это и есть "перетягивание каната".
-                const weight = Math.max(0, dist - 10); // Порог чувствительности
-                weightedX += p.x * weight;
-                weightedY += p.y * weight;
-                totalWeight += weight;
+                // Вес зависит от расстояния И от радиуса (размера) точки
+                const strength = Math.max(0, dist - 10) * (p.radius / 25);
+                weightedX += p.x * strength;
+                weightedY += p.y * strength;
+                totalWeight += strength;
             });
 
             if (totalWeight > 0) {
                 const targetX = weightedX / totalWeight;
                 const targetY = weightedY / totalWeight;
-                
-                // Плавное притяжение центра к точке равновесия (без рывков)
-                center.x += (targetX - center.x) * 0.05;
-                center.y += (targetY - center.y) * 0.05;
+                center.x += (targetX - center.x) * 0.04;
+                center.y += (targetY - center.y) * 0.04;
             }
         }
 
         function draw() {
             ctx.clearRect(0, 0, w, h);
 
-            // 1. Рисуем линии связи от точек к центру
+            // Линии связи
             points.forEach(p => {
                 ctx.beginPath();
                 ctx.moveTo(center.x, center.y);
                 ctx.lineTo(p.x, p.y);
                 ctx.strokeStyle = p.color;
-                ctx.globalAlpha = 0.3;
-                ctx.lineWidth = 1.5;
+                ctx.globalAlpha = 0.2 + (p.radius / 100);
+                ctx.lineWidth = 1.5 + (p.radius / 30);
                 ctx.stroke();
                 ctx.globalAlpha = 1.0;
             });
 
-            // 2. Рисуем сами точки
+            // Точки
             points.forEach(p => {
-                const radius = 28;
-                
-                // Круглый фон для эмодзи
-                const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 0, p.x, p.y, radius + 10);
+                const isSelected = (selectedPoint && selectedPoint.id === p.id);
+                const radius = p.radius;
+
+                // Свечение при выборе
+                if (isSelected) {
+                    ctx.shadowColor = '#fff';
+                    ctx.shadowBlur = 30;
+                }
+
+                // Фон
+                const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 0, p.x, p.y, radius + 12);
                 grad.addColorStop(0, p.color);
                 grad.addColorStop(1, 'transparent');
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, radius + 8, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, radius + 10, 0, Math.PI * 2);
                 ctx.fillStyle = grad;
                 ctx.fill();
+                ctx.shadowBlur = 0;
 
                 // Эмодзи
-                ctx.font = '32px "Segoe UI Emoji", "Apple Color Emoji"';
+                const fontSize = Math.max(20, radius * 1.2);
+                ctx.font = `${fontSize}px "Segoe UI Emoji", "Apple Color Emoji"`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(p.emoji, p.x, p.y - 6);
+                ctx.fillText(p.emoji, p.x, p.y - 4);
 
-                // Текст (всегда контрастным цветом)
+                // Имя
                 ctx.font = 'bold 12px system-ui';
                 ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowColor = 'rgba(0,0,0,0.9)';
                 ctx.shadowBlur = 8;
-                ctx.fillText(p.label, p.x, p.y + 26);
+                ctx.fillText(p.label, p.x, p.y + radius + 14);
                 ctx.shadowBlur = 0;
+
+                // Индикатор силы (размера)
+                ctx.beginPath();
+                ctx.arc(p.x, p.y + radius + 26, 2 + (p.radius / 20), 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
             });
 
-            // 3. Рисуем ЖЕЛТЫЙ ЦЕНТР
+            // Желтый центр
             ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
             ctx.shadowBlur = 40;
             ctx.beginPath();
-            ctx.arc(center.x, center.y, 10, 0, Math.PI * 2);
+            ctx.arc(center.x, center.y, 12, 0, Math.PI * 2);
             ctx.fillStyle = '#ffcc00';
             ctx.fill();
-            
-            // Внутреннее свечение центра
-            ctx.beginPath();
-            ctx.arc(center.x, center.y, 20, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 204, 0, 0.2)';
-            ctx.fill();
             ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 24, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 204, 0, 0.15)';
+            ctx.fill();
 
-            // 4. Обновление UI (координаты и количество)
             document.getElementById('center-coords').textContent = 
                 `(${Math.round(center.x - cx)}, ${Math.round(center.y - cy)})`;
             document.getElementById('total-points').textContent = `Точек: ${points.length}`;
@@ -227,7 +266,7 @@
             for (let i = points.length - 1; i >= 0; i--) {
                 const p = points[i];
                 const dist = Math.hypot(pointer.x - p.x, pointer.y - p.y);
-                if (dist < 40) return p;
+                if (dist < p.radius + 20) return p;
             }
             return null;
         }
@@ -235,12 +274,20 @@
         canvas.addEventListener('pointerdown', (e) => {
             const pos = getPointerPos(e);
             const hit = checkHit(pos);
+            pointerDownTime = Date.now();
+            
             if (hit) {
                 isDragging = true;
                 draggedPoint = hit;
                 startMouse = pos;
                 startPointPos = { x: hit.x, y: hit.y };
                 canvas.style.cursor = 'grabbing';
+                
+                // Сразу показываем панель редактирования
+                selectPoint(hit);
+            } else {
+                // Клик по пустому месту скрывает меню
+                selectPoint(null);
             }
         });
 
@@ -250,18 +297,20 @@
             const dx = pos.x - startMouse.x;
             const dy = pos.y - startMouse.y;
             
-            draggedPoint.x = startPointPos.x + dx;
-            draggedPoint.y = startPointPos.y + dy;
-
-            // Не даём точке улететь за пределы экрана
-            draggedPoint.x = Math.max(10, Math.min(w - 10, draggedPoint.x));
-            draggedPoint.y = Math.max(10, Math.min(h - 10, draggedPoint.y));
-
+            draggedPoint.x = Math.max(10, Math.min(w - 10, startPointPos.x + dx));
+            draggedPoint.y = Math.max(10, Math.min(h - 10, startPointPos.y + dy));
             saveToLocal();
         });
 
-        window.addEventListener('pointerup', () => {
+        window.addEventListener('pointerup', (e) => {
             if (isDragging) {
+                // Если движение было очень маленьким, это тап, а не перетаскивание — редактирование уже открыто.
+                const pos = getPointerPos(e);
+                const dx = pos.x - startMouse.x;
+                const dy = pos.y - startMouse.y;
+                if (Math.hypot(dx, dy) < 5 && !selectedPoint) {
+                    // Если тапнули и не выбрали (редкий кейс), то перевыбираем
+                }
                 isDragging = false;
                 draggedPoint = null;
                 canvas.style.cursor = 'grab';
@@ -269,14 +318,58 @@
             }
         });
 
-        // ============= ДОБАВЛЕНИЕ ТОЧЕК И СОХРАНЕНИЕ =============
+        // ============= ЛОГИКА РЕДАКТИРОВАНИЯ =============
+        function selectPoint(point) {
+            selectedPoint = point;
+            if (point) {
+                editPanel.style.display = 'flex';
+                editEmoji.value = point.emoji || '😈';
+                editName.value = point.label || '';
+                editColor.value = point.color;
+                editSize.value = point.radius;
+                editSizeVal.textContent = point.radius;
+            } else {
+                editPanel.style.display = 'none';
+                if (editPanel.dataset.prevPoint) {
+                    // Запись уже произошла
+                }
+            }
+        }
+
+        function updateSelectedPoint() {
+            if (!selectedPoint) return;
+            selectedPoint.emoji = editEmoji.value.trim() || '👾';
+            selectedPoint.label = editName.value.trim() || 'Без имени';
+            selectedPoint.color = editColor.value;
+            selectedPoint.radius = parseInt(editSize.value);
+            editSizeVal.textContent = selectedPoint.radius;
+            saveToLocal();
+        }
+
+        // События полей редактирования
+        editEmoji.addEventListener('input', updateSelectedPoint);
+        editName.addEventListener('input', updateSelectedPoint);
+        editColor.addEventListener('input', updateSelectedPoint);
+        editSize.addEventListener('input', updateSelectedPoint);
+
+        // Удаление точки
+        delBtn.addEventListener('click', () => {
+            if (!selectedPoint) return;
+            const index = points.findIndex(p => p.id === selectedPoint.id);
+            if (index !== -1) {
+                points.splice(index, 1);
+                selectPoint(null);
+                saveToLocal();
+            }
+        });
+
+        // ============= ДОБАВЛЕНИЕ И СОХРАНЕНИЕ =============
         function addPair() {
             const newPoints = getNewPair();
-            // Размещаем их относительно текущего центра
-            newPoints[0].x = center.x - 80;
-            newPoints[0].y = center.y - (Math.random() * 60 - 30);
-            newPoints[1].x = center.x + 80;
-            newPoints[1].y = center.y - (Math.random() * 60 - 30);
+            newPoints[0].x = center.x - 90;
+            newPoints[0].y = center.y - (Math.random() * 40 - 20);
+            newPoints[1].x = center.x + 90;
+            newPoints[1].y = center.y - (Math.random() * 40 - 20);
             
             points.push(...newPoints);
             saveToLocal();
@@ -311,14 +404,12 @@
         document.getElementById('add-pair-btn').addEventListener('click', addPair);
         document.getElementById('reset-btn').addEventListener('click', resetAll);
 
-        // Скрытие подсказки
-        setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 6000);
+        setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 8000);
 
         window.addEventListener('resize', resize);
         resize();
 
         if (!loadFromLocal() || points.length === 0) {
-            // Если загрузка не удалась или точек нет, создаем дефолтную пару
             addPair();
         }
         

@@ -3,245 +3,417 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Инь-Ян Вращение</title>
+    <title>Конструктор Сил</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
         #canvas { 
             position: fixed; top: 0; left: 0; 
             width: 100vw; height: 100vh; 
             display: block; cursor: grab; 
+            background: radial-gradient(circle at center, #131022 0%, #08060e 100%);
         }
-        #canvas:active { cursor: grabbing; }
         
-        #hint {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.4); padding: 6px 16px; border-radius: 30px;
-            color: rgba(255,255,255,0.6); font-size: 14px; pointer-events: none;
-            backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.05);
-            white-space: nowrap; transition: opacity 0.5s;
+        #ui-panel {
+            position: absolute; bottom: 20px; left: 0; right: 0;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            padding: 10px; pointer-events: none;
         }
-        @media (max-width: 600px) { #hint { font-size: 12px; padding: 4px 12px; top: 12px; } }
+        
+        .btn-group {
+            background: rgba(22,17,39,0.85); 
+            padding: 10px 20px; border-radius: 40px;
+            backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
+            display: flex; gap: 12px; pointer-events: auto;
+        }
+        
+        .btn {
+            border: none; background: #2a2348; color: #b8a6ff;
+            padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        
+        .stats-panel {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+            background: rgba(22,17,39,0.85); padding: 8px 16px; border-radius: 40px;
+            backdrop-filter: blur(8px); border: 1px solid #3a2f5a; pointer-events: auto;
+        }
+        .tag { font-size: 13px; font-weight: 500; padding: 2px 10px; border-radius: 12px; background: rgba(0,0,0,0.3); white-space: nowrap; }
+        .center-info { color: #ffcc00; font-weight: bold; }
+        
+        #hint { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); 
+                color: rgba(255,255,255,0.5); font-size: 14px; pointer-events: none; 
+                background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 30px; }
+
+        /* Панель редактирования точки */
+        #edit-panel {
+            display: none; /* По умолчанию скрыта */
+            background: rgba(16, 13, 30, 0.95); backdrop-filter: blur(12px);
+            border: 1px solid #3a2f5a; border-radius: 30px; padding: 12px 18px;
+            width: 90%; max-width: 400px; pointer-events: auto;
+            align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+        }
+        #edit-panel input, #edit-panel select {
+            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
+            color: #fff; padding: 6px 10px; font-size: 14px; outline: none;
+        }
+        #edit-panel input[type="color"] { width: 40px; height: 40px; padding: 2px; border-radius: 50%; cursor: pointer; }
+        #edit-panel input[type="range"] { flex: 1; accent-color: #6f52c4; }
+        .edit-label { font-size: 11px; opacity: 0.6; margin-right: -4px; }
+        .edit-row { display: flex; gap: 8px; align-items: center; width: 100%; justify-content: space-between; }
+        .btn-del { background: #a03a3a; color: #fff; border-radius: 50%; width: 32px; height: 32px; border: none; cursor: pointer; }
+
+        @media (max-width: 600px) { #edit-panel { padding: 10px; } }
     </style>
 </head>
 <body>
-    <div id="hint">👆 Проведи вверх или вниз — шар вращается</div>
+
+    <div id="hint">👆 Нажми на точку, чтобы редактировать. Перетащи, чтобы двигать.</div>
     <canvas id="canvas"></canvas>
+
+    <div id="ui-panel">
+        <div class="stats-panel">
+            <span class="center-info">⚖️ Центр: <span id="center-coords">(0.0, 0.0)</span></span>
+            <span class="tag" id="total-points">Точек: 0</span>
+        </div>
+
+        <!-- Блок редактирования -->
+        <div id="edit-panel">
+            <div class="edit-row">
+                <input type="text" id="edit-emoji" placeholder="😈" style="width: 45px; text-align: center;" />
+                <input type="text" id="edit-name" placeholder="Имя силы" style="flex: 1;" />
+                <input type="color" id="edit-color" />
+                <button class="btn-del" id="del-point-btn">✕</button>
+            </div>
+            <div class="edit-row">
+                <span class="edit-label">🔮 Размер (Сила)</span>
+                <input type="range" id="edit-size" min="10" max="80" value="30" />
+                <span id="edit-size-val" style="min-width: 30px; text-align: center;">30</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" id="add-pair-btn">➕ Пара (Инь-Ян)</button>
+            <button class="btn" id="reset-btn">🔄 Сброс</button>
+        </div>
+    </div>
 
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
-        let w, h;
-        // Смещение прокрутки. Может уходить в минус и бесконечность.
-        let scroll = 0.0; 
+        let w, h, cx, cy;
+        let points = [];
+        let pointIdCounter = 0;
+        let center = { x: 0, y: 0 };
+        
+        // Для перетаскивания
         let isDragging = false;
-        let startTouchY = 0;
-        let startScroll = 0;
+        let draggedPoint = null;
+        let startMouse = { x: 0, y: 0 };
+        let startPointPos = { x: 0, y: 0 };
+        let pointerDownTime = 0;
 
-        // Цвета
-        const colorBlue = '#4d8bff';
-        const colorBlueDark = '#1e3a8a';
-        const colorRed = '#ff4d4d';
-        const colorRedDark = '#991b1b';
-        const colorCenter = '#ffcc00';
+        // Выбранная точка (для редактирования)
+        let selectedPoint = null;
+
+        // DOM элементы панели редактирования
+        const editPanel = document.getElementById('edit-panel');
+        const editEmoji = document.getElementById('edit-emoji');
+        const editName = document.getElementById('edit-name');
+        const editColor = document.getElementById('edit-color');
+        const editSize = document.getElementById('edit-size');
+        const editSizeVal = document.getElementById('edit-size-val');
+        const delBtn = document.getElementById('del-point-btn');
+
+        // Создание новой пары
+        function getNewPair() {
+            const id1 = pointIdCounter++;
+            const id2 = pointIdCounter++;
+            const hue1 = Math.random() * 360;
+            const hue2 = (hue1 + 180) % 360;
+            return [
+                { id: id1, x: -80, y: -20, color: `hsl(${hue1}, 80%, 60%)`, emoji: '🔥', label: 'Сила 1', radius: 30 },
+                { id: id2, x: 80, y: 20, color: `hsl(${hue2}, 80%, 60%)`, emoji: '💧', label: 'Сила 2', radius: 30 }
+            ];
+        }
 
         function resize() {
             w = canvas.width = window.innerWidth;
             h = canvas.height = window.innerHeight;
+            cx = w / 2;
+            cy = h / 2;
+            if (!center.x && !center.y) { center.x = cx; center.y = cy; }
             draw();
+        }
+
+        // Физика притяжения центра
+        function updatePhysics() {
+            if (points.length === 0) return;
+            let totalWeight = 0;
+            let weightedX = 0;
+            let weightedY = 0;
+
+            points.forEach(p => {
+                const dx = p.x - center.x;
+                const dy = p.y - center.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // Вес зависит от расстояния И от радиуса (размера) точки
+                const strength = Math.max(0, dist - 10) * (p.radius / 25);
+                weightedX += p.x * strength;
+                weightedY += p.y * strength;
+                totalWeight += strength;
+            });
+
+            if (totalWeight > 0) {
+                const targetX = weightedX / totalWeight;
+                const targetY = weightedY / totalWeight;
+                center.x += (targetX - center.x) * 0.04;
+                center.y += (targetY - center.y) * 0.04;
+            }
         }
 
         function draw() {
             ctx.clearRect(0, 0, w, h);
 
-            // Основные параметры
-            const R = Math.min(w, h) * 0.42; // Радиус шара
-            const cx = w / 2;
-            const cy = h / 2;
+            // Линии связи
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.moveTo(center.x, center.y);
+                ctx.lineTo(p.x, p.y);
+                ctx.strokeStyle = p.color;
+                ctx.globalAlpha = 0.2 + (p.radius / 100);
+                ctx.lineWidth = 1.5 + (p.radius / 30);
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            });
 
-            // Угол вращения шара (0 ... 2PI)
-            const angle = scroll * Math.PI;
-            
-            // Определяем фазу: 0 или 1 (меняет зоны местами)
-            const phase = Math.floor(scroll) % 2;
+            // Точки
+            points.forEach(p => {
+                const isSelected = (selectedPoint && selectedPoint.id === p.id);
+                const radius = p.radius;
 
-            let topColor, bottomColor, topDark, bottomDark;
-            let topText, bottomText;
-            let topTextColor, bottomTextColor;
-            let point1Color, point2Color;
+                // Свечение при выборе
+                if (isSelected) {
+                    ctx.shadowColor = '#fff';
+                    ctx.shadowBlur = 30;
+                }
 
-            if (phase === 0) {
-                // Синяя сверху, Красная снизу
-                topColor = colorBlue; bottomColor = colorRed;
-                topDark = colorBlueDark; bottomDark = colorRedDark;
-                topText = '❤️ Сердце'; bottomText = '🧠 Ум';
-                topTextColor = colorRed; bottomTextColor = colorBlue;
-                point1Color = colorRed; point2Color = colorBlue;
-            } else {
-                // Красная сверху, Синяя снизу (инверсия)
-                topColor = colorRed; bottomColor = colorBlue;
-                topDark = colorRedDark; bottomDark = colorBlueDark;
-                topText = '🧠 Ум'; bottomText = '❤️ Сердце';
-                topTextColor = colorBlue; bottomTextColor = colorRed;
-                point1Color = colorBlue; point2Color = colorRed;
-            }
+                // Фон
+                const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 0, p.x, p.y, radius + 12);
+                grad.addColorStop(0, p.color);
+                grad.addColorStop(1, 'transparent');
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, radius + 10, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.shadowBlur = 0;
 
-            // 1. Рисуем внешний овал (сферу)
-            const gradBg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
-            gradBg.addColorStop(0, '#1a1530');
-            gradBg.addColorStop(1, '#0b0814');
-            ctx.beginPath();
-            ctx.ellipse(cx, cy, R * 1.04, R * 1.08, 0, 0, Math.PI * 2);
-            ctx.fillStyle = gradBg;
-            ctx.shadowColor = 'rgba(255,255,255,0.05)';
-            ctx.shadowBlur = 40;
-            ctx.fill();
-            ctx.shadowBlur = 0;
+                // Эмодзи
+                const fontSize = Math.max(20, radius * 1.2);
+                ctx.font = `${fontSize}px "Segoe UI Emoji", "Apple Color Emoji"`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(p.emoji, p.x, p.y - 4);
 
-            // 2. Рисуем сам шар Инь-Ян с вращением
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.rotate(angle);
+                // Имя
+                ctx.font = 'bold 12px system-ui';
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0,0,0,0.9)';
+                ctx.shadowBlur = 8;
+                ctx.fillText(p.label, p.x, p.y + radius + 14);
+                ctx.shadowBlur = 0;
 
-            // Верхняя половина шара (Тёмная часть)
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2);
-            ctx.closePath();
-            const gradTop = ctx.createLinearGradient(0, -R, 0, R);
-            gradTop.addColorStop(0, topDark);
-            gradTop.addColorStop(1, topColor);
-            ctx.fillStyle = gradTop;
-            ctx.fill();
+                // Индикатор силы (размера)
+                ctx.beginPath();
+                ctx.arc(p.x, p.y + radius + 26, 2 + (p.radius / 20), 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            });
 
-            // Нижняя половина шара (Светлая часть)
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, R, Math.PI / 2, 3 * Math.PI / 2);
-            ctx.closePath();
-            const gradBottom = ctx.createLinearGradient(0, R, 0, -R);
-            gradBottom.addColorStop(0, bottomDark);
-            gradBottom.addColorStop(1, bottomColor);
-            ctx.fillStyle = gradBottom;
-            ctx.fill();
-
-            // S-образная граница
-            ctx.beginPath();
-            ctx.moveTo(0, -R);
-            ctx.quadraticCurveTo(R * 0.7, 0, 0, 0);
-            ctx.quadraticCurveTo(-R * 0.7, 0, 0, R);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.shadowColor = 'rgba(255,255,255,0.7)';
-            ctx.shadowBlur = 15;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // 3. Точки Инь-Ян (вращаются вместе с шаром)
-            const dotR = R * 0.15;
-            const dotDist = R * 0.5;
-
-            // Точка 1 (в верхней зоне, смещена вправо от центра)
-            ctx.beginPath();
-            ctx.arc(dotDist, 0, dotR, 0, Math.PI * 2);
-            ctx.fillStyle = point1Color;
-            ctx.shadowColor = 'rgba(255,255,255,0.6)';
-            ctx.shadowBlur = 30;
-            ctx.fill();
-
-            // Точка 2 (в нижней зоне, смещена влево от центра)
-            ctx.beginPath();
-            ctx.arc(-dotDist, 0, dotR, 0, Math.PI * 2);
-            ctx.fillStyle = point2Color;
-            ctx.shadowColor = 'rgba(255,255,255,0.6)';
-            ctx.shadowBlur = 30;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-
-            // 4. Желтый центр (База) и линии натяжения
-            // Рисуем линии от точек к центру, чтобы показать "тягу"
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(dotDist, 0);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(-dotDist, 0);
-            ctx.stroke();
-
-            // Желтая звезда/точка в центре
-            ctx.beginPath();
-            ctx.arc(0, 0, R * 0.06, 0, Math.PI * 2);
-            ctx.fillStyle = colorCenter;
+            // Желтый центр
             ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
             ctx.shadowBlur = 40;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffcc00';
             ctx.fill();
             ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 24, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 204, 0, 0.15)';
+            ctx.fill();
 
-            // 5. Тексты (на вращающемся холсте, но позиционируем вертикально)
-            ctx.rotate(-angle); // Сбрасываем вращение, чтобы текст не переворачивался
-            ctx.shadowColor = 'rgba(0,0,0,0.9)';
-            ctx.shadowBlur = 20;
-            ctx.font = `bold ${w * 0.055}px system-ui, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            // Текст сверху
-            ctx.fillStyle = topTextColor;
-            ctx.fillText(topText, 0, -R * 0.45);
-
-            // Текст снизу
-            ctx.fillStyle = bottomTextColor;
-            ctx.fillText(bottomText, 0, R * 0.45);
-            
-            ctx.shadowBlur = 0;
-            ctx.restore();
-
-            // 6. Проценты внизу (вне вращения)
-            ctx.font = `bold ${w * 0.04}px system-ui, sans-serif`;
-            ctx.textBaseline = 'bottom';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            
-            // Проценты всегда показывают доминирование верхней зоны
-            let topPercent = Math.round(Math.abs(Math.sin(angle)) * 100);
-            let bottomPercent = 100 - topPercent;
-
-            ctx.fillText(`${topPercent}%`, w / 4 - 20, h - 30);
-            ctx.fillText(`${bottomPercent}%`, w * 3 / 4 + 20, h - 30);
+            document.getElementById('center-coords').textContent = 
+                `(${Math.round(center.x - cx)}, ${Math.round(center.y - cy)})`;
+            document.getElementById('total-points').textContent = `Точек: ${points.length}`;
         }
 
-        // ========= ЛОГИКА ИДЕАЛЬНОГО ПЕРЕТАСКИВАНИЯ =========
+        function physicsLoop() {
+            updatePhysics();
+            draw();
+            requestAnimationFrame(physicsLoop);
+        }
+
+        // ============= ИНТЕРАКТИВНОСТЬ =============
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        function checkHit(pointer) {
+            for (let i = points.length - 1; i >= 0; i--) {
+                const p = points[i];
+                const dist = Math.hypot(pointer.x - p.x, pointer.y - p.y);
+                if (dist < p.radius + 20) return p;
+            }
+            return null;
+        }
+
         canvas.addEventListener('pointerdown', (e) => {
-            isDragging = true;
-            startTouchY = e.clientY;
-            startScroll = scroll;
+            const pos = getPointerPos(e);
+            const hit = checkHit(pos);
+            pointerDownTime = Date.now();
+            
+            if (hit) {
+                isDragging = true;
+                draggedPoint = hit;
+                startMouse = pos;
+                startPointPos = { x: hit.x, y: hit.y };
+                canvas.style.cursor = 'grabbing';
+                
+                // Сразу показываем панель редактирования
+                selectPoint(hit);
+            } else {
+                // Клик по пустому месту скрывает меню
+                selectPoint(null);
+            }
         });
 
         window.addEventListener('pointermove', (e) => {
-            if (!isDragging) return;
-            // Двигаем палец — вращаем шар
-            const deltaY = (e.clientY - startTouchY) / h * 2.0; // Чувствительность
-            scroll = startScroll + deltaY;
-            draw();
+            if (!isDragging || !draggedPoint) return;
+            const pos = getPointerPos(e);
+            const dx = pos.x - startMouse.x;
+            const dy = pos.y - startMouse.y;
+            
+            draggedPoint.x = Math.max(10, Math.min(w - 10, startPointPos.x + dx));
+            draggedPoint.y = Math.max(10, Math.min(h - 10, startPointPos.y + dy));
+            saveToLocal();
         });
 
-        window.addEventListener('pointerup', () => {
-            isDragging = false;
+        window.addEventListener('pointerup', (e) => {
+            if (isDragging) {
+                // Если движение было очень маленьким, это тап, а не перетаскивание — редактирование уже открыто.
+                const pos = getPointerPos(e);
+                const dx = pos.x - startMouse.x;
+                const dy = pos.y - startMouse.y;
+                if (Math.hypot(dx, dy) < 5 && !selectedPoint) {
+                    // Если тапнули и не выбрали (редкий кейс), то перевыбираем
+                }
+                isDragging = false;
+                draggedPoint = null;
+                canvas.style.cursor = 'grab';
+                saveToLocal();
+            }
         });
 
-        // ========= АДАПТАЦИЯ И ЗАПУСК =========
+        // ============= ЛОГИКА РЕДАКТИРОВАНИЯ =============
+        function selectPoint(point) {
+            selectedPoint = point;
+            if (point) {
+                editPanel.style.display = 'flex';
+                editEmoji.value = point.emoji || '😈';
+                editName.value = point.label || '';
+                editColor.value = point.color;
+                editSize.value = point.radius;
+                editSizeVal.textContent = point.radius;
+            } else {
+                editPanel.style.display = 'none';
+                if (editPanel.dataset.prevPoint) {
+                    // Запись уже произошла
+                }
+            }
+        }
+
+        function updateSelectedPoint() {
+            if (!selectedPoint) return;
+            selectedPoint.emoji = editEmoji.value.trim() || '👾';
+            selectedPoint.label = editName.value.trim() || 'Без имени';
+            selectedPoint.color = editColor.value;
+            selectedPoint.radius = parseInt(editSize.value);
+            editSizeVal.textContent = selectedPoint.radius;
+            saveToLocal();
+        }
+
+        // События полей редактирования
+        editEmoji.addEventListener('input', updateSelectedPoint);
+        editName.addEventListener('input', updateSelectedPoint);
+        editColor.addEventListener('input', updateSelectedPoint);
+        editSize.addEventListener('input', updateSelectedPoint);
+
+        // Удаление точки
+        delBtn.addEventListener('click', () => {
+            if (!selectedPoint) return;
+            const index = points.findIndex(p => p.id === selectedPoint.id);
+            if (index !== -1) {
+                points.splice(index, 1);
+                selectPoint(null);
+                saveToLocal();
+            }
+        });
+
+        // ============= ДОБАВЛЕНИЕ И СОХРАНЕНИЕ =============
+        function addPair() {
+            const newPoints = getNewPair();
+            newPoints[0].x = center.x - 90;
+            newPoints[0].y = center.y - (Math.random() * 40 - 20);
+            newPoints[1].x = center.x + 90;
+            newPoints[1].y = center.y - (Math.random() * 40 - 20);
+            
+            points.push(...newPoints);
+            saveToLocal();
+        }
+
+        function resetAll() {
+            if (confirm('Сбросить все точки к начальному состоянию?')) {
+                localStorage.removeItem('dreams_state_0');
+                location.reload();
+            }
+        }
+
+        function saveToLocal() {
+            const data = { points, centerX: center.x, centerY: center.y, idCounter: pointIdCounter };
+            localStorage.setItem('dreams_state_0', JSON.stringify(data));
+        }
+
+        function loadFromLocal() {
+            const raw = localStorage.getItem('dreams_state_0');
+            if (!raw) return false;
+            try {
+                const data = JSON.parse(raw);
+                points = data.points || [];
+                center.x = data.centerX || w/2;
+                center.y = data.centerY || h/2;
+                pointIdCounter = data.idCounter || 0;
+                return true;
+            } catch { return false; }
+        }
+
+        // ============= ЗАПУСК =============
+        document.getElementById('add-pair-btn').addEventListener('click', addPair);
+        document.getElementById('reset-btn').addEventListener('click', resetAll);
+
+        setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 8000);
+
         window.addEventListener('resize', resize);
         resize();
 
-        // Скрываем подсказку
-        setTimeout(() => {
-            document.getElementById('hint').style.opacity = '0';
-        }, 5000);
-
-        console.log('🟣🦅 Инь-Ян вращение с центром запущено');
+        if (!loadFromLocal() || points.length === 0) {
+            addPair();
+        }
+        
+        physicsLoop();
     </script>
 </body>
 </html>
