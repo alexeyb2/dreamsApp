@@ -1,1 +1,335 @@
-🎊
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>🟣🦅 Состояние Сейчас</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0b0814;
+            color: #e0d6ff;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app {
+            background: #161127;
+            width: 100%;
+            max-width: 420px;
+            padding: 28px 20px 32px;
+            border-radius: 32px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+            transition: all 0.2s ease;
+        }
+
+        h1 {
+            font-size: 24px;
+            text-align: center;
+            margin-bottom: 28px;
+            letter-spacing: 1px;
+            font-weight: 500;
+            color: #b8a6ff;
+        }
+
+        .step {
+            margin-bottom: 24px;
+        }
+
+        .step label {
+            display: block;
+            font-size: 16px;
+            font-weight: 400;
+            margin-bottom: 8px;
+            opacity: 0.9;
+            letter-spacing: 0.3px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 18px;
+            background: #221b38;
+            border: 1px solid #3a2f5a;
+            border-radius: 16px;
+            color: #f0eaff;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #7c65c2;
+        }
+
+        input[type="text"]::placeholder {
+            color: #635a82;
+            font-size: 16px;
+        }
+
+        .body-map {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .body-map button {
+            padding: 14px 0;
+            background: #221b38;
+            border: 1px solid #3a2f5a;
+            border-radius: 16px;
+            color: #c9bdff;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            touch-action: manipulation;
+        }
+
+        .body-map button:active {
+            transform: scale(0.96);
+        }
+
+        .body-map button.active {
+            background: #6f52c4;
+            border-color: #8f78e6;
+            color: #fff;
+            box-shadow: 0 0 16px #6f52c466;
+        }
+
+        .power-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .power-wrap input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #3a2f5a;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .power-wrap input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #8f78e6;
+            cursor: pointer;
+            box-shadow: 0 0 12px #6f52c4;
+        }
+
+        .power-wrap input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #8f78e6;
+            cursor: pointer;
+            border: none;
+        }
+
+        #power-val {
+            min-width: 48px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 18px;
+            color: #b8a6ff;
+        }
+
+        #save-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 600;
+            background: #6f52c4;
+            color: #fff;
+            border: none;
+            border-radius: 28px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 16px #6f52c433;
+        }
+
+        #save-btn:active {
+            transform: scale(0.97);
+            background: #5d43a8;
+        }
+
+        #status {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 15px;
+            min-height: 22px;
+            color: #9d8cdb;
+            transition: opacity 0.3s;
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            opacity: 0.3;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 400px) {
+            #app {
+                padding: 20px 16px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            .body-map {
+                gap: 8px;
+            }
+            .body-map button {
+                padding: 12px 0;
+                font-size: 13px;
+            }
+            input[type="text"] {
+                padding: 12px 14px;
+                font-size: 16px;
+            }
+            #save-btn {
+                padding: 16px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <h1>🟣🦅 Сейчас</h1>
+
+    <div class="step">
+        <label>Какое чувство ты чувствуешь сейчас?</label>
+        <input type="text" id="feeling" placeholder="Впиши своё состояние..." />
+    </div>
+
+    <div class="step">
+        <label>На какой смайлик оно похоже?</label>
+        <input type="text" id="emoji" placeholder="Введи смайлик (например: 😌)" />
+    </div>
+
+    <div class="step">
+        <label>Где оно в теле?</label>
+        <div class="body-map" id="bodyMap">
+            <button data-part="голова">🧠 Голова</button>
+            <button data-part="грудь">💓 Грудь</button>
+            <button data-part="горло">🗣 Горло</button>
+            <button data-part="живот">🫀 Живот</button>
+            <button data-part="руки">🤲 Руки</button>
+            <button data-part="ноги">🦶 Ноги</button>
+        </div>
+    </div>
+
+    <div class="step">
+        <label>Сильное или слабое?</label>
+        <div class="power-wrap">
+            <span style="opacity:0.5;">Слабое</span>
+            <input type="range" id="power" min="0" max="100" value="50" />
+            <span style="opacity:0.5;">Сильное</span>
+            <span id="power-val">50%</span>
+        </div>
+    </div>
+
+    <button id="save-btn">💾 Сохранить состояние</button>
+    <div id="status"></div>
+    <div class="footer-note">сохраняется в твоём браузере</div>
+</div>
+
+<script>
+    (function() {
+        // Элементы
+        const feelingInput = document.getElementById('feeling');
+        const emojiInput = document.getElementById('emoji');
+        const bodyButtons = document.querySelectorAll('#bodyMap button');
+        const powerRange = document.getElementById('power');
+        const powerVal = document.getElementById('power-val');
+        const saveBtn = document.getElementById('save-btn');
+        const statusDiv = document.getElementById('status');
+
+        // Выбор части тела (только одна)
+        bodyButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                bodyButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Обновление значения слайдера
+        powerRange.addEventListener('input', function() {
+            powerVal.textContent = this.value + '%';
+        });
+
+        // Сохранение в localStorage
+        function saveState() {
+            const activePart = document.querySelector('#bodyMap button.active');
+            const data = {
+                feeling: feelingInput.value.trim(),
+                emoji: emojiInput.value.trim(),
+                bodyPart: activePart ? activePart.dataset.part : '',
+                power: powerRange.value
+            };
+
+            try {
+                localStorage.setItem('mind_state', JSON.stringify(data));
+                statusDiv.textContent = '✅ Сохранено!';
+                statusDiv.style.opacity = '1';
+                setTimeout(() => {
+                    statusDiv.style.opacity = '0.6';
+                    setTimeout(() => { statusDiv.textContent = ''; }, 800);
+                }, 2000);
+            } catch (e) {
+                statusDiv.textContent = '❌ Ошибка сохранения';
+                setTimeout(() => { statusDiv.textContent = ''; }, 2500);
+            }
+        }
+
+        saveBtn.addEventListener('click', saveState);
+
+        // Загрузка при открытии
+        function loadState() {
+            const raw = localStorage.getItem('mind_state');
+            if (!raw) return;
+
+            try {
+                const data = JSON.parse(raw);
+                if (data.feeling) feelingInput.value = data.feeling;
+                if (data.emoji) emojiInput.value = data.emoji;
+                if (data.power) {
+                    powerRange.value = data.power;
+                    powerVal.textContent = data.power + '%';
+                }
+                if (data.bodyPart) {
+                    const target = document.querySelector(`#bodyMap button[data-part="${data.bodyPart}"]`);
+                    if (target) target.classList.add('active');
+                }
+            } catch (e) {
+                // ничего страшного
+            }
+        }
+
+        loadState();
+    })();
+</script>
+
+</body>
+</html>
