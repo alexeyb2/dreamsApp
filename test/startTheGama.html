@@ -3,28 +3,42 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Перетягивание свайпом</title>
+    <title>Продавливание сферы</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui; }
         
         #ui {
-            position: absolute; bottom: 40px; left: 0; right: 0; display: flex;
-            justify-content: center; gap: 30px; pointer-events: none;
+            position: absolute; bottom: 30px; left: 0; right: 0; display: flex;
+            flex-direction: column; align-items: center; gap: 12px; pointer-events: none;
+        }
+        .stats-row {
+            display: flex; justify-content: center; gap: 25px; pointer-events: none;
         }
         .stat {
-            background: rgba(22,17,39,0.85); padding: 10px 24px; border-radius: 40px;
-            border: 1px solid #3a2f5a; color: #fff; font-size: 18px; font-weight: 600;
-            backdrop-filter: blur(8px); text-align: center; min-width: 80px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            background: rgba(22,17,39,0.85); padding: 8px 18px; border-radius: 30px;
+            border: 1px solid #3a2f5a; color: #fff; font-size: 16px; font-weight: 600;
+            backdrop-filter: blur(8px); text-align: center; min-width: 70px;
         }
-        .stat span { display: block; font-size: 14px; opacity: 0.6; font-weight: normal; margin-top: 2px;}
+        .stat span { display: block; font-size: 13px; opacity: 0.6; font-weight: normal; }
         #stat-red { border-color: #ff6b6b; color: #ff6b6b; }
         #stat-blue { border-color: #6b9bff; color: #6b9bff; }
         
+        .controls {
+            display: flex; gap: 10px; pointer-events: auto;
+        }
+        .btn {
+            background: rgba(22,17,39,0.85); border: 1px solid #4a3f6a;
+            padding: 8px 18px; border-radius: 30px; color: #b8a6ff;
+            font-size: 14px; font-weight: 500; backdrop-filter: blur(8px);
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; border-color: #6f52c4; }
+        .btn.active { background: #6f52c4; color: #fff; border-color: #6f52c4; }
+        
         #hint {
             position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.7); padding: 8px 20px; border-radius: 30px;
-            color: #b8a6ff; font-size: 14px; pointer-events: none; white-space: nowrap;
+            background: rgba(0,0,0,0.7); padding: 6px 16px; border-radius: 30px;
+            color: #b8a6ff; font-size: 13px; pointer-events: none; white-space: nowrap;
             backdrop-filter: blur(4px); border: 1px solid #3a2f5a;
         }
     </style>
@@ -33,10 +47,15 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 </head>
 <body>
-    <div id="hint">👆 Веди пальцем влево-вправо по сфере, чтобы двигать границу</div>
+    <div id="hint">👆 Веди пальцем по сфере, чтобы двигать границу</div>
     <div id="ui">
-        <div class="stat" id="stat-red">❤️ <span id="red-percent">50%</span></div>
-        <div class="stat" id="stat-blue">🧠 <span id="blue-percent">50%</span></div>
+        <div class="stats-row">
+            <div class="stat" id="stat-red">❤️ <span id="red-percent">50%</span></div>
+            <div class="stat" id="stat-blue">🧠 <span id="blue-percent">50%</span></div>
+        </div>
+        <div class="controls">
+            <button class="btn active" id="toggle-mode">↕️ Вертикаль / ↔️ Горизонталь</button>
+        </div>
     </div>
 
     <script>
@@ -61,6 +80,7 @@
         labelRenderer.domElement.style.pointerEvents = 'none';
         document.body.appendChild(labelRenderer.domElement);
 
+        // Контролы камеры (можно крутить саму сцену, но вращение отключено)
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true; controls.dampingFactor = 0.05;
         controls.target.set(0, 0, 0); controls.maxPolarAngle = Math.PI / 2.0;
@@ -71,36 +91,55 @@
         const light = new THREE.DirectionalLight(0xffeedd, 1.2);
         light.position.set(5, 10, 7); scene.add(light);
 
-        // 3. Шейдерная сфера
+        // 3. Шейдерная сфера с ПРОДАВЛИВАНИЕМ
         const vertexShader = `
-            varying float v_x;
+            uniform float u_cut;
+            uniform float u_mode; // 0 = X (left/right), 1 = Y (top/bottom)
+            varying float v_axis;
+
             void main() {
-                v_x = position.x;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                vec3 pos = position;
+                // Определяем ось в зависимости от режима
+                if (u_mode < 0.5) {
+                    v_axis = pos.x;
+                } else {
+                    v_axis = pos.y;
+                }
+
+                // Эффект продавливания (выпуклость на границе)
+                float distToCut = abs(v_axis - u_cut);
+                float deformation = exp(-distToCut * 4.0) * 0.06; // 0.06 - сила выгиба
+                pos += normal * deformation;
+
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
             }
         `;
         const fragmentShader = `
             uniform float u_cut;
+            uniform float u_mode;
             uniform vec3 u_red;
             uniform vec3 u_blue;
-            varying float v_x;
+            varying float v_axis;
 
             void main() {
-                float d = v_x - u_cut;
+                float d = v_axis - u_cut;
                 float mixVal = smoothstep(-0.05, 0.05, d);
                 vec3 col = mix(u_red, u_blue, mixVal);
                 
-                float glow = exp(-abs(d) * 15.0) * 0.7;
+                // Яркое свечение на границе
+                float glow = exp(-abs(d) * 15.0) * 0.8;
                 col += glow;
                 
-                float rim = 1.0 - abs(v_x);
+                // Затемнение по краям
+                float rim = 1.0 - abs(v_axis);
                 col *= (0.8 + 0.2 * rim);
-                gl_FragColor = vec4(col, 0.9);
+                gl_FragColor = vec4(col, 0.95);
             }
         `;
 
         const uniforms = {
             u_cut: { value: 0.0 },
+            u_mode: { value: 0.0 }, // 0 - X, 1 - Y
             u_red: { value: new THREE.Color(0xff4d4d) },
             u_blue: { value: new THREE.Color(0x4d8bff) }
         };
@@ -118,21 +157,21 @@
         sphere.position.set(0, 0, 0);
         scene.add(sphere);
 
-        // Прозрачная оболочка
+        // Прозрачная оболочка (сетка)
         const wireframeMat = new THREE.MeshBasicMaterial({
             color: 0x8888ff,
             wireframe: true,
             transparent: true,
-            opacity: 0.06
+            opacity: 0.08
         });
         const wireSphere = new THREE.Mesh(new THREE.SphereGeometry(1.72, 32, 16), wireframeMat);
         scene.add(wireSphere);
 
         // 4. Метки (Цвета текста наоборот)
-        function createLabel(text, color, offsetX) {
+        function createLabel(text, color) {
             const div = document.createElement('div');
             div.textContent = text;
-            div.style.color = color; // текст контрастным цветом
+            div.style.color = color;
             div.style.fontSize = '24px';
             div.style.fontWeight = 'bold';
             div.style.textShadow = '0 0 20px currentColor, 0 0 40px currentColor';
@@ -144,18 +183,31 @@
             return new THREE.CSS2DObject(div);
         }
 
-        // ❤️ Сердце (красная зона) -> пишем СИНИМ
+        // ❤️ Сердце (Красная зона) -> пишем СИНИМ
         const labelRed = createLabel('❤️ Сердце', '#4d8bff');
-        // 🧠 Ум (синяя зона) -> пишем КРАСНЫМ
+        // 🧠 Ум (Синяя зона) -> пишем КРАСНЫМ
         const labelBlue = createLabel('🧠 Ум', '#ff4d4d');
         scene.add(labelRed);
         scene.add(labelBlue);
 
-        // 5. Логика "Свайп (перетаскивание) границы"
-        let currentCut = 0.0; // Текущее положение границы (от -1.7 до 1.7)
-        let targetCut = 0.0;  // Целевое положение границы (куда ведёт палец)
+        // 5. Логика переключения режимов (Лево/Право <=> Верх/Низ)
+        let mode = 0; // 0 = horizontal, 1 = vertical
+        const toggleBtn = document.getElementById('toggle-mode');
+
+        toggleBtn.addEventListener('click', () => {
+            mode = 1 - mode; // Переключение между 0 и 1
+            uniforms.u_mode.value = mode;
+            toggleBtn.classList.add('active');
+            
+            // Обновляем позиции меток при смене режима
+            updateLabels();
+        });
+
+        // 6. Логика Свайпа (движения границы)
+        let currentCut = 0.0;
+        let targetCut = 0.0;
         let isDragging = false;
-        let dragStartLocalX = 0.0;
+        let dragStartLocalAxis = 0.0;
         let dragStartCut = 0.0;
 
         const raycaster = new THREE.Raycaster();
@@ -167,22 +219,22 @@
             pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         }
 
-        // Нажал пальцем на сферу
         renderer.domElement.addEventListener('pointerdown', (e) => {
             getPointer(e);
             raycaster.setFromCamera(pointer, camera);
             const intersects = raycaster.intersectObject(sphere);
             if (intersects.length > 0) {
-                // Получаем координаты пересечения внутри самой сферы
                 const localPoint = sphere.worldToLocal(intersects[0].point.clone());
-                dragStartLocalX = localPoint.x;
+                // Запоминаем координату по активной оси
+                if (mode === 0) dragStartLocalAxis = localPoint.x;
+                else dragStartLocalAxis = localPoint.y;
+                
                 dragStartCut = uniforms.u_cut.value;
                 isDragging = true;
                 controls.enabled = false;
             }
         });
 
-        // Водишь пальцем по сфере
         window.addEventListener('pointermove', (e) => {
             if (!isDragging) return;
             getPointer(e);
@@ -190,18 +242,16 @@
             const intersects = raycaster.intersectObject(sphere);
             if (intersects.length > 0) {
                 const localPoint = sphere.worldToLocal(intersects[0].point.clone());
-                const currentLocalX = localPoint.x;
+                let currentLocalAxis;
+                if (mode === 0) currentLocalAxis = localPoint.x;
+                else currentLocalAxis = localPoint.y;
                 
-                // Считаем, насколько сдвинулся палец по оси X, и двигаем границу
-                const deltaX = currentLocalX - dragStartLocalX;
-                targetCut = dragStartCut + deltaX;
-                
-                // Ограничиваем, чтобы не вылетела за края сферы (радиус 1.7)
+                const delta = currentLocalAxis - dragStartLocalAxis;
+                targetCut = dragStartCut + delta;
                 targetCut = Math.max(-1.7, Math.min(1.7, targetCut));
             }
         });
 
-        // Отпустил палец
         window.addEventListener('pointerup', () => {
             if (isDragging) {
                 isDragging = false;
@@ -209,21 +259,32 @@
             }
         });
 
-        // 6. Обновление сцены и Анимация
+        // 7. Обновление меток и UI
+        function updateLabels() {
+            const radius = 1.7;
+            if (mode === 0) {
+                // Горизонталь: X
+                const redCenterX = (currentCut - radius) / 2; 
+                const blueCenterX = (radius + currentCut) / 2; 
+                labelRed.position.set(redCenterX, 0.2, 0);
+                labelBlue.position.set(blueCenterX, 0.2, 0);
+            } else {
+                // Вертикаль: Y
+                const redCenterY = (currentCut + radius) / 2; // Т.к. Y растет вверх
+                const blueCenterY = (currentCut - radius) / 2;
+                labelRed.position.set(0, redCenterY, 0);
+                labelBlue.position.set(0, blueCenterY, 0);
+            }
+        }
+
         function updateScene() {
-            // Плавно двигаем стенку к пальцу, чтобы не было рывков
             currentCut += (targetCut - currentCut) * 0.15;
             if (Math.abs(currentCut - targetCut) < 0.001) currentCut = targetCut;
-
             uniforms.u_cut.value = currentCut;
 
-            // Позиции меток ровно по центру своих зон
-            const redCenterX = (currentCut - 1.7) / 2; 
-            const blueCenterX = (1.7 + currentCut) / 2; 
-            labelRed.position.set(redCenterX, 0.2, 0);
-            labelBlue.position.set(blueCenterX, 0.2, 0);
+            updateLabels();
 
-            // Проценты (от -1.7 до 1.7 преобразуем в 0% - 100%)
+            // Проценты (от -1.7 до 1.7 -> 0% - 100%)
             const redPercent = Math.round(((currentCut / 1.7) + 1) / 2 * 100);
             const bluePercent = 100 - redPercent;
             document.getElementById('red-percent').textContent = redPercent + '%';
@@ -232,10 +293,6 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Медленное автовращение всей сцены (показывает объём)
-            scene.rotation.y += 0.003; 
-
             controls.update();
             updateScene();
             renderer.render(scene, camera);
