@@ -3,120 +3,164 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Зоны силы</title>
+    <title>Зоны Силы</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui; }
+        
         #ui {
-            position: absolute; bottom: 20px; left: 0; right: 0; display: flex;
-            justify-content: center; gap: 20px; pointer-events: none;
+            position: absolute; bottom: 40px; left: 0; right: 0; display: flex;
+            justify-content: center; gap: 30px; pointer-events: none;
         }
         .stat {
-            background: rgba(22,17,39,0.85); padding: 8px 18px; border-radius: 30px;
-            border: 1px solid #3a2f5a; color: #e0d6ff; font-size: 15px; font-weight: 500;
-            backdrop-filter: blur(6px); text-align: center;
+            background: rgba(22,17,39,0.8); padding: 10px 24px; border-radius: 40px;
+            border: 1px solid #3a2f5a; color: #fff; font-size: 18px; font-weight: 600;
+            backdrop-filter: blur(8px); text-align: center; min-width: 80px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
-        .stat span { display: block; font-size: 12px; opacity: 0.5; font-weight: normal; }
+        .stat span { display: block; font-size: 14px; opacity: 0.6; font-weight: normal; margin-top: 2px;}
+        #stat-red { border-color: #ff6b6b; color: #ff6b6b; }
+        #stat-blue { border-color: #6b9bff; color: #6b9bff; }
+        
         #hint {
             position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.6); padding: 6px 16px; border-radius: 20px;
-            color: #b8a6ff; font-size: 13px; pointer-events: none; white-space: nowrap;
+            background: rgba(0,0,0,0.7); padding: 8px 20px; border-radius: 30px;
+            color: #b8a6ff; font-size: 14px; pointer-events: none; white-space: nowrap;
+            backdrop-filter: blur(4px); border: 1px solid #3a2f5a;
         }
     </style>
-    <!-- Надёжные библиотеки для мобильных -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 </head>
 <body>
-    <div id="hint">👆 Тащи эмодзи, чтобы изменить зоны</div>
+    <div id="hint">👆 Тапни по Красному или Синему, чтобы изменить баланс</div>
     <div id="ui">
-        <div class="stat" id="s1"><span>❤️ Зона</span> 2.0 м</div>
-        <div class="stat" id="s2"><span>🧠 Зона</span> 2.0 м</div>
+        <div class="stat" id="stat-red">❤️ <span id="red-percent">50%</span></div>
+        <div class="stat" id="stat-blue">🧠 <span id="blue-percent">50%</span></div>
     </div>
 
     <script>
-        // 1. Сцена, Камера, Рендерер
+        // 1. Настройка сцены
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0b0814);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(4, 4, 9);
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 2, 6);
         camera.lookAt(0, 0, 0);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
+        renderer.localClippingEnabled = true;
         document.body.appendChild(renderer.domElement);
+
+        const labelRenderer = new THREE.CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none'; // Чтобы клики проходили сквозь метки
+        document.body.appendChild(labelRenderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true; controls.dampingFactor = 0.05;
         controls.target.set(0, 0, 0); controls.maxPolarAngle = Math.PI / 2.1;
+        controls.minDistance = 3; controls.maxDistance = 12;
 
-        // Освещение
+        // 2. Освещение
         scene.add(new THREE.AmbientLight(0x404060));
         const light = new THREE.DirectionalLight(0xffeedd, 1.2);
-        light.position.set(5, 10, 7); light.castShadow = true; scene.add(light);
+        light.position.set(5, 10, 7); scene.add(light);
 
-        // 2. Функция создания эмодзи с надписью (все в одной текстуре)
-        function createEmojiSprite(emoji, label, color) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 320;
-            const ctx = canvas.getContext('2d');
+        // 3. Кастомный шейдер для единой сферы с подвижной стенкой
+        const vertexShader = `
+            varying float v_x;
+            void main() {
+                v_x = position.x;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+        const fragmentShader = `
+            uniform float u_cut;
+            uniform vec3 u_red;
+            uniform vec3 u_blue;
+            varying float v_x;
 
-            // Свечение
-            const c = new THREE.Color(color);
-            const grad = ctx.createRadialGradient(128, 100, 20, 128, 100, 130);
-            grad.addColorStop(0, `rgba(${c.r*255|0}, ${c.g*255|0}, ${c.b*255|0}, 0.3)`);
-            grad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = grad; ctx.fillRect(0, 0, 256, 320);
+            void main() {
+                // Расстояние от текущей точки до границы
+                float d = v_x - u_cut;
+                
+                // Основной цвет (переход через границу с мягким свечением)
+                float mixVal = smoothstep(-0.05, 0.05, d);
+                vec3 col = mix(u_red, u_blue, mixVal);
+                
+                // Свечение на границе
+                float glow = exp(-abs(d) * 15.0) * 0.7;
+                col += glow;
+                
+                // Эффект глубины по краям сферы (делаем края чуть темнее)
+                float rim = 1.0 - abs(v_x);
+                col *= (0.8 + 0.2 * rim);
+                
+                gl_FragColor = vec4(col, 0.9);
+            }
+        `;
 
-            ctx.font = '140px sans-serif';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText(emoji, 128, 110);
+        const uniforms = {
+            u_cut: { value: 0.0 },
+            u_red: { value: new THREE.Color(0xff4d4d) },
+            u_blue: { value: new THREE.Color(0x4d8bff) }
+        };
 
-            ctx.font = 'bold 34px sans-serif';
-            ctx.fillStyle = color; ctx.fillText(label, 128, 230);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
-            sprite.scale.set(1.6, 2.0, 1);
-            return sprite;
-        }
-
-        // 3. Создаём объекты
-        const heart = createEmojiSprite('❤️', 'Сердце', '#ff6b6b');
-        heart.position.set(-2.0, 0, 0);
-        scene.add(heart);
-
-        const brain = createEmojiSprite('🧠', 'Ум', '#6b9bff');
-        brain.position.set(2.0, 0, 0);
-        scene.add(brain);
-
-        // 4. Зоны влияния (прозрачные сферы)
-        function createZone(color) {
-            const geom = new THREE.SphereGeometry(1, 20, 20);
-            const mat = new THREE.MeshBasicMaterial({ 
-                color, wireframe: true, transparent: true, opacity: 0.2 
-            });
-            const mesh = new THREE.Mesh(geom, mat);
-            return mesh;
-        }
-        const zone1 = createZone('#ff6b6b'); zone1.position.copy(heart.position); scene.add(zone1);
-        const zone2 = createZone('#6b9bff'); zone2.position.copy(brain.position); scene.add(zone2);
-
-        // 5. Живая стенка (сетка)
-        const wallGeom = new THREE.PlaneGeometry(6, 4, 40, 40);
-        const wallMat = new THREE.MeshBasicMaterial({
-            color: 0x8877ff, transparent: true, opacity: 0.15, side: THREE.DoubleSide,
-            wireframe: true
+        const material = new THREE.ShaderMaterial({
+            uniforms: uniforms,
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            transparent: true,
+            side: THREE.DoubleSide
         });
-        const wall = new THREE.Mesh(wallGeom, wallMat);
-        // Ставим стенку поперёк (лицом к Z)
-        scene.add(wall);
 
-        // 6. Логика движения и силы
-        let dragging = null; // 'heart' or 'brain'
-        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Плоскость X-Y
+        const geometry = new THREE.SphereGeometry(1.7, 64, 64);
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.position.set(0, 0, 0);
+        scene.add(sphere);
+
+        // 4. Внешняя оболочка (прозрачная сетка, чтобы выглядело как "овал" на твоём рисунке)
+        const wireframeMat = new THREE.MeshBasicMaterial({
+            color: 0x8888ff,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.08
+        });
+        const wireSphere = new THREE.Mesh(new THREE.SphereGeometry(1.72, 32, 16), wireframeMat);
+        scene.add(wireSphere);
+
+        // 5. Метки (Сердце / Ум) через CSS2DRenderer
+        function createLabel(text, color, offsetX) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            div.style.color = color;
+            div.style.fontSize = '24px';
+            div.style.fontWeight = 'bold';
+            div.style.textShadow = '0 0 20px currentColor, 0 0 40px currentColor';
+            div.style.background = 'rgba(11, 8, 20, 0.5)';
+            div.style.padding = '4px 16px';
+            div.style.borderRadius = '20px';
+            div.style.backdropFilter = 'blur(4px)';
+            div.style.border = '1px solid ' + color;
+            return new THREE.CSS2DObject(div);
+        }
+
+        const labelRed = createLabel('❤️ Сердце', '#ff4d4d');
+        const labelBlue = createLabel('🧠 Ум', '#4d8bff');
+        scene.add(labelRed);
+        scene.add(labelBlue);
+
+        // 6. Логика баланса и взаимодействия
+        let currentRatio = 0.5; // 0.5 = 50% красного
+        let targetRatio = 0.5;
+        let isDragging = false;
+
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
 
@@ -126,91 +170,86 @@
             pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         }
 
-        // Обработчики касаний
         renderer.domElement.addEventListener('pointerdown', (e) => {
             getPointer(e);
             raycaster.setFromCamera(pointer, camera);
-            const intersects = raycaster.intersectObjects([heart, brain]);
+            const intersects = raycaster.intersectObject(sphere);
             if (intersects.length > 0) {
-                const hit = intersects[0].object;
-                dragging = hit === heart ? 'heart' : 'brain';
+                const pt = intersects[0].point;
+                const cut = uniforms.u_cut.value;
+                if (pt.x < cut) {
+                    // Нажали на красное -> красное растёт, синее сжимается
+                    targetRatio = Math.min(1.0, targetRatio + 0.08);
+                } else if (pt.x > cut) {
+                    // Нажали на синее -> синее растёт, красное сжимается
+                    targetRatio = Math.max(0.0, targetRatio - 0.08);
+                }
+                isDragging = true;
                 controls.enabled = false;
-                renderer.domElement.style.cursor = 'grabbing';
             }
         });
 
         window.addEventListener('pointermove', (e) => {
-            if (!dragging) return;
+            if (!isDragging) return;
             getPointer(e);
             raycaster.setFromCamera(pointer, camera);
-            const pt = new THREE.Vector3();
-            raycaster.ray.intersectPlane(plane, pt);
-            if (pt) {
-                pt.x = Math.max(-4.5, Math.min(4.5, pt.x));
-                pt.y = Math.max(-3.0, Math.min(3.0, pt.y));
-                if (dragging === 'heart') {
-                    heart.position.copy(pt);
-                    zone1.position.copy(pt);
-                } else {
-                    brain.position.copy(pt);
-                    zone2.position.copy(pt);
+            const intersects = raycaster.intersectObject(sphere);
+            if (intersects.length > 0) {
+                const pt = intersects[0].point;
+                const cut = uniforms.u_cut.value;
+                // Пока палец двигается, продолжаем давить
+                if (pt.x < cut) {
+                    targetRatio = Math.min(1.0, targetRatio + 0.02);
+                } else if (pt.x > cut) {
+                    targetRatio = Math.max(0.0, targetRatio - 0.02);
                 }
-                updateScene();
             }
         });
 
         window.addEventListener('pointerup', () => {
-            if (dragging) {
-                dragging = null;
-                controls.enabled = true;
-                renderer.domElement.style.cursor = 'default';
-            }
+            isDragging = false;
+            controls.enabled = true;
         });
 
-        // 7. Функция обновления всего в реальном времени
+        // 7. Обновление сцены
         function updateScene() {
-            // A. Радиус зон (чем дальше от центра (0,0), тем больше)
-            const r1 = 0.8 + 0.3 * Math.abs(heart.position.x);
-            const r2 = 0.8 + 0.3 * Math.abs(brain.position.x);
-            zone1.scale.set(r1, r1, r1);
-            zone2.scale.set(r2, r2, r2);
-            document.getElementById('s1').innerHTML = `<span>❤️ Зона</span> ${r1.toFixed(1)} м`;
-            document.getElementById('s2').innerHTML = `<span>🧠 Зона</span> ${r2.toFixed(1)} м`;
+            // Плавное движение к цели
+            currentRatio += (targetRatio - currentRatio) * 0.05;
+            if (Math.abs(currentRatio - targetRatio) < 0.001) currentRatio = targetRatio;
 
-            // B. Изгиб стенки
-            const positions = wallGeom.attributes.position.array;
-            for (let i = 0; i < positions.length; i += 3) {
-                const vx = positions[i];     // координата X на стенке
-                const vy = positions[i+1];   // координата Y на стенке
-                
-                // Сила — это расстояние от этой точки стенки до сердца и ума
-                const fH = Math.sqrt((vx - heart.position.x)**2 + (vy - heart.position.y)**2);
-                const fB = Math.sqrt((vx - brain.position.x)**2 + (vy - brain.position.y)**2);
-                
-                // Чем сильнее тянет (дальше), тем больше давит.
-                // Если Heart сильнее, стенка прогибается в сторону Brain
-                positions[i+2] = (fH - fB) * 0.15;
-            }
-            wallGeom.attributes.position.needsUpdate = true;
-            wallGeom.computeVertexNormals();
+            // Координата стенки (от -1 до 1)
+            const cut = (currentRatio - 0.5) * 2.0;
+            uniforms.u_cut.value = cut;
+
+            // Позиции меток
+            const redCenterX = (cut - 1.7) / 2; // Центр красной зоны
+            const blueCenterX = (1.7 + cut) / 2; // Центр синей зоны
+            labelRed.position.set(redCenterX, 0.2, 0);
+            labelBlue.position.set(blueCenterX, 0.2, 0);
+
+            // Обновление интерфейса
+            const redPercent = Math.round(currentRatio * 100);
+            const bluePercent = 100 - redPercent;
+            document.getElementById('red-percent').textContent = redPercent + '%';
+            document.getElementById('blue-percent').textContent = bluePercent + '%';
         }
-
-        // Первичный просчёт
-        updateScene();
 
         // 8. Анимация
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
+            updateScene();
             renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
         }
         animate();
 
-        // Адаптация под поворот экрана
+        // Адаптация экрана
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>
