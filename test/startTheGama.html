@@ -2,108 +2,89 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-    <title>🟣🦅 Состояние Сейчас</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>🟣🦅 Карта Состояния</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             background: #0b0814;
             color: #e0d6ff;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 16px;
         }
 
         #app {
             background: #161127;
             width: 100%;
-            max-width: 420px;
-            padding: 28px 20px 32px;
+            max-width: 440px;
+            padding: 24px 20px;
             border-radius: 32px;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 12px 40px #000000cc;
             transition: all 0.2s ease;
+            position: relative;
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 22px;
             text-align: center;
-            margin-bottom: 28px;
-            letter-spacing: 1px;
+            margin-bottom: 20px;
             font-weight: 500;
             color: #b8a6ff;
         }
 
+        .hidden { display: none !important; }
+
         .step {
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .step label {
             display: block;
-            font-size: 16px;
-            font-weight: 400;
-            margin-bottom: 8px;
+            font-size: 15px;
+            margin-bottom: 6px;
             opacity: 0.9;
-            letter-spacing: 0.3px;
         }
 
         input[type="text"] {
             width: 100%;
-            padding: 14px 16px;
-            font-size: 18px;
+            padding: 12px 14px;
+            font-size: 17px;
             background: #221b38;
             border: 1px solid #3a2f5a;
             border-radius: 16px;
             color: #f0eaff;
             outline: none;
-            transition: border 0.2s;
         }
 
-        input[type="text"]:focus {
-            border-color: #7c65c2;
-        }
-
-        input[type="text"]::placeholder {
-            color: #635a82;
-            font-size: 16px;
-        }
+        input[type="text"]:focus { border-color: #7c65c2; }
+        input[type="text"]::placeholder { color: #635a82; }
 
         .body-map {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 4px;
+            gap: 8px;
         }
 
         .body-map button {
-            padding: 14px 0;
+            padding: 12px 0;
             background: #221b38;
             border: 1px solid #3a2f5a;
-            border-radius: 16px;
+            border-radius: 14px;
             color: #c9bdff;
-            font-size: 15px;
-            font-weight: 500;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.15s;
-            touch-action: manipulation;
-        }
-
-        .body-map button:active {
-            transform: scale(0.96);
         }
 
         .body-map button.active {
             background: #6f52c4;
             border-color: #8f78e6;
             color: #fff;
-            box-shadow: 0 0 16px #6f52c466;
         }
 
         .power-wrap {
@@ -116,220 +97,437 @@
             flex: 1;
             height: 6px;
             -webkit-appearance: none;
-            appearance: none;
             background: #3a2f5a;
             border-radius: 8px;
-            outline: none;
         }
 
         .power-wrap input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             background: #8f78e6;
             cursor: pointer;
-            box-shadow: 0 0 12px #6f52c4;
         }
 
-        .power-wrap input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #8f78e6;
-            cursor: pointer;
-            border: none;
-        }
+        #power-val { min-width: 40px; text-align: center; font-weight: 600; }
 
-        #power-val {
-            min-width: 48px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 18px;
-            color: #b8a6ff;
-        }
-
-        #save-btn {
+        .btn-primary {
             width: 100%;
-            margin-top: 12px;
-            padding: 18px;
-            font-size: 18px;
+            padding: 16px;
+            font-size: 17px;
             font-weight: 600;
             background: #6f52c4;
             color: #fff;
             border: none;
             border-radius: 28px;
             cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 16px #6f52c433;
+            margin-top: 8px;
         }
 
-        #save-btn:active {
-            transform: scale(0.97);
-            background: #5d43a8;
-        }
+        .btn-primary:active { transform: scale(0.97); background: #5d43a8; }
 
         #status {
-            margin-top: 18px;
+            margin-top: 12px;
             text-align: center;
-            font-size: 15px;
-            min-height: 22px;
+            font-size: 14px;
+            min-height: 20px;
             color: #9d8cdb;
-            transition: opacity 0.3s;
         }
 
-        .footer-note {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 12px;
-            opacity: 0.3;
-            letter-spacing: 0.5px;
+        /* === ПОЛЕ (STAGE) === */
+        #stage-area {
+            margin-top: 10px;
+            border: 2px dashed #3a2f5a;
+            border-radius: 24px;
+            background: #100d1e;
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-height: 380px;
+            touch-action: none;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .emoji-draggable {
+            position: absolute;
+            cursor: grab;
+            touch-action: none;
+            font-size: 56px;
+            line-height: 1;
+            transform: translate(-50%, -50%) scale(1);
+            transition: transform 0.05s;
+            pointer-events: auto;
+            filter: drop-shadow(0 4px 12px #000000aa);
+            will-change: transform, left, top;
+            z-index: 10;
+        }
+
+        .emoji-draggable:active { cursor: grabbing; }
+
+        .emoji-draggable .label-tag {
+            position: absolute;
+            bottom: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            background: #221b38cc;
+            padding: 2px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+            color: #b8a6ff;
+            border: 1px solid #3a2f5a;
+        }
+
+        .scale-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 14px;
+            padding: 8px 12px;
+            background: #100d1e;
+            border-radius: 20px;
+        }
+        .scale-control label { font-size: 13px; flex-shrink: 0; }
+        .scale-control input[type="range"] { flex: 1; }
+        .scale-control span { min-width: 36px; text-align: center; }
+
+        .axis-hint {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 12px;
+            font-size: 11px;
+            color: #4a3f6a;
+            margin-top: -6px;
         }
 
         @media (max-width: 400px) {
-            #app {
-                padding: 20px 16px;
-            }
-            h1 {
-                font-size: 20px;
-            }
-            .body-map {
-                gap: 8px;
-            }
-            .body-map button {
-                padding: 12px 0;
-                font-size: 13px;
-            }
-            input[type="text"] {
-                padding: 12px 14px;
-                font-size: 16px;
-            }
-            #save-btn {
-                padding: 16px;
-                font-size: 16px;
-            }
+            #app { padding: 16px; }
+            .emoji-draggable { font-size: 44px; }
         }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <h1>🟣🦅 Сейчас</h1>
+    <h1>🟣🦅 Карта состояний</h1>
 
-    <div class="step">
-        <label>Какое чувство ты чувствуешь сейчас?</label>
-        <input type="text" id="feeling" placeholder="Впиши своё состояние..." />
-    </div>
-
-    <div class="step">
-        <label>На какой смайлик оно похоже?</label>
-        <input type="text" id="emoji" placeholder="Введи смайлик (например: 😌)" />
-    </div>
-
-    <div class="step">
-        <label>Где оно в теле?</label>
-        <div class="body-map" id="bodyMap">
-            <button data-part="голова">🧠 Голова</button>
-            <button data-part="грудь">💓 Грудь</button>
-            <button data-part="горло">🗣 Горло</button>
-            <button data-part="живот">🫀 Живот</button>
-            <button data-part="руки">🤲 Руки</button>
-            <button data-part="ноги">🦶 Ноги</button>
+    <!-- ШАГ 1: Чувство -->
+    <div id="step1">
+        <div class="step">
+            <label>Какое чувство ты чувствуешь сейчас?</label>
+            <input type="text" id="feeling" placeholder="напиши..." />
         </div>
-    </div>
-
-    <div class="step">
-        <label>Сильное или слабое?</label>
-        <div class="power-wrap">
-            <span style="opacity:0.5;">Слабое</span>
-            <input type="range" id="power" min="0" max="100" value="50" />
-            <span style="opacity:0.5;">Сильное</span>
-            <span id="power-val">50%</span>
+        <div class="step">
+            <label>На какой смайлик оно похоже?</label>
+            <input type="text" id="emoji1" placeholder="введи смайлик (например: 😌)" />
         </div>
+        <div class="step">
+            <label>Где оно в теле?</label>
+            <div class="body-map" id="bodyMap">
+                <button data-part="голова">🧠 Голова</button>
+                <button data-part="грудь">💓 Грудь</button>
+                <button data-part="горло">🗣 Горло</button>
+                <button data-part="живот">🫀 Живот</button>
+                <button data-part="руки">🤲 Руки</button>
+                <button data-part="ноги">🦶 Ноги</button>
+            </div>
+        </div>
+        <div class="step">
+            <label>Сильное или слабое?</label>
+            <div class="power-wrap">
+                <span style="opacity:0.5;">Слабое</span>
+                <input type="range" id="power" min="0" max="100" value="50" />
+                <span style="opacity:0.5;">Сильное</span>
+                <span id="power-val">50%</span>
+            </div>
+        </div>
+        <button class="btn-primary" id="to-step2">➡️ Далее: Противоположность</button>
+        <div id="status"></div>
     </div>
 
-    <button id="save-btn">💾 Сохранить состояние</button>
-    <div id="status"></div>
-    <div class="footer-note">сохраняется в твоём браузере</div>
+    <!-- ШАГ 2: Противоположность -->
+    <div id="step2" class="hidden">
+        <div class="step">
+            <label>Какая у него противоположность?</label>
+            <input type="text" id="opposite-text" placeholder="название..." />
+        </div>
+        <div class="step">
+            <label>Смайл противоположности</label>
+            <input type="text" id="emoji2" placeholder="введи смайлик (например: 😢)" />
+        </div>
+        <button class="btn-primary" id="to-stage">🗺️ Открыть поле</button>
+    </div>
+
+    <!-- ШАГ 3: Игровое поле -->
+    <div id="step3" class="hidden">
+        <div class="axis-hint">
+            <span>⬅️ Слева</span>
+            <span>⬆️ Сзади (дальше)</span>
+            <span>➡️ Справа</span>
+        </div>
+        <div id="stage-area">
+            <!-- Смайлы будут добавлены через JS -->
+        </div>
+        <div class="axis-hint">
+            <span>⬇️ Спереди (ближе)</span>
+        </div>
+
+        <div class="scale-control">
+            <label>📏 Дистанция</label>
+            <input type="range" id="scale-slider" min="0.4" max="2.0" step="0.01" value="1.0" />
+            <span id="scale-val">1.0</span>
+        </div>
+        <button class="btn-primary" id="reset-positions">🔄 Сбросить позиции</button>
+        <div id="stage-status" style="text-align:center; margin-top:10px; font-size:13px; opacity:0.5;">Перетащи смайлы пальцем. Дистанция меняет размер.</div>
+    </div>
 </div>
 
 <script>
     (function() {
-        // Элементы
-        const feelingInput = document.getElementById('feeling');
-        const emojiInput = document.getElementById('emoji');
-        const bodyButtons = document.querySelectorAll('#bodyMap button');
-        const powerRange = document.getElementById('power');
+        // DOM
+        const s1 = document.getElementById('step1');
+        const s2 = document.getElementById('step2');
+        const s3 = document.getElementById('step3');
+
+        const feeling = document.getElementById('feeling');
+        const emoji1 = document.getElementById('emoji1');
+        const bodyBtns = document.querySelectorAll('#bodyMap button');
+        const power = document.getElementById('power');
         const powerVal = document.getElementById('power-val');
-        const saveBtn = document.getElementById('save-btn');
-        const statusDiv = document.getElementById('status');
 
-        // Выбор части тела (только одна)
-        bodyButtons.forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                bodyButtons.forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            });
+        const oppText = document.getElementById('opposite-text');
+        const emoji2 = document.getElementById('emoji2');
+
+        const stageArea = document.getElementById('stage-area');
+        const scaleSlider = document.getElementById('scale-slider');
+        const scaleVal = document.getElementById('scale-val');
+        const resetBtn = document.getElementById('reset-positions');
+
+        // Кнопки переходов
+        const toStep2Btn = document.getElementById('to-step2');
+        const toStageBtn = document.getElementById('to-stage');
+
+        let activeEmojiId = null; // для работы с масштабом
+
+        // Выбор тела
+        bodyBtns.forEach(b => b.addEventListener('click', function() {
+            bodyBtns.forEach(x => x.classList.remove('active'));
+            this.classList.add('active');
+        }));
+
+        power.addEventListener('input', () => powerVal.textContent = power.value + '%');
+
+        // Переход к шагу 2
+        toStep2Btn.addEventListener('click', function() {
+            if (!feeling.value.trim() || !emoji1.value.trim() || !document.querySelector('#bodyMap button.active')) {
+                document.getElementById('status').textContent = '⚠️ Заполни всё и выбери часть тела';
+                return;
+            }
+            s1.classList.add('hidden');
+            s2.classList.remove('hidden');
+            document.getElementById('status').textContent = '';
         });
 
-        // Обновление значения слайдера
-        powerRange.addEventListener('input', function() {
-            powerVal.textContent = this.value + '%';
+        // Переход к полю
+        toStageBtn.addEventListener('click', function() {
+            if (!oppText.value.trim() || !emoji2.value.trim()) {
+                document.getElementById('status').textContent = '⚠️ Введи противоположность и её смайл';
+                return;
+            }
+            s2.classList.add('hidden');
+            s3.classList.remove('hidden');
+            initStage();
         });
 
-        // Сохранение в localStorage
-        function saveState() {
-            const activePart = document.querySelector('#bodyMap button.active');
-            const data = {
-                feeling: feelingInput.value.trim(),
-                emoji: emojiInput.value.trim(),
-                bodyPart: activePart ? activePart.dataset.part : '',
-                power: powerRange.value
+        // ================= ПОЛЕ =================
+        let emojiData = {};
+
+        function getCenterPos() {
+            const rect = stageArea.getBoundingClientRect();
+            return { x: rect.width / 2, y: rect.height / 2 };
+        }
+
+        function initStage() {
+            const e1 = emoji1.value.trim();
+            const e2 = emoji2.value.trim();
+
+            // Загружаем сохраненные позиции
+            const saved = loadFullState();
+            const pos1 = saved.pos1 || { x: 35, y: 45, scale: 1.0 };
+            const pos2 = saved.pos2 || { x: 65, y: 55, scale: 1.0 };
+
+            emojiData = {
+                1: { emoji: e1, label: feeling.value.trim(), x: pos1.x, y: pos1.y, scale: pos1.scale },
+                2: { emoji: e2, label: oppText.value.trim(), x: pos2.x, y: pos2.y, scale: pos2.scale }
             };
 
-            try {
-                localStorage.setItem('mind_state', JSON.stringify(data));
-                statusDiv.textContent = '✅ Сохранено!';
-                statusDiv.style.opacity = '1';
-                setTimeout(() => {
-                    statusDiv.style.opacity = '0.6';
-                    setTimeout(() => { statusDiv.textContent = ''; }, 800);
-                }, 2000);
-            } catch (e) {
-                statusDiv.textContent = '❌ Ошибка сохранения';
-                setTimeout(() => { statusDiv.textContent = ''; }, 2500);
+            renderEmojis();
+            applyScales();
+            activeEmojiId = 1;
+            scaleSlider.value = emojiData[1].scale;
+            scaleVal.textContent = emojiData[1].scale.toFixed(2);
+            setupDrag();
+        }
+
+        function renderEmojis() {
+            stageArea.innerHTML = '';
+            for (let id in emojiData) {
+                const d = emojiData[id];
+                const el = document.createElement('div');
+                el.className = 'emoji-draggable';
+                el.dataset.id = id;
+                el.style.left = d.x + '%';
+                el.style.top = d.y + '%';
+                el.style.transform = `translate(-50%, -50%) scale(${d.scale})`;
+                el.innerHTML = `${d.emoji}<span class="label-tag">${d.label}</span>`;
+                stageArea.appendChild(el);
             }
         }
 
-        saveBtn.addEventListener('click', saveState);
+        function applyScales() {
+            document.querySelectorAll('.emoji-draggable').forEach(el => {
+                const id = el.dataset.id;
+                const d = emojiData[id];
+                const parts = el.style.transform.split(' ');
+                el.style.transform = `translate(-50%, -50%) scale(${d.scale})`;
+            });
+        }
 
-        // Загрузка при открытии
-        function loadState() {
-            const raw = localStorage.getItem('mind_state');
-            if (!raw) return;
+        // Drag & Drop (Pointer events)
+        function setupDrag() {
+            const emojis = document.querySelectorAll('.emoji-draggable');
+            let dragging = false;
+            let currentEl = null;
+            let startX, startY, startLeft, startTop;
 
-            try {
-                const data = JSON.parse(raw);
-                if (data.feeling) feelingInput.value = data.feeling;
-                if (data.emoji) emojiInput.value = data.emoji;
-                if (data.power) {
-                    powerRange.value = data.power;
-                    powerVal.textContent = data.power + '%';
+            function onPointerDown(e) {
+                const el = e.target.closest('.emoji-draggable');
+                if (!el) return;
+                e.preventDefault();
+                dragging = true;
+                currentEl = el;
+                activeEmojiId = parseInt(el.dataset.id);
+                // обновить слайдер под активный
+                scaleSlider.value = emojiData[activeEmojiId].scale;
+                scaleVal.textContent = emojiData[activeEmojiId].scale.toFixed(2);
+
+                const rect = stageArea.getBoundingClientRect();
+                const p = e.clientX || e.pageX;
+                const q = e.clientY || e.pageY;
+                startX = p - rect.left;
+                startY = q - rect.top;
+
+                const leftPx = parseFloat(el.style.left) || 0;
+                const topPx = parseFloat(el.style.top) || 0;
+                startLeft = (leftPx / rect.width) * 100;
+                startTop = (topPx / rect.height) * 100;
+                el.setPointerCapture(e.pointerId);
+            }
+
+            function onPointerMove(e) {
+                if (!dragging || !currentEl) return;
+                e.preventDefault();
+                const rect = stageArea.getBoundingClientRect();
+                const p = e.clientX || e.pageX;
+                const q = e.clientY || e.pageY;
+                let dx = ((p - rect.left) / rect.width) * 100;
+                let dy = ((q - rect.top) / rect.height) * 100;
+                dx = Math.max(0, Math.min(100, dx));
+                dy = Math.max(0, Math.min(100, dy));
+
+                currentEl.style.left = dx + '%';
+                currentEl.style.top = dy + '%';
+
+                const id = parseInt(currentEl.dataset.id);
+                emojiData[id].x = dx;
+                emojiData[id].y = dy;
+                saveFullState();
+            }
+
+            function onPointerUp(e) {
+                if (dragging && currentEl) {
+                    dragging = false;
+                    currentEl = null;
+                    saveFullState();
                 }
-                if (data.bodyPart) {
-                    const target = document.querySelector(`#bodyMap button[data-part="${data.bodyPart}"]`);
-                    if (target) target.classList.add('active');
-                }
-            } catch (e) {
-                // ничего страшного
+            }
+
+            stageArea.addEventListener('pointerdown', onPointerDown);
+            document.addEventListener('pointermove', onPointerMove);
+            document.addEventListener('pointerup', onPointerUp);
+        }
+
+        // Масштаб (дистанция)
+        scaleSlider.addEventListener('input', function() {
+            if (activeEmojiId === null) activeEmojiId = 1;
+            const val = parseFloat(this.value);
+            scaleVal.textContent = val.toFixed(2);
+            emojiData[activeEmojiId].scale = val;
+            const el = document.querySelector(`.emoji-draggable[data-id="${activeEmojiId}"]`);
+            if (el) {
+                el.style.transform = `translate(-50%, -50%) scale(${val})`;
+            }
+            saveFullState();
+        });
+
+        // Сброс
+        resetBtn.addEventListener('click', function() {
+            const mid = getCenterPos();
+            emojiData[1].x = 35; emojiData[1].y = 45; emojiData[1].scale = 1.0;
+            emojiData[2].x = 65; emojiData[2].y = 55; emojiData[2].scale = 1.0;
+            renderEmojis();
+            applyScales();
+            if (activeEmojiId) {
+                scaleSlider.value = emojiData[activeEmojiId].scale;
+                scaleVal.textContent = emojiData[activeEmojiId].scale.toFixed(2);
+            }
+            saveFullState();
+        });
+
+        // ================= СОХРАНЕНИЕ =================
+        function saveFullState() {
+            const data = {
+                feeling: feeling.value.trim(),
+                emoji1: emoji1.value.trim(),
+                bodyPart: document.querySelector('#bodyMap button.active')?.dataset?.part || '',
+                power: power.value,
+                oppText: oppText.value.trim(),
+                emoji2: emoji2.value.trim(),
+                pos1: { x: emojiData[1]?.x || 35, y: emojiData[1]?.y || 45, scale: emojiData[1]?.scale || 1.0 },
+                pos2: { x: emojiData[2]?.x || 65, y: emojiData[2]?.y || 55, scale: emojiData[2]?.scale || 1.0 }
+            };
+            localStorage.setItem('mind_state_full', JSON.stringify(data));
+        }
+
+        function loadFullState() {
+            const raw = localStorage.getItem('mind_state_full');
+            if (!raw) return {};
+            try { return JSON.parse(raw); } catch { return {}; }
+        }
+
+        // Автозагрузка при старте
+        function loadInitial() {
+            const data = loadFullState();
+            if (data.feeling) feeling.value = data.feeling;
+            if (data.emoji1) emoji1.value = data.emoji1;
+            if (data.power) { power.value = data.power; powerVal.textContent = data.power + '%'; }
+            if (data.bodyPart) {
+                const t = document.querySelector(`#bodyMap button[data-part="${data.bodyPart}"]`);
+                if (t) t.classList.add('active');
+            }
+            if (data.oppText) oppText.value = data.oppText;
+            if (data.emoji2) emoji2.value = data.emoji2;
+
+            // Если есть все данные, можно сразу открыть поле (по желанию)
+            if (data.feeling && data.emoji1 && data.bodyPart && data.oppText && data.emoji2) {
+                // Оставляем на шаге 1, но пользователь может нажать "Далее" сам
             }
         }
 
-        loadState();
+        loadInitial();
     })();
 </script>
-
 </body>
 </html>
