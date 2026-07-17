@@ -119,7 +119,6 @@
         let isEditPanelVisible = false;
         let selectedZone = null;
 
-        // Координаты чакр по вертикали (Y).
         const COORD_MAP = {
             'голова': { y: 9.0, color: '#9b59b6', outer: 1.2 },
             'шея':   { y: 6.0, color: '#5dade2', outer: 1.0 },
@@ -154,7 +153,6 @@
             anchor.rotation.x = -Math.PI / 2;
             scene.add(anchor);
 
-            // Текст внутри сферы
             const labelDiv = document.createElement('div');
             labelDiv.textContent = id.charAt(0).toUpperCase() + id.slice(1);
             labelDiv.style.color = '#ffffff';
@@ -219,42 +217,25 @@
         }
 
         // ============= ЛИНИИ НАТЯЖЕНИЯ (СТАБИЛЬНЫЕ) =============
-        const lineMap = {};
+        let linesGroup = new THREE.Group();
+        scene.add(linesGroup);
 
         function updateLines() {
-            // Удаляем линии для сил, которые больше не привязаны
-            const attachedIds = new Set(points.filter(p => p.bodyPart && p.sprite).map(p => p.id));
-            for (let idStr in lineMap) {
-                if (!attachedIds.has(parseInt(idStr))) {
-                    scene.remove(lineMap[idStr]);
-                    delete lineMap[idStr];
-                }
+            while(linesGroup.children.length > 0) {
+                linesGroup.remove(linesGroup.children[0]);
             }
 
             points.forEach(p => {
                 if (p.bodyPart && p.sprite) {
                     const zone = bodyZones.find(z => z.id === p.bodyPart);
                     if (zone) {
-                        // Точка старта в центре чакры, точка конца в центре силы
                         const start = new THREE.Vector3(zone.currentX, zone.anchorY + 0.2, zone.currentZ);
                         const end = new THREE.Vector3(p.x, p.y, p.z);
-                        if (isNaN(start.x) || isNaN(start.y) || isNaN(start.z) || isNaN(end.x) || isNaN(end.y) || isNaN(end.z)) return;
-
-                        if (!lineMap[p.id]) {
-                            // Создаем новую линию
+                        if (!isNaN(start.x) && !isNaN(start.y) && !isNaN(start.z) && !isNaN(end.x) && !isNaN(end.y) && !isNaN(end.z)) {
                             const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
                             const mat = new THREE.LineBasicMaterial({ color: p.color, transparent: true, opacity: 0.7 });
                             const line = new THREE.Line(geom, mat);
-                            lineMap[p.id] = line;
-                            scene.add(line);
-                        } else {
-                            // Обновляем существующую (это предотвращает разрывы)
-                            const line = lineMap[p.id];
-                            const pos = line.geometry.attributes.position.array;
-                            pos[0] = start.x; pos[1] = start.y; pos[2] = start.z;
-                            pos[3] = end.x; pos[4] = end.y; pos[5] = end.z;
-                            line.geometry.attributes.position.needsUpdate = true;
-                            line.material.color.set(p.color);
+                            linesGroup.add(line);
                         }
                     }
                 }
@@ -306,7 +287,7 @@
             if (!zone) return null;
             const id = pointIdCounter++;
             const count = points.filter(p => p.bodyPart === zoneId).length + 1;
-            const y = zone.anchorY + 0.2; // Сила создается на уровне центра своей чакры!
+            const y = zone.anchorY + 0.2;
             const newPoint = {
                 id: id, 
                 x: zone.currentX + offsetX * 3.0, 
@@ -335,7 +316,6 @@
             if (idx !== -1) {
                 const p = points[idx];
                 if (p.sprite) scene.remove(p.sprite);
-                if (lineMap[p.id]) { scene.remove(lineMap[p.id]); delete lineMap[p.id]; }
                 points.splice(idx, 1);
                 saveToLocal();
             }
@@ -414,17 +394,12 @@
                 const dz = intersectPoint.z - startPointPos.z;
                 draggedPoint.x = Math.max(-8, Math.min(8, startPointPos.x + dx));
                 draggedPoint.z = Math.max(-8, Math.min(8, startPointPos.z + dz));
-                // Y не меняется при перетаскивании (сила висит на своей высоте)
                 if (draggedPoint.sprite) {
                     draggedPoint.sprite.position.x = draggedPoint.x;
                     draggedPoint.sprite.position.z = draggedPoint.z;
                 }
-                if (draggedPoint.bodyPart) {
-                    draggedPoint.bodyPart = '';
-                    if (isEditPanelVisible && selectedPoint && selectedPoint.id === draggedPoint.id) {
-                        document.getElementById('edit-bodypart').value = '';
-                    }
-                }
+                // ИСПРАВЛЕНИЕ: Сила НЕ ОТКРЕПЛЯЕТСЯ при перетаскивании
+                // (удалён блок if (draggedPoint.bodyPart) { ... })
                 draw(); saveToLocal();
             }
         });
@@ -481,7 +456,6 @@
                 if (newBodyPart) {
                     const zone = bodyZones.find(z => z.id === newBodyPart);
                     if (zone) {
-                        // При привязке сила перескакивает на уровень центра новой чакры
                         const y = zone.anchorY + 0.2;
                         selectedPoint.x = zone.currentX;
                         selectedPoint.z = zone.currentZ;
@@ -557,7 +531,7 @@
                 if (!raw) return false;
                 const data = JSON.parse(raw);
                 data.points.forEach(p => {
-                    const y = p.y || 0.2; // Если старый файл без Y, ставим на пол
+                    const y = p.y || 0.2;
                     p.sprite = createPointSprite(p.emoji, p.label, p.color, p.radius, p.x, y, p.z);
                     p.y = y;
                     points.push(p);
