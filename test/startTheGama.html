@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Зоны Силы: Удержание</title>
+    <title>Перетягивание свайпом</title>
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui; }
         
@@ -28,13 +28,12 @@
             backdrop-filter: blur(4px); border: 1px solid #3a2f5a;
         }
     </style>
-    <!-- Стабильные библиотеки -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 </head>
 <body>
-    <div id="hint">👆 Нажми и держи на Зоне, чтобы увеличить её</div>
+    <div id="hint">👆 Веди пальцем влево-вправо по сфере, чтобы двигать границу</div>
     <div id="ui">
         <div class="stat" id="stat-red">❤️ <span id="red-percent">50%</span></div>
         <div class="stat" id="stat-blue">🧠 <span id="blue-percent">50%</span></div>
@@ -72,7 +71,7 @@
         const light = new THREE.DirectionalLight(0xffeedd, 1.2);
         light.position.set(5, 10, 7); scene.add(light);
 
-        // 3. Шейдерная сфера с подвижной стенкой
+        // 3. Шейдерная сфера
         const vertexShader = `
             varying float v_x;
             void main() {
@@ -91,7 +90,6 @@
                 float mixVal = smoothstep(-0.05, 0.05, d);
                 vec3 col = mix(u_red, u_blue, mixVal);
                 
-                // Свечение на границе
                 float glow = exp(-abs(d) * 15.0) * 0.7;
                 col += glow;
                 
@@ -120,7 +118,7 @@
         sphere.position.set(0, 0, 0);
         scene.add(sphere);
 
-        // Прозрачная сетка (оболочка)
+        // Прозрачная оболочка
         const wireframeMat = new THREE.MeshBasicMaterial({
             color: 0x8888ff,
             wireframe: true,
@@ -130,11 +128,11 @@
         const wireSphere = new THREE.Mesh(new THREE.SphereGeometry(1.72, 32, 16), wireframeMat);
         scene.add(wireSphere);
 
-        // 4. Метки (Цвета текста наоборот!)
+        // 4. Метки (Цвета текста наоборот)
         function createLabel(text, color, offsetX) {
             const div = document.createElement('div');
             div.textContent = text;
-            div.style.color = color; // цвет текста
+            div.style.color = color; // текст контрастным цветом
             div.style.fontSize = '24px';
             div.style.fontWeight = 'bold';
             div.style.textShadow = '0 0 20px currentColor, 0 0 40px currentColor';
@@ -142,23 +140,23 @@
             div.style.padding = '4px 16px';
             div.style.borderRadius = '20px';
             div.style.backdropFilter = 'blur(4px)';
-            // Рамка тоже в цвет текста
             div.style.border = '1px solid ' + color;
             return new THREE.CSS2DObject(div);
         }
 
-        // ❤️ Сердце находится слева (на красной зоне), пишем СИНИМ
+        // ❤️ Сердце (красная зона) -> пишем СИНИМ
         const labelRed = createLabel('❤️ Сердце', '#4d8bff');
-        // 🧠 Ум находится справа (на синей зоне), пишем КРАСНЫМ
+        // 🧠 Ум (синяя зона) -> пишем КРАСНЫМ
         const labelBlue = createLabel('🧠 Ум', '#ff4d4d');
         scene.add(labelRed);
         scene.add(labelBlue);
 
-        // 5. Логика "Нажми и держи"
-        let currentRatio = 0.5; 
-        let targetRatio = 0.5;
-        let isHolding = false;
-        let holdDirection = 0; // +1 (растет красное), -1 (растет синее)
+        // 5. Логика "Свайп (перетаскивание) границы"
+        let currentCut = 0.0; // Текущее положение границы (от -1.7 до 1.7)
+        let targetCut = 0.0;  // Целевое положение границы (куда ведёт палец)
+        let isDragging = false;
+        let dragStartLocalX = 0.0;
+        let dragStartCut = 0.0;
 
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
@@ -169,60 +167,64 @@
             pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         }
 
+        // Нажал пальцем на сферу
         renderer.domElement.addEventListener('pointerdown', (e) => {
             getPointer(e);
             raycaster.setFromCamera(pointer, camera);
             const intersects = raycaster.intersectObject(sphere);
             if (intersects.length > 0) {
-                const pt = intersects[0].point;
-                const cut = uniforms.u_cut.value;
-                // Определяем, с какой стороны нажали
-                if (pt.x < cut) {
-                    // Нажали на Красную зону -> держим, чтобы увеличивать Красную
-                    holdDirection = 1.0;
-                    isHolding = true;
-                } else if (pt.x > cut) {
-                    // Нажали на Синюю зону -> держим, чтобы увеличивать Синюю
-                    holdDirection = -1.0;
-                    isHolding = true;
-                }
+                // Получаем координаты пересечения внутри самой сферы
+                const localPoint = sphere.worldToLocal(intersects[0].point.clone());
+                dragStartLocalX = localPoint.x;
+                dragStartCut = uniforms.u_cut.value;
+                isDragging = true;
                 controls.enabled = false;
             }
         });
 
+        // Водишь пальцем по сфере
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            getPointer(e);
+            raycaster.setFromCamera(pointer, camera);
+            const intersects = raycaster.intersectObject(sphere);
+            if (intersects.length > 0) {
+                const localPoint = sphere.worldToLocal(intersects[0].point.clone());
+                const currentLocalX = localPoint.x;
+                
+                // Считаем, насколько сдвинулся палец по оси X, и двигаем границу
+                const deltaX = currentLocalX - dragStartLocalX;
+                targetCut = dragStartCut + deltaX;
+                
+                // Ограничиваем, чтобы не вылетела за края сферы (радиус 1.7)
+                targetCut = Math.max(-1.7, Math.min(1.7, targetCut));
+            }
+        });
+
+        // Отпустил палец
         window.addEventListener('pointerup', () => {
-            if (isHolding) {
-                isHolding = false;
-                holdDirection = 0;
+            if (isDragging) {
+                isDragging = false;
                 controls.enabled = true;
             }
         });
 
         // 6. Обновление сцены и Анимация
         function updateScene() {
-            // Пока держим, continuously двигаем targetRatio
-            if (isHolding) {
-                // Увеличиваем targetRatio с фиксированной скоростью
-                targetRatio += holdDirection * 0.02;
-                // Не даём выйти за границы 0..1
-                targetRatio = Math.max(0.0, Math.min(1.0, targetRatio));
-            }
+            // Плавно двигаем стенку к пальцу, чтобы не было рывков
+            currentCut += (targetCut - currentCut) * 0.15;
+            if (Math.abs(currentCut - targetCut) < 0.001) currentCut = targetCut;
 
-            // Плавное движение к цели
-            currentRatio += (targetRatio - currentRatio) * 0.05;
-            if (Math.abs(currentRatio - targetRatio) < 0.001) currentRatio = targetRatio;
+            uniforms.u_cut.value = currentCut;
 
-            const cut = (currentRatio - 0.5) * 2.0;
-            uniforms.u_cut.value = cut;
-
-            // Позиции меток (всегда по центру своих половин)
-            const redCenterX = (cut - 1.7) / 2; 
-            const blueCenterX = (1.7 + cut) / 2; 
+            // Позиции меток ровно по центру своих зон
+            const redCenterX = (currentCut - 1.7) / 2; 
+            const blueCenterX = (1.7 + currentCut) / 2; 
             labelRed.position.set(redCenterX, 0.2, 0);
             labelBlue.position.set(blueCenterX, 0.2, 0);
 
-            // Интерфейс процентов
-            const redPercent = Math.round(currentRatio * 100);
+            // Проценты (от -1.7 до 1.7 преобразуем в 0% - 100%)
+            const redPercent = Math.round(((currentCut / 1.7) + 1) / 2 * 100);
             const bluePercent = 100 - redPercent;
             document.getElementById('red-percent').textContent = redPercent + '%';
             document.getElementById('blue-percent').textContent = bluePercent + '%';
@@ -231,9 +233,8 @@
         function animate() {
             requestAnimationFrame(animate);
             
-            // Медленное автовращение сцены (показывает объём)
-            // Это вращает саму сцену, а не контролы, чтобы OrbitControls не ломался
-            scene.rotation.y += 0.002; 
+            // Медленное автовращение всей сцены (показывает объём)
+            scene.rotation.y += 0.003; 
 
             controls.update();
             updateScene();
