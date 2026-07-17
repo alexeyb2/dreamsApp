@@ -12,27 +12,23 @@
             display: block; cursor: grab; 
             background: radial-gradient(circle at center, #131022 0%, #08060e 100%);
         }
-        
         #ui-panel {
             position: absolute; bottom: 20px; left: 0; right: 0;
             display: flex; flex-direction: column; align-items: center; gap: 10px;
             padding: 10px; pointer-events: none;
         }
-        
         .btn-group {
             background: rgba(22,17,39,0.85); 
             padding: 10px 20px; border-radius: 40px;
             backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
             display: flex; gap: 12px; pointer-events: auto;
         }
-        
         .btn {
             border: none; background: #2a2348; color: #b8a6ff;
             padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px;
             cursor: pointer; transition: all 0.2s;
         }
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
-        
         .stats-panel {
             display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
             background: rgba(22,17,39,0.85); padding: 8px 16px; border-radius: 40px;
@@ -45,13 +41,13 @@
                 color: rgba(255,255,255,0.5); font-size: 14px; pointer-events: none; 
                 background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 30px; }
 
-        /* Панель редактирования точки */
+        /* Панель редактирования - СКРЫТА ПО УМОЛЧАНИЮ */
         #edit-panel {
-            display: none; /* По умолчанию скрыта */
+            display: none;
             background: rgba(16, 13, 30, 0.95); backdrop-filter: blur(12px);
             border: 1px solid #3a2f5a; border-radius: 30px; padding: 12px 18px;
             width: 90%; max-width: 400px; pointer-events: auto;
-            align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+            flex-direction: column; gap: 10px;
         }
         #edit-panel input, #edit-panel select {
             background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
@@ -67,8 +63,7 @@
     </style>
 </head>
 <body>
-
-    <div id="hint">👆 Нажми на точку, чтобы редактировать. Перетащи, чтобы двигать.</div>
+    <div id="hint">👆 Нажми на точку, чтобы выбрать её. Затем нажми ⚙️ Правка.</div>
     <canvas id="canvas"></canvas>
 
     <div id="ui-panel">
@@ -77,8 +72,12 @@
             <span class="tag" id="total-points">Точек: 0</span>
         </div>
 
-        <!-- Блок редактирования -->
+        <!-- Панель редактирования -->
         <div id="edit-panel">
+            <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
+                <span style="font-size:14px; color:#b8a6ff;">⚙️ Редактирование</span>
+                <button id="close-edit-btn" style="background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer; margin-top:-4px;">✖</button>
+            </div>
             <div class="edit-row">
                 <input type="text" id="edit-emoji" placeholder="😈" style="width: 45px; text-align: center;" />
                 <input type="text" id="edit-name" placeholder="Имя силы" style="flex: 1;" />
@@ -93,7 +92,8 @@
         </div>
 
         <div class="btn-group">
-            <button class="btn" id="add-pair-btn">➕ Пара (Инь-Ян)</button>
+            <button class="btn" id="edit-toggle-btn">⚙️ Правка</button>
+            <button class="btn" id="add-pair-btn">➕ Пара</button>
             <button class="btn" id="reset-btn">🔄 Сброс</button>
         </div>
     </div>
@@ -112,13 +112,15 @@
         let draggedPoint = null;
         let startMouse = { x: 0, y: 0 };
         let startPointPos = { x: 0, y: 0 };
-        let pointerDownTime = 0;
 
-        // Выбранная точка (для редактирования)
+        // Выбранная точка
         let selectedPoint = null;
+        let isEditPanelVisible = false;
 
-        // DOM элементы панели редактирования
+        // DOM элементы
         const editPanel = document.getElementById('edit-panel');
+        const closeEditBtn = document.getElementById('close-edit-btn');
+        const editToggleBtn = document.getElementById('edit-toggle-btn');
         const editEmoji = document.getElementById('edit-emoji');
         const editName = document.getElementById('edit-name');
         const editColor = document.getElementById('edit-color');
@@ -126,7 +128,7 @@
         const editSizeVal = document.getElementById('edit-size-val');
         const delBtn = document.getElementById('del-point-btn');
 
-        // Создание новой пары
+        // Новая пара
         function getNewPair() {
             const id1 = pointIdCounter++;
             const id2 = pointIdCounter++;
@@ -147,7 +149,7 @@
             draw();
         }
 
-        // Физика притяжения центра
+        // Физика
         function updatePhysics() {
             if (points.length === 0) return;
             let totalWeight = 0;
@@ -158,8 +160,6 @@
                 const dx = p.x - center.x;
                 const dy = p.y - center.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                // Вес зависит от расстояния И от радиуса (размера) точки
                 const strength = Math.max(0, dist - 10) * (p.radius / 25);
                 weightedX += p.x * strength;
                 weightedY += p.y * strength;
@@ -177,7 +177,6 @@
         function draw() {
             ctx.clearRect(0, 0, w, h);
 
-            // Линии связи
             points.forEach(p => {
                 ctx.beginPath();
                 ctx.moveTo(center.x, center.y);
@@ -189,18 +188,15 @@
                 ctx.globalAlpha = 1.0;
             });
 
-            // Точки
             points.forEach(p => {
                 const isSelected = (selectedPoint && selectedPoint.id === p.id);
                 const radius = p.radius;
 
-                // Свечение при выборе
                 if (isSelected) {
                     ctx.shadowColor = '#fff';
                     ctx.shadowBlur = 30;
                 }
 
-                // Фон
                 const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 0, p.x, p.y, radius + 12);
                 grad.addColorStop(0, p.color);
                 grad.addColorStop(1, 'transparent');
@@ -210,29 +206,20 @@
                 ctx.fill();
                 ctx.shadowBlur = 0;
 
-                // Эмодзи
                 const fontSize = Math.max(20, radius * 1.2);
                 ctx.font = `${fontSize}px "Segoe UI Emoji", "Apple Color Emoji"`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(p.emoji, p.x, p.y - 4);
 
-                // Имя
                 ctx.font = 'bold 12px system-ui';
                 ctx.fillStyle = '#ffffff';
                 ctx.shadowColor = 'rgba(0,0,0,0.9)';
                 ctx.shadowBlur = 8;
                 ctx.fillText(p.label, p.x, p.y + radius + 14);
                 ctx.shadowBlur = 0;
-
-                // Индикатор силы (размера)
-                ctx.beginPath();
-                ctx.arc(p.x, p.y + radius + 26, 2 + (p.radius / 20), 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.fill();
             });
 
-            // Желтый центр
             ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
             ctx.shadowBlur = 40;
             ctx.beginPath();
@@ -240,10 +227,6 @@
             ctx.fillStyle = '#ffcc00';
             ctx.fill();
             ctx.shadowBlur = 0;
-            ctx.beginPath();
-            ctx.arc(center.x, center.y, 24, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 204, 0, 0.15)';
-            ctx.fill();
 
             document.getElementById('center-coords').textContent = 
                 `(${Math.round(center.x - cx)}, ${Math.round(center.y - cy)})`;
@@ -274,7 +257,6 @@
         canvas.addEventListener('pointerdown', (e) => {
             const pos = getPointerPos(e);
             const hit = checkHit(pos);
-            pointerDownTime = Date.now();
             
             if (hit) {
                 isDragging = true;
@@ -282,11 +264,8 @@
                 startMouse = pos;
                 startPointPos = { x: hit.x, y: hit.y };
                 canvas.style.cursor = 'grabbing';
-                
-                // Сразу показываем панель редактирования
                 selectPoint(hit);
             } else {
-                // Клик по пустому месту скрывает меню
                 selectPoint(null);
             }
         });
@@ -302,15 +281,8 @@
             saveToLocal();
         });
 
-        window.addEventListener('pointerup', (e) => {
+        window.addEventListener('pointerup', () => {
             if (isDragging) {
-                // Если движение было очень маленьким, это тап, а не перетаскивание — редактирование уже открыто.
-                const pos = getPointerPos(e);
-                const dx = pos.x - startMouse.x;
-                const dy = pos.y - startMouse.y;
-                if (Math.hypot(dx, dy) < 5 && !selectedPoint) {
-                    // Если тапнули и не выбрали (редкий кейс), то перевыбираем
-                }
                 isDragging = false;
                 draggedPoint = null;
                 canvas.style.cursor = 'grab';
@@ -318,21 +290,21 @@
             }
         });
 
-        // ============= ЛОГИКА РЕДАКТИРОВАНИЯ =============
+        // ============= РЕДАКТИРОВАНИЕ =============
         function selectPoint(point) {
             selectedPoint = point;
             if (point) {
-                editPanel.style.display = 'flex';
-                editEmoji.value = point.emoji || '😈';
-                editName.value = point.label || '';
-                editColor.value = point.color;
-                editSize.value = point.radius;
-                editSizeVal.textContent = point.radius;
-            } else {
-                editPanel.style.display = 'none';
-                if (editPanel.dataset.prevPoint) {
-                    // Запись уже произошла
+                if (isEditPanelVisible) {
+                    editEmoji.value = point.emoji;
+                    editName.value = point.label;
+                    editColor.value = point.color;
+                    editSize.value = point.radius;
+                    editSizeVal.textContent = point.radius;
                 }
+            } else {
+                // Если выбрали пустое место, скрываем панель
+                isEditPanelVisible = false;
+                editPanel.style.display = 'none';
             }
         }
 
@@ -346,19 +318,41 @@
             saveToLocal();
         }
 
-        // События полей редактирования
+        // Кнопка открытия/закрытия редактирования
+        editToggleBtn.addEventListener('click', () => {
+            if (!selectedPoint) {
+                alert('Сначала коснитесь точки, чтобы выбрать её!');
+                return;
+            }
+            isEditPanelVisible = !isEditPanelVisible;
+            editPanel.style.display = isEditPanelVisible ? 'flex' : 'none';
+            if (isEditPanelVisible) {
+                editEmoji.value = selectedPoint.emoji;
+                editName.value = selectedPoint.label;
+                editColor.value = selectedPoint.color;
+                editSize.value = selectedPoint.radius;
+                editSizeVal.textContent = selectedPoint.radius;
+            }
+        });
+
+        closeEditBtn.addEventListener('click', () => {
+            isEditPanelVisible = false;
+            editPanel.style.display = 'none';
+        });
+
         editEmoji.addEventListener('input', updateSelectedPoint);
         editName.addEventListener('input', updateSelectedPoint);
         editColor.addEventListener('input', updateSelectedPoint);
         editSize.addEventListener('input', updateSelectedPoint);
 
-        // Удаление точки
         delBtn.addEventListener('click', () => {
             if (!selectedPoint) return;
             const index = points.findIndex(p => p.id === selectedPoint.id);
             if (index !== -1) {
                 points.splice(index, 1);
                 selectPoint(null);
+                isEditPanelVisible = false;
+                editPanel.style.display = 'none';
                 saveToLocal();
             }
         });
@@ -378,6 +372,7 @@
         function resetAll() {
             if (confirm('Сбросить все точки к начальному состоянию?')) {
                 localStorage.removeItem('dreams_state_0');
+                localStorage.removeItem('dreams_config');
                 location.reload();
             }
         }
@@ -400,6 +395,33 @@
             } catch { return false; }
         }
 
+        // Инициализация из первого экрана
+        function loadFromOnboarding() {
+            const raw = localStorage.getItem('dreams_config');
+            if (!raw) return false;
+            try {
+                const config = JSON.parse(raw);
+                const id1 = pointIdCounter++;
+                const id2 = pointIdCounter++;
+                const p1 = {
+                    id: id1, x: cx - 90, y: cy - 20,
+                    color: '#4d8bff',
+                    emoji: config.emoji || '😌',
+                    label: config.feeling || 'Чувство',
+                    radius: Math.min(30 + config.power / 4, 60)
+                };
+                const p2 = {
+                    id: id2, x: cx + 90, y: cy + 20,
+                    color: '#ff4d4d',
+                    emoji: config.oppEmoji || '😰',
+                    label: config.opposite || 'Противоположность',
+                    radius: 30
+                };
+                points.push(p1, p2);
+                return true;
+            } catch { return false; }
+        }
+
         // ============= ЗАПУСК =============
         document.getElementById('add-pair-btn').addEventListener('click', addPair);
         document.getElementById('reset-btn').addEventListener('click', resetAll);
@@ -409,8 +431,19 @@
         window.addEventListener('resize', resize);
         resize();
 
-        if (!loadFromLocal() || points.length === 0) {
-            addPair();
+        if (!loadFromLocal()) {
+            // Если нет сохраненного состояния, грузим из анкеты
+            if (!loadFromOnboarding()) {
+                // Если анкеты нет, создаем дефолтную пару
+                addPair();
+            } else {
+                // Добавляем пару случайных сил для разнообразия
+                const extra = getNewPair();
+                extra[0].x = cx - 60; extra[0].y = cy - 70;
+                extra[1].x = cx + 60; extra[1].y = cy + 70;
+                points.push(...extra);
+            }
+            saveToLocal();
         }
         
         physicsLoop();
