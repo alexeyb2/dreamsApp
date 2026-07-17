@@ -41,7 +41,6 @@
                 color: rgba(255,255,255,0.5); font-size: 14px; pointer-events: none; 
                 background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 30px; }
 
-        /* Панель редактирования */
         #edit-panel {
             display: none;
             background: rgba(16, 13, 30, 0.95); backdrop-filter: blur(12px);
@@ -88,12 +87,10 @@
                 <span class="edit-label">📍 Часть тела</span>
                 <select id="edit-bodypart">
                     <option value="">— Свободная —</option>
-                    <option value="голова">🧠 Голова</option>
-                    <option value="шея">🌀 Шея</option>
-                    <option value="грудь">💓 Грудь</option>
-                    <option value="живот">🫀 Живот</option>
-                    <option value="руки">🤲 Руки</option>
-                    <option value="ноги">🦶 Ноги</option>
+                    <option value="голова">🟣 Голова</option>
+                    <option value="шея">🔵 Шея</option>
+                    <option value="грудь">🟢 Грудь</option>
+                    <option value="живот">🟠 Живот</option>
                 </select>
             </div>
             <div class="edit-row">
@@ -138,17 +135,17 @@
         const editSizeVal = document.getElementById('edit-size-val');
         const delBtn = document.getElementById('del-point-btn');
 
-        // Координаты для частей тела (в процентах, чтобы адаптироваться под экран)
+        // 1. Цветные точки-якоря на теле
+        const bodyMarkers = [
+            { id: 'голова', x: 0, y: -0.35, color: '#9b59b6', label: 'Голова' },
+            { id: 'шея', x: 0, y: -0.18, color: '#5dade2', label: 'Шея' },
+            { id: 'грудь', x: 0, y: 0, color: '#2ecc71', label: 'Грудь' },
+            { id: 'живот', x: 0, y: 0.18, color: '#e67e22', label: 'Живот' }
+        ];
+
         function getBodyCoord(bodyPart) {
-            const map = {
-                'голова': { x: 0, y: -0.35 },
-                'шея': { x: 0, y: -0.18 },
-                'грудь': { x: 0, y: 0 },
-                'живот': { x: 0, y: 0.18 },
-                'руки': { x: 0.28, y: 0.05 },
-                'ноги': { x: 0.12, y: 0.35 }
-            };
-            return map[bodyPart] || null;
+            const found = bodyMarkers.find(m => m.id === bodyPart);
+            return found || null;
         }
 
         function getNewPair() {
@@ -195,58 +192,42 @@
             }
         }
 
-        function drawBody() {
-            ctx.save();
-            ctx.globalAlpha = 0.2;
-            ctx.strokeStyle = '#6f52c4';
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = 0;
+        function drawMarkers() {
+            bodyMarkers.forEach(m => {
+                const mx = cx + m.x * w;
+                const my = cy + m.y * h;
+                const radius = w * 0.04; // Размер якоря
 
-            // Голова
-            const headR = w * 0.08;
-            const headY = cy - h * 0.3;
-            ctx.beginPath();
-            ctx.arc(cx, headY, headR, 0, Math.PI * 2);
-            ctx.stroke();
+                // Мягкое свечение зоны
+                const grad = ctx.createRadialGradient(mx, my, 0, mx, my, radius * 1.5);
+                grad.addColorStop(0, m.color);
+                grad.addColorStop(1, 'transparent');
+                ctx.beginPath();
+                ctx.arc(mx, my, radius * 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
 
-            // Шея
-            ctx.beginPath();
-            ctx.moveTo(cx - headR * 0.4, headY + headR * 0.8);
-            ctx.lineTo(cx - w * 0.05, cy - h * 0.08);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx + headR * 0.4, headY + headR * 0.8);
-            ctx.lineTo(cx + w * 0.05, cy - h * 0.08);
-            ctx.stroke();
+                // Сама точка
+                ctx.shadowColor = m.color;
+                ctx.shadowBlur = 20;
+                ctx.beginPath();
+                ctx.arc(mx, my, radius, 0, Math.PI * 2);
+                ctx.fillStyle = m.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
 
-            // Грудь / Плечи
-            const shoulderY = cy - h * 0.05;
-            ctx.beginPath();
-            ctx.moveTo(cx - w * 0.25, shoulderY);
-            ctx.quadraticCurveTo(cx - w * 0.28, shoulderY + h * 0.1, cx - w * 0.2, shoulderY + h * 0.2);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx + w * 0.25, shoulderY);
-            ctx.quadraticCurveTo(cx + w * 0.28, shoulderY + h * 0.1, cx + w * 0.2, shoulderY + h * 0.2);
-            ctx.stroke();
-
-            // Торс (грудь-живот)
-            ctx.beginPath();
-            ctx.moveTo(cx - w * 0.12, cy - h * 0.08);
-            ctx.quadraticCurveTo(cx - w * 0.18, cy + h * 0.15, cx - w * 0.1, cy + h * 0.3);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(cx + w * 0.12, cy - h * 0.08);
-            ctx.quadraticCurveTo(cx + w * 0.18, cy + h * 0.15, cx + w * 0.1, cy + h * 0.3);
-            ctx.stroke();
-
-            ctx.globalAlpha = 1.0;
-            ctx.restore();
+                // Подпись
+                ctx.font = 'bold 11px system-ui';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fillText(m.label, mx, my - radius - 6);
+            });
         }
 
         function draw() {
             ctx.clearRect(0, 0, w, h);
-            drawBody();
+            drawMarkers();
 
             points.forEach(p => {
                 ctx.beginPath();
@@ -289,13 +270,6 @@
                 ctx.shadowBlur = 8;
                 ctx.fillText(p.label, p.x, p.y + radius + 14);
                 ctx.shadowBlur = 0;
-
-                // Если выбрана часть тела - пишем метку рядом
-                if (p.bodyPart && isSelected) {
-                    ctx.font = '12px system-ui';
-                    ctx.fillStyle = '#b8a6ff';
-                    ctx.fillText(`📍 ${p.bodyPart}`, p.x, p.y - radius - 12);
-                }
             });
 
             ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
