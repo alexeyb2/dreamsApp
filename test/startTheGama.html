@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>🟣🦅 Перетягивание каната 3D</title>
+    <title>🟣🦅 Мультицентр 3D</title>
     <script type="importmap">
         {
             "imports": {
@@ -45,69 +45,67 @@
 
         #ui-panel {
             background: #161127;
-            padding: 16px 20px;
+            padding: 12px 16px;
             border-radius: 32px 32px 0 0;
-            max-height: 55vh;
+            max-height: 50vh;
             overflow-y: auto;
             backdrop-filter: blur(12px);
             box-shadow: 0 -8px 30px rgba(0,0,0,0.8);
             touch-action: pan-y;
         }
 
-        .row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
-        .col { flex: 1; min-width: 120px; }
-        .col label { display: block; font-size: 12px; opacity: 0.6; margin-bottom: 2px; }
-        .col .flex { display: flex; gap: 6px; }
+        /* Общие стили */
+        .row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+        .col { flex: 1; min-width: 80px; }
+        .col label { display: block; font-size: 11px; opacity: 0.6; margin-bottom: 2px; }
+        .flex { display: flex; gap: 4px; align-items: center; }
 
         input[type="text"] {
-            width: 100%; padding: 8px 10px; font-size: 15px;
-            background: #221b38; border: 1px solid #3a2f5a; border-radius: 12px;
+            width: 100%; padding: 6px 8px; font-size: 14px;
+            background: #221b38; border: 1px solid #3a2f5a; border-radius: 8px;
             color: #f0eaff; outline: none;
         }
-        input.small { width: 60px; flex-shrink: 0; }
+        input.small { width: 40px; flex-shrink: 0; }
         input[type="color"] {
-            width: 40px; height: 40px; border: none; border-radius: 8px;
+            width: 32px; height: 32px; border: none; border-radius: 6px;
             background: transparent; cursor: pointer; padding: 0;
         }
 
-        .info-bar {
+        .pair-card {
+            background: #1a1330;
+            border-radius: 12px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            border: 1px solid #2a2248;
+        }
+        .pair-card .header {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 12px; background: #100d1e; border-radius: 16px;
-            margin-bottom: 10px; font-size: 14px;
+            margin-bottom: 4px;
         }
-        .info-bar .left { color: #8f78e6; }
-        .info-bar .right { color: #e6788f; }
-        .info-bar .center { color: #b8a6ff; font-weight: 600; }
+        .pair-card .header .pair-id { font-size: 12px; opacity: 0.5; }
+        .pair-card .header .del-btn {
+            background: #5a2a2a; border: none; color: #ff8a8a;
+            border-radius: 50%; width: 24px; height: 24px;
+            cursor: pointer; font-size: 14px;
+        }
+        .pair-card .body { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pair-card .body .side { flex: 1; min-width: 100px; }
 
-        .catalog-section { margin-top: 10px; background: #100d1e; border-radius: 16px; padding: 10px; }
-        .catalog-section h4 { font-size: 14px; margin-bottom: 6px; color: #b8a6ff; }
-        .catalog-row { display: flex; gap: 8px; margin-bottom: 8px; }
-        .catalog-row input { flex: 1; }
-        .catalog-list { max-height: 100px; overflow-y: auto; }
-        .catalog-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 4px 8px; background: #1a1330; border-radius: 10px; margin-bottom: 4px;
-        }
-        .catalog-item .name { flex: 1; font-size: 13px; }
-        .catalog-item button {
-            background: #2a2348; border: none; color: #b8a6ff;
-            padding: 2px 10px; border-radius: 10px; font-size: 12px; cursor: pointer;
-        }
-        .catalog-item button.load { background: #6f52c4; color: #fff; }
-        .catalog-item button.del { background: #5a2a2a; color: #ff8a8a; }
-
-        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
         .btn {
-            flex: 1; padding: 12px; border: none; border-radius: 28px;
-            font-size: 16px; font-weight: 600; cursor: pointer;
+            padding: 8px 16px; border: none; border-radius: 20px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
             color: #fff; transition: 0.2s;
         }
         .btn-primary { background: #6f52c4; }
-        .btn-primary:active { transform: scale(0.95); background: #5d43a8; }
+        .btn-primary:active { transform: scale(0.95); }
         .btn-secondary { background: #2a2348; }
-        .btn-secondary:active { background: #1f1937; }
         .btn-danger { background: #a03a3a; }
-        .btn-danger:active { background: #7a2b2b; }
+
+        #info-bar {
+            display: flex; justify-content: space-between; padding: 4px 8px;
+            background: #100d1e; border-radius: 12px; margin-bottom: 6px;
+            font-size: 12px; color: #b8a6ff;
+        }
 
         #active-indicator {
             position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
@@ -116,8 +114,8 @@
         }
 
         @media (max-width: 600px) {
-            #ui-panel { padding: 12px; }
-            .col { min-width: 80px; }
+            #ui-panel { padding: 8px; }
+            .pair-card .body .side { min-width: 70px; }
         }
     </style>
 </head>
@@ -129,44 +127,15 @@
     </div>
 
     <div id="ui-panel">
-        <!-- Информация о силах -->
-        <div class="info-bar">
-            <span class="left" id="left-info">😌 Спокойствие 50%</span>
-            <span class="center" id="center-info">⚖️</span>
-            <span class="right" id="right-info">😢 Печаль 50%</span>
+        <div id="info-bar">
+            <span>⚖️ Центр: <span id="center-coords">(0.0, 0.0)</span></span>
+            <span>👥 Пар: <span id="pair-count">0</span></span>
         </div>
 
-        <!-- Редактирование -->
-        <div class="row">
-            <div class="col">
-                <label>Чувство (слева)</label>
-                <div class="flex">
-                    <input type="text" id="edit-emoji1" class="small" placeholder="😌" />
-                    <input type="text" id="edit-label1" placeholder="имя" />
-                    <input type="color" id="color1" value="#8f78e6" />
-                </div>
-            </div>
-            <div class="col">
-                <label>Противоположность (справа)</label>
-                <div class="flex">
-                    <input type="text" id="edit-emoji2" class="small" placeholder="😢" />
-                    <input type="text" id="edit-label2" placeholder="имя" />
-                    <input type="color" id="color2" value="#e6788f" />
-                </div>
-            </div>
-        </div>
+        <div id="pairs-list"></div>
 
-        <!-- Каталог -->
-        <div class="catalog-section">
-            <h4>📂 Каталог балансов</h4>
-            <div class="catalog-row">
-                <input type="text" id="catalog-name" placeholder="Название пресета" />
-                <button class="btn btn-primary" id="save-catalog-btn" style="flex:0.4; padding: 8px;">Сохранить</button>
-            </div>
-            <div class="catalog-list" id="catalog-list"></div>
-        </div>
-
-        <div class="btn-group">
+        <div class="row" style="justify-content: center; margin-top: 6px;">
+            <button class="btn btn-primary" id="add-pair-btn">➕ Добавить пару</button>
             <button class="btn btn-secondary" id="reset-positions">🔄 Сброс в центр</button>
             <button class="btn btn-danger" id="reset-all">❌ Сбросить всё</button>
         </div>
@@ -181,27 +150,19 @@
     // ============= DOM =============
     const container = document.getElementById('canvas-container');
     const activeIndicator = document.getElementById('active-indicator');
-    const leftInfo = document.getElementById('left-info');
-    const rightInfo = document.getElementById('right-info');
-    const centerInfo = document.getElementById('center-info');
-    const editEmoji1 = document.getElementById('edit-emoji1');
-    const editLabel1 = document.getElementById('edit-label1');
-    const color1 = document.getElementById('color1');
-    const editEmoji2 = document.getElementById('edit-emoji2');
-    const editLabel2 = document.getElementById('edit-label2');
-    const color2 = document.getElementById('color2');
+    const centerCoords = document.getElementById('center-coords');
+    const pairCountSpan = document.getElementById('pair-count');
+    const pairsList = document.getElementById('pairs-list');
+    const addPairBtn = document.getElementById('add-pair-btn');
     const resetPosBtn = document.getElementById('reset-positions');
     const resetAllBtn = document.getElementById('reset-all');
-    const catalogName = document.getElementById('catalog-name');
-    const saveCatalogBtn = document.getElementById('save-catalog-btn');
-    const catalogList = document.getElementById('catalog-list');
 
     // ============= Three.js =============
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x100d1e);
 
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-    camera.position.set(5, 6, 8);
+    camera.position.set(6, 6, 10);
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -224,7 +185,7 @@
     controls.target.set(0, 0, 0);
     controls.maxPolarAngle = Math.PI / 2.2;
     controls.minDistance = 3;
-    controls.maxDistance = 15;
+    controls.maxDistance = 20;
 
     // Освещение
     scene.add(new THREE.AmbientLight(0x404060));
@@ -254,30 +215,42 @@
     starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starsPos, 3));
     scene.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0x8f78e6, size: 0.15, transparent: true })));
 
-    // ============= Центр =============
+    // ============= ДАННЫЕ =============
+    const MAX_DIST = 5.0; // максимальное расстояние для нормировки силы
+
+    let pairs = []; // массив объектов: { id, left: {emoji, label, color, x, z}, right: {...} }
+    let nextId = 1;
+
+    // Центр
+    const centerPos = new THREE.Vector3(0, 0.2, 0);
     const centerSphere = new THREE.Mesh(
-        new THREE.SphereGeometry(0.25, 16, 16),
-        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5 })
+        new THREE.SphereGeometry(0.3, 16, 16),
+        new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xffaa00, emissiveIntensity: 0.5 })
     );
-    centerSphere.position.set(0, 0, 0);
+    centerSphere.position.copy(centerPos);
     scene.add(centerSphere);
 
-    // Добавим свечение вокруг центра
+    // Свечение центра
     const glow = new THREE.Mesh(
-        new THREE.SphereGeometry(0.4, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 })
+        new THREE.SphereGeometry(0.5, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.15 })
     );
-    glow.position.set(0, 0, 0);
+    glow.position.copy(centerPos);
     scene.add(glow);
 
-    // ============= Логика эмодзи =============
-    function createEmojiGroup(emoji, label, color) {
+    // Контейнеры для объектов и линий
+    let emojiGroups = {}; // id -> { left: group, right: group }
+    let lines = {}; // id -> { left: line, right: line }
+
+    // ============= ФУНКЦИИ СОЗДАНИЯ ЭМОДЗИ =============
+    function createEmojiSprite(emoji, label, color) {
         const canvas = document.createElement('canvas');
         canvas.width = 256; canvas.height = 256;
         const ctx = canvas.getContext('2d');
         const grad = ctx.createRadialGradient(128, 128, 20, 128, 128, 120);
-        grad.addColorStop(0, hexToRgba(color, 0.4));
-        grad.addColorStop(1, hexToRgba(color, 0));
+        const c = new THREE.Color(color);
+        grad.addColorStop(0, `rgba(${c.r*255|0}, ${c.g*255|0}, ${c.b*255|0}, 0.4)`);
+        grad.addColorStop(1, `rgba(${c.r*255|0}, ${c.g*255|0}, ${c.b*255|0}, 0)`);
         ctx.fillStyle = grad;
         ctx.beginPath(); ctx.arc(128, 128, 120, 0, Math.PI * 2); ctx.fill();
         ctx.font = '120px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
@@ -289,255 +262,181 @@
 
         const labelDiv = document.createElement('div');
         labelDiv.textContent = label;
-        labelDiv.style.cssText = `color:${color}; font-size:16px; font-weight:500; text-shadow:0 2px 10px rgba(0,0,0,0.8); background:rgba(22,17,39,0.7); padding:2px 12px; border-radius:12px; border:1px solid ${color}; backdrop-filter:blur(4px); pointer-events:none;`;
+        labelDiv.style.cssText = `color:${color}; font-size:14px; font-weight:500; text-shadow:0 2px 10px rgba(0,0,0,0.8); background:rgba(22,17,39,0.7); padding:2px 10px; border-radius:10px; border:1px solid ${color}; backdrop-filter:blur(4px); pointer-events:none;`;
         const labelObj = new CSS2DObject(labelDiv);
-        labelObj.position.set(0, -1.2, 0);
+        labelObj.position.set(0, -1.0, 0);
 
         const group = new THREE.Group();
         group.add(sprite);
         group.add(labelObj);
-        group.userData = { sprite, labelDiv, labelObj };
+        group.userData = { sprite, labelDiv };
         return group;
     }
 
-    function hexToRgba(hex, alpha) {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-
-    // ============= МОДЕЛЬ =============
-    const MAX_DIST = 4.0; // максимальное расстояние от центра, где сила = 1
-
-    let state = {
-        1: { emoji: '😌', label: 'Спокойствие', x: -2.0, z: 0, color: '#8f78e6' },
-        2: { emoji: '😢', label: 'Печаль', x: 2.0, z: 0, color: '#e6788f' }
-    };
-
-    // Вычисление силы (0..1) на основе расстояния до центра
-    function calcForce(x, z) {
-        const dist = Math.sqrt(x*x + z*z);
-        return Math.min(1, dist / MAX_DIST);
-    }
-
-    // Сохранение в localStorage
-    function saveToLocal() {
-        const data = {
-            s1: state[1], s2: state[2],
-            catalog: loadCatalog()
+    // ============= УПРАВЛЕНИЕ ПАРАМИ =============
+    function addPair(leftEmoji = '😌', leftLabel = 'Спокойствие', leftColor = '#8f78e6',
+                  rightEmoji = '😢', rightLabel = 'Печаль', rightColor = '#e6788f') {
+        const id = nextId++;
+        // Размещаем симметрично относительно текущего центра
+        const cx = centerPos.x;
+        const cz = centerPos.z;
+        const offset = 2.0;
+        const pair = {
+            id,
+            left: { emoji: leftEmoji, label: leftLabel, color: leftColor, x: cx - offset, z: cz },
+            right: { emoji: rightEmoji, label: rightLabel, color: rightColor, x: cx + offset, z: cz }
         };
-        localStorage.setItem('tug_of_war', JSON.stringify(data));
-    }
+        pairs.push(pair);
 
-    function loadFromLocal() {
-        const raw = localStorage.getItem('tug_of_war');
-        if (!raw) return;
-        try {
-            const data = JSON.parse(raw);
-            if (data.s1) Object.assign(state[1], data.s1);
-            if (data.s2) Object.assign(state[2], data.s2);
-        } catch (e) {}
-    }
+        // Создаём 3D объекты
+        const leftGroup = createEmojiSprite(pair.left.emoji, pair.left.label, pair.left.color);
+        leftGroup.position.set(pair.left.x, 0.1, pair.left.z);
+        scene.add(leftGroup);
 
-    function getSnapshot() {
-        return JSON.parse(JSON.stringify(state));
-    }
+        const rightGroup = createEmojiSprite(pair.right.emoji, pair.right.label, pair.right.color);
+        rightGroup.position.set(pair.right.x, 0.1, pair.right.z);
+        scene.add(rightGroup);
 
-    function applySnapshot(snap) {
-        Object.assign(state, snap);
-        updateScene();
+        emojiGroups[id] = { left: leftGroup, right: rightGroup };
+
+        // Линии
+        const leftLine = createLine(pair.left.color);
+        const rightLine = createLine(pair.right.color);
+        lines[id] = { left: leftLine, right: rightLine };
+
         updateUI();
-        saveToLocal();
+        saveState();
+        return id;
     }
 
-    // ============= КАТАЛОГ =============
-    function loadCatalog() {
-        const raw = localStorage.getItem('tug_catalog');
-        if (!raw) return [];
-        try { return JSON.parse(raw); } catch { return []; }
+    function createLine(color) {
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array([0,0,0, 0,0,0]);
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.5 });
+        const line = new THREE.Line(geometry, material);
+        scene.add(line);
+        return line;
     }
 
-    function saveCatalog(catalog) {
-        localStorage.setItem('tug_catalog', JSON.stringify(catalog));
-    }
-
-    function renderCatalog() {
-        const catalog = loadCatalog();
-        catalogList.innerHTML = '';
-        catalog.forEach((item, idx) => {
-            const div = document.createElement('div');
-            div.className = 'catalog-item';
-            div.innerHTML = `
-                <span class="name">${item.name}</span>
-                <div style="display:flex; gap:4px;">
-                    <button class="load" data-idx="${idx}">Загрузить</button>
-                    <button class="del" data-idx="${idx}">Удалить</button>
-                </div>
-            `;
-            catalogList.appendChild(div);
-        });
-        catalogList.querySelectorAll('.load').forEach(b => b.addEventListener('click', (e) => {
-            const idx = parseInt(e.target.dataset.idx);
-            const catalog = loadCatalog();
-            if (catalog[idx]) {
-                applySnapshot(catalog[idx].snapshot);
-                // Обновим интерфейс
-                updateUI();
-                updateScene();
-                saveToLocal();
-                // Обновим каталог в хранилище (но он уже сохранён)
-            }
-        }));
-        catalogList.querySelectorAll('.del').forEach(b => b.addEventListener('click', (e) => {
-            const idx = parseInt(e.target.dataset.idx);
-            const catalog = loadCatalog();
-            catalog.splice(idx, 1);
-            saveCatalog(catalog);
-            renderCatalog();
-        }));
-    }
-
-    saveCatalogBtn.addEventListener('click', () => {
-        const name = catalogName.value.trim();
-        if (!name) { alert('Введите название'); return; }
-        const catalog = loadCatalog();
-        catalog.push({ name, snapshot: getSnapshot() });
-        saveCatalog(catalog);
-        renderCatalog();
-        catalogName.value = '';
-    });
-
-    // ============= СЦЕНА И UI =============
-    let group1, group2;
-    let line1, line2;
-
-    function initScene() {
-        loadFromLocal();
-        group1 = createEmojiGroup(state[1].emoji, state[1].label, state[1].color);
-        group2 = createEmojiGroup(state[2].emoji, state[2].label, state[2].color);
-        scene.add(group1);
-        scene.add(group2);
-
-        // Линии (канаты) – используем LineSegments с динамическим обновлением
-        const createLine = (color) => {
-            const geometry = new THREE.BufferGeometry();
-            const positions = new Float32Array([0,0,0, 0,0,0]); // 2 точки
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
-            const line = new THREE.Line(geometry, material);
-            scene.add(line);
-            return line;
-        };
-        line1 = createLine(state[1].color);
-        line2 = createLine(state[2].color);
-
-        updateScene();
+    function removePair(id) {
+        const idx = pairs.findIndex(p => p.id === id);
+        if (idx === -1) return;
+        const pair = pairs[idx];
+        // Удалить объекты
+        const groups = emojiGroups[id];
+        if (groups) {
+            scene.remove(groups.left);
+            scene.remove(groups.right);
+            delete emojiGroups[id];
+        }
+        const linesObj = lines[id];
+        if (linesObj) {
+            scene.remove(linesObj.left);
+            scene.remove(linesObj.right);
+            delete lines[id];
+        }
+        pairs.splice(idx, 1);
         updateUI();
-        renderCatalog();
+        saveState();
     }
 
+    // ============= ОБНОВЛЕНИЕ СЦЕНЫ =============
     function updateScene() {
-        group1.position.set(state[1].x, 0.1, state[1].z);
-        group2.position.set(state[2].x, 0.1, state[2].z);
+        // Пересчёт центра (плавно)
+        const totalWeight = 0;
+        const weightedSum = new THREE.Vector3();
+        let anyWeight = false;
 
-        // Обновить спрайты и метки при изменении эмодзи/имени/цвета
-        updateSprite(group1, 1);
-        updateSprite(group2, 2);
+        pairs.forEach(pair => {
+            const left = pair.left;
+            const right = pair.right;
+            // Для каждого эмодзи вычислить силу и вес
+            [left, right].forEach(item => {
+                const dx = item.x - centerPos.x;
+                const dz = item.z - centerPos.z;
+                const dist = Math.sqrt(dx*dx + dz*dz);
+                const force = Math.min(1, dist / MAX_DIST);
+                if (force > 0.001) {
+                    const weight = force;
+                    weightedSum.x += item.x * weight;
+                    weightedSum.z += item.z * weight;
+                    totalWeight += weight;
+                    anyWeight = true;
+                }
+            });
+        });
 
-        // Обновить линии
-        const pos1 = group1.position.clone();
-        const pos2 = group2.position.clone();
-        // Линия от центра к объекту
-        const linePositions1 = line1.geometry.attributes.position.array;
-        linePositions1[0] = 0; linePositions1[1] = 0; linePositions1[2] = 0;
-        linePositions1[3] = pos1.x; linePositions1[4] = pos1.y; linePositions1[5] = pos1.z;
-        line1.geometry.attributes.position.needsUpdate = true;
-
-        const linePositions2 = line2.geometry.attributes.position.array;
-        linePositions2[0] = 0; linePositions2[1] = 0; linePositions2[2] = 0;
-        linePositions2[3] = pos2.x; linePositions2[4] = pos2.y; linePositions2[5] = pos2.z;
-        line2.geometry.attributes.position.needsUpdate = true;
-
-        // Цвет линий
-        line1.material.color.set(state[1].color);
-        line2.material.color.set(state[2].color);
-    }
-
-    function updateSprite(group, id) {
-        const data = state[id];
-        const color = data.color;
-        const canvas = document.createElement('canvas');
-        canvas.width = 256; canvas.height = 256;
-        const ctx = canvas.getContext('2d');
-        const grad = ctx.createRadialGradient(128, 128, 20, 128, 128, 120);
-        grad.addColorStop(0, hexToRgba(color, 0.4));
-        grad.addColorStop(1, hexToRgba(color, 0));
-        ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.arc(128, 128, 120, 0, Math.PI * 2); ctx.fill();
-        ctx.font = '120px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(data.emoji, 128, 128);
-        const texture = new THREE.CanvasTexture(canvas);
-        group.userData.sprite.material.map = texture;
-        group.userData.sprite.material.needsUpdate = true;
-        group.userData.labelDiv.textContent = data.label;
-        group.userData.labelDiv.style.color = color;
-        group.userData.labelDiv.style.borderColor = color;
-    }
-
-    function updateUI() {
-        editEmoji1.value = state[1].emoji;
-        editLabel1.value = state[1].label;
-        color1.value = state[1].color;
-        editEmoji2.value = state[2].emoji;
-        editLabel2.value = state[2].label;
-        color2.value = state[2].color;
-
-        // Вычислить силы и проценты
-        const f1 = calcForce(state[1].x, state[1].z);
-        const f2 = calcForce(state[2].x, state[2].z);
-        const total = f1 + f2;
-        const p1 = total > 0 ? Math.round((f1 / total) * 100) : 50;
-        const p2 = total > 0 ? Math.round((f2 / total) * 100) : 50;
-
-        leftInfo.textContent = `${state[1].emoji} ${state[1].label} ${p1}%`;
-        rightInfo.textContent = `${state[2].emoji} ${state[2].label} ${p2}%`;
-        if (p1 > p2) {
-            centerInfo.textContent = `⬅️ ${state[1].label} тянет сильнее`;
-            centerInfo.style.color = state[1].color;
-        } else if (p2 > p1) {
-            centerInfo.textContent = `➡️ ${state[2].label} тянет сильнее`;
-            centerInfo.style.color = state[2].color;
-        } else {
-            centerInfo.textContent = '⚖️ Равновесие';
-            centerInfo.style.color = '#b8a6ff';
+        if (anyWeight) {
+            const targetX = weightedSum.x / totalWeight;
+            const targetZ = weightedSum.z / totalWeight;
+            // Плавное движение (LERP)
+            const speed = 0.05;
+            centerPos.x += (targetX - centerPos.x) * speed;
+            centerPos.z += (targetZ - centerPos.z) * speed;
         }
 
-        // Обновить цвет центральной сферы (смесь)
-        const mix = new THREE.Color(state[1].color).lerp(new THREE.Color(state[2].color), p2 / 100);
-        centerSphere.material.color.copy(mix);
-        centerSphere.material.emissive.copy(mix);
-        glow.material.color.copy(mix);
+        // Ограничить центр в пределах поля
+        const limit = 4.5;
+        centerPos.x = Math.max(-limit, Math.min(limit, centerPos.x));
+        centerPos.z = Math.max(-limit, Math.min(limit, centerPos.z));
 
-        // Толщина линий (визуально через масштаб? не поддерживается в WebGL, используем прозрачность)
-        const maxLineOpacity = 1.0;
-        line1.material.opacity = Math.min(1, f1 * 1.5);
-        line2.material.opacity = Math.min(1, f2 * 1.5);
-        line1.material.transparent = true;
-        line2.material.transparent = true;
+        // Обновить центр
+        centerSphere.position.copy(centerPos);
+        glow.position.copy(centerPos);
 
-        activeIndicator.textContent = `👉 ${state[activeId].emoji} ${state[activeId].label}`;
+        // Обновить позиции эмодзи и линии
+        pairs.forEach(pair => {
+            const id = pair.id;
+            const groups = emojiGroups[id];
+            if (!groups) return;
+            const leftGroup = groups.left;
+            const rightGroup = groups.right;
+            leftGroup.position.set(pair.left.x, 0.1, pair.left.z);
+            rightGroup.position.set(pair.right.x, 0.1, pair.right.z);
+
+            // Обновить линии
+            const lineLeft = lines[id]?.left;
+            const lineRight = lines[id]?.right;
+            if (lineLeft) {
+                const pos = lineLeft.geometry.attributes.position.array;
+                pos[0] = centerPos.x; pos[1] = centerPos.y; pos[2] = centerPos.z;
+                pos[3] = pair.left.x; pos[4] = 0.1; pos[5] = pair.left.z;
+                lineLeft.geometry.attributes.position.needsUpdate = true;
+                // Прозрачность по силе
+                const dx = pair.left.x - centerPos.x;
+                const dz = pair.left.z - centerPos.z;
+                const dist = Math.sqrt(dx*dx + dz*dz);
+                const force = Math.min(1, dist / MAX_DIST);
+                lineLeft.material.opacity = 0.2 + force * 0.8;
+            }
+            if (lineRight) {
+                const pos = lineRight.geometry.attributes.position.array;
+                pos[0] = centerPos.x; pos[1] = centerPos.y; pos[2] = centerPos.z;
+                pos[3] = pair.right.x; pos[4] = 0.1; pos[5] = pair.right.z;
+                lineRight.geometry.attributes.position.needsUpdate = true;
+                const dx = pair.right.x - centerPos.x;
+                const dz = pair.right.z - centerPos.z;
+                const dist = Math.sqrt(dx*dx + dz*dz);
+                const force = Math.min(1, dist / MAX_DIST);
+                lineRight.material.opacity = 0.2 + force * 0.8;
+            }
+        });
+
+        // Обновить UI информацию
+        centerCoords.textContent = `(${centerPos.x.toFixed(2)}, ${centerPos.z.toFixed(2)})`;
+        pairCountSpan.textContent = pairs.length;
     }
 
-    // ============= ПЕРЕТАСКИВАНИЕ И ВЫБОР =============
-    let activeId = 1;
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    let isDragging = false;
+    // ============= ПЕРЕТАСКИВАНИЕ ЭМОДЗИ =============
+    let activePairId = null;
+    let activeSide = null; // 'left' or 'right'
     let dragGroup = null;
+    let isDragging = false;
     const dragOffset = new THREE.Vector3();
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
 
     function getPointer(event) {
         const rect = renderer.domElement.getBoundingClientRect();
@@ -548,18 +447,34 @@
     function onPointerDown(event) {
         getPointer(event);
         raycaster.setFromCamera(pointer, camera);
-        const sprites = [group1.children[0], group2.children[0]];
+        // Собрать все спрайты
+        const sprites = [];
+        const idMap = {};
+        pairs.forEach(pair => {
+            const groups = emojiGroups[pair.id];
+            if (groups) {
+                sprites.push(groups.left.children[0]);
+                idMap[groups.left.children[0].id] = { id: pair.id, side: 'left' };
+                sprites.push(groups.right.children[0]);
+                idMap[groups.right.children[0].id] = { id: pair.id, side: 'right' };
+            }
+        });
         const intersects = raycaster.intersectObjects(sprites);
         if (intersects.length > 0) {
             const hit = intersects[0].object;
-            if (hit === group1.children[0]) activeId = 1;
-            else if (hit === group2.children[0]) activeId = 2;
-            updateUI();
-            isDragging = true;
-            dragGroup = activeId === 1 ? group1 : group2;
-            const intersectPoint = intersects[0].point;
-            dragOffset.copy(intersectPoint).sub(dragGroup.position);
-            controls.enabled = false;
+            const info = idMap[hit.id];
+            if (info) {
+                activePairId = info.id;
+                activeSide = info.side;
+                const group = emojiGroups[activePairId][activeSide];
+                dragGroup = group;
+                const intersectPoint = intersects[0].point;
+                dragOffset.copy(intersectPoint).sub(dragGroup.position);
+                controls.enabled = false;
+                isDragging = true;
+                activeIndicator.textContent = `👉 ${activePairId} ${activeSide}`;
+                updateUI();
+            }
         }
     }
 
@@ -575,12 +490,15 @@
             newPos.x = Math.max(-MAX_DIST, Math.min(MAX_DIST, newPos.x));
             newPos.z = Math.max(-MAX_DIST, Math.min(MAX_DIST, newPos.z));
             dragGroup.position.copy(newPos);
-            const id = activeId;
-            state[id].x = newPos.x;
-            state[id].z = newPos.z;
+            // Обновить данные
+            const pair = pairs.find(p => p.id === activePairId);
+            if (pair) {
+                const side = pair[activeSide];
+                side.x = newPos.x;
+                side.z = newPos.z;
+            }
             updateScene();
-            updateUI();
-            saveToLocal();
+            saveState();
         }
     }
 
@@ -589,7 +507,8 @@
             isDragging = false;
             dragGroup = null;
             controls.enabled = true;
-            saveToLocal();
+            activeIndicator.textContent = '👆 Коснись эмодзи, чтобы выбрать';
+            saveState();
         }
     }
 
@@ -598,26 +517,167 @@
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
 
-    // ============= ОБРАБОТЧИКИ UI =============
-    editEmoji1.addEventListener('input', () => { state[1].emoji = editEmoji1.value.trim() || '😌'; updateSprite(group1, 1); updateUI(); saveToLocal(); });
-    editLabel1.addEventListener('input', () => { state[1].label = editLabel1.value.trim() || 'Чувство'; updateSprite(group1, 1); updateUI(); saveToLocal(); });
-    color1.addEventListener('input', () => { state[1].color = color1.value; updateSprite(group1, 1); updateScene(); updateUI(); saveToLocal(); });
-    editEmoji2.addEventListener('input', () => { state[2].emoji = editEmoji2.value.trim() || '😢'; updateSprite(group2, 2); updateUI(); saveToLocal(); });
-    editLabel2.addEventListener('input', () => { state[2].label = editLabel2.value.trim() || 'Противоположность'; updateSprite(group2, 2); updateUI(); saveToLocal(); });
-    color2.addEventListener('input', () => { state[2].color = color2.value; updateSprite(group2, 2); updateScene(); updateUI(); saveToLocal(); });
+    // ============= UI =============
+    function updateUI() {
+        pairsList.innerHTML = '';
+        pairs.forEach(pair => {
+            const card = document.createElement('div');
+            card.className = 'pair-card';
+            card.innerHTML = `
+                <div class="header">
+                    <span class="pair-id">#${pair.id}</span>
+                    <button class="del-btn" data-id="${pair.id}">✕</button>
+                </div>
+                <div class="body">
+                    <div class="side">
+                        <div class="flex">
+                            <input type="text" class="small emoji" data-id="${pair.id}" data-side="left" value="${pair.left.emoji}" />
+                            <input type="text" class="label" data-id="${pair.id}" data-side="left" value="${pair.left.label}" />
+                            <input type="color" class="color" data-id="${pair.id}" data-side="left" value="${pair.left.color}" />
+                        </div>
+                    </div>
+                    <div class="side">
+                        <div class="flex">
+                            <input type="text" class="small emoji" data-id="${pair.id}" data-side="right" value="${pair.right.emoji}" />
+                            <input type="text" class="label" data-id="${pair.id}" data-side="right" value="${pair.right.label}" />
+                            <input type="color" class="color" data-id="${pair.id}" data-side="right" value="${pair.right.color}" />
+                        </div>
+                    </div>
+                </div>
+            `;
+            pairsList.appendChild(card);
+
+            // Обработчики
+            card.querySelector('.del-btn').addEventListener('click', () => {
+                const id = parseInt(card.querySelector('.del-btn').dataset.id);
+                removePair(id);
+            });
+
+            card.querySelectorAll('.emoji, .label, .color').forEach(input => {
+                input.addEventListener('input', () => {
+                    const id = parseInt(input.dataset.id);
+                    const side = input.dataset.side;
+                    const pair = pairs.find(p => p.id === id);
+                    if (!pair) return;
+                    const obj = pair[side];
+                    if (input.classList.contains('emoji')) obj.emoji = input.value.trim() || '😀';
+                    else if (input.classList.contains('label')) obj.label = input.value.trim() || 'Без имени';
+                    else if (input.classList.contains('color')) obj.color = input.value;
+                    // Обновить спрайт
+                    updateSprite(id, side);
+                    updateScene();
+                    saveState();
+                });
+            });
+        });
+    }
+
+    function updateSprite(pairId, side) {
+        const pair = pairs.find(p => p.id === pairId);
+        if (!pair) return;
+        const data = pair[side];
+        const group = emojiGroups[pairId]?.[side];
+        if (!group) return;
+        // Пересоздать спрайт с новыми параметрами
+        const newGroup = createEmojiSprite(data.emoji, data.label, data.color);
+        newGroup.position.copy(group.position);
+        scene.add(newGroup);
+        scene.remove(group);
+        emojiGroups[pairId][side] = newGroup;
+        // Обновить линию (цвет)
+        const line = lines[pairId]?.[side];
+        if (line) {
+            line.material.color.set(data.color);
+        }
+    }
+
+    // ============= СОХРАНЕНИЕ =============
+    function saveState() {
+        const data = {
+            pairs: pairs.map(p => ({
+                id: p.id,
+                left: { ...p.left },
+                right: { ...p.right }
+            })),
+            nextId: nextId,
+            center: { x: centerPos.x, z: centerPos.z }
+        };
+        localStorage.setItem('multi_center', JSON.stringify(data));
+    }
+
+    function loadState() {
+        const raw = localStorage.getItem('multi_center');
+        if (!raw) return false;
+        try {
+            const data = JSON.parse(raw);
+            // Восстановить пары
+            pairs = data.pairs.map(p => ({
+                id: p.id,
+                left: { ...p.left },
+                right: { ...p.right }
+            }));
+            nextId = data.nextId || 1;
+            if (data.center) {
+                centerPos.x = data.center.x;
+                centerPos.z = data.center.z;
+            }
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // ============= ИНИЦИАЛИЗАЦИЯ =============
+    function init() {
+        const loaded = loadState();
+        if (!loaded || pairs.length === 0) {
+            // Добавить дефолтную пару
+            addPair();
+        } else {
+            // Воссоздать объекты
+            pairs.forEach(pair => {
+                const leftGroup = createEmojiSprite(pair.left.emoji, pair.left.label, pair.left.color);
+                leftGroup.position.set(pair.left.x, 0.1, pair.left.z);
+                scene.add(leftGroup);
+                const rightGroup = createEmojiSprite(pair.right.emoji, pair.right.label, pair.right.color);
+                rightGroup.position.set(pair.right.x, 0.1, pair.right.z);
+                scene.add(rightGroup);
+                emojiGroups[pair.id] = { left: leftGroup, right: rightGroup };
+                const leftLine = createLine(pair.left.color);
+                const rightLine = createLine(pair.right.color);
+                lines[pair.id] = { left: leftLine, right: rightLine };
+            });
+            updateUI();
+        }
+        // Установить центр
+        centerSphere.position.copy(centerPos);
+        glow.position.copy(centerPos);
+    }
+
+    // ============= КНОПКИ =============
+    addPairBtn.addEventListener('click', () => {
+        addPair();
+    });
 
     resetPosBtn.addEventListener('click', () => {
-        state[1].x = -2.0; state[1].z = 0;
-        state[2].x = 2.0; state[2].z = 0;
+        // Сбросить все пары в симметричные позиции относительно центра
+        pairs.forEach(pair => {
+            const cx = centerPos.x;
+            const cz = centerPos.z;
+            pair.left.x = cx - 2.0;
+            pair.left.z = cz;
+            pair.right.x = cx + 2.0;
+            pair.right.z = cz;
+            updateSprite(pair.id, 'left');
+            updateSprite(pair.id, 'right');
+        });
         updateScene();
-        updateUI();
-        saveToLocal();
+        saveState();
     });
 
     resetAllBtn.addEventListener('click', () => {
-        if (confirm('Сбросить все данные и каталог?')) {
-            localStorage.removeItem('tug_of_war');
-            localStorage.removeItem('tug_catalog');
+        if (confirm('Сбросить все данные?')) {
+            localStorage.removeItem('multi_center');
             location.reload();
         }
     });
@@ -626,12 +686,13 @@
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
+        updateScene(); // обновление центра каждый кадр
         renderer.render(scene, camera);
         labelRenderer.render(scene, camera);
     }
 
-    // ============= ИНИЦИАЛИЗАЦИЯ =============
-    initScene();
+    // ============= ЗАПУСК =============
+    init();
     animate();
 
     window.addEventListener('resize', () => {
@@ -642,7 +703,7 @@
         labelRenderer.setSize(w, h);
     });
 
-    console.log('🟣🦅 Перетягивание каната загружено');
+    console.log('🟣🟦 Мультицентр загружен');
 </script>
 </body>
 </html>
