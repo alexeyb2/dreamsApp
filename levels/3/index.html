@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Карта Желаний</title>
+    <title>Аффирмации</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -14,9 +14,8 @@
 
         h1 { text-align: center; font-size: 24px; color: #b8a6ff; margin-bottom: 20px; }
 
-        /* Заголовок и кнопки */
         .header-actions {
-            display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+            display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;
         }
         .btn {
             border: none; background: #2a2348; color: #b8a6ff;
@@ -27,22 +26,19 @@
         .btn-primary { background: #6f52c4; color: #fff; }
         .btn-shuffle { background: #e67e22; color: #fff; }
 
-        /* Блок Желания */
-        .desire-block {
+        /* Блок цели */
+        .goal-block {
             background: #161127; border-radius: 24px; padding: 16px; margin-bottom: 20px;
             border: 1px solid #3a2f5a;
         }
-        .desire-block label { font-size: 14px; font-weight: 600; color: #8f78e6; display: block; margin-bottom: 4px; }
-        .desire-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
-        .desire-row input, .desire-row select {
-            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
-            padding: 8px 12px; color: #fff; font-size: 15px; outline: none; flex: 1; min-width: 100px;
+        .goal-block label { font-size: 14px; font-weight: 600; color: #8f78e6; display: block; margin-bottom: 4px; }
+        .goal-block input {
+            width: 100%; background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
+            padding: 10px 12px; color: #fff; font-size: 16px; outline: none;
         }
-        .desire-row input[type="range"] { flex: 2; padding: 0; height: 6px; accent-color: #6f52c4; }
-        .desire-row .percent-val { min-width: 40px; text-align: center; font-weight: bold; color: #b8a6ff; }
 
-        /* Блок Мыслей */
-        .thoughts-block { margin-bottom: 20px; }
+        /* Уровни убеждений (сверху вниз: Знаю, Верю, Думаю) */
+        .beliefs-section { margin-bottom: 20px; }
         .level-card {
             background: #100d1e; border-radius: 16px; padding: 12px; margin-bottom: 12px;
             border-left: 4px solid #6f52c4;
@@ -51,33 +47,32 @@
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
         }
         .level-name { font-weight: 700; color: #ffffff; font-size: 16px; }
-        .thoughts-container { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
-        .thought-tag {
+        .level-items { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+        .item-tag {
             background: #2a2348; border: 1px solid #4a3f6a; border-radius: 20px;
             padding: 4px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer;
             transition: 0.2s; font-size: 14px;
         }
-        .thought-tag:active { transform: scale(0.95); background: #6f52c4; }
-        .thought-tag .emoji { font-size: 16px; }
-        .thought-tag .name { color: #fff; font-weight: 500; }
-
+        .item-tag:active { transform: scale(0.95); background: #6f52c4; }
+        .item-tag .emoji { font-size: 16px; }
+        .item-tag .name { color: #fff; font-weight: 500; }
         .empty { color: #4a3f6a; font-size: 13px; padding: 4px 0; }
 
-        /* Блоки чувств и действий */
+        /* Чувства и действия (две колонки) */
         .two-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
         @media (max-width: 500px) { .two-col-grid { grid-template-columns: 1fr; } }
         .col-card {
             background: #100d1e; border-radius: 16px; padding: 12px; border: 1px solid #2a2248;
         }
         .col-title { font-weight: 700; color: #b8a6ff; font-size: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; }
-        .items-container { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
-        .item-tag {
-            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 20px;
-            padding: 4px 12px; display: flex; align-items: center; gap: 6px; font-size: 14px;
+        .col-items { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+
+        /* Кнопки "+" в зонах */
+        .btn-add {
+            background: #221b38; border: none; color: #b8a6ff;
+            width: 28px; height: 28px; border-radius: 50%; font-size: 18px; cursor: pointer;
         }
-        .item-tag .emoji { font-size: 16px; }
-        .item-tag .name { color: #e0d6ff; }
-        .item-tag .del { background: transparent; border: none; color: #ff6b6b; cursor: pointer; margin-left: 4px; font-size: 14px; }
+        .btn-add:active { background: #6f52c4; color: #fff; }
 
         /* Модальное окно добавления */
         #modal-overlay {
@@ -99,7 +94,7 @@
         .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
         .btn-cancel { background: #3a2f5a; color: #b8a6ff; flex: 1; }
 
-        /* Модальное окно перемещения мысли */
+        /* Модальное окно перемещения */
         #move-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 101;
@@ -124,88 +119,78 @@
 <body>
 
     <div id="app">
-        <h1>🧠 Карта Желаний</h1>
+        <h1>🧠 Аффирмация</h1>
 
         <div class="header-actions">
             <button class="btn btn-primary" id="add-thought-btn">➕ Мысль</button>
             <button class="btn btn-shuffle" id="shuffle-btn">🌀 Перемешать</button>
-            <button class="btn" id="reset-btn" style="background:#5a2a2a; color:#ff8a8a;">✖ Сброс</button>
+            <button class="btn" id="reset-btn" style="background:#5a2a2a; color:#ff8a8a; flex:0.5;">✖</button>
         </div>
 
-        <!-- Блок Желания -->
-        <div class="desire-block">
-            <label>💡 Чего ты хочешь?</label>
-            <input type="text" id="desire-input" placeholder="Например: стать свободным" style="width:100%; margin-top:4px;" />
-            <div class="desire-row">
-                <label style="font-size:13px;">Где:</label>
-                <select id="desire-where">
-                    <option value="в уме">в уме</option>
-                    <option value="в реальности">в реальности</option>
-                </select>
-                <label style="font-size:13px; margin-left:8px;">Процент:</label>
-                <input type="range" id="desire-percent" min="0" max="100" value="50" />
-                <span class="percent-val" id="percent-display">50%</span>
-            </div>
+        <!-- Блок цели -->
+        <div class="goal-block">
+            <label>💡 Я получу...</label>
+            <input type="text" id="goal-input" placeholder="Например: внутреннюю свободу" />
         </div>
 
-        <!-- Мысли -->
-        <div class="thoughts-block" id="thoughts-container">
-            <div class="level-card" data-level="think">
+        <!-- Уровни убеждений (сверху вниз) -->
+        <div class="beliefs-section">
+            <div class="level-card" data-level="know">
                 <div class="level-header">
-                    <span class="level-name">🤔 Думаю</span>
-                    <button class="btn-add-thought" data-level="think" style="background:#221b38; border:none; color:#b8a6ff; width:28px; height:28px; border-radius:50%; font-size:18px; cursor:pointer;">+</button>
+                    <span class="level-name">✨ Знаю</span>
+                    <button class="btn-add" data-level="know">+</button>
                 </div>
-                <div class="thoughts-container" data-level="think"></div>
+                <div class="level-items" data-level="know"></div>
             </div>
             <div class="level-card" data-level="believe">
                 <div class="level-header">
                     <span class="level-name">🙏 Верю</span>
-                    <button class="btn-add-thought" data-level="believe" style="background:#221b38; border:none; color:#b8a6ff; width:28px; height:28px; border-radius:50%; font-size:18px; cursor:pointer;">+</button>
+                    <button class="btn-add" data-level="believe">+</button>
                 </div>
-                <div class="thoughts-container" data-level="believe"></div>
+                <div class="level-items" data-level="believe"></div>
             </div>
-            <div class="level-card" data-level="know">
+            <div class="level-card" data-level="think">
                 <div class="level-header">
-                    <span class="level-name">✨ Знаю</span>
-                    <button class="btn-add-thought" data-level="know" style="background:#221b38; border:none; color:#b8a6ff; width:28px; height:28px; border-radius:50%; font-size:18px; cursor:pointer;">+</button>
+                    <span class="level-name">🤔 Думаю</span>
+                    <button class="btn-add" data-level="think">+</button>
                 </div>
-                <div class="thoughts-container" data-level="know"></div>
+                <div class="level-items" data-level="think"></div>
             </div>
         </div>
 
-        <!-- Чувства -->
+        <!-- Чувства (отпускаю / притягиваю) -->
         <div class="two-col-grid">
             <div class="col-card">
                 <div class="col-title">
-                    <span>🚫 Вытолкнуть</span>
-                    <button class="add-item-btn" data-category="push" style="background:#221b38; border:none; color:#b8a6ff; width:24px; height:24px; border-radius:50%; font-size:16px; cursor:pointer;">+</button>
+                    <span>🚫 Отпускаю</span>
+                    <button class="btn-add" data-category="release">+</button>
                 </div>
-                <div class="items-container" data-category="push"></div>
+                <div class="col-items" data-category="release"></div>
             </div>
             <div class="col-card">
                 <div class="col-title">
-                    <span>🧲 Втянуть</span>
-                    <button class="add-item-btn" data-category="pull" style="background:#221b38; border:none; color:#b8a6ff; width:24px; height:24px; border-radius:50%; font-size:16px; cursor:pointer;">+</button>
+                    <span>🧲 Притягиваю</span>
+                    <button class="btn-add" data-category="attract">+</button>
                 </div>
-                <div class="items-container" data-category="pull"></div>
+                <div class="col-items" data-category="attract"></div>
             </div>
         </div>
 
-        <!-- Действия -->
+        <!-- Действия (делаю сейчас / жду) -->
         <div class="two-col-grid">
             <div class="col-card">
                 <div class="col-title">
-                    <span>⚡ Сделать сейчас</span>
-                    <button class="add-item-btn" data-category="now" style="background:#221b38; border:none; color:#b8a6ff; width:24px; height:24px; border-radius:50%; font-size:16px; cursor:pointer;">+</button>
+                    <span>⚡ Делаю сейчас</span>
+                    <button class="btn-add" data-category="do">+</button>
                 </div>
-                <div class="items-container" data-category="now"></div>
+                <div class="col-items" data-category="do"></div>
             </div>
             <div class="col-card">
                 <div class="col-title">
-                    <span>⏳ Ждать (время/событие)</span>
-                    <button class="add-item-btn" data-category="wait" style="background:#221b38; border:none; color:#b8a6ff; width:24px; height:24px; border-radius:50%; font-size:16px; cursor:pointer;">+</button>
+                    <span>⏳ Жду</span>
+                    <button class="btn-add" data-category="wait">+</button>
                 </div>
-                <div class="items-container" data-category="wait"></div>
+                <div class="col-items" data-category="wait"></div>
             </div>
         </div>
     </div>
@@ -222,7 +207,7 @@
                 <label>Название</label>
                 <input type="text" id="input-name" placeholder="Введите название" />
             </div>
-            <div class="input-group" id="target-select-group" style="display:none;">
+            <div class="input-group" id="target-select-group" style="display:block;">
                 <label>Куда</label>
                 <select id="input-target"></select>
             </div>
@@ -233,90 +218,98 @@
         </div>
     </div>
 
-    <!-- Модальное окно перемещения мысли -->
+    <!-- Модальное окно перемещения -->
     <div id="move-modal">
         <div class="move-box">
-            <h4>📍 Переместить мысль</h4>
+            <h4>📍 Переместить</h4>
             <div class="move-grid" id="move-grid"></div>
             <button class="move-close" id="move-close-btn">✖ Закрыть</button>
         </div>
     </div>
 
     <script>
-        // ========== ДАННЫЕ И СОХРАНЕНИЕ ==========
+        // ========== ДАННЫЕ ==========
+        // Категории и их типы
+        const LEVELS = [
+            { id: 'know', label: '✨ Знаю', type: 'belief' },
+            { id: 'believe', label: '🙏 Верю', type: 'belief' },
+            { id: 'think', label: '🤔 Думаю', type: 'belief' }
+        ];
+        const CATEGORIES = [
+            { id: 'release', label: '🚫 Отпускаю', type: 'feeling' },
+            { id: 'attract', label: '🧲 Притягиваю', type: 'feeling' },
+            { id: 'do', label: '⚡ Делаю сейчас', type: 'action' },
+            { id: 'wait', label: '⏳ Жду', type: 'action' }
+        ];
+        // Все доступные зоны для перемещения (плоский список)
+        const ALL_ZONES = [
+            ...LEVELS.map(l => ({ id: l.id, label: l.label, type: l.type })),
+            ...CATEGORIES.map(c => ({ id: c.id, label: c.label, type: c.type }))
+        ];
+
+        // Состояние
         let data = {
-            desire: '',
-            where: 'в уме',
-            percent: 50,
-            thoughts: [], // { id, emoji, name, level: 'think'|'believe'|'know' }
-            pushItems: [], // { id, emoji, name }
-            pullItems: [],
-            nowItems: [],
-            waitItems: []
+            goal: '',
+            items: [] // { id, emoji, name, zone: 'know'|'believe'|'think'|'release'|'attract'|'do'|'wait' }
         };
         let nextId = 1;
 
+        // DOM-элементы
+        const goalInput = document.getElementById('goal-input');
+        const modal = document.getElementById('modal-overlay');
+        const inputEmoji = document.getElementById('input-emoji');
+        const inputName = document.getElementById('input-name');
+        const inputTarget = document.getElementById('input-target');
+        const modalSave = document.getElementById('modal-save-btn');
+        const modalClose = document.getElementById('modal-close-btn');
+
+        const moveModal = document.getElementById('move-modal');
+        const moveGrid = document.getElementById('move-grid');
+        const moveClose = document.getElementById('move-close-btn');
+
+        // ========== СОХРАНЕНИЕ И ЗАГРУЗКА ==========
         function loadData() {
             try {
-                const raw = localStorage.getItem('dreams_level4');
+                const raw = localStorage.getItem('dreams_level5');
                 if (raw) {
                     const parsed = JSON.parse(raw);
-                    data = { ...data, ...parsed };
-                    if (data.thoughts && data.thoughts.length > 0) {
-                        // ensure ids
-                        data.thoughts.forEach(t => { if (!t.id) t.id = nextId++; });
-                    }
+                    data.goal = parsed.goal || '';
+                    data.items = parsed.items || [];
+                    // проставим ID, если нет
+                    data.items.forEach(item => { if (!item.id) item.id = nextId++; });
                 }
             } catch(e) {}
-            // ensure counters
-            data.thoughts.forEach(t => { if (t.id >= nextId) nextId = t.id + 1; });
+            // убедимся, что ID уникальны
+            data.items.forEach(item => { if (item.id >= nextId) nextId = item.id + 1; });
         }
 
         function saveData() {
-            localStorage.setItem('dreams_level4', JSON.stringify(data));
+            localStorage.setItem('dreams_level5', JSON.stringify({ goal: data.goal, items: data.items }));
         }
 
         // ========== ОТРИСОВКА ==========
         function render() {
-            // Желание
-            document.getElementById('desire-input').value = data.desire || '';
-            document.getElementById('desire-where').value = data.where || 'в уме';
-            document.getElementById('desire-percent').value = data.percent || 50;
-            document.getElementById('percent-display').textContent = (data.percent || 50) + '%';
+            // Цель
+            goalInput.value = data.goal || '';
 
-            // Мысли по уровням
-            const levels = ['think', 'believe', 'know'];
-            levels.forEach(level => {
-                const container = document.querySelector(`.thoughts-container[data-level="${level}"]`);
-                const items = data.thoughts.filter(t => t.level === level);
-                container.innerHTML = '';
-                if (items.length === 0) {
-                    const empty = document.createElement('span');
-                    empty.className = 'empty';
-                    empty.textContent = 'пусто';
-                    container.appendChild(empty);
-                } else {
-                    items.forEach(t => {
-                        const tag = document.createElement('span');
-                        tag.className = 'thought-tag';
-                        tag.dataset.id = t.id;
-                        tag.innerHTML = `<span class="emoji">${t.emoji || '🧠'}</span> <span class="name">${t.name || 'Мысль'}</span>`;
-                        container.appendChild(tag);
-                    });
-                }
+            // Отрисовка убеждений (Знаю, Верю, Думаю)
+            LEVELS.forEach(level => {
+                const container = document.querySelector(`.level-items[data-level="${level.id}"]`);
+                const items = data.items.filter(item => item.zone === level.id);
+                renderItems(container, items);
             });
 
             // Чувства и действия
-            renderItems('push', data.pushItems);
-            renderItems('pull', data.pullItems);
-            renderItems('now', data.nowItems);
-            renderItems('wait', data.waitItems);
+            CATEGORIES.forEach(cat => {
+                const container = document.querySelector(`.col-items[data-category="${cat.id}"]`);
+                const items = data.items.filter(item => item.zone === cat.id);
+                renderItems(container, items);
+            });
 
             attachEvents();
         }
 
-        function renderItems(category, items) {
-            const container = document.querySelector(`.items-container[data-category="${category}"]`);
+        function renderItems(container, items) {
             container.innerHTML = '';
             if (items.length === 0) {
                 const empty = document.createElement('span');
@@ -327,170 +320,102 @@
                 items.forEach(item => {
                     const tag = document.createElement('span');
                     tag.className = 'item-tag';
-                    tag.innerHTML = `
-                        <span class="emoji">${item.emoji || '📌'}</span>
-                        <span class="name">${item.name || 'Элемент'}</span>
-                        <button class="del" data-id="${item.id}">✕</button>
-                    `;
+                    tag.dataset.id = item.id;
+                    tag.innerHTML = `<span class="emoji">${item.emoji || '🧩'}</span> <span class="name">${item.name || 'Элемент'}</span>`;
                     container.appendChild(tag);
                 });
             }
         }
 
-        // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
+        // ========== ОБРАБОТЧИКИ ==========
         function attachEvents() {
-            // Сохранение желания при вводе
-            document.getElementById('desire-input').addEventListener('input', (e) => {
-                data.desire = e.target.value;
-                saveData();
-            });
-            document.getElementById('desire-where').addEventListener('change', (e) => {
-                data.where = e.target.value;
-                saveData();
-            });
-            document.getElementById('desire-percent').addEventListener('input', (e) => {
-                data.percent = parseInt(e.target.value);
-                document.getElementById('percent-display').textContent = data.percent + '%';
+            // Цель
+            goalInput.addEventListener('input', (e) => {
+                data.goal = e.target.value;
                 saveData();
             });
 
-            // Клик по мысли -> открыть меню перемещения
-            document.querySelectorAll('.thought-tag').forEach(tag => {
+            // Клик по элементу -> открыть перемещение
+            document.querySelectorAll('.item-tag').forEach(tag => {
                 tag.addEventListener('click', () => {
                     const id = parseInt(tag.dataset.id);
                     openMoveModal(id);
                 });
             });
 
-            // Кнопки добавления мыслей
-            document.querySelectorAll('.btn-add-thought').forEach(btn => {
+            // Кнопки добавления (+)
+            document.querySelectorAll('.btn-add').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const level = btn.dataset.level;
-                    openAddModal('thought', level);
+                    let zone = btn.dataset.level || btn.dataset.category;
+                    openAddModal(zone);
                 });
             });
 
-            // Кнопки добавления чувств/действий
-            document.querySelectorAll('.add-item-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const category = btn.dataset.category;
-                    openAddModal('item', category);
-                });
-            });
-
-            // Кнопка добавления мысли из шапки
+            // Кнопка "➕ Мысль" в шапке
             document.getElementById('add-thought-btn').addEventListener('click', () => {
-                // открыть добавление мысли в случайный уровень (или по умолчанию think)
-                openAddModal('thought', 'think');
-            });
-
-            // Удаление элементов (чувств/действий)
-            document.querySelectorAll('.item-tag .del').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = parseInt(btn.dataset.id);
-                    // найти и удалить
-                    const categories = ['push', 'pull', 'now', 'wait'];
-                    for (let cat of categories) {
-                        const idx = data[cat + 'Items'].findIndex(item => item.id === id);
-                        if (idx !== -1) {
-                            data[cat + 'Items'].splice(idx, 1);
-                            saveData();
-                            render();
-                            break;
-                        }
-                    }
-                });
+                // по умолчанию в уровень Думаю
+                openAddModal('think');
             });
         }
 
         // ========== МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ ==========
-        const overlay = document.getElementById('modal-overlay');
-        const inputEmoji = document.getElementById('input-emoji');
-        const inputName = document.getElementById('input-name');
-        const inputTarget = document.getElementById('input-target');
-        const targetGroup = document.getElementById('target-select-group');
-        const modalSave = document.getElementById('modal-save-btn');
-        const modalClose = document.getElementById('modal-close-btn');
-
-        let modalContext = { type: 'thought', target: 'think' }; // type: 'thought' or 'item', target: level or category
-
-        function openAddModal(type, target) {
-            modalContext = { type, target };
+        function openAddModal(preSelectZone = 'think') {
             inputEmoji.value = '';
             inputName.value = '';
-            if (type === 'thought') {
-                targetGroup.style.display = 'block';
-                // заполнить варианты уровней
-                inputTarget.innerHTML = `
-                    <option value="think">🤔 Думаю</option>
-                    <option value="believe">🙏 Верю</option>
-                    <option value="know">✨ Знаю</option>
-                `;
-                // выбрать переданный уровень
-                if (target) inputTarget.value = target;
-            } else {
-                targetGroup.style.display = 'none';
-            }
-            overlay.classList.add('open');
+            // Заполнить выпадающий список зон
+            inputTarget.innerHTML = '';
+            // Показываем все доступные зоны, кроме тех, которые уже заполнены? Нет, даем все варианты.
+            ALL_ZONES.forEach(z => {
+                const opt = document.createElement('option');
+                opt.value = z.id;
+                opt.textContent = z.label;
+                if (z.id === preSelectZone) opt.selected = true;
+                inputTarget.appendChild(opt);
+            });
+            modal.classList.add('open');
         }
 
         function closeAddModal() {
-            overlay.classList.remove('open');
+            modal.classList.remove('open');
         }
 
         function saveModalItem() {
             const emoji = inputEmoji.value.trim() || '🧩';
             const name = inputName.value.trim() || 'Элемент';
-            const id = nextId++;
+            const zone = inputTarget.value;
+            if (!zone) return alert('Выберите зону!');
 
-            if (modalContext.type === 'thought') {
-                const level = inputTarget.value || 'think';
-                data.thoughts.push({ id, emoji, name, level });
-                saveData();
-                render();
-                closeAddModal();
-            } else {
-                // item: push, pull, now, wait
-                const category = modalContext.target;
-                const itemsArray = data[category + 'Items'];
-                if (itemsArray) {
-                    itemsArray.push({ id, emoji, name });
-                    saveData();
-                    render();
-                    closeAddModal();
-                }
-            }
+            const id = nextId++;
+            data.items.push({ id, emoji, name, zone });
+            saveData();
+            render();
+            closeAddModal();
         }
 
         modalSave.addEventListener('click', saveModalItem);
         modalClose.addEventListener('click', closeAddModal);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeAddModal(); });
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeAddModal(); });
 
-        // ========== МОДАЛЬНОЕ ОКНО ПЕРЕМЕЩЕНИЯ МЫСЛИ ==========
-        const moveModal = document.getElementById('move-modal');
-        const moveGrid = document.getElementById('move-grid');
-        const moveClose = document.getElementById('move-close-btn');
-        let movingThoughtId = null;
+        // ========== МОДАЛЬНОЕ ОКНО ПЕРЕМЕЩЕНИЯ ==========
+        let movingItemId = null;
 
         function openMoveModal(id) {
-            movingThoughtId = id;
+            movingItemId = id;
             moveGrid.innerHTML = '';
-            const levels = [
-                { value: 'think', label: '🤔 Думаю' },
-                { value: 'believe', label: '🙏 Верю' },
-                { value: 'know', label: '✨ Знаю' }
-            ];
-            levels.forEach(level => {
+            // Показать все зоны, кроме текущей (или можно все, но тогда не будет смысла)
+            const currentItem = data.items.find(item => item.id === id);
+            if (!currentItem) return;
+
+            ALL_ZONES.forEach(z => {
+                if (z.id === currentItem.zone) return; // не показывать текущую
                 const btn = document.createElement('button');
                 btn.className = 'move-btn';
-                btn.textContent = level.label;
+                btn.textContent = z.label;
                 btn.addEventListener('click', () => {
-                    const thought = data.thoughts.find(t => t.id === id);
-                    if (thought) {
-                        thought.level = level.value;
+                    const item = data.items.find(it => it.id === id);
+                    if (item) {
+                        item.zone = z.id;
                         saveData();
                         render();
                         closeMoveModal();
@@ -498,12 +423,13 @@
                 });
                 moveGrid.appendChild(btn);
             });
+            // если все зоны уже заняты? оставим пустым, но тогда кнопка закрытия работает.
             moveModal.classList.add('open');
         }
 
         function closeMoveModal() {
             moveModal.classList.remove('open');
-            movingThoughtId = null;
+            movingItemId = null;
         }
 
         moveClose.addEventListener('click', closeMoveModal);
@@ -511,11 +437,11 @@
 
         // ========== КНОПКА ПЕРЕМЕШАТЬ ==========
         document.getElementById('shuffle-btn').addEventListener('click', () => {
-            if (data.thoughts.length === 0) return alert('Сначала добавьте несколько мыслей!');
-            const levels = ['think', 'believe', 'know'];
-            data.thoughts.forEach(t => {
-                const randomLevel = levels[Math.floor(Math.random() * levels.length)];
-                t.level = randomLevel;
+            if (data.items.length === 0) return alert('Сначала добавьте элементы!');
+            const zoneIds = ALL_ZONES.map(z => z.id);
+            data.items.forEach(item => {
+                const randomZone = zoneIds[Math.floor(Math.random() * zoneIds.length)];
+                item.zone = randomZone;
             });
             saveData();
             render();
@@ -523,11 +449,8 @@
 
         // ========== КНОПКА СБРОСА ==========
         document.getElementById('reset-btn').addEventListener('click', () => {
-            if (confirm('Очистить всю карту желаний?')) {
-                data = {
-                    desire: '', where: 'в уме', percent: 50,
-                    thoughts: [], pushItems: [], pullItems: [], nowItems: [], waitItems: []
-                };
+            if (confirm('Очистить все данные?')) {
+                data = { goal: '', items: [] };
                 nextId = 1;
                 saveData();
                 render();
@@ -537,7 +460,7 @@
         // ========== ЗАПУСК ==========
         loadData();
         render();
-        console.log('🟣🦅 Уровень 4: Карта Желаний загружена.');
+        console.log('🟣🦅 Уровень 5: Аффирмации загружена.');
     </script>
 </body>
 </html>
