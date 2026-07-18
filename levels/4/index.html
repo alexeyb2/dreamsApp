@@ -3,326 +3,277 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Мульти-Инь-Ян</title>
+    <title>Каталог состояний</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
-        #canvas { 
-            position: fixed; top: 0; left: 0; 
-            width: 100vw; height: 100vh; 
-            display: block; cursor: grab; 
-            background: radial-gradient(circle at center, #131022 0%, #08060e 100%);
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif;
+            min-height: 100vh; padding: 20px; touch-action: pan-y;
+            -webkit-tap-highlight-color: transparent;
         }
-        #canvas:active { cursor: grabbing; }
-        
-        #ui {
-            position: absolute; bottom: 20px; left: 0; right: 0;
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
-            padding: 10px; pointer-events: none;
+        #app { max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
+
+        h1 { text-align: center; font-size: 24px; color: #b8a6ff; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+        .header-actions {
+            display: flex; justify-content: center; margin-bottom: 20px;
         }
-        
-        .btn-group {
-            background: rgba(22,17,39,0.85); 
-            padding: 8px 16px; border-radius: 40px;
-            backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
-            display: flex; gap: 12px; pointer-events: auto;
-        }
-        
         .btn {
-            border: none; background: #2a2348; color: #b8a6ff;
-            padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px;
-            cursor: pointer; transition: all 0.2s;
+            border: none; background: #6f52c4; color: #fff; padding: 12px 24px;
+            border-radius: 30px; font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: 0.2s; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
         }
-        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
-        
-        .stats-panel {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
-            background: rgba(22,17,39,0.85); padding: 8px 14px; border-radius: 40px;
-            backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
-            pointer-events: auto; max-width: 90%;
+        .btn:active { transform: scale(0.95); background: #5d43a8; }
+        .btn-danger { background: #a03a3a; }
+
+        /* Список записей */
+        .entry-list {
+            display: flex; flex-direction: column; gap: 12px;
         }
-        .tag {
-            font-size: 13px; font-weight: 500; padding: 2px 10px;
-            border-radius: 12px; background: rgba(0,0,0,0.3); white-space: nowrap;
+        .entry-card {
+            background: #161127; border-radius: 16px; padding: 16px;
+            border-left: 4px solid #6f52c4; display: flex; flex-direction: column; gap: 6px;
+            position: relative;
         }
-        .center-info {
-            color: #ffcc00; font-weight: bold;
+        .entry-card .type {
+            display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px;
+            color: #8f78e6;
         }
-        #hint { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); 
-                color: rgba(255,255,255,0.5); font-size: 14px; pointer-events: none; 
-                background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 30px; 
-                backdrop-filter: blur(4px); }
+        .entry-card .text { font-size: 16px; line-height: 1.5; color: #fff; }
+        .entry-card .time {
+            font-size: 12px; color: #4a3f6a; margin-top: 4px;
+        }
+        .entry-card .delete-btn {
+            position: absolute; top: 12px; right: 12px;
+            background: transparent; border: none; color: #ff6b6b;
+            font-size: 18px; cursor: pointer; touch-action: manipulation;
+        }
+
+        /* Модальное окно добавления */
+        #modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 100;
+        }
+        #modal-overlay.open { display: flex; }
+        .modal-box {
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 30px;
+            padding: 24px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 16px;
+        }
+        .modal-box h3 { color: #b8a6ff; text-align: center; margin-bottom: 4px; }
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { font-size: 12px; color: #b8a6ff; font-weight: 500; }
+        .input-group input, .input-group select, .input-group textarea {
+            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
+            padding: 12px 14px; font-size: 15px; color: #fff; outline: none; touch-action: manipulation;
+            font-family: inherit;
+        }
+        .input-group textarea { resize: vertical; min-height: 80px; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-cancel { background: #3a2f5a; color: #b8a6ff; flex: 1; border: none; border-radius: 20px; padding: 12px; cursor: pointer; touch-action: manipulation; }
+
+        @media (max-width: 500px) {
+            .entry-card .delete-btn { top: 8px; right: 8px; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="hint">👆 Перетащи любую точку, чтобы изменить баланс</div>
-    <canvas id="canvas"></canvas>
+    <div id="app">
+        <h1>🗂️ Каталог состояний</h1>
 
-    <div id="ui">
-        <div class="stats-panel" id="stats-panel">
-            <span class="center-info">⚖️ Центр: <span id="center-coords">(0.0, 0.0)</span></span>
-            <span class="tag" id="total-points">Точек: 0</span>
+        <div class="header-actions">
+            <button class="btn" id="add-btn">➕ Добавить запись</button>
         </div>
-        <div class="btn-group">
-            <button class="btn" id="add-pair-btn">➕ Пара (Инь-Ян)</button>
-            <button class="btn" id="reset-btn">🔄 Сброс</button>
+
+        <div class="entry-list" id="entry-list">
+            <!-- Записи будут здесь -->
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления -->
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <h3>📝 Новая запись</h3>
+            <div class="input-group">
+                <label>Что произошло?</label>
+                <textarea id="input-text" placeholder="Опиши событие..."></textarea>
+            </div>
+            <div class="input-group">
+                <label>Тип</label>
+                <select id="input-type">
+                    <option value="action">⚡ Сделал</option>
+                    <option value="feeling">💓 Почувствовал</option>
+                    <option value="thought">💭 Подумал</option>
+                    <option value="idea">💡 Увидел / Придумал</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Время</label>
+                <input type="datetime-local" id="input-time" />
+            </div>
+            <div class="modal-actions">
+                <button class="btn" id="modal-save-btn" style="flex:1;">✅ Сохранить</button>
+                <button class="btn-cancel" id="modal-close-btn">✖ Отмена</button>
+            </div>
         </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        // ========== ДАННЫЕ ==========
+        let entries = [];
+        let nextId = 1;
 
-        let w, h, cx, cy;
-        let points = [];
-        let pointIdCounter = 0;
+        // Типы событий и их эмодзи
+        const TYPE_MAP = {
+            action: { emoji: '⚡', label: 'Сделал' },
+            feeling: { emoji: '💓', label: 'Почувствовал' },
+            thought: { emoji: '💭', label: 'Подумал' },
+            idea: { emoji: '💡', label: 'Увидел / Придумал' }
+        };
 
-        // Состояние центра и перетаскивания
-        let center = { x: 0, y: 0 };
-        let isDragging = false;
-        let draggedPoint = null;
-        let startMouse = { x: 0, y: 0 };
-        let startPointPos = { x: 0, y: 0 };
+        // DOM
+        const entryList = document.getElementById('entry-list');
+        const addBtn = document.getElementById('add-btn');
+        const modal = document.getElementById('modal-overlay');
+        const inputText = document.getElementById('input-text');
+        const inputType = document.getElementById('input-type');
+        const inputTime = document.getElementById('input-time');
+        const modalSave = document.getElementById('modal-save-btn');
+        const modalClose = document.getElementById('modal-close-btn');
 
-        // Данные
-        function getNewPair() {
-            const id1 = pointIdCounter++;
-            const id2 = pointIdCounter++;
-            // Случайный базовый цвет
-            const hue1 = Math.random() * 360;
-            const hue2 = (hue1 + 180) % 360;
-            const color1 = `hsl(${hue1}, 80%, 60%)`;
-            const color2 = `hsl(${hue2}, 80%, 60%)`;
-            
-            // Добавляем две точки симметрично
-            return [
-                { id: id1, x: -80, y: 0, color: color1, emoji: '🔴', label: 'Сила 1' },
-                { id: id2, x: 80, y: 0, color: color2, emoji: '🔵', label: 'Сила 2' }
-            ];
-        }
-
-        function resize() {
-            w = canvas.width = window.innerWidth;
-            h = canvas.height = window.innerHeight;
-            cx = w / 2;
-            cy = h / 2;
-            
-            // Центрируем центр, если он не сохранился
-            if (!center.x && !center.y) {
-                center.x = cx;
-                center.y = cy;
-            }
-            draw();
-        }
-
-        // Логика взаимодействия
-        function updatePhysics() {
-            if (points.length === 0) return;
-
-            // Вычисляем общий вектор смещения центра по ВЗВЕШЕННОМУ СРЕДНЕМУ
-            let totalWeight = 0;
-            let weightedX = 0;
-            let weightedY = 0;
-
-            points.forEach(p => {
-                const dx = p.x - center.x;
-                const dy = p.y - center.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                // Чем дальше точка от центра, тем сильнее она его тянет.
-                // Это и есть "перетягивание каната".
-                const weight = Math.max(0, dist - 10); // Порог чувствительности
-                weightedX += p.x * weight;
-                weightedY += p.y * weight;
-                totalWeight += weight;
-            });
-
-            if (totalWeight > 0) {
-                const targetX = weightedX / totalWeight;
-                const targetY = weightedY / totalWeight;
-                
-                // Плавное притяжение центра к точке равновесия (без рывков)
-                center.x += (targetX - center.x) * 0.05;
-                center.y += (targetY - center.y) * 0.05;
-            }
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, w, h);
-
-            // 1. Рисуем линии связи от точек к центру
-            points.forEach(p => {
-                ctx.beginPath();
-                ctx.moveTo(center.x, center.y);
-                ctx.lineTo(p.x, p.y);
-                ctx.strokeStyle = p.color;
-                ctx.globalAlpha = 0.3;
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                ctx.globalAlpha = 1.0;
-            });
-
-            // 2. Рисуем сами точки
-            points.forEach(p => {
-                const radius = 28;
-                
-                // Круглый фон для эмодзи
-                const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 0, p.x, p.y, radius + 10);
-                grad.addColorStop(0, p.color);
-                grad.addColorStop(1, 'transparent');
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, radius + 8, 0, Math.PI * 2);
-                ctx.fillStyle = grad;
-                ctx.fill();
-
-                // Эмодзи
-                ctx.font = '32px "Segoe UI Emoji", "Apple Color Emoji"';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(p.emoji, p.x, p.y - 6);
-
-                // Текст (всегда контрастным цветом)
-                ctx.font = 'bold 12px system-ui';
-                ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = 'rgba(0,0,0,0.8)';
-                ctx.shadowBlur = 8;
-                ctx.fillText(p.label, p.x, p.y + 26);
-                ctx.shadowBlur = 0;
-            });
-
-            // 3. Рисуем ЖЕЛТЫЙ ЦЕНТР
-            ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
-            ctx.shadowBlur = 40;
-            ctx.beginPath();
-            ctx.arc(center.x, center.y, 10, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffcc00';
-            ctx.fill();
-            
-            // Внутреннее свечение центра
-            ctx.beginPath();
-            ctx.arc(center.x, center.y, 20, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 204, 0, 0.2)';
-            ctx.fill();
-            ctx.shadowBlur = 0;
-
-            // 4. Обновление UI (координаты и количество)
-            document.getElementById('center-coords').textContent = 
-                `(${Math.round(center.x - cx)}, ${Math.round(center.y - cy)})`;
-            document.getElementById('total-points').textContent = `Точек: ${points.length}`;
-        }
-
-        function physicsLoop() {
-            updatePhysics();
-            draw();
-            requestAnimationFrame(physicsLoop);
-        }
-
-        // ============= ИНТЕРАКТИВНОСТЬ =============
-        function getPointerPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        }
-
-        function checkHit(pointer) {
-            for (let i = points.length - 1; i >= 0; i--) {
-                const p = points[i];
-                const dist = Math.hypot(pointer.x - p.x, pointer.y - p.y);
-                if (dist < 40) return p;
-            }
-            return null;
-        }
-
-        canvas.addEventListener('pointerdown', (e) => {
-            const pos = getPointerPos(e);
-            const hit = checkHit(pos);
-            if (hit) {
-                isDragging = true;
-                draggedPoint = hit;
-                startMouse = pos;
-                startPointPos = { x: hit.x, y: hit.y };
-                canvas.style.cursor = 'grabbing';
-            }
-        });
-
-        window.addEventListener('pointermove', (e) => {
-            if (!isDragging || !draggedPoint) return;
-            const pos = getPointerPos(e);
-            const dx = pos.x - startMouse.x;
-            const dy = pos.y - startMouse.y;
-            
-            draggedPoint.x = startPointPos.x + dx;
-            draggedPoint.y = startPointPos.y + dy;
-
-            // Не даём точке улететь за пределы экрана
-            draggedPoint.x = Math.max(10, Math.min(w - 10, draggedPoint.x));
-            draggedPoint.y = Math.max(10, Math.min(h - 10, draggedPoint.y));
-
-            saveToLocal();
-        });
-
-        window.addEventListener('pointerup', () => {
-            if (isDragging) {
-                isDragging = false;
-                draggedPoint = null;
-                canvas.style.cursor = 'grab';
-                saveToLocal();
-            }
-        });
-
-        // ============= ДОБАВЛЕНИЕ ТОЧЕК И СОХРАНЕНИЕ =============
-        function addPair() {
-            const newPoints = getNewPair();
-            // Размещаем их относительно текущего центра
-            newPoints[0].x = center.x - 80;
-            newPoints[0].y = center.y - (Math.random() * 60 - 30);
-            newPoints[1].x = center.x + 80;
-            newPoints[1].y = center.y - (Math.random() * 60 - 30);
-            
-            points.push(...newPoints);
-            saveToLocal();
-        }
-
-        function resetAll() {
-            if (confirm('Сбросить все точки к начальному состоянию?')) {
-                localStorage.removeItem('dreams_state_0');
-                location.reload();
-            }
-        }
-
-        function saveToLocal() {
-            const data = { points, centerX: center.x, centerY: center.y, idCounter: pointIdCounter };
-            localStorage.setItem('dreams_state_0', JSON.stringify(data));
-        }
-
-        function loadFromLocal() {
-            const raw = localStorage.getItem('dreams_state_0');
-            if (!raw) return false;
+        // ========== ЗАГРУЗКА ==========
+        function loadData() {
             try {
-                const data = JSON.parse(raw);
-                points = data.points || [];
-                center.x = data.centerX || w/2;
-                center.y = data.centerY || h/2;
-                pointIdCounter = data.idCounter || 0;
-                return true;
-            } catch { return false; }
+                const raw = localStorage.getItem('dreams_level4');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    entries = parsed.entries || [];
+                    nextId = parsed.nextId || 1;
+                }
+            } catch(e) {}
+            entries.forEach(entry => { if (entry.id >= nextId) nextId = entry.id + 1; });
         }
 
-        // ============= ЗАПУСК =============
-        document.getElementById('add-pair-btn').addEventListener('click', addPair);
-        document.getElementById('reset-btn').addEventListener('click', resetAll);
-
-        // Скрытие подсказки
-        setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 6000);
-
-        window.addEventListener('resize', resize);
-        resize();
-
-        if (!loadFromLocal() || points.length === 0) {
-            // Если загрузка не удалась или точек нет, создаем дефолтную пару
-            addPair();
+        function saveData() {
+            localStorage.setItem('dreams_level4', JSON.stringify({ entries, nextId }));
         }
-        
-        physicsLoop();
+
+        // ========== ОТРИСОВКА ==========
+        function render() {
+            entryList.innerHTML = '';
+            if (entries.length === 0) {
+                const empty = document.createElement('div');
+                empty.style.cssText = 'text-align: center; color: #4a3f6a; padding: 40px 0;';
+                empty.textContent = 'Пока нет записей. Нажми «➕ Добавить запись»';
+                entryList.appendChild(empty);
+                return;
+            }
+
+            // Сортируем от новых к старым (по времени)
+            const sorted = [...entries].sort((a, b) => new Date(b.time) - new Date(a.time));
+
+            sorted.forEach(entry => {
+                const card = document.createElement('div');
+                card.className = 'entry-card';
+                card.style.borderLeftColor = getColorForType(entry.type);
+
+                const typeInfo = TYPE_MAP[entry.type] || { emoji: '📌', label: 'Событие' };
+
+                // Форматирование времени
+                let timeStr = '';
+                try {
+                    const date = new Date(entry.time);
+                    timeStr = date.toLocaleString('ru-RU', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                } catch { timeStr = entry.time || '—'; }
+
+                card.innerHTML = `
+                    <div class="type">${typeInfo.emoji} ${typeInfo.label}</div>
+                    <div class="text">${escapeHtml(entry.text)}</div>
+                    <div class="time">🕒 ${timeStr}</div>
+                    <button class="delete-btn" data-id="${entry.id}">✕</button>
+                `;
+                entryList.appendChild(card);
+            });
+
+            // Обработчики удаления
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.onpointerdown = (e) => {
+                    e.preventDefault();
+                    const id = parseInt(btn.dataset.id);
+                    const idx = entries.findIndex(e => e.id === id);
+                    if (idx !== -1) {
+                        entries.splice(idx, 1);
+                        saveData();
+                        render();
+                    }
+                };
+            });
+        }
+
+        function getColorForType(type) {
+            switch(type) {
+                case 'action': return '#ff4d4d';   // красный
+                case 'feeling': return '#2ecc71';  // зелёный
+                case 'thought': return '#4d8bff';  // синий
+                case 'idea': return '#f1c40f';     // жёлтый
+                default: return '#6f52c4';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ========== МОДАЛЬНОЕ ОКНО ==========
+        function openModal() {
+            inputText.value = '';
+            // Устанавливаем текущее время в локальный формат datetime-local
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            inputTime.value = now.toISOString().slice(0, 16);
+            modal.classList.add('open');
+        }
+
+        function closeModal() {
+            modal.classList.remove('open');
+        }
+
+        function saveEntry() {
+            const text = inputText.value.trim();
+            if (!text) {
+                alert('Пожалуйста, опиши событие.');
+                return;
+            }
+            const type = inputType.value;
+            const time = inputTime.value || new Date().toISOString();
+
+            const newEntry = {
+                id: nextId++,
+                text: text,
+                type: type,
+                time: time
+            };
+            entries.push(newEntry);
+            saveData();
+            render();
+            closeModal();
+        }
+
+        // События
+        addBtn.onpointerdown = (e) => { e.preventDefault(); openModal(); };
+        modalSave.onpointerdown = (e) => { e.preventDefault(); saveEntry(); };
+        modalClose.onpointerdown = (e) => { e.preventDefault(); closeModal(); };
+        modal.onpointerdown = (e) => { if (e.target === modal) closeModal(); };
+
+        // ========== ЗАПУСК ==========
+        loadData();
+        render();
+        console.log('🟣🦅 Уровень 4: Каталог состояний загружен.');
     </script>
 </body>
 </html>
