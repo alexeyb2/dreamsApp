@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Конструктор Сил 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; background: radial-gradient(circle at center, #131022 0%, #08060e 100%); }
+        #ui-panel { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px; pointer-events: none; z-index: 10; }
+        .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 12px; pointer-events: auto; flex-wrap: wrap; justify-content: center; }
+        .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        .stats-panel { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; background: rgba(22,17,39,0.85); padding: 8px 16px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; pointer-events: auto; }
+        .tag { font-size: 13px; font-weight: 500; padding: 2px 10px; border-radius: 12px; background: rgba(0,0,0,0.3); white-space: nowrap; color: #ffffff; }
+        #edit-panel { display: none; background: rgba(16, 13, 30, 0.95); backdrop-filter: blur(12px); border: 1px solid #3a2f5a; border-radius: 30px; padding: 12px 18px; width: 90%; max-width: 420px; pointer-events: auto; flex-direction: column; gap: 10px; }
+        #edit-panel input, #edit-panel select { background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px; color: #ffffff; padding: 6px 10px; font-size: 14px; outline: none; }
+        #edit-panel select { cursor: pointer; }
+        #edit-panel input[type="color"] { width: 40px; height: 40px; padding: 2px; border-radius: 50%; cursor: pointer; }
+        #edit-panel input[type="range"] { flex: 1; accent-color: #6f52c4; }
+        .edit-label { font-size: 12px; color: #ffffff; font-weight: 600; margin-right: -4px; text-shadow: 0 0 8px rgba(0,0,0,0.9); }
+        .edit-row { display: flex; gap: 8px; align-items: center; width: 100%; justify-content: space-between; }
+        .btn-del { background: #a03a3a; color: #fff; border-radius: 50%; width: 32px; height: 32px; border: none; cursor: pointer; }
+        #add-btn { display: none; position: absolute; transform: translate(-50%, 100%); background: #6f52c4; color: #fff; border: none; border-radius: 30px; padding: 10px 24px; font-size: 16px; font-weight: 600; cursor: pointer; pointer-events: auto; box-shadow: 0 0 30px rgba(111,82,196,0.8); z-index: 10; transition: 0.2s; }
+        #add-btn:active { transform: translate(-50%, 100%) scale(0.95); }
+
+        /* --- МОДАЛЬНОЕ ОКНО КАТАЛОГА --- */
+        #catalog-modal {
+            display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); justify-content: center; align-items: center;
+            z-index: 20; pointer-events: auto;
+        }
+        #catalog-modal.open { display: flex; }
+        .modal-box {
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 40px; padding: 24px;
+            max-width: 420px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.9); display: flex; flex-direction: column; gap: 16px;
+        }
+        .modal-box h3 { color: #b8a6ff; margin: 0 0 4px 0; font-size: 20px; text-align: center; }
+        .force-input-group { display: flex; flex-direction: column; gap: 4px; }
+        .force-input-group label { font-size: 12px; color: #b8a6ff; font-weight: 500; }
+        .force-row { display: flex; gap: 8px; align-items: center; }
+        .force-row input[type="text"] { flex: 1; }
+        .force-row input[type="color"] { width: 36px; height: 36px; border: none; border-radius: 50%; padding: 0; cursor: pointer; background: transparent; }
+        .modal-actions { display: flex; gap: 10px; justify-content: space-between; margin-top: 4px; }
+        .modal-actions .btn { flex: 1; padding: 12px; font-size: 15px; }
+        @media (max-width: 600px) { #edit-panel { padding: 10px; } .modal-box { padding: 16px; } }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="ui-panel">
+        <div class="stats-panel">
+            <span class="tag" id="total-points">Точек: 0</span>
+        </div>
+
+        <div id="edit-panel">
+            <div style="display:flex; justify-content:space-between; width:100%; margin-bottom:5px;">
+                <span style="font-size:15px; color:#ffffff; font-weight:600;">⚙️ Редактирование</span>
+                <button id="close-edit-btn" style="background:transparent; border:none; color:#ffffff; font-size:20px; cursor:pointer;">✖</button>
+            </div>
+            <div class="edit-row">
+                <input type="text" id="edit-emoji" placeholder="😈" style="width: 45px; text-align: center;" />
+                <input type="text" id="edit-name" placeholder="Имя силы" style="flex: 1;" />
+                <input type="color" id="edit-color" />
+                <button class="btn-del" id="del-point-btn">✕</button>
+            </div>
+            <div class="edit-row">
+                <span class="edit-label">📍 Привязка</span>
+                <select id="edit-bodypart">
+                    <option value="">— Свободная —</option>
+                    <option value="голова">🟣 Голова</option>
+                    <option value="шея">🔵 Шея</option>
+                    <option value="грудь">🟢 Грудь</option>
+                    <option value="живот">🟠 Живот</option>
+                </select>
+            </div>
+            <div class="edit-row">
+                <span class="edit-label">🔮 Размер (Сила)</span>
+                <input type="range" id="edit-size" min="10" max="80" value="30" />
+                <span id="edit-size-val" style="min-width: 35px; text-align: center; color: #ffffff; font-weight:600;">30</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn" id="edit-toggle-btn">⚙️ Правка</button>
+            <button class="btn" id="reset-btn">🔄 Сброс</button>
+            <button class="btn" id="switch-2d-btn" style="background: #6f52c4; color: #fff;">2D</button>
+        </div>
+    </div>
+
+    <button id="add-btn">➕ Добавить силу</button>
+
+    <!-- МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ СИЛ -->
+    <div id="catalog-modal">
+        <div class="modal-box">
+            <h3>🗂️ Каталог сил</h3>
+            <p style="color:#ffffff; opacity:0.7; font-size:13px; text-align:center; margin:-4px 0 8px 0;">Заполни одну или обе силы</p>
+            
+            <div class="force-input-group">
+                <label>⚡ Сила 1</label>
+                <div class="force-row">
+                    <input type="text" id="c-emoji-1" placeholder="Смайл" style="width: 55px; text-align:center;" value="⚡" />
+                    <input type="text" id="c-name-1" placeholder="Имя силы" value="Энергия 1" />
+                    <input type="color" id="c-color-1" value="#4d8bff" />
+                </div>
+            </div>
+            
+            <div class="force-input-group">
+                <label>🔥 Сила 2</label>
+                <div class="force-row">
+                    <input type="text" id="c-emoji-2" placeholder="Смайл" style="width: 55px; text-align:center;" value="🔥" />
+                    <input type="text" id="c-name-2" placeholder="Имя силы" value="Энергия 2" />
+                    <input type="color" id="c-color-2" value="#ff4d4d" />
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn" id="c-add-btn" style="background:#6f52c4; color:#fff;">➕ Добавить на сцену</button>
+                <button class="btn" id="c-save-btn" style="background:#2a2348;">💾 В каталог</button>
+            </div>
+            <button class="btn" id="c-close-btn" style="background:#a03a3a; width:100%; margin-top:4px;">✖ Закрыть</button>
+        </div>
+    </div>
+
+    <script>
+        // ============= СЦЕНА THREE.JS =============
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0b0814);
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        camera.position.set(12, 10, 14);
+        camera.lookAt(0, 3, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const labelRenderer = new THREE.CSS2DRenderer();
+        labelRenderer.setSize(container.clientWidth, container.clientHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0';
+        labelRenderer.domElement.style.left = '0';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        container.appendChild(labelRenderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.target.set(0, 3, 0);
+        controls.minDistance = 5; controls.maxDistance = 35;
+
+        // ============= ОСВЕЩЕНИЕ =============
+        scene.add(new THREE.AmbientLight(0x404060));
+        const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        const gridHelper = new THREE.GridHelper(20, 20, 0x6f52c4, 0x3a2f5a);
+        gridHelper.position.y = -0.1;
+        scene.add(gridHelper);
+
+        // ============= МОДЕЛЬ ДАННЫХ =============
+        let points = [];
+        let pointIdCounter = 0;
+        let selectedPoint = null;
+        let isEditPanelVisible = false;
+        let selectedZone = null;
+        let pendingZoneId = null;
+
+        const COORD_MAP = {
+            'голова': { y: 9.0, color: '#9b59b6', outer: 1.2 },
+            'шея':   { y: 6.0, color: '#5dade2', outer: 1.0 },
+            'грудь': { y: 3.0, color: '#2ecc71', outer: 1.2 },
+            'живот': { y: 0.0, color: '#e67e22', outer: 1.1 }
+        };
+
+        let bodyZones = [];
+        let zoneMeshes = {};
+
+        // DOM
+        const editPanel = document.getElementById('edit-panel');
+        const editToggleBtn = document.getElementById('edit-toggle-btn');
+        const switch2DBtn = document.getElementById('switch-2d-btn');
+        const closeEditBtn = document.getElementById('close-edit-btn');
+        const editEmoji = document.getElementById('edit-emoji');
+        const editName = document.getElementById('edit-name');
+        const editColor = document.getElementById('edit-color');
+        const editBodypart = document.getElementById('edit-bodypart');
+        const editSize = document.getElementById('edit-size');
+        const editSizeVal = document.getElementById('edit-size-val');
+        const delBtn = document.getElementById('del-point-btn');
+        const addBtn = document.getElementById('add-btn');
+
+        // Модалка
+        const modal = document.getElementById('catalog-modal');
+        const cEmoji1 = document.getElementById('c-emoji-1');
+        const cName1 = document.getElementById('c-name-1');
+        const cColor1 = document.getElementById('c-color-1');
+        const cEmoji2 = document.getElementById('c-emoji-2');
+        const cName2 = document.getElementById('c-name-2');
+        const cColor2 = document.getElementById('c-color-2');
+        const cAddBtn = document.getElementById('c-add-btn');
+        const cSaveBtn = document.getElementById('c-save-btn');
+        const cCloseBtn = document.getElementById('c-close-btn');
+
+        // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
+        function create3DZone(id) {
+            const cfg = COORD_MAP[id];
+            const anchorY = cfg.y;
+            
+            const sphereGeom = new THREE.SphereGeometry(cfg.outer, 48, 32);
+            const sphereMat = new THREE.MeshPhongMaterial({
+                color: cfg.color, emissive: cfg.color, emissiveIntensity: 0.15,
+                transparent: true, opacity: 0.35, side: THREE.DoubleSide
+            });
+            const mesh = new THREE.Mesh(sphereGeom, sphereMat);
+            mesh.position.set(0, anchorY + 0.2, 0);
+            scene.add(mesh);
+
+            const anchorMat = new THREE.MeshBasicMaterial({ color: cfg.color });
+            const anchor = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), anchorMat);
+            anchor.position.set(0, anchorY + 0.21, 0);
+            anchor.rotation.x = -Math.PI / 2;
+            scene.add(anchor);
+
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = id.charAt(0).toUpperCase() + id.slice(1);
+            labelDiv.style.color = '#ffffff';
+            labelDiv.style.fontSize = '16px';
+            labelDiv.style.fontWeight = 'bold';
+            labelDiv.style.textShadow = '0 0 20px rgba(0,0,0,0.9)';
+            const label = new THREE.CSS2DObject(labelDiv);
+            label.position.set(0, anchorY + 0.2, 0);
+            scene.add(label);
+
+            return { id, anchorY, currentX: 0, currentZ: 0, mesh, anchor, label, attached: [] };
+        }
+
+        function initZones() {
+            Object.keys(COORD_MAP).forEach(id => {
+                const z = create3DZone(id);
+                bodyZones.push(z);
+                zoneMeshes[id] = z.mesh;
+            });
+        }
+        initZones();
+
+        // ============= ТОЧКИ (СИЛЫ) В 3D =============
+        function createPointSprite(emoji, label, color, radius, x, y, z) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 320;
+            const ctx = canvas.getContext('2d');
+            const c = new THREE.Color(color);
+            const grad = ctx.createRadialGradient(128, 110, 20, 128, 110, 140);
+            grad.addColorStop(0, `rgba(${c.r*255|0}, ${c.g*255|0}, ${c.b*255|0}, 0.3)`);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, 256, 320);
+            ctx.font = '140px sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, 128, 110);
+            ctx.font = 'bold 28px sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 10;
+            ctx.fillText(label, 128, 210);
+            ctx.shadowBlur = 0;
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.position.set(x, y, z);
+            const scale = Math.max(0.5, radius / 25);
+            sprite.scale.set(scale * 1.2, scale * 1.5, 1);
+            scene.add(sprite);
+            return sprite;
+        }
+
+        // ============= ЛИНИИ НАТЯЖЕНИЯ =============
+        let linesGroup = new THREE.Group();
+        scene.add(linesGroup);
+        function updateLines() {
+            while(linesGroup.children.length > 0) linesGroup.remove(linesGroup.children[0]);
+            points.forEach(p => {
+                if (p.bodyPart && p.sprite) {
+                    const zone = bodyZones.find(z => z.id === p.bodyPart);
+                    if (zone) {
+                        const start = new THREE.Vector3(zone.currentX, zone.anchorY + 0.2, zone.currentZ);
+                        const end = new THREE.Vector3(p.x, p.y, p.z);
+                        if (!isNaN(start.x) && !isNaN(start.y) && !isNaN(start.z) && !isNaN(end.x) && !isNaN(end.y) && !isNaN(end.z)) {
+                            const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+                            const mat = new THREE.LineBasicMaterial({ color: p.color, transparent: true, opacity: 0.7 });
+                            const line = new THREE.Line(geom, mat);
+                            linesGroup.add(line);
+                        }
+                    }
+                }
+            });
+        }
+
+        // ============= ФИЗИКА (3D) =============
+        function updateBodyZones3D() {
+            bodyZones.forEach(z => z.attached = []);
+            points.forEach(p => { if (p.bodyPart) { const z = bodyZones.find(b => b.id === p.bodyPart); if (z) z.attached.push(p); } });
+            bodyZones.forEach(z => {
+                let totalWeight = 0, dispX = 0, dispZ = 0;
+                z.attached.forEach(p => {
+                    const weight = p.radius / 30;
+                    dispX += (p.x - z.currentX) * weight;
+                    dispZ += (p.z - z.currentZ) * weight;
+                    totalWeight += weight;
+                });
+                let targetX = 0, targetZ = 0;
+                if (totalWeight > 0) {
+                    const avgX = dispX / totalWeight;
+                    const avgZ = dispZ / totalWeight;
+                    const maxOffset = 1.0;
+                    const dist = Math.sqrt(avgX*avgX + avgZ*avgZ);
+                    const limitedX = dist > maxOffset ? (avgX / dist) * maxOffset : avgX;
+                    const limitedZ = dist > maxOffset ? (avgZ / dist) * maxOffset : avgZ;
+                    targetX = limitedX; targetZ = limitedZ;
+                }
+                z.currentX += (targetX - z.currentX) * 0.08;
+                z.currentZ += (targetZ - z.currentZ) * 0.08;
+                z.mesh.position.x = z.currentX; z.mesh.position.z = z.currentZ;
+                z.anchor.position.x = z.currentX; z.anchor.position.z = z.currentZ;
+                z.label.position.x = z.currentX; z.label.position.z = z.currentZ;
+            });
+        }
+
+        // ============= ДОБАВЛЕНИЕ СИЛ =============
+        function createPoint(emoji, label, color, radius, x, y, z, bodyPart) {
+            const id = pointIdCounter++;
+            const newPoint = { id, x, y, z, color, emoji, label, radius, bodyPart, sprite: null };
+            newPoint.sprite = createPointSprite(emoji, label, color, radius, x, y, z);
+            points.push(newPoint);
+            return newPoint;
+        }
+
+        function loadCatalog() {
+            try { const raw = localStorage.getItem('dreams_force_catalog'); return raw ? JSON.parse(raw) : null; } catch { return null; }
+        }
+        function saveCatalog(data) { localStorage.setItem('dreams_force_catalog', JSON.stringify(data)); }
+
+        function openAddDialog(zoneId) {
+            pendingZoneId = zoneId;
+            const cat = loadCatalog();
+            if (cat) {
+                cEmoji1.value = cat.emoji1 || '⚡'; cName1.value = cat.name1 || 'Энергия 1'; cColor1.value = cat.color1 || '#4d8bff';
+                cEmoji2.value = cat.emoji2 || '🔥'; cName2.value = cat.name2 || 'Энергия 2'; cColor2.value = cat.color2 || '#ff4d4d';
+            } else {
+                cEmoji1.value = '⚡'; cName1.value = 'Энергия 1'; cColor1.value = '#4d8bff';
+                cEmoji2.value = '🔥'; cName2.value = 'Энергия 2'; cColor2.value = '#ff4d4d';
+            }
+            modal.classList.add('open');
+        }
+
+        function addFromCatalog() {
+            const zone = bodyZones.find(z => z.id === pendingZoneId);
+            if (!zone) return;
+            const e1 = cEmoji1.value.trim() || '⚡';
+            const n1 = cName1.value.trim() || 'Сила 1';
+            const c1 = cColor1.value;
+            const e2 = cEmoji2.value.trim() || '🔥';
+            const n2 = cName2.value.trim() || 'Сила 2';
+            const c2 = cColor2.value;
+
+            const yBase = zone.anchorY + 0.2;
+            const radius = 25 + Math.random() * 20;
+            const p1 = createPoint(e1, n1, c1, radius, zone.currentX - 1.5, yBase, zone.currentZ - 1.0, zone.id);
+            const p2 = createPoint(e2, n2, c2, radius, zone.currentX + 1.5, yBase, zone.currentZ + 1.0, zone.id);
+            
+            closeDialog();
+            saveToLocal();
+        }
+
+        function saveToCatalog() {
+            const data = {
+                emoji1: cEmoji1.value.trim() || '⚡', name1: cName1.value.trim() || 'Сила 1', color1: cColor1.value,
+                emoji2: cEmoji2.value.trim() || '🔥', name2: cName2.value.trim() || 'Сила 2', color2: cColor2.value
+            };
+            saveCatalog(data);
+            closeDialog();
+        }
+
+        function closeDialog() { modal.classList.remove('open'); pendingZoneId = null; }
+
+        cAddBtn.addEventListener('click', addFromCatalog);
+        cSaveBtn.addEventListener('click', saveToCatalog);
+        cCloseBtn.addEventListener('click', closeDialog);
+
+        // ============= ИНТЕРАКТИВНОСТЬ (RAYCASTER) =============
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        let isDragging = false;
+        let draggedPoint = null;
+        let startMouse = { x: 0, y: 0 };
+        let startPointPos = { x: 0, z: 0 };
+
+        function getPointer(e) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+            if (modal.classList.contains('open')) return;
+            getPointer(e);
+            raycaster.setFromCamera(pointer, camera);
+            
+            const spriteIntersects = raycaster.intersectObjects(points.map(p => p.sprite).filter(s => s));
+            if (spriteIntersects.length > 0) {
+                const hitSprite = spriteIntersects[0].object;
+                const hitPoint = points.find(p => p.sprite === hitSprite);
+                if (hitPoint) {
+                    isDragging = true; draggedPoint = hitPoint;
+                    startMouse = { x: e.clientX, y: e.clientY };
+                    startPointPos = { x: hitPoint.x, z: hitPoint.z };
+                    controls.enabled = false;
+                    selectPoint(hitPoint);
+                    selectedZone = null; addBtn.style.display = 'none';
+                    return;
+                }
+            }
+
+            const zoneIntersects = raycaster.intersectObjects(Object.values(zoneMeshes));
+            if (zoneIntersects.length > 0) {
+                const hitMesh = zoneIntersects[0].object;
+                const zoneId = Object.keys(zoneMeshes).find(k => zoneMeshes[k] === hitMesh);
+                const hitZone = bodyZones.find(z => z.id === zoneId);
+                if (hitZone) {
+                    selectedZone = hitZone;
+                    const count = points.filter(p => p.bodyPart === hitZone.id).length;
+                    if (count === 0) {
+                        openAddDialog(hitZone.id);
+                        addBtn.style.display = 'none'; selectPoint(null);
+                    } else {
+                        const worldPos = new THREE.Vector3();
+                        hitMesh.getWorldPosition(worldPos);
+                        addBtn.style.display = 'block';
+                        addBtn.style.left = e.clientX + 'px';
+                        addBtn.style.top = (e.clientY - 40) + 'px';
+                        selectPoint(null);
+                    }
+                    return;
+                }
+            }
+            selectedZone = null; addBtn.style.display = 'none'; selectPoint(null);
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging || !draggedPoint) return;
+            getPointer(e);
+            raycaster.setFromCamera(pointer, camera);
+            const intersectPoint = new THREE.Vector3();
+            raycaster.ray.intersectPlane(plane, intersectPoint);
+            if (intersectPoint) {
+                const dx = intersectPoint.x - startPointPos.x;
+                const dz = intersectPoint.z - startPointPos.z;
+                draggedPoint.x = Math.max(-8, Math.min(8, startPointPos.x + dx));
+                draggedPoint.z = Math.max(-8, Math.min(8, startPointPos.z + dz));
+                if (draggedPoint.sprite) {
+                    draggedPoint.sprite.position.x = draggedPoint.x;
+                    draggedPoint.sprite.position.z = draggedPoint.z;
+                }
+                draw(); saveToLocal();
+            }
+        });
+
+        window.addEventListener('pointerup', () => {
+            if (isDragging) {
+                isDragging = false; draggedPoint = null;
+                controls.enabled = true; draw(); saveToLocal();
+            }
+        });
+
+        // ============= UI И РЕДАКТИРОВАНИЕ =============
+        function selectPoint(point) {
+            selectedPoint = point;
+            if (point && isEditPanelVisible) {
+                editEmoji.value = point.emoji; editName.value = point.label;
+                editColor.value = point.color; editBodypart.value = point.bodyPart || '';
+                editSize.value = point.radius; editSizeVal.textContent = Math.round(point.radius);
+            } else {
+                isEditPanelVisible = false; editPanel.style.display = 'none';
+            }
+        }
+
+        function updateSelectedPoint() {
+            if (!selectedPoint) return;
+            selectedPoint.emoji = editEmoji.value.trim() || '👾';
+            selectedPoint.label = editName.value.trim() || 'Без имени';
+            selectedPoint.color = editColor.value;
+            selectedPoint.radius = Math.round(parseFloat(editSize.value));
+            editSizeVal.textContent = selectedPoint.radius;
+            
+            if (selectedPoint.sprite) {
+                scene.remove(selectedPoint.sprite);
+                const newSprite = createPointSprite(selectedPoint.emoji, selectedPoint.label, selectedPoint.color, selectedPoint.radius, selectedPoint.x, selectedPoint.y, selectedPoint.z);
+                selectedPoint.sprite = newSprite;
+            }
+
+            const newBodyPart = editBodypart.value;
+            if (newBodyPart !== selectedPoint.bodyPart) {
+                selectedPoint.bodyPart = newBodyPart;
+                if (newBodyPart) {
+                    const zone = bodyZones.find(z => z.id === newBodyPart);
+                    if (zone) {
+                        const y = zone.anchorY + 0.2;
+                        selectedPoint.x = zone.currentX;
+                        selectedPoint.z = zone.currentZ;
+                        selectedPoint.y = y;
+                        if (selectedPoint.sprite) {
+                            selectedPoint.sprite.position.set(zone.currentX, y, zone.currentZ);
+                        }
+                    }
+                }
+            }
+            draw(); saveToLocal();
+        }
+
+        editToggleBtn.addEventListener('click', () => {
+            if (!selectedPoint) { alert('Сначала коснитесь силы!'); return; }
+            isEditPanelVisible = !isEditPanelVisible;
+            editPanel.style.display = isEditPanelVisible ? 'flex' : 'none';
+            if (isEditPanelVisible) {
+                editEmoji.value = selectedPoint.emoji; editName.value = selectedPoint.label;
+                editColor.value = selectedPoint.color; editBodypart.value = selectedPoint.bodyPart || '';
+                editSize.value = selectedPoint.radius; editSizeVal.textContent = Math.round(selectedPoint.radius);
+            }
+        });
+        closeEditBtn.addEventListener('click', () => { isEditPanelVisible = false; editPanel.style.display = 'none'; });
+        editEmoji.addEventListener('input', updateSelectedPoint);
+        editName.addEventListener('input', updateSelectedPoint);
+        editColor.addEventListener('input', updateSelectedPoint);
+        editBodypart.addEventListener('change', updateSelectedPoint);
+        editSize.addEventListener('input', updateSelectedPoint);
+        delBtn.addEventListener('click', () => {
+            if (!selectedPoint) return;
+            const idx = points.findIndex(p => p.id === selectedPoint.id);
+            if (idx !== -1) { removePointById(selectedPoint.id); selectPoint(null); isEditPanelVisible = false; editPanel.style.display = 'none'; draw(); saveToLocal(); }
+        });
+
+        addBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedZone) {
+                const yBase = selectedZone.anchorY + 0.2;
+                createPoint('🦁', 'Дух', '#ffcc00', 30, selectedZone.currentX, yBase, selectedZone.currentZ, selectedZone.id);
+                const worldPos = new THREE.Vector3();
+                selectedZone.mesh.getWorldPosition(worldPos);
+                addBtn.style.display = 'block';
+                addBtn.style.left = e.clientX + 'px';
+                addBtn.style.top = (e.clientY - 40) + 'px';
+                draw(); saveToLocal();
+            }
+        });
+
+        function removePointById(id) {
+            const idx = points.findIndex(p => p.id === id);
+            if (idx !== -1) {
+                const p = points[idx];
+                if (p.sprite) scene.remove(p.sprite);
+                points.splice(idx, 1);
+                saveToLocal();
+            }
+        }
+
+        function draw() {
+            updateBodyZones3D();
+            updateLines();
+            document.getElementById('total-points').textContent = `Точек: ${points.length}`;
+        }
+
+        // ============= СИНХРОНИЗАЦИЯ И АНИМАЦИЯ =============
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            draw();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        function saveToLocal() {
+            localStorage.setItem('dreams_shared_state', JSON.stringify({
+                points: points.map(p => ({ id: p.id, x: p.x, y: p.y, z: p.z, color: p.color, emoji: p.emoji, label: p.label, radius: p.radius, bodyPart: p.bodyPart })),
+                idCounter: pointIdCounter
+            }));
+        }
+        function loadFromLocal() {
+            try {
+                const raw = localStorage.getItem('dreams_shared_state');
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+                data.points.forEach(p => {
+                    const y = p.y || 0.2;
+                    p.sprite = createPointSprite(p.emoji, p.label, p.color, p.radius, p.x, y, p.z);
+                    p.y = y;
+                    points.push(p);
+                });
+                pointIdCounter = data.idCounter || 0;
+                return true;
+            } catch { return false; }
+        }
+        function loadFromOnboarding() {
+            try {
+                const raw = localStorage.getItem('dreams_config');
+                if (!raw) return false;
+                const cfg = JSON.parse(raw);
+                const zone = bodyZones.find(z => z.id === cfg.bodyPart) || bodyZones.find(z => z.id === 'грудь');
+                const y = zone.anchorY + 0.2;
+                const p1 = { id: pointIdCounter++, x: 0, y: y, z: zone.currentZ - 0.8, color: '#4d8bff', emoji: cfg.emoji||'😌', label: cfg.feeling||'Чувство', radius: Math.min(30 + cfg.power/4, 60), bodyPart: cfg.bodyPart||'грудь', sprite: null };
+                p1.sprite = createPointSprite(p1.emoji, p1.label, p1.color, p1.radius, p1.x, p1.y, p1.z);
+                points.push(p1);
+                const p2 = { id: pointIdCounter++, x: 0, y: y, z: zone.currentZ + 0.8, color: '#ff4d4d', emoji: cfg.oppEmoji||'😰', label: cfg.opposite||'Противоположность', radius: 30, bodyPart: '', sprite: null };
+                p2.sprite = createPointSprite(p2.emoji, p2.label, p2.color, p2.radius, p2.x, p2.y, p2.z);
+                points.push(p2);
+                return true;
+            } catch { return false; }
+        }
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            if (confirm('Сбросить всё?')) { localStorage.removeItem('dreams_shared_state'); localStorage.removeItem('dreams_config'); location.reload(); }
+        });
+        switch2DBtn.addEventListener('click', () => {
+            saveToLocal(); window.location.href = '../0/';
+        });
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            labelRenderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        if (!loadFromLocal()) {
+            if (!loadFromOnboarding()) { console.log('Пусто.'); }
+            saveToLocal();
+        }
+        animate();
+    </script>
+</body>
+</html>
