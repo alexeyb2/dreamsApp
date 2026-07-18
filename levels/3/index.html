@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Аффирмации</title>
+    <title>Аффирмация-конструктор</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -14,65 +14,70 @@
 
         h1 { text-align: center; font-size: 24px; color: #b8a6ff; margin-bottom: 20px; }
 
-        .header-actions {
-            display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;
-        }
-        .btn {
-            border: none; background: #2a2348; color: #b8a6ff;
-            padding: 10px 20px; border-radius: 30px; font-size: 14px; font-weight: 600;
-            cursor: pointer; transition: 0.2s; flex: 1; min-width: 80px; text-align: center;
-        }
-        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
-        .btn-primary { background: #6f52c4; color: #fff; }
-        .btn-shuffle { background: #e67e22; color: #fff; }
-
-        /* Блок цели */
-        .goal-block {
-            background: #161127; border-radius: 24px; padding: 16px; margin-bottom: 20px;
+        /* Панель с желанием и процентом */
+        .desire-panel {
+            background: #161127; border-radius: 20px; padding: 16px; margin-bottom: 16px;
             border: 1px solid #3a2f5a;
         }
-        .goal-block label { font-size: 14px; font-weight: 600; color: #8f78e6; display: block; margin-bottom: 4px; }
-        .goal-block input {
-            width: 100%; background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
+        .desire-panel label { font-weight: 600; color: #8f78e6; display: block; margin-bottom: 4px; }
+        .desire-panel input[type="text"] {
+            width: 100%; background: #1a1530; border: 1px solid #3a2f5a; border-radius: 12px;
             padding: 10px 12px; color: #fff; font-size: 16px; outline: none;
         }
+        .desire-row {
+            display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap;
+        }
+        .desire-row input[type="range"] { flex: 1; height: 6px; accent-color: #6f52c4; }
+        .desire-row .percent { min-width: 40px; text-align: center; font-weight: bold; color: #b8a6ff; }
 
-        /* Уровни убеждений (сверху вниз: Знаю, Верю, Думаю) */
-        .beliefs-section { margin-bottom: 20px; }
-        .level-card {
-            background: #100d1e; border-radius: 16px; padding: 12px; margin-bottom: 12px;
-            border-left: 4px solid #6f52c4;
+        /* Блок итоговой аффирмации */
+        .affirmation-box {
+            background: #100d1e; border-radius: 16px; padding: 16px; margin-bottom: 20px;
+            border-left: 4px solid #ffcc00; min-height: 80px;
         }
-        .level-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        .affirmation-text {
+            font-size: 16px; line-height: 1.6; color: #e0d6ff; white-space: pre-wrap;
         }
-        .level-name { font-weight: 700; color: #ffffff; font-size: 16px; }
-        .level-items { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+        .affirmation-text .highlight { color: #ffcc00; font-weight: 600; }
+
+        /* Горизонтальные категории */
+        .categories-row {
+            display: flex; justify-content: space-around; gap: 10px; margin-bottom: 20px;
+            padding: 12px 0; border-top: 1px solid #2a2248; border-bottom: 1px solid #2a2248;
+        }
+        .cat-item {
+            display: flex; flex-direction: column; align-items: center; cursor: pointer;
+            padding: 6px 12px; border-radius: 16px; transition: 0.2s; flex: 1;
+        }
+        .cat-item:active { background: #2a2348; }
+        .cat-emoji { font-size: 28px; }
+        .cat-label { font-size: 12px; font-weight: 600; color: #b8a6ff; margin-top: 4px; }
+
+        /* Списки элементов (скрытые, доступны через клик) */
+        .items-section { display: none; margin-bottom: 20px; }
+        .items-section.active { display: block; }
+        .items-container {
+            background: #100d1e; border-radius: 16px; padding: 12px; border: 1px solid #2a2248;
+            display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px;
+        }
         .item-tag {
             background: #2a2348; border: 1px solid #4a3f6a; border-radius: 20px;
             padding: 4px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer;
             transition: 0.2s; font-size: 14px;
         }
-        .item-tag:active { transform: scale(0.95); background: #6f52c4; }
+        .item-tag:active { background: #6f52c4; border-color: #8f78e6; }
         .item-tag .emoji { font-size: 16px; }
         .item-tag .name { color: #fff; font-weight: 500; }
+        .item-tag .del {
+            background: transparent; border: none; color: #ff6b6b; cursor: pointer;
+            margin-left: 4px; font-size: 14px; padding: 0 2px;
+        }
         .empty { color: #4a3f6a; font-size: 13px; padding: 4px 0; }
-
-        /* Чувства и действия (две колонки) */
-        .two-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-        @media (max-width: 500px) { .two-col-grid { grid-template-columns: 1fr; } }
-        .col-card {
-            background: #100d1e; border-radius: 16px; padding: 12px; border: 1px solid #2a2248;
+        .add-btn {
+            background: #221b38; border: none; color: #b8a6ff; width: 28px; height: 28px;
+            border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
-        .col-title { font-weight: 700; color: #b8a6ff; font-size: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; }
-        .col-items { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
-
-        /* Кнопки "+" в зонах */
-        .btn-add {
-            background: #221b38; border: none; color: #b8a6ff;
-            width: 28px; height: 28px; border-radius: 50%; font-size: 18px; cursor: pointer;
-        }
-        .btn-add:active { background: #6f52c4; color: #fff; }
+        .add-btn:active { background: #6f52c4; color: #fff; }
 
         /* Модальное окно добавления */
         #modal-overlay {
@@ -113,7 +118,11 @@
         .move-btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
         .move-close { background: #3a2f5a; border: none; border-radius: 20px; padding: 10px; color: #b8a6ff; cursor: pointer; }
 
-        @media (max-width: 600px) { .two-col-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 500px) {
+            .categories-row { flex-wrap: wrap; }
+            .cat-item { min-width: 80px; }
+            .items-section.active { display: block; }
+        }
     </style>
 </head>
 <body>
@@ -121,84 +130,63 @@
     <div id="app">
         <h1>🧠 Аффирмация</h1>
 
-        <div class="header-actions">
-            <button class="btn btn-primary" id="add-thought-btn">➕ Мысль</button>
-            <button class="btn btn-shuffle" id="shuffle-btn">🌀 Перемешать</button>
-            <button class="btn" id="reset-btn" style="background:#5a2a2a; color:#ff8a8a; flex:0.5;">✖</button>
-        </div>
-
-        <!-- Блок цели -->
-        <div class="goal-block">
+        <!-- Желание и процент -->
+        <div class="desire-panel">
             <label>💡 Я получу...</label>
             <input type="text" id="goal-input" placeholder="Например: внутреннюю свободу" />
-        </div>
-
-        <!-- Уровни убеждений (сверху вниз) -->
-        <div class="beliefs-section">
-            <div class="level-card" data-level="know">
-                <div class="level-header">
-                    <span class="level-name">✨ Знаю</span>
-                    <button class="btn-add" data-level="know">+</button>
-                </div>
-                <div class="level-items" data-level="know"></div>
-            </div>
-            <div class="level-card" data-level="believe">
-                <div class="level-header">
-                    <span class="level-name">🙏 Верю</span>
-                    <button class="btn-add" data-level="believe">+</button>
-                </div>
-                <div class="level-items" data-level="believe"></div>
-            </div>
-            <div class="level-card" data-level="think">
-                <div class="level-header">
-                    <span class="level-name">🤔 Думаю</span>
-                    <button class="btn-add" data-level="think">+</button>
-                </div>
-                <div class="level-items" data-level="think"></div>
+            <div class="desire-row">
+                <span style="font-size:13px;">Вероятность:</span>
+                <input type="range" id="percent-slider" min="0" max="100" value="70" />
+                <span class="percent" id="percent-display">70%</span>
             </div>
         </div>
 
-        <!-- Чувства (отпускаю / притягиваю) -->
-        <div class="two-col-grid">
-            <div class="col-card">
-                <div class="col-title">
-                    <span>🚫 Отпускаю</span>
-                    <button class="btn-add" data-category="release">+</button>
-                </div>
-                <div class="col-items" data-category="release"></div>
-            </div>
-            <div class="col-card">
-                <div class="col-title">
-                    <span>🧲 Притягиваю</span>
-                    <button class="btn-add" data-category="attract">+</button>
-                </div>
-                <div class="col-items" data-category="attract"></div>
+        <!-- Итоговая аффирмация -->
+        <div class="affirmation-box">
+            <div class="affirmation-text" id="affirmation-text">
+                <span class="highlight">Я получу</span> ... <span class="highlight">70%</span>,<br>
+                потому что <span class="highlight">я знаю</span>: ...<br>
+                <span class="highlight">я убираю</span>: ...<br>
+                <span class="highlight">я впускаю</span>: ...<br>
+                <span class="highlight">я делаю</span>: ...
             </div>
         </div>
 
-        <!-- Действия (делаю сейчас / жду) -->
-        <div class="two-col-grid">
-            <div class="col-card">
-                <div class="col-title">
-                    <span>⚡ Делаю сейчас</span>
-                    <button class="btn-add" data-category="do">+</button>
-                </div>
-                <div class="col-items" data-category="do"></div>
+        <!-- Горизонтальные категории -->
+        <div class="categories-row">
+            <div class="cat-item" data-category="think">
+                <span class="cat-emoji">🔵</span>
+                <span class="cat-label">Мысли</span>
             </div>
-            <div class="col-card">
-                <div class="col-title">
-                    <span>⏳ Жду</span>
-                    <button class="btn-add" data-category="wait">+</button>
-                </div>
-                <div class="col-items" data-category="wait"></div>
+            <div class="cat-item" data-category="feel">
+                <span class="cat-emoji">🟢</span>
+                <span class="cat-label">Чувства</span>
             </div>
+            <div class="cat-item" data-category="act">
+                <span class="cat-emoji">🔴</span>
+                <span class="cat-label">Действия</span>
+            </div>
+        </div>
+
+        <!-- Списки элементов (по умолчанию скрыты) -->
+        <div class="items-section" id="section-think">
+            <div class="items-container" id="container-think"></div>
+            <button class="add-btn" id="add-think" style="margin-top:8px; width:100%; border-radius:20px; padding:8px;">➕ Добавить мысль</button>
+        </div>
+        <div class="items-section" id="section-feel">
+            <div class="items-container" id="container-feel"></div>
+            <button class="add-btn" id="add-feel" style="margin-top:8px; width:100%; border-radius:20px; padding:8px;">➕ Добавить чувство</button>
+        </div>
+        <div class="items-section" id="section-act">
+            <div class="items-container" id="container-act"></div>
+            <button class="add-btn" id="add-act" style="margin-top:8px; width:100%; border-radius:20px; padding:8px;">➕ Добавить действие</button>
         </div>
     </div>
 
-    <!-- Модальное окно добавления элемента -->
+    <!-- Модальное окно добавления -->
     <div id="modal-overlay">
         <div class="modal-box">
-            <h3>➕ Новый элемент</h3>
+            <h3 id="modal-title">➕ Новый элемент</h3>
             <div class="input-group">
                 <label>Смайл</label>
                 <input type="text" id="input-emoji" placeholder="Например: 💡" />
@@ -207,12 +195,15 @@
                 <label>Название</label>
                 <input type="text" id="input-name" placeholder="Введите название" />
             </div>
-            <div class="input-group" id="target-select-group" style="display:block;">
-                <label>Куда</label>
-                <select id="input-target"></select>
+            <div class="input-group" id="feel-type-group" style="display:none;">
+                <label>Тип чувства</label>
+                <select id="feel-type">
+                    <option value="remove">Убираю</option>
+                    <option value="attract">Впускаю</option>
+                </select>
             </div>
             <div class="modal-actions">
-                <button class="btn btn-primary" id="modal-save-btn">✅ Сохранить</button>
+                <button class="btn" id="modal-save-btn" style="background:#6f52c4; color:#fff; flex:1;">✅ Сохранить</button>
                 <button class="btn btn-cancel" id="modal-close-btn">✖ Отмена</button>
             </div>
         </div>
@@ -229,37 +220,51 @@
 
     <script>
         // ========== ДАННЫЕ ==========
-        // Категории и их типы
-        const LEVELS = [
-            { id: 'know', label: '✨ Знаю', type: 'belief' },
-            { id: 'believe', label: '🙏 Верю', type: 'belief' },
-            { id: 'think', label: '🤔 Думаю', type: 'belief' }
-        ];
-        const CATEGORIES = [
-            { id: 'release', label: '🚫 Отпускаю', type: 'feeling' },
-            { id: 'attract', label: '🧲 Притягиваю', type: 'feeling' },
-            { id: 'do', label: '⚡ Делаю сейчас', type: 'action' },
-            { id: 'wait', label: '⏳ Жду', type: 'action' }
-        ];
-        // Все доступные зоны для перемещения (плоский список)
-        const ALL_ZONES = [
-            ...LEVELS.map(l => ({ id: l.id, label: l.label, type: l.type })),
-            ...CATEGORIES.map(c => ({ id: c.id, label: c.label, type: c.type }))
-        ];
+        const CATEGORIES = {
+            think: { label: 'Мысли', emoji: '🔵', prefix: 'я знаю' },
+            feel: { label: 'Чувства', emoji: '🟢' }, // special: has sub-types remove/attract
+            act: { label: 'Действия', emoji: '🔴', prefix: 'я делаю' }
+        };
 
         // Состояние
         let data = {
             goal: '',
-            items: [] // { id, emoji, name, zone: 'know'|'believe'|'think'|'release'|'attract'|'do'|'wait' }
+            percent: 70,
+            items: [] // { id, emoji, name, category: 'think'|'feel'|'act', feelType: 'remove'|'attract' (only for feel) }
         };
         let nextId = 1;
+        let activeCategory = null; // для открытия секции
 
-        // DOM-элементы
+        // DOM элементы
         const goalInput = document.getElementById('goal-input');
+        const percentSlider = document.getElementById('percent-slider');
+        const percentDisplay = document.getElementById('percent-display');
+        const affirmationText = document.getElementById('affirmation-text');
+
+        const sections = {
+            think: document.getElementById('section-think'),
+            feel: document.getElementById('section-feel'),
+            act: document.getElementById('section-act')
+        };
+        const containers = {
+            think: document.getElementById('container-think'),
+            feel: document.getElementById('container-feel'),
+            act: document.getElementById('container-act')
+        };
+        const addButtons = {
+            think: document.getElementById('add-think'),
+            feel: document.getElementById('add-feel'),
+            act: document.getElementById('add-act')
+        };
+        const catItems = document.querySelectorAll('.cat-item');
+
+        // Модалки
         const modal = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
         const inputEmoji = document.getElementById('input-emoji');
         const inputName = document.getElementById('input-name');
-        const inputTarget = document.getElementById('input-target');
+        const feelTypeGroup = document.getElementById('feel-type-group');
+        const feelTypeSelect = document.getElementById('feel-type');
         const modalSave = document.getElementById('modal-save-btn');
         const modalClose = document.getElementById('modal-close-btn');
 
@@ -267,112 +272,171 @@
         const moveGrid = document.getElementById('move-grid');
         const moveClose = document.getElementById('move-close-btn');
 
+        let modalContext = { category: 'think', feelType: 'remove' }; // для добавления
+        let movingItemId = null;
+
         // ========== СОХРАНЕНИЕ И ЗАГРУЗКА ==========
         function loadData() {
             try {
-                const raw = localStorage.getItem('dreams_level5');
+                const raw = localStorage.getItem('dreams_level6');
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     data.goal = parsed.goal || '';
+                    data.percent = parsed.percent || 70;
                     data.items = parsed.items || [];
-                    // проставим ID, если нет
                     data.items.forEach(item => { if (!item.id) item.id = nextId++; });
                 }
             } catch(e) {}
-            // убедимся, что ID уникальны
             data.items.forEach(item => { if (item.id >= nextId) nextId = item.id + 1; });
         }
 
         function saveData() {
-            localStorage.setItem('dreams_level5', JSON.stringify({ goal: data.goal, items: data.items }));
+            localStorage.setItem('dreams_level6', JSON.stringify({ goal: data.goal, percent: data.percent, items: data.items }));
         }
 
         // ========== ОТРИСОВКА ==========
         function render() {
-            // Цель
+            // Желание
             goalInput.value = data.goal || '';
+            percentSlider.value = data.percent;
+            percentDisplay.textContent = data.percent + '%';
 
-            // Отрисовка убеждений (Знаю, Верю, Думаю)
-            LEVELS.forEach(level => {
-                const container = document.querySelector(`.level-items[data-level="${level.id}"]`);
-                const items = data.items.filter(item => item.zone === level.id);
-                renderItems(container, items);
+            // Отрисовка контейнеров
+            ['think', 'feel', 'act'].forEach(cat => {
+                const container = containers[cat];
+                const items = data.items.filter(item => item.category === cat);
+                container.innerHTML = '';
+                if (items.length === 0) {
+                    const empty = document.createElement('span');
+                    empty.className = 'empty';
+                    empty.textContent = 'пусто';
+                    container.appendChild(empty);
+                } else {
+                    items.forEach(item => {
+                        const tag = document.createElement('span');
+                        tag.className = 'item-tag';
+                        tag.dataset.id = item.id;
+                        tag.innerHTML = `
+                            <span class="emoji">${item.emoji || '🧩'}</span>
+                            <span class="name">${item.name || 'Элемент'}</span>
+                            <button class="del" data-id="${item.id}">✕</button>
+                        `;
+                        container.appendChild(tag);
+                    });
+                }
             });
 
-            // Чувства и действия
-            CATEGORIES.forEach(cat => {
-                const container = document.querySelector(`.col-items[data-category="${cat.id}"]`);
-                const items = data.items.filter(item => item.zone === cat.id);
-                renderItems(container, items);
-            });
+            // Обновление аффирмации
+            updateAffirmation();
 
             attachEvents();
         }
 
-        function renderItems(container, items) {
-            container.innerHTML = '';
-            if (items.length === 0) {
-                const empty = document.createElement('span');
-                empty.className = 'empty';
-                empty.textContent = 'пусто';
-                container.appendChild(empty);
-            } else {
-                items.forEach(item => {
-                    const tag = document.createElement('span');
-                    tag.className = 'item-tag';
-                    tag.dataset.id = item.id;
-                    tag.innerHTML = `<span class="emoji">${item.emoji || '🧩'}</span> <span class="name">${item.name || 'Элемент'}</span>`;
-                    container.appendChild(tag);
-                });
+        function updateAffirmation() {
+            const goal = data.goal || '...';
+            const percent = data.percent;
+            const thinks = data.items.filter(i => i.category === 'think').map(i => i.name).join(', ');
+            const feelsRemove = data.items.filter(i => i.category === 'feel' && i.feelType === 'remove').map(i => i.name);
+            const feelsAttract = data.items.filter(i => i.category === 'feel' && i.feelType === 'attract').map(i => i.name);
+            const acts = data.items.filter(i => i.category === 'act').map(i => i.name).join(', ');
+
+            let text = `<span class="highlight">Я получу</span> ${goal} <span class="highlight">${percent}%</span>`;
+
+            if (thinks) {
+                text += `,<br>потому что <span class="highlight">я знаю</span>: ${thinks}`;
             }
+            if (feelsRemove.length) {
+                text += `,<br><span class="highlight">я убираю</span>: ${feelsRemove.join(', ')}`;
+            }
+            if (feelsAttract.length) {
+                text += `,<br><span class="highlight">я впускаю</span>: ${feelsAttract.join(', ')}`;
+            }
+            if (acts) {
+                text += `,<br><span class="highlight">я делаю</span>: ${acts}`;
+            }
+
+            affirmationText.innerHTML = text || 'Начните добавлять элементы...';
         }
 
         // ========== ОБРАБОТЧИКИ ==========
         function attachEvents() {
-            // Цель
+            // Сохранение цели и процента
             goalInput.addEventListener('input', (e) => {
                 data.goal = e.target.value;
                 saveData();
+                render();
+            });
+            percentSlider.addEventListener('input', (e) => {
+                data.percent = parseInt(e.target.value);
+                saveData();
+                render();
             });
 
-            // Клик по элементу -> открыть перемещение
+            // Клик по категории (открыть секцию)
+            catItems.forEach(el => {
+                el.addEventListener('click', () => {
+                    const cat = el.dataset.category;
+                    toggleSection(cat);
+                });
+            });
+
+            // Клик по элементу -> переместить
             document.querySelectorAll('.item-tag').forEach(tag => {
-                tag.addEventListener('click', () => {
+                tag.addEventListener('click', (e) => {
+                    // если клик на кнопку удаления - не открывать перемещение
+                    if (e.target.classList.contains('del')) return;
                     const id = parseInt(tag.dataset.id);
                     openMoveModal(id);
                 });
             });
 
-            // Кнопки добавления (+)
-            document.querySelectorAll('.btn-add').forEach(btn => {
+            // Удаление элемента
+            document.querySelectorAll('.item-tag .del').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    let zone = btn.dataset.level || btn.dataset.category;
-                    openAddModal(zone);
+                    const id = parseInt(btn.dataset.id);
+                    const idx = data.items.findIndex(item => item.id === id);
+                    if (idx !== -1) {
+                        data.items.splice(idx, 1);
+                        saveData();
+                        render();
+                    }
                 });
             });
 
-            // Кнопка "➕ Мысль" в шапке
-            document.getElementById('add-thought-btn').addEventListener('click', () => {
-                // по умолчанию в уровень Думаю
-                openAddModal('think');
+            // Кнопки добавления
+            addButtons.think.addEventListener('click', () => openAddModal('think'));
+            addButtons.feel.addEventListener('click', () => openAddModal('feel'));
+            addButtons.act.addEventListener('click', () => openAddModal('act'));
+        }
+
+        function toggleSection(cat) {
+            // Скрыть все секции
+            Object.keys(sections).forEach(key => {
+                sections[key].classList.remove('active');
             });
+            // Если кликнули на уже активную, то просто закрываем? или оставляем открытой?
+            if (activeCategory === cat) {
+                activeCategory = null;
+                return;
+            }
+            sections[cat].classList.add('active');
+            activeCategory = cat;
         }
 
         // ========== МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ ==========
-        function openAddModal(preSelectZone = 'think') {
+        function openAddModal(category) {
+            modalContext.category = category;
+            modalTitle.textContent = `➕ Добавить ${CATEGORIES[category]?.label || 'элемент'}`;
             inputEmoji.value = '';
             inputName.value = '';
-            // Заполнить выпадающий список зон
-            inputTarget.innerHTML = '';
-            // Показываем все доступные зоны, кроме тех, которые уже заполнены? Нет, даем все варианты.
-            ALL_ZONES.forEach(z => {
-                const opt = document.createElement('option');
-                opt.value = z.id;
-                opt.textContent = z.label;
-                if (z.id === preSelectZone) opt.selected = true;
-                inputTarget.appendChild(opt);
-            });
+            // Для чувств показываем выбор типа
+            if (category === 'feel') {
+                feelTypeGroup.style.display = 'block';
+                feelTypeSelect.value = 'remove'; // по умолчанию убираю
+            } else {
+                feelTypeGroup.style.display = 'none';
+            }
             modal.classList.add('open');
         }
 
@@ -383,11 +447,15 @@
         function saveModalItem() {
             const emoji = inputEmoji.value.trim() || '🧩';
             const name = inputName.value.trim() || 'Элемент';
-            const zone = inputTarget.value;
-            if (!zone) return alert('Выберите зону!');
+            const category = modalContext.category;
+            const feelType = category === 'feel' ? feelTypeSelect.value : null;
+
+            if (!name) return alert('Введите название!');
 
             const id = nextId++;
-            data.items.push({ id, emoji, name, zone });
+            const newItem = { id, emoji, name, category };
+            if (feelType) newItem.feelType = feelType;
+            data.items.push(newItem);
             saveData();
             render();
             closeAddModal();
@@ -398,24 +466,28 @@
         modal.addEventListener('click', (e) => { if (e.target === modal) closeAddModal(); });
 
         // ========== МОДАЛЬНОЕ ОКНО ПЕРЕМЕЩЕНИЯ ==========
-        let movingItemId = null;
-
         function openMoveModal(id) {
             movingItemId = id;
+            const item = data.items.find(i => i.id === id);
+            if (!item) return;
             moveGrid.innerHTML = '';
-            // Показать все зоны, кроме текущей (или можно все, но тогда не будет смысла)
-            const currentItem = data.items.find(item => item.id === id);
-            if (!currentItem) return;
-
-            ALL_ZONES.forEach(z => {
-                if (z.id === currentItem.zone) return; // не показывать текущую
+            // Доступные категории
+            const categories = ['think', 'feel', 'act'];
+            categories.forEach(cat => {
+                if (cat === item.category) return; // не показывать текущую
                 const btn = document.createElement('button');
                 btn.className = 'move-btn';
-                btn.textContent = z.label;
+                btn.textContent = CATEGORIES[cat].emoji + ' ' + CATEGORIES[cat].label;
                 btn.addEventListener('click', () => {
-                    const item = data.items.find(it => it.id === id);
-                    if (item) {
-                        item.zone = z.id;
+                    const targetItem = data.items.find(i => i.id === id);
+                    if (targetItem) {
+                        // если перемещаем в чувства, нужно установить тип по умолчанию?
+                        if (cat === 'feel' && !targetItem.feelType) {
+                            targetItem.feelType = 'remove'; // по умолчанию убираю
+                        } else if (cat !== 'feel') {
+                            delete targetItem.feelType;
+                        }
+                        targetItem.category = cat;
                         saveData();
                         render();
                         closeMoveModal();
@@ -423,7 +495,6 @@
                 });
                 moveGrid.appendChild(btn);
             });
-            // если все зоны уже заняты? оставим пустым, но тогда кнопка закрытия работает.
             moveModal.classList.add('open');
         }
 
@@ -435,32 +506,10 @@
         moveClose.addEventListener('click', closeMoveModal);
         moveModal.addEventListener('click', (e) => { if (e.target === moveModal) closeMoveModal(); });
 
-        // ========== КНОПКА ПЕРЕМЕШАТЬ ==========
-        document.getElementById('shuffle-btn').addEventListener('click', () => {
-            if (data.items.length === 0) return alert('Сначала добавьте элементы!');
-            const zoneIds = ALL_ZONES.map(z => z.id);
-            data.items.forEach(item => {
-                const randomZone = zoneIds[Math.floor(Math.random() * zoneIds.length)];
-                item.zone = randomZone;
-            });
-            saveData();
-            render();
-        });
-
-        // ========== КНОПКА СБРОСА ==========
-        document.getElementById('reset-btn').addEventListener('click', () => {
-            if (confirm('Очистить все данные?')) {
-                data = { goal: '', items: [] };
-                nextId = 1;
-                saveData();
-                render();
-            }
-        });
-
         // ========== ЗАПУСК ==========
         loadData();
         render();
-        console.log('🟣🦅 Уровень 5: Аффирмации загружена.');
+        console.log('🟣🦅 Уровень 6: Аффирмация-конструктор загружена.');
     </script>
 </body>
 </html>
