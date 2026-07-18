@@ -3,326 +3,393 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Мульти-Инь-Ян</title>
+    <title>Карта Видения</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
-        #canvas { 
-            position: fixed; top: 0; left: 0; 
-            width: 100vw; height: 100vh; 
-            display: block; cursor: grab; 
-            background: radial-gradient(circle at center, #131022 0%, #08060e 100%);
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif;
+            min-height: 100vh; padding: 20px; touch-action: pan-y;
         }
-        #canvas:active { cursor: grabbing; }
+        #app { max-width: 700px; margin: 0 auto; padding-bottom: 80px; }
+
+        h1 { text-align: center; font-size: 26px; color: #b8a6ff; margin-bottom: 20px; }
         
-        #ui {
-            position: absolute; bottom: 20px; left: 0; right: 0;
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
-            padding: 10px; pointer-events: none;
+        .header-actions {
+            display: flex; justify-content: center; gap: 12px; margin-bottom: 24px;
         }
-        
-        .btn-group {
-            background: rgba(22,17,39,0.85); 
-            padding: 8px 16px; border-radius: 40px;
-            backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
-            display: flex; gap: 12px; pointer-events: auto;
-        }
-        
         .btn {
             border: none; background: #2a2348; color: #b8a6ff;
-            padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px;
-            cursor: pointer; transition: all 0.2s;
+            padding: 12px 24px; border-radius: 30px; font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; flex: 1; text-align: center; max-width: 200px;
         }
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        .btn-primary { background: #6f52c4; color: #fff; }
+        .btn-shuffle { background: #e67e22; color: #fff; }
+
+        /* Блоки категорий */
+        .category-block {
+            background: #100d1e; border-radius: 24px; padding: 16px; margin-bottom: 20px;
+            border: 1px solid #2a2248;
+        }
+        .category-title {
+            font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 12px;
+            border-bottom: 1px solid #2a2248; padding-bottom: 8px; display: flex; align-items: center; gap: 8px;
+        }
+
+        /* Сетка ячеек внутри категории */
+        .zone-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+        }
+        @media (max-width: 500px) { .zone-grid { grid-template-columns: 1fr; } }
+
+        .zone-card {
+            background: #161127; border-radius: 16px; padding: 12px; border: 1px solid #3a2f5a;
+        }
+        .zone-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        }
+        .zone-name { font-size: 14px; font-weight: 600; color: #8f78e6; }
+        .btn-add-item {
+            background: #221b38; border: none; color: #b8a6ff; width: 28px; height: 28px;
+            border-radius: 50%; font-size: 18px; cursor: pointer; transition: 0.2s;
+        }
+        .btn-add-item:active { background: #6f52c4; color: #fff; }
+
+        /* Элементы (мысли) */
+        .items-container { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+        .item-tag {
+            background: #2a2348; border: 1px solid #4a3f6a; border-radius: 20px;
+            padding: 6px 14px; display: flex; align-items: center; gap: 6px; cursor: pointer;
+            transition: 0.2s; font-size: 14px;
+        }
+        .item-tag:active { transform: scale(0.95); background: #6f52c4; border-color: #8f78e6; }
+        .item-emoji { font-size: 18px; }
+        .item-name { color: #ffffff; font-weight: 500; }
+
+        .empty-state { color: #4a3f6a; font-size: 13px; padding: 4px 0; }
+
+        /* Модальное окно добавления */
+        #modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 100;
+        }
+        #modal-overlay.open { display: flex; }
+        .modal-box {
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 30px;
+            padding: 24px; width: 90%; max-width: 420px; display: flex; flex-direction: column; gap: 16px;
+        }
+        .modal-box h3 { color: #b8a6ff; text-align: center; margin-bottom: 4px; }
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { font-size: 12px; color: #b8a6ff; font-weight: 500; }
+        .input-group input, .input-group select {
+            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
+            padding: 12px 14px; font-size: 16px; color: #ffffff; outline: none;
+        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-cancel { background: #3a2f5a; color: #b8a6ff; flex: 1; }
+
+        /* Модальное окно перемещения */
+        #move-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 101;
+        }
+        #move-modal.open { display: flex; }
+        .move-box {
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 30px;
+            padding: 20px; width: 90%; max-width: 360px; display: flex; flex-direction: column; gap: 12px;
+        }
+        .move-box h4 { color: #ffffff; text-align: center; margin: 0; }
+        .move-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+        }
+        .move-btn {
+            background: #221b38; border: 1px solid #3a2f5a; border-radius: 12px; padding: 10px;
+            color: #b8a6ff; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        .move-btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; border-color: #6f52c4; }
+        .move-close { background: #3a2f5a; border: none; border-radius: 20px; padding: 10px; color: #b8a6ff; cursor: pointer; }
         
-        .stats-panel {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
-            background: rgba(22,17,39,0.85); padding: 8px 14px; border-radius: 40px;
-            backdrop-filter: blur(8px); border: 1px solid #3a2f5a;
-            pointer-events: auto; max-width: 90%;
-        }
-        .tag {
-            font-size: 13px; font-weight: 500; padding: 2px 10px;
-            border-radius: 12px; background: rgba(0,0,0,0.3); white-space: nowrap;
-        }
-        .center-info {
-            color: #ffcc00; font-weight: bold;
-        }
-        #hint { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); 
-                color: rgba(255,255,255,0.5); font-size: 14px; pointer-events: none; 
-                background: rgba(0,0,0,0.4); padding: 4px 16px; border-radius: 30px; 
-                backdrop-filter: blur(4px); }
+        @media (max-width: 600px) { .zone-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-    <div id="hint">👆 Перетащи любую точку, чтобы изменить баланс</div>
-    <canvas id="canvas"></canvas>
-
-    <div id="ui">
-        <div class="stats-panel" id="stats-panel">
-            <span class="center-info">⚖️ Центр: <span id="center-coords">(0.0, 0.0)</span></span>
-            <span class="tag" id="total-points">Точек: 0</span>
+    <div id="app">
+        <h1>🧠 Карта Видения</h1>
+        
+        <div class="header-actions">
+            <button class="btn btn-primary" id="add-random-btn">➕ Добавить</button>
+            <button class="btn btn-shuffle" id="shuffle-btn">🌀 Перемешать</button>
+            <button class="btn" id="reset-btn" style="background:#5a2a2a; color:#ff8a8a; flex:0.5;">✖</button>
         </div>
-        <div class="btn-group">
-            <button class="btn" id="add-pair-btn">➕ Пара (Инь-Ян)</button>
-            <button class="btn" id="reset-btn">🔄 Сброс</button>
+
+        <!-- Контейнер для блоков -->
+        <div id="vision-container"></div>
+    </div>
+
+    <!-- Модальное окно добавления -->
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <h3>➕ Новая мысль</h3>
+            <div class="input-group">
+                <label>Смайл</label>
+                <input type="text" id="input-emoji" placeholder="Например: 💡" />
+            </div>
+            <div class="input-group">
+                <label>Название</label>
+                <input type="text" id="input-name" placeholder="Например: Инсайт" />
+            </div>
+            <div class="input-group">
+                <label>Зона</label>
+                <select id="input-zone"></select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="modal-save-btn">✅ Сохранить</button>
+                <button class="btn btn-cancel" id="modal-close-btn">✖ Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно перемещения -->
+    <div id="move-modal">
+        <div class="move-box">
+            <h4>📍 Переместить</h4>
+            <div class="move-grid" id="move-grid"></div>
+            <button class="move-close" id="move-close-btn">✖ Закрыть</button>
         </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-
-        let w, h, cx, cy;
-        let points = [];
-        let pointIdCounter = 0;
-
-        // Состояние центра и перетаскивания
-        let center = { x: 0, y: 0 };
-        let isDragging = false;
-        let draggedPoint = null;
-        let startMouse = { x: 0, y: 0 };
-        let startPointPos = { x: 0, y: 0 };
+        // Структура данных: 3 категории, внутри них ячейки
+        const GROUPS = [
+            {
+                category: "💭 Видение",
+                zones: ["придумываю", "в мыслях", "думаю", "верю", "знаю"]
+            },
+            {
+                category: "🌊 В чувствах",
+                zones: ["отталкиваю 🧲", "притягиваю 🧲"]
+            },
+            {
+                category: "⚡ В действиях",
+                zones: ["жду ⏳", "делаю 🔥"]
+            }
+        ];
+        // Плоский список всех ячеек для удобства поиска
+        const ALL_ZONES = GROUPS.flatMap(g => g.zones);
 
         // Данные
-        function getNewPair() {
-            const id1 = pointIdCounter++;
-            const id2 = pointIdCounter++;
-            // Случайный базовый цвет
-            const hue1 = Math.random() * 360;
-            const hue2 = (hue1 + 180) % 360;
-            const color1 = `hsl(${hue1}, 80%, 60%)`;
-            const color2 = `hsl(${hue2}, 80%, 60%)`;
-            
-            // Добавляем две точки симметрично
-            return [
-                { id: id1, x: -80, y: 0, color: color1, emoji: '🔴', label: 'Сила 1' },
-                { id: id2, x: 80, y: 0, color: color2, emoji: '🔵', label: 'Сила 2' }
-            ];
-        }
+        let items = [];
+        let selectedItemId = null;
 
-        function resize() {
-            w = canvas.width = window.innerWidth;
-            h = canvas.height = window.innerHeight;
-            cx = w / 2;
-            cy = h / 2;
-            
-            // Центрируем центр, если он не сохранился
-            if (!center.x && !center.y) {
-                center.x = cx;
-                center.y = cy;
-            }
-            draw();
-        }
+        // DOM
+        const container = document.getElementById('vision-container');
+        const overlay = document.getElementById('modal-overlay');
+        const inputEmoji = document.getElementById('input-emoji');
+        const inputName = document.getElementById('input-name');
+        const inputZone = document.getElementById('input-zone');
+        const modalSave = document.getElementById('modal-save-btn');
+        const modalClose = document.getElementById('modal-close-btn');
 
-        // Логика взаимодействия
-        function updatePhysics() {
-            if (points.length === 0) return;
+        const moveModal = document.getElementById('move-modal');
+        const moveGrid = document.getElementById('move-grid');
+        const moveClose = document.getElementById('move-close-btn');
 
-            // Вычисляем общий вектор смещения центра по ВЗВЕШЕННОМУ СРЕДНЕМУ
-            let totalWeight = 0;
-            let weightedX = 0;
-            let weightedY = 0;
-
-            points.forEach(p => {
-                const dx = p.x - center.x;
-                const dy = p.y - center.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                // Чем дальше точка от центра, тем сильнее она его тянет.
-                // Это и есть "перетягивание каната".
-                const weight = Math.max(0, dist - 10); // Порог чувствительности
-                weightedX += p.x * weight;
-                weightedY += p.y * weight;
-                totalWeight += weight;
-            });
-
-            if (totalWeight > 0) {
-                const targetX = weightedX / totalWeight;
-                const targetY = weightedY / totalWeight;
-                
-                // Плавное притяжение центра к точке равновесия (без рывков)
-                center.x += (targetX - center.x) * 0.05;
-                center.y += (targetY - center.y) * 0.05;
-            }
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, w, h);
-
-            // 1. Рисуем линии связи от точек к центру
-            points.forEach(p => {
-                ctx.beginPath();
-                ctx.moveTo(center.x, center.y);
-                ctx.lineTo(p.x, p.y);
-                ctx.strokeStyle = p.color;
-                ctx.globalAlpha = 0.3;
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                ctx.globalAlpha = 1.0;
-            });
-
-            // 2. Рисуем сами точки
-            points.forEach(p => {
-                const radius = 28;
-                
-                // Круглый фон для эмодзи
-                const grad = ctx.createRadialGradient(p.x - 5, p.y - 5, 0, p.x, p.y, radius + 10);
-                grad.addColorStop(0, p.color);
-                grad.addColorStop(1, 'transparent');
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, radius + 8, 0, Math.PI * 2);
-                ctx.fillStyle = grad;
-                ctx.fill();
-
-                // Эмодзи
-                ctx.font = '32px "Segoe UI Emoji", "Apple Color Emoji"';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(p.emoji, p.x, p.y - 6);
-
-                // Текст (всегда контрастным цветом)
-                ctx.font = 'bold 12px system-ui';
-                ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = 'rgba(0,0,0,0.8)';
-                ctx.shadowBlur = 8;
-                ctx.fillText(p.label, p.x, p.y + 26);
-                ctx.shadowBlur = 0;
-            });
-
-            // 3. Рисуем ЖЕЛТЫЙ ЦЕНТР
-            ctx.shadowColor = 'rgba(255, 204, 0, 0.8)';
-            ctx.shadowBlur = 40;
-            ctx.beginPath();
-            ctx.arc(center.x, center.y, 10, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffcc00';
-            ctx.fill();
-            
-            // Внутреннее свечение центра
-            ctx.beginPath();
-            ctx.arc(center.x, center.y, 20, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 204, 0, 0.2)';
-            ctx.fill();
-            ctx.shadowBlur = 0;
-
-            // 4. Обновление UI (координаты и количество)
-            document.getElementById('center-coords').textContent = 
-                `(${Math.round(center.x - cx)}, ${Math.round(center.y - cy)})`;
-            document.getElementById('total-points').textContent = `Точек: ${points.length}`;
-        }
-
-        function physicsLoop() {
-            updatePhysics();
-            draw();
-            requestAnimationFrame(physicsLoop);
-        }
-
-        // ============= ИНТЕРАКТИВНОСТЬ =============
-        function getPointerPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        }
-
-        function checkHit(pointer) {
-            for (let i = points.length - 1; i >= 0; i--) {
-                const p = points[i];
-                const dist = Math.hypot(pointer.x - p.x, pointer.y - p.y);
-                if (dist < 40) return p;
-            }
-            return null;
-        }
-
-        canvas.addEventListener('pointerdown', (e) => {
-            const pos = getPointerPos(e);
-            const hit = checkHit(pos);
-            if (hit) {
-                isDragging = true;
-                draggedPoint = hit;
-                startMouse = pos;
-                startPointPos = { x: hit.x, y: hit.y };
-                canvas.style.cursor = 'grabbing';
-            }
-        });
-
-        window.addEventListener('pointermove', (e) => {
-            if (!isDragging || !draggedPoint) return;
-            const pos = getPointerPos(e);
-            const dx = pos.x - startMouse.x;
-            const dy = pos.y - startMouse.y;
-            
-            draggedPoint.x = startPointPos.x + dx;
-            draggedPoint.y = startPointPos.y + dy;
-
-            // Не даём точке улететь за пределы экрана
-            draggedPoint.x = Math.max(10, Math.min(w - 10, draggedPoint.x));
-            draggedPoint.y = Math.max(10, Math.min(h - 10, draggedPoint.y));
-
-            saveToLocal();
-        });
-
-        window.addEventListener('pointerup', () => {
-            if (isDragging) {
-                isDragging = false;
-                draggedPoint = null;
-                canvas.style.cursor = 'grab';
-                saveToLocal();
-            }
-        });
-
-        // ============= ДОБАВЛЕНИЕ ТОЧЕК И СОХРАНЕНИЕ =============
-        function addPair() {
-            const newPoints = getNewPair();
-            // Размещаем их относительно текущего центра
-            newPoints[0].x = center.x - 80;
-            newPoints[0].y = center.y - (Math.random() * 60 - 30);
-            newPoints[1].x = center.x + 80;
-            newPoints[1].y = center.y - (Math.random() * 60 - 30);
-            
-            points.push(...newPoints);
-            saveToLocal();
-        }
-
-        function resetAll() {
-            if (confirm('Сбросить все точки к начальному состоянию?')) {
-                localStorage.removeItem('dreams_state_0');
-                location.reload();
-            }
-        }
-
-        function saveToLocal() {
-            const data = { points, centerX: center.x, centerY: center.y, idCounter: pointIdCounter };
-            localStorage.setItem('dreams_state_0', JSON.stringify(data));
-        }
-
-        function loadFromLocal() {
-            const raw = localStorage.getItem('dreams_state_0');
-            if (!raw) return false;
+        // --- ЗАГРУЗКА И СОХРАНЕНИЕ ---
+        function loadData() {
             try {
-                const data = JSON.parse(raw);
-                points = data.points || [];
-                center.x = data.centerX || w/2;
-                center.y = data.centerY || h/2;
-                pointIdCounter = data.idCounter || 0;
-                return true;
-            } catch { return false; }
+                const raw = localStorage.getItem('dreams_vision_board');
+                if (raw) items = JSON.parse(raw);
+                if (!Array.isArray(items)) items = [];
+            } catch { items = []; }
+        }
+        function saveData() {
+            localStorage.setItem('dreams_vision_board', JSON.stringify(items));
         }
 
-        // ============= ЗАПУСК =============
-        document.getElementById('add-pair-btn').addEventListener('click', addPair);
-        document.getElementById('reset-btn').addEventListener('click', resetAll);
+        // --- ОТРИСОВКА ---
+        function render() {
+            container.innerHTML = '';
+            // Заполняем выпадающий список в модалке
+            updateZoneSelect();
 
-        // Скрытие подсказки
-        setTimeout(() => { document.getElementById('hint').style.opacity = '0'; }, 6000);
+            GROUPS.forEach(group => {
+                const block = document.createElement('div');
+                block.className = 'category-block';
+                
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.textContent = group.category;
+                block.appendChild(title);
 
-        window.addEventListener('resize', resize);
-        resize();
+                const grid = document.createElement('div');
+                grid.className = 'zone-grid';
 
-        if (!loadFromLocal() || points.length === 0) {
-            // Если загрузка не удалась или точек нет, создаем дефолтную пару
-            addPair();
+                group.zones.forEach(zone => {
+                    const zoneItems = items.filter(it => it.zone === zone);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'zone-card';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'zone-header';
+                    header.innerHTML = `
+                        <span class="zone-name">${zone}</span>
+                        <button class="btn-add-item" data-zone="${zone}">+</button>
+                    `;
+                    card.appendChild(header);
+
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = 'items-container';
+                    
+                    if (zoneItems.length === 0) {
+                        const empty = document.createElement('span');
+                        empty.className = 'empty-state';
+                        empty.textContent = 'пусто';
+                        itemsContainer.appendChild(empty);
+                    } else {
+                        zoneItems.forEach(item => {
+                            const tag = document.createElement('span');
+                            tag.className = 'item-tag';
+                            tag.dataset.id = item.id;
+                            tag.innerHTML = `<span class="item-emoji">${item.emoji || '📌'}</span> <span class="item-name">${item.name || 'Мысль'}</span>`;
+                            itemsContainer.appendChild(tag);
+                        });
+                    }
+                    card.appendChild(itemsContainer);
+                    grid.appendChild(card);
+                });
+
+                block.appendChild(grid);
+                container.appendChild(block);
+            });
+
+            attachEvents();
         }
-        
-        physicsLoop();
+
+        // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
+        function attachEvents() {
+            // Нажатие на "+" внутри ячейки
+            document.querySelectorAll('.btn-add-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const zone = btn.dataset.zone;
+                    openAddModal(zone);
+                });
+            });
+
+            // Нажатие на сам элемент (открыть меню перемещения)
+            document.querySelectorAll('.item-tag').forEach(tag => {
+                tag.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = parseInt(tag.dataset.id);
+                    openMoveModal(id);
+                });
+            });
+        }
+
+        // --- МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ ---
+        function updateZoneSelect(selected = null) {
+            inputZone.innerHTML = '';
+            ALL_ZONES.forEach(z => {
+                const opt = document.createElement('option');
+                opt.value = z;
+                opt.textContent = z;
+                if (z === selected) opt.selected = true;
+                inputZone.appendChild(opt);
+            });
+        }
+
+        function openAddModal(preSelectZone = null) {
+            inputEmoji.value = '🧩';
+            inputName.value = '';
+            updateZoneSelect(preSelectZone);
+            overlay.classList.add('open');
+        }
+
+        function closeAddModal() {
+            overlay.classList.remove('open');
+        }
+
+        function saveNewItem() {
+            const emoji = inputEmoji.value.trim() || '🧩';
+            const name = inputName.value.trim() || 'Мысль';
+            const zone = inputZone.value;
+            if (!zone) return alert('Выберите зону!');
+
+            items.push({
+                id: Date.now() + Math.random() * 1000, // простой уникальный ID
+                emoji: emoji,
+                name: name,
+                zone: zone
+            });
+            saveData();
+            render();
+            closeAddModal();
+        }
+
+        modalSave.addEventListener('click', saveNewItem);
+        modalClose.addEventListener('click', closeAddModal);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeAddModal(); });
+
+        // --- МОДАЛЬНОЕ ОКНО ПЕРЕМЕЩЕНИЯ ---
+        function openMoveModal(itemId) {
+            selectedItemId = itemId;
+            moveGrid.innerHTML = '';
+            ALL_ZONES.forEach(z => {
+                const btn = document.createElement('button');
+                btn.className = 'move-btn';
+                btn.textContent = z;
+                btn.addEventListener('click', () => {
+                    const item = items.find(it => it.id === itemId);
+                    if (item) {
+                        item.zone = z;
+                        saveData();
+                        render();
+                        closeMoveModal();
+                    }
+                });
+                moveGrid.appendChild(btn);
+            });
+            moveModal.classList.add('open');
+        }
+
+        function closeMoveModal() {
+            moveModal.classList.remove('open');
+            selectedItemId = null;
+        }
+
+        moveClose.addEventListener('click', closeMoveModal);
+        moveModal.addEventListener('click', (e) => { if (e.target === moveModal) closeMoveModal(); });
+
+        // --- КНОПКИ ВВЕРХУ ---
+        document.getElementById('add-random-btn').addEventListener('click', () => {
+            // Открыть модалку с рандомной зоной
+            const randomZone = ALL_ZONES[Math.floor(Math.random() * ALL_ZONES.length)];
+            openAddModal(randomZone);
+        });
+
+        document.getElementById('shuffle-btn').addEventListener('click', () => {
+            if (items.length === 0) return alert('Сначала добавьте несколько мыслей!');
+            items.forEach(item => {
+                const randomZone = ALL_ZONES[Math.floor(Math.random() * ALL_ZONES.length)];
+                item.zone = randomZone;
+            });
+            saveData();
+            render();
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            if (confirm('Очистить всю карту видения?')) {
+                items = [];
+                saveData();
+                render();
+            }
+        });
+
+        // --- ЗАПУСК ---
+        loadData();
+        render();
+        console.log('🟣🦅 Уровень 3: Карта Видения загружена.');
     </script>
 </body>
 </html>
