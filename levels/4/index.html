@@ -15,41 +15,36 @@
 
         h1 { text-align: center; font-size: 24px; color: #b8a6ff; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
-        .header-actions {
-            display: flex; justify-content: center; margin-bottom: 20px;
-        }
+        .header-actions { display: flex; justify-content: center; margin-bottom: 20px; }
         .btn {
             border: none; background: #6f52c4; color: #fff; padding: 12px 24px;
             border-radius: 30px; font-size: 16px; font-weight: 600; cursor: pointer;
-            transition: 0.2s; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+            transition: 0.2s; touch-action: manipulation;
         }
         .btn:active { transform: scale(0.95); background: #5d43a8; }
         .btn-danger { background: #a03a3a; }
 
         /* Список записей */
-        .entry-list {
-            display: flex; flex-direction: column; gap: 12px;
-        }
+        .entry-list { display: flex; flex-direction: column; gap: 12px; }
         .entry-card {
             background: #161127; border-radius: 16px; padding: 16px;
-            border-left: 4px solid #6f52c4; display: flex; flex-direction: column; gap: 6px;
+            border-left: 4px solid #ffcc00; display: flex; flex-direction: column; gap: 8px;
             position: relative;
         }
-        .entry-card .type {
-            display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px;
-            color: #8f78e6;
-        }
-        .entry-card .text { font-size: 16px; line-height: 1.5; color: #fff; }
         .entry-card .time {
-            font-size: 12px; color: #4a3f6a; margin-top: 4px;
+            font-size: 12px; color: #4a3f6a; margin-bottom: 4px;
+            display: flex; justify-content: space-between; align-items: center;
         }
+        .entry-card .facet {
+            display: flex; align-items: flex-start; gap: 10px; font-size: 15px; line-height: 1.4; color: #fff;
+        }
+        .entry-card .facet .emoji { font-size: 18px; margin-top: 1px; }
         .entry-card .delete-btn {
-            position: absolute; top: 12px; right: 12px;
             background: transparent; border: none; color: #ff6b6b;
             font-size: 18px; cursor: pointer; touch-action: manipulation;
         }
 
-        /* Модальное окно добавления */
+        /* Модальное окно */
         #modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 100;
@@ -57,60 +52,66 @@
         #modal-overlay.open { display: flex; }
         .modal-box {
             background: #161127; border: 1px solid #3a2f5a; border-radius: 30px;
-            padding: 24px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 16px;
+            padding: 24px; width: 90%; max-width: 420px; display: flex; flex-direction: column; gap: 16px;
         }
         .modal-box h3 { color: #b8a6ff; text-align: center; margin-bottom: 4px; }
         .input-group { display: flex; flex-direction: column; gap: 4px; }
-        .input-group label { font-size: 12px; color: #b8a6ff; font-weight: 500; }
-        .input-group input, .input-group select, .input-group textarea {
-            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
-            padding: 12px 14px; font-size: 15px; color: #fff; outline: none; touch-action: manipulation;
-            font-family: inherit;
+        .input-group label { font-size: 12px; color: #8f78e6; font-weight: 500; }
+        .input-group textarea, .input-group input {
+            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 12px;
+            padding: 10px 12px; font-size: 15px; color: #fff; outline: none; touch-action: manipulation;
+            font-family: inherit; resize: vertical; min-height: 40px;
         }
-        .input-group textarea { resize: vertical; min-height: 80px; }
+        .input-group textarea { min-height: 50px; }
         .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
         .btn-cancel { background: #3a2f5a; color: #b8a6ff; flex: 1; border: none; border-radius: 20px; padding: 12px; cursor: pointer; touch-action: manipulation; }
 
         @media (max-width: 500px) {
-            .entry-card .delete-btn { top: 8px; right: 8px; }
+            .entry-card .facet { font-size: 14px; }
         }
     </style>
 </head>
 <body>
 
     <div id="app">
-        <h1>🗂️ Каталог состояний</h1>
+        <h1>🗂️ Снимок состояния</h1>
 
         <div class="header-actions">
-            <button class="btn" id="add-btn">➕ Добавить запись</button>
+            <button class="btn" id="add-btn">➕ Добавить снимок</button>
         </div>
 
         <div class="entry-list" id="entry-list">
-            <!-- Записи будут здесь -->
+            <!-- Карточки будут здесь -->
         </div>
     </div>
 
     <!-- Модальное окно добавления -->
     <div id="modal-overlay">
         <div class="modal-box">
-            <h3>📝 Новая запись</h3>
+            <h3>📝 Что произошло?</h3>
+            
             <div class="input-group">
-                <label>Что произошло?</label>
-                <textarea id="input-text" placeholder="Опиши событие..."></textarea>
+                <label>⚡ Что я сделал?</label>
+                <textarea id="f-action" placeholder="Например: Пошёл в душ"></textarea>
             </div>
             <div class="input-group">
-                <label>Тип</label>
-                <select id="input-type">
-                    <option value="action">⚡ Сделал</option>
-                    <option value="feeling">💓 Почувствовал</option>
-                    <option value="thought">💭 Подумал</option>
-                    <option value="idea">💡 Увидел / Придумал</option>
-                </select>
+                <label>💭 Что я подумал?</label>
+                <textarea id="f-thought" placeholder="Например: Вода смывает усталость"></textarea>
             </div>
             <div class="input-group">
-                <label>Время</label>
+                <label>💓 Что я почувствовал?</label>
+                <textarea id="f-feeling" placeholder="Например: Спокойствие и тепло"></textarea>
+            </div>
+            <div class="input-group">
+                <label>💡 Что я увидел / придумал?</label>
+                <textarea id="f-vision" placeholder="Например: Увидел отражение пара в зеркале"></textarea>
+            </div>
+
+            <div class="input-group">
+                <label>🕒 Время</label>
                 <input type="datetime-local" id="input-time" />
             </div>
+
             <div class="modal-actions">
                 <button class="btn" id="modal-save-btn" style="flex:1;">✅ Сохранить</button>
                 <button class="btn-cancel" id="modal-close-btn">✖ Отмена</button>
@@ -123,20 +124,14 @@
         let entries = [];
         let nextId = 1;
 
-        // Типы событий и их эмодзи
-        const TYPE_MAP = {
-            action: { emoji: '⚡', label: 'Сделал' },
-            feeling: { emoji: '💓', label: 'Почувствовал' },
-            thought: { emoji: '💭', label: 'Подумал' },
-            idea: { emoji: '💡', label: 'Увидел / Придумал' }
-        };
-
         // DOM
         const entryList = document.getElementById('entry-list');
         const addBtn = document.getElementById('add-btn');
         const modal = document.getElementById('modal-overlay');
-        const inputText = document.getElementById('input-text');
-        const inputType = document.getElementById('input-type');
+        const fAction = document.getElementById('f-action');
+        const fThought = document.getElementById('f-thought');
+        const fFeeling = document.getElementById('f-feeling');
+        const fVision = document.getElementById('f-vision');
         const inputTime = document.getElementById('input-time');
         const modalSave = document.getElementById('modal-save-btn');
         const modalClose = document.getElementById('modal-close-btn');
@@ -164,22 +159,18 @@
             if (entries.length === 0) {
                 const empty = document.createElement('div');
                 empty.style.cssText = 'text-align: center; color: #4a3f6a; padding: 40px 0;';
-                empty.textContent = 'Пока нет записей. Нажми «➕ Добавить запись»';
+                empty.textContent = 'Пока нет записей. Нажми «➕ Добавить снимок»';
                 entryList.appendChild(empty);
                 return;
             }
 
-            // Сортируем от новых к старым (по времени)
             const sorted = [...entries].sort((a, b) => new Date(b.time) - new Date(a.time));
 
             sorted.forEach(entry => {
                 const card = document.createElement('div');
                 card.className = 'entry-card';
-                card.style.borderLeftColor = getColorForType(entry.type);
+                card.style.borderLeftColor = '#ffcc00';
 
-                const typeInfo = TYPE_MAP[entry.type] || { emoji: '📌', label: 'Событие' };
-
-                // Форматирование времени
                 let timeStr = '';
                 try {
                     const date = new Date(entry.time);
@@ -189,12 +180,20 @@
                     });
                 } catch { timeStr = entry.time || '—'; }
 
-                card.innerHTML = `
-                    <div class="type">${typeInfo.emoji} ${typeInfo.label}</div>
-                    <div class="text">${escapeHtml(entry.text)}</div>
-                    <div class="time">🕒 ${timeStr}</div>
-                    <button class="delete-btn" data-id="${entry.id}">✕</button>
+                let html = `
+                    <div class="time">
+                        <span>🕒 ${timeStr}</span>
+                        <button class="delete-btn" data-id="${entry.id}">✕</button>
+                    </div>
                 `;
+
+                // Добавляем только заполненные грани
+                if (entry.action) html += `<div class="facet"><span class="emoji">⚡</span> <span>${escapeHtml(entry.action)}</span></div>`;
+                if (entry.thought) html += `<div class="facet"><span class="emoji">💭</span> <span>${escapeHtml(entry.thought)}</span></div>`;
+                if (entry.feeling) html += `<div class="facet"><span class="emoji">💓</span> <span>${escapeHtml(entry.feeling)}</span></div>`;
+                if (entry.vision) html += `<div class="facet"><span class="emoji">💡</span> <span>${escapeHtml(entry.vision)}</span></div>`;
+
+                card.innerHTML = html;
                 entryList.appendChild(card);
             });
 
@@ -213,16 +212,6 @@
             });
         }
 
-        function getColorForType(type) {
-            switch(type) {
-                case 'action': return '#ff4d4d';   // красный
-                case 'feeling': return '#2ecc71';  // зелёный
-                case 'thought': return '#4d8bff';  // синий
-                case 'idea': return '#f1c40f';     // жёлтый
-                default: return '#6f52c4';
-            }
-        }
-
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
@@ -231,8 +220,10 @@
 
         // ========== МОДАЛЬНОЕ ОКНО ==========
         function openModal() {
-            inputText.value = '';
-            // Устанавливаем текущее время в локальный формат datetime-local
+            fAction.value = '';
+            fThought.value = '';
+            fFeeling.value = '';
+            fVision.value = '';
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             inputTime.value = now.toISOString().slice(0, 16);
@@ -244,19 +235,25 @@
         }
 
         function saveEntry() {
-            const text = inputText.value.trim();
-            if (!text) {
-                alert('Пожалуйста, опиши событие.');
+            const action = fAction.value.trim();
+            const thought = fThought.value.trim();
+            const feeling = fFeeling.value.trim();
+            const vision = fVision.value.trim();
+            const time = inputTime.value || new Date().toISOString();
+
+            // Должно быть заполнено хотя бы одно поле
+            if (!action && !thought && !feeling && !vision) {
+                alert('Заполните хотя бы одну грань из 4-х!');
                 return;
             }
-            const type = inputType.value;
-            const time = inputTime.value || new Date().toISOString();
 
             const newEntry = {
                 id: nextId++,
-                text: text,
-                type: type,
-                time: time
+                time: time,
+                action: action,
+                thought: thought,
+                feeling: feeling,
+                vision: vision
             };
             entries.push(newEntry);
             saveData();
@@ -273,7 +270,7 @@
         // ========== ЗАПУСК ==========
         loadData();
         render();
-        console.log('🟣🦅 Уровень 4: Каталог состояний загружен.');
+        console.log('🟣🦅 Уровень 4: Снимок состояния загружен.');
     </script>
 </body>
 </html>
