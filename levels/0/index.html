@@ -7,13 +7,12 @@
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
         #canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; cursor: grab; background: radial-gradient(circle at center, #131022 0%, #08060e 100%); }
-        #ui-panel { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px; pointer-events: none; }
+        #ui-panel { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 10px; pointer-events: none; z-index: 10; }
         .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 12px; pointer-events: auto; flex-wrap: wrap; justify-content: center; }
         .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; }
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
         .stats-panel { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; background: rgba(22,17,39,0.85); padding: 8px 16px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; pointer-events: auto; }
         .tag { font-size: 13px; font-weight: 500; padding: 2px 10px; border-radius: 12px; background: rgba(0,0,0,0.3); white-space: nowrap; color: #ffffff; }
-        #hint { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); color: #ffffff; font-size: 14px; pointer-events: none; background: rgba(0,0,0,0.5); padding: 4px 16px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); }
         #edit-panel { display: none; background: rgba(16, 13, 30, 0.95); backdrop-filter: blur(12px); border: 1px solid #3a2f5a; border-radius: 30px; padding: 12px 18px; width: 90%; max-width: 420px; pointer-events: auto; flex-direction: column; gap: 10px; }
         #edit-panel input, #edit-panel select { background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px; color: #ffffff; padding: 6px 10px; font-size: 14px; outline: none; }
         #edit-panel select { cursor: pointer; }
@@ -24,11 +23,30 @@
         .btn-del { background: #a03a3a; color: #fff; border-radius: 50%; width: 32px; height: 32px; border: none; cursor: pointer; }
         #add-btn { display: none; position: absolute; transform: translate(-50%, -180%); background: #6f52c4; color: #fff; border: none; border-radius: 30px; padding: 10px 24px; font-size: 16px; font-weight: 600; cursor: pointer; pointer-events: auto; box-shadow: 0 0 30px rgba(111,82,196,0.8); z-index: 10; transition: 0.2s; }
         #add-btn:active { transform: translate(-50%, -180%) scale(0.95); }
-        @media (max-width: 600px) { #edit-panel { padding: 10px; } }
+
+        /* --- МОДАЛЬНОЕ ОКНО КАТАЛОГА --- */
+        #catalog-modal {
+            display: none; position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); justify-content: center; align-items: center;
+            z-index: 20; pointer-events: auto;
+        }
+        #catalog-modal.open { display: flex; }
+        .modal-box {
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 40px; padding: 24px;
+            max-width: 420px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.9); display: flex; flex-direction: column; gap: 16px;
+        }
+        .modal-box h3 { color: #b8a6ff; margin: 0 0 4px 0; font-size: 20px; text-align: center; }
+        .force-input-group { display: flex; flex-direction: column; gap: 4px; }
+        .force-input-group label { font-size: 12px; color: #b8a6ff; font-weight: 500; }
+        .force-row { display: flex; gap: 8px; align-items: center; }
+        .force-row input[type="text"] { flex: 1; }
+        .force-row input[type="color"] { width: 36px; height: 36px; border: none; border-radius: 50%; padding: 0; cursor: pointer; background: transparent; }
+        .modal-actions { display: flex; gap: 10px; justify-content: space-between; margin-top: 4px; }
+        .modal-actions .btn { flex: 1; padding: 12px; font-size: 15px; }
+        @media (max-width: 600px) { #edit-panel { padding: 10px; } .modal-box { padding: 16px; } }
     </style>
 </head>
 <body>
-    <div id="hint">🟠 Живот / 🟢 Грудь / 🔵 Шея / 🟣 Голова</div>
     <canvas id="canvas"></canvas>
 
     <div id="ui-panel">
@@ -67,11 +85,43 @@
         <div class="btn-group">
             <button class="btn" id="edit-toggle-btn">⚙️ Правка</button>
             <button class="btn" id="reset-btn">🔄 Сброс</button>
-            <button class="btn" id="switch-3d-btn" style="background: #6f52c4; color: #fff;">🌐 3D</button>
+            <button class="btn" id="switch-3d-btn" style="background: #6f52c4; color: #fff;">3D</button>
         </div>
     </div>
 
     <button id="add-btn">➕ Добавить силу</button>
+
+    <!-- МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ СИЛ -->
+    <div id="catalog-modal">
+        <div class="modal-box">
+            <h3>🗂️ Каталог сил</h3>
+            <p style="color:#ffffff; opacity:0.7; font-size:13px; text-align:center; margin:-4px 0 8px 0;">Заполни одну или обе силы</p>
+            
+            <div class="force-input-group">
+                <label>⚡ Сила 1</label>
+                <div class="force-row">
+                    <input type="text" id="c-emoji-1" placeholder="Смайл" style="width: 55px; text-align:center;" value="⚡" />
+                    <input type="text" id="c-name-1" placeholder="Имя силы" value="Энергия 1" />
+                    <input type="color" id="c-color-1" value="#4d8bff" />
+                </div>
+            </div>
+            
+            <div class="force-input-group">
+                <label>🔥 Сила 2</label>
+                <div class="force-row">
+                    <input type="text" id="c-emoji-2" placeholder="Смайл" style="width: 55px; text-align:center;" value="🔥" />
+                    <input type="text" id="c-name-2" placeholder="Имя силы" value="Энергия 2" />
+                    <input type="color" id="c-color-2" value="#ff4d4d" />
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn" id="c-add-btn" style="background:#6f52c4; color:#fff;">➕ Добавить на сцену</button>
+                <button class="btn" id="c-save-btn" style="background:#2a2348;">💾 В каталог</button>
+            </div>
+            <button class="btn" id="c-close-btn" style="background:#a03a3a; width:100%; margin-top:4px;">✖ Закрыть</button>
+        </div>
+    </div>
 
     <script>
         const canvas = document.getElementById('canvas');
@@ -89,7 +139,9 @@
         let selectedPoint = null;
         let isEditPanelVisible = false;
         let selectedZone = null;
+        let pendingZoneId = null; // Какая зона ждет силы
 
+        // DOM-элементы
         const editPanel = document.getElementById('edit-panel');
         const closeEditBtn = document.getElementById('close-edit-btn');
         const editToggleBtn = document.getElementById('edit-toggle-btn');
@@ -103,7 +155,18 @@
         const delBtn = document.getElementById('del-point-btn');
         const addBtn = document.getElementById('add-btn');
 
-        // Чакры
+        // Модальное окно
+        const modal = document.getElementById('catalog-modal');
+        const cEmoji1 = document.getElementById('c-emoji-1');
+        const cName1 = document.getElementById('c-name-1');
+        const cColor1 = document.getElementById('c-color-1');
+        const cEmoji2 = document.getElementById('c-emoji-2');
+        const cName2 = document.getElementById('c-name-2');
+        const cColor2 = document.getElementById('c-color-2');
+        const cAddBtn = document.getElementById('c-add-btn');
+        const cSaveBtn = document.getElementById('c-save-btn');
+        const cCloseBtn = document.getElementById('c-close-btn');
+
         let bodyZones = [
             { id: 'голова', anchorX: 0, anchorY: -0.35, x: 0, y: -0.35, color: '#9b59b6', outerR: 0.1, innerR: 0.045 },
             { id: 'шея',   anchorX: 0, anchorY: -0.18, x: 0, y: -0.18, color: '#5dade2', outerR: 0.08, innerR: 0.035 },
@@ -114,36 +177,13 @@
         function getBodyCoord(id) { return bodyZones.find(z => z.id === id) || null; }
         function countAttached(zoneId) { return points.filter(p => p.bodyPart === zoneId).length; }
 
-        function getRandomEmoji() { return ['🦁', '🐉', '⚡', '🌊', '🔥', '💫', '🌟', '🌙', '☀️', '🌪️'][Math.floor(Math.random() * 10)]; }
-        function getRandomName(suffix) { return ['Сила', 'Энергия', 'Дух', 'Свет', 'Тьма', 'Жар', 'Хлад'][Math.floor(Math.random() * 7)] + ' ' + suffix; }
-
-        function createPointForZone(zoneId, customColor = null, customEmoji = null, customName = null, offsetX = 0, offsetY = 0) {
-            const zone = bodyZones.find(z => z.id === zoneId);
-            if (!zone) return null;
+        function createPoint(emoji, label, color, radius, x, y, bodyPart) {
             const id = pointIdCounter++;
-            const count = countAttached(zoneId) + 1;
             const newPoint = {
-                id: id, 
-                x: cx + zone.x * w + offsetX * w, 
-                y: cy + zone.y * h + offsetY * h,
-                color: customColor || zone.color, 
-                emoji: customEmoji || getRandomEmoji(), 
-                label: customName || getRandomName(count),
-                radius: 25 + Math.random() * 20, 
-                bodyPart: zoneId
+                id: id, x: x, y: y, color: color, emoji: emoji, label: label, radius: radius, bodyPart: bodyPart
             };
             points.push(newPoint);
-            saveToLocal();
             return newPoint;
-        }
-
-        function createPairForZone(zoneId) {
-            const zone = bodyZones.find(z => z.id === zoneId);
-            if (!zone) return null;
-            // Создаем ровно 2 силы с симметричным смещением
-            const p1 = createPointForZone(zoneId, null, '⚡', null, -0.08, -0.05);
-            const p2 = createPointForZone(zoneId, null, '🔥', null, 0.08, 0.05);
-            return [p1, p2];
         }
 
         function resize() {
@@ -243,6 +283,65 @@
             requestAnimationFrame(physicsLoop);
         }
 
+        // ==================== КАТАЛОГ И ДОБАВЛЕНИЕ ====================
+        function loadCatalog() {
+            try { const raw = localStorage.getItem('dreams_force_catalog'); return raw ? JSON.parse(raw) : null; } catch { return null; }
+        }
+        function saveCatalog(catalog) {
+            localStorage.setItem('dreams_force_catalog', JSON.stringify(catalog));
+        }
+        function openAddDialog(zoneId) {
+            pendingZoneId = zoneId;
+            // Загружаем последние сохраненные значения из каталога (если есть)
+            const cat = loadCatalog();
+            if (cat) {
+                cEmoji1.value = cat.emoji1 || '⚡'; cName1.value = cat.name1 || 'Энергия 1'; cColor1.value = cat.color1 || '#4d8bff';
+                cEmoji2.value = cat.emoji2 || '🔥'; cName2.value = cat.name2 || 'Энергия 2'; cColor2.value = cat.color2 || '#ff4d4d';
+            } else {
+                // Дефолтные, если каталог пустой
+                cEmoji1.value = '⚡'; cName1.value = 'Энергия 1'; cColor1.value = '#4d8bff';
+                cEmoji2.value = '🔥'; cName2.value = 'Энергия 2'; cColor2.value = '#ff4d4d';
+            }
+            modal.classList.add('open');
+        }
+
+        function addFromCatalog() {
+            const zone = bodyZones.find(z => z.id === pendingZoneId);
+            if (!zone) return;
+            const e1 = cEmoji1.value.trim() || '⚡';
+            const n1 = cName1.value.trim() || 'Сила 1';
+            const c1 = cColor1.value;
+            const e2 = cEmoji2.value.trim() || '🔥';
+            const n2 = cName2.value.trim() || 'Сила 2';
+            const c2 = cColor2.value;
+
+            const radius = 25 + Math.random() * 20;
+            const p1 = createPoint(e1, n1, c1, radius, cx + zone.x * w - 0.08*w, cy + zone.y * h - 0.05*h, zone.id);
+            const p2 = createPoint(e2, n2, c2, radius, cx + zone.x * w + 0.08*w, cy + zone.y * h + 0.05*h, zone.id);
+            
+            closeDialog();
+            saveToLocal();
+        }
+
+        function saveToCatalog() {
+            const data = {
+                emoji1: cEmoji1.value.trim() || '⚡', name1: cName1.value.trim() || 'Сила 1', color1: cColor1.value,
+                emoji2: cEmoji2.value.trim() || '🔥', name2: cName2.value.trim() || 'Сила 2', color2: cColor2.value
+            };
+            saveCatalog(data);
+            // Можно добавить уведомление, что сохранено, но для простоты просто скроем модалку
+            closeDialog();
+        }
+
+        function closeDialog() {
+            modal.classList.remove('open'); pendingZoneId = null;
+        }
+
+        cAddBtn.addEventListener('click', addFromCatalog);
+        cSaveBtn.addEventListener('click', saveToCatalog);
+        cCloseBtn.addEventListener('click', closeDialog);
+
+        // ==================== ИНТЕРАКТИВНОСТЬ ====================
         function getPointerPos(e) {
             const rect = canvas.getBoundingClientRect();
             return { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -266,6 +365,9 @@
         }
 
         canvas.addEventListener('pointerdown', (e) => {
+            // Если открыто модальное окно, не даём кликать по сцене
+            if (modal.classList.contains('open')) return;
+
             const pos = getPointerPos(e);
             const hitPoint = checkHit(pos);
             if (hitPoint) {
@@ -279,11 +381,9 @@
             if (hitZone) {
                 selectedZone = hitZone;
                 if (countAttached(hitZone.id) === 0) {
-                    createPairForZone(hitZone.id);
-                    addBtn.style.display = 'none';
-                    const firstCreated = points.filter(p => p.bodyPart === hitZone.id)[0];
-                    if (firstCreated) selectPoint(firstCreated);
-                    draw(); saveToLocal();
+                    // Вместо автоматического создания открываем диалог
+                    openAddDialog(hitZone.id);
+                    addBtn.style.display = 'none'; selectPoint(null);
                 } else {
                     const mx = cx + hitZone.x * w, my = cy + hitZone.y * h;
                     addBtn.style.display = 'block';
@@ -312,15 +412,15 @@
         addBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (selectedZone) {
-                createPointForZone(selectedZone.id);
-                const mx = cx + selectedZone.x * w;
-                const my = cy + selectedZone.y * h;
+                createPoint('🦁', 'Дух', '#ffcc00', 30, cx + selectedZone.x * w, cy + selectedZone.y * h, selectedZone.id);
+                const mx = cx + selectedZone.x * w, my = cy + selectedZone.y * h;
                 addBtn.style.left = (mx + window.scrollX) + 'px';
                 addBtn.style.top = (my + window.scrollY) + 'px';
                 draw(); saveToLocal();
             }
         });
 
+        // ==================== РЕДАКТИРОВАНИЕ И СОХРАНЕНИЕ ====================
         function selectPoint(point) {
             selectedPoint = point;
             if (point && isEditPanelVisible) {
@@ -371,7 +471,6 @@
             if (idx !== -1) { points.splice(idx, 1); selectPoint(null); isEditPanelVisible = false; editPanel.style.display = 'none'; saveToLocal(); }
         });
 
-        // СИНХРОНИЗИРОВАННОЕ СОХРАНЕНИЕ
         function saveToLocal() {
             localStorage.setItem('dreams_shared_state', JSON.stringify({ points, idCounter: pointIdCounter }));
         }
@@ -404,10 +503,9 @@
             }
         });
 
-        // ПЕРЕКЛЮЧЕНИЕ НА 3D
         switch3DBtn.addEventListener('click', () => {
-            saveToLocal(); // Сохраняем текущее состояние перед уходом
-            window.location.href = '../1/'; // Переход на уровень 1
+            saveToLocal();
+            window.location.href = '../1/';
         });
 
         window.addEventListener('resize', resize);
