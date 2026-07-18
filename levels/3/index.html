@@ -36,6 +36,7 @@
         }
         .affirmation-text { font-size: 16px; line-height: 1.6; color: #e0d6ff; white-space: pre-wrap; }
         .affirmation-text .highlight { color: #ffcc00; font-weight: 600; }
+        .affirmation-text .item-emoji { font-size: 1.1em; margin-right: 2px; }
 
         /* Категории */
         .categories-row {
@@ -89,13 +90,6 @@
         }
         .add-btn:active { background: #6f52c4; color: #fff; }
 
-        .add-btn-full {
-            background: #221b38; border: none; color: #b8a6ff; width: 100%; border-radius: 20px;
-            padding: 12px; font-size: 16px; cursor: pointer; touch-action: manipulation; margin-top: 8px;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .add-btn-full:active { background: #6f52c4; color: #fff; }
-
         /* Модальные окна */
         #modal-overlay, #move-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -134,7 +128,7 @@
 
         <div class="desire-panel">
             <label>💡 Я получу...</label>
-            <input type="text" id="goal-input" placeholder="Например: внутреннюю свободу" />
+            <input type="text" id="goal-input" placeholder="Например: 💰 внутреннюю свободу" />
             <div class="desire-row">
                 <span style="font-size:13px;">Вероятность:</span>
                 <input type="range" id="percent-slider" min="0" max="100" value="70" />
@@ -163,7 +157,7 @@
             </div>
         </div>
 
-        <!-- Секция Мысли -->
+        <!-- Секция Мысли (3 подкатегории) -->
         <div class="items-section" id="section-think">
             <div class="sub-group">
                 <div class="sub-header">
@@ -171,6 +165,20 @@
                     <button class="add-btn" data-cat="think" data-sub="know">+</button>
                 </div>
                 <div class="items-container" data-cat="think" data-sub="know"></div>
+            </div>
+            <div class="sub-group">
+                <div class="sub-header">
+                    <span class="sub-title">я верю</span>
+                    <button class="add-btn" data-cat="think" data-sub="believe">+</button>
+                </div>
+                <div class="items-container" data-cat="think" data-sub="believe"></div>
+            </div>
+            <div class="sub-group">
+                <div class="sub-header">
+                    <span class="sub-title">я думаю</span>
+                    <button class="add-btn" data-cat="think" data-sub="think">+</button>
+                </div>
+                <div class="items-container" data-cat="think" data-sub="think"></div>
             </div>
         </div>
 
@@ -217,7 +225,7 @@
             <h3 id="modal-title">➕ Новый элемент</h3>
             <div class="input-group">
                 <label>Смайл</label>
-                <input type="text" id="input-emoji" placeholder="Например: 💡" />
+                <input type="text" id="input-emoji" placeholder="Например: ☁️" />
             </div>
             <div class="input-group">
                 <label>Название</label>
@@ -253,14 +261,15 @@
 
     <script>
         // ========== ДАННЫЕ ==========
-        // Маппинг подкатегорий для выпадающих списков
+        // Маппинг подкатегорий (Мысли: знаю, верю, думаю)
         const SUB_MAP = {
-            think: { label: 'я знаю', types: ['know'] },
+            think: { label: 'Мысли', types: ['know', 'believe', 'think'] },
             feel: { label: 'Чувства', types: ['remove', 'attract'] },
             act: { label: 'Действия', types: ['do', 'wait'] }
         };
         const SUB_LABELS = {
-            know: 'я знаю', remove: 'я убираю', attract: 'я впускаю', do: 'я делаю', wait: 'я жду'
+            know: 'я знаю', believe: 'я верю', think: 'я думаю',
+            remove: 'я убираю', attract: 'я впускаю', do: 'я делаю', wait: 'я жду'
         };
 
         let data = { goal: '', percent: 70, items: [] };
@@ -298,7 +307,7 @@
                     data.goal = parsed.goal || '';
                     data.percent = parsed.percent || 70;
                     data.items = parsed.items || [];
-                    // Миграция старых данных: проставляем subType по умолчанию
+                    // Миграция старых данных
                     data.items.forEach(item => {
                         if (!item.id) item.id = nextId++;
                         if (!item.subType) {
@@ -354,19 +363,20 @@
             const goal = data.goal || '...';
             const percent = data.percent;
 
-            // Группируем по subType
+            // Группируем по subType, к названию добавляем смайл
             const groups = {};
             data.items.forEach(item => {
                 const key = item.subType || 'know';
                 if (!groups[key]) groups[key] = [];
-                groups[key].push(item.name);
+                // <span class="item-emoji">☁️</span> Я энергия
+                groups[key].push(`<span class="item-emoji">${item.emoji || '🧩'}</span> ${item.name}`);
             });
 
             let parts = [];
             parts.push(`<span class="highlight">Я получу</span> ${goal} <span class="highlight">${percent}%</span>`);
 
-            // Добавляем только заполненные подкатегории
-            const order = ['know', 'remove', 'attract', 'do', 'wait'];
+            // Порядок вывода в аффирмации (Знаю, Верю, Думаю, Убираю, Впускаю, Делаю, Жду)
+            const order = ['know', 'believe', 'think', 'remove', 'attract', 'do', 'wait'];
             order.forEach(key => {
                 if (groups[key] && groups[key].length > 0) {
                     const label = SUB_LABELS[key] || key;
@@ -487,10 +497,9 @@
             const item = data.items.find(i => i.id === id);
             if (!item) return;
             moveGrid.innerHTML = '';
-            // Показываем все возможные подкатегории для перемещения
             ['think', 'feel', 'act'].forEach(cat => {
                 SUB_MAP[cat].types.forEach(sub => {
-                    if (cat === item.category && sub === item.subType) return; // не показываем текущую
+                    if (cat === item.category && sub === item.subType) return;
                     const btn = document.createElement('button');
                     btn.className = 'move-btn';
                     btn.dataset.cat = cat;
@@ -506,7 +515,7 @@
 
         // ========== ЗАПУСК ==========
         loadData(); render();
-        console.log('🟣🦅 Уровень 6 (полная структура) загружен.');
+        console.log('🟣🦅 Уровень 6 (знаю/верю/думаю + смайлы) загружен.');
     </script>
 </body>
 </html>
