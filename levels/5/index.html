@@ -150,12 +150,12 @@
         let w, h, cx, cy;
         let clouds = [], feelings = [], roots = [];
         let nextId = 1;
-        let energyEnabled = true; // Вкл/Выкл потока энергии
+        let energyEnabled = true;
 
         let skyEnd, feelingEnd;
         let isDragging = false, draggedNode = null, startMouse = {x:0, y:0}, startNodePos = {x:0, y:0}, draggedIsNode = false;
 
-        // ========== УЗЛЫ (ИДЕАЛЬНАЯ СИММЕТРИЯ) ==========
+        // ========== УЗЛЫ (СТРОГАЯ ГЕОМЕТРИЯ) ==========
         let nodes = {
             leftLeg: { x: 0, y: 0, emoji: '🟦', label: 'Левая нога' },
             rightLeg: { x: 0, y: 0, emoji: '🟥', label: 'Правая нога' },
@@ -168,34 +168,9 @@
         // ========== ЧАСТИЦЫ ДЛЯ АНИМАЦИИ ЭНЕРГИИ ==========
         let particles = [];
 
-        function initParticles() {
-            const sun = {x: cx, y: 40};
-            const h = nodes.heart;
-            const lHand = nodes.leftHand;
-            const rHand = nodes.rightHand;
-            const lLeg = nodes.leftLeg;
-            const rLeg = nodes.rightLeg;
-            const c = nodes.center;
-
-            // Маршрут 1: Сердце -> Левая рука -> Живот -> Правая нога -> Солнце (Синий)
-            const path1 = [h, lHand, c, rLeg, sun];
-            // Маршрут 2: Сердце -> Правая рука -> Живот -> Левая нога -> Солнце (Красный)
-            const path2 = [h, rHand, c, lLeg, sun];
-            // Маршрут 3: Солнце -> Сердце (Золотой возврат)
-            const path3 = [sun, h];
-
-            particles = [
-                { path: path1, progress: 0, speed: 0.004, color: '#4d8bff' },
-                { path: path2, progress: 0.3, speed: 0.004, color: '#ff4d4d' }, // Смещение фазы для красоты
-                { path: path3, progress: 0.6, speed: 0.004, color: '#ffcc00' }
-            ];
-        }
-
         // Функция для получения координат на ломаной линии
         function getPointOnPath(path, progress) {
-            if (path.length < 2) return path[0] || {x:0, y:0};
-            
-            // Вычисляем общую длину пути, чтобы корректно распределить прогресс
+            if (!path || path.length < 2) return {x:0, y:0};
             let totalLen = 0;
             let segmentLens = [];
             for (let i = 0; i < path.length - 1; i++) {
@@ -206,7 +181,6 @@
                 totalLen += len;
             }
             if (totalLen === 0) return path[0];
-
             let targetDist = progress * totalLen;
             let accumulated = 0;
             for (let i = 0; i < segmentLens.length; i++) {
@@ -242,10 +216,8 @@
                 nodes.rightLeg = { x: cx + dx, y: feelingEnd + dy, emoji: '🟥', label: 'Правая нога' };
                 nodes.leftHand = { x: cx - dx, y: feelingEnd - dy, emoji: '🔵', label: 'Левая рука' };
                 nodes.rightHand = { x: cx + dx, y: feelingEnd - dy, emoji: '🔴', label: 'Правая рука' };
-                nodes.heart = { x: cx, y: feelingEnd - 2 * dy, emoji: '🟢', label: 'Сердце' };
+                nodes.heart = { x: cx, y: feelingEnd - dy, emoji: '🟢', label: 'Сердце' };
                 nodes.center = { x: cx, y: feelingEnd, emoji: '🟠', label: 'Живот' };
-                
-                initParticles(); // Инициализация частиц после создания узлов
             }
         }
 
@@ -256,7 +228,11 @@
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     clouds = parsed.clouds || []; feelings = parsed.feelings || []; roots = parsed.roots || [];
-                    if (parsed.nodes) nodes = parsed.nodes;
+                    if (parsed.nodes) {
+                        nodes.leftLeg = parsed.nodes.leftLeg || nodes.leftLeg;
+                        nodes.rightLeg = parsed.nodes.rightLeg || nodes.rightLeg;
+                        // Не сохраняем руки и сердце, они пересчитываются из ног
+                    }
                     if (parsed.energyEnabled !== undefined) energyEnabled = parsed.energyEnabled;
                     nextId = parsed.nextId || 1;
                 }
@@ -266,7 +242,7 @@
             roots.forEach(r => { if (r.id >= nextId) nextId = r.id + 1; });
         }
         function saveData() {
-            localStorage.setItem('dreams_level5_tree', JSON.stringify({ clouds, feelings, roots, nodes, energyEnabled, nextId }));
+            localStorage.setItem('dreams_level5_tree', JSON.stringify({ clouds, feelings, roots, nodes: { leftLeg: nodes.leftLeg, rightLeg: nodes.rightLeg }, energyEnabled, nextId }));
         }
 
         // ========== ОТРИСОВКА ==========
@@ -313,46 +289,39 @@
             });
         }
 
-        // ========== ОТРИСОВКА СТАТИЧЕСКИХ СВЯЗЕЙ И ДВИЖУЩИХСЯ ТОЧЕК ==========
         function drawStaticLines() {
-            ctx.shadowBlur = 0;
-            ctx.lineWidth = 2;
-
-            // 1. Перекрестные линии через Живот (прямые, без изгибов!)
-            // 🟦 (Левая нога) -> 🟠 (Живот) -> 🔴 (Правая рука)
+            // 1. Прямая синяя диагональ через Живот (🟦 -> 🟠 -> 🔴)
             ctx.beginPath(); ctx.moveTo(nodes.leftLeg.x, nodes.leftLeg.y); ctx.lineTo(nodes.center.x, nodes.center.y); ctx.lineTo(nodes.rightHand.x, nodes.rightHand.y);
-            ctx.strokeStyle = 'rgba(77, 139, 255, 0.3)'; ctx.stroke();
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.3)'; ctx.lineWidth = 2; ctx.stroke();
 
-            // 🟥 (Правая нога) -> 🟠 (Живот) -> 🔵 (Левая рука)
+            // 2. Прямая красная диагональ через Живот (🟥 -> 🟠 -> 🔵)
             ctx.beginPath(); ctx.moveTo(nodes.rightLeg.x, nodes.rightLeg.y); ctx.lineTo(nodes.center.x, nodes.center.y); ctx.lineTo(nodes.leftHand.x, nodes.leftHand.y);
-            ctx.strokeStyle = 'rgba(255, 77, 77, 0.3)'; ctx.stroke();
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.3)'; ctx.lineWidth = 2; ctx.stroke();
 
-            // 2. Связи Сердца с руками (🟢 тянется к 🔵 и 🔴)
-            // 🟢 -> 🔵
+            // 3. Связи Сердца с руками
             ctx.beginPath(); ctx.moveTo(nodes.heart.x, nodes.heart.y); ctx.lineTo(nodes.leftHand.x, nodes.leftHand.y);
-            ctx.strokeStyle = 'rgba(77, 139, 255, 0.5)'; ctx.stroke();
-            // 🟢 -> 🔴
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.4)'; ctx.stroke();
             ctx.beginPath(); ctx.moveTo(nodes.heart.x, nodes.heart.y); ctx.lineTo(nodes.rightHand.x, nodes.rightHand.y);
-            ctx.strokeStyle = 'rgba(255, 77, 77, 0.5)'; ctx.stroke();
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.4)'; ctx.stroke();
         }
 
         function drawParticles() {
             if (!energyEnabled) return;
+            if (!particles || particles.length === 0) return;
 
             particles.forEach(p => {
                 const pos = getPointOnPath(p.path, p.progress);
                 if (pos) {
-                    ctx.beginPath();
-                    ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
+                    // Основной шар
+                    ctx.beginPath(); ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
                     ctx.fillStyle = p.color;
                     ctx.shadowColor = p.color;
-                    ctx.shadowBlur = 40;
+                    ctx.shadowBlur = 30;
                     ctx.fill();
                     ctx.shadowBlur = 0;
                     
-                    // Внутреннее свечение (пульсация)
-                    ctx.beginPath();
-                    ctx.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
+                    // Свечение вокруг
+                    ctx.beginPath(); ctx.arc(pos.x, pos.y, 22, 0, Math.PI * 2);
                     ctx.fillStyle = p.color.replace(')', ', 0.2)').replace('rgb', 'rgba');
                     ctx.fill();
                 }
@@ -416,17 +385,51 @@
         function gameLoop() {
             if (!w || !h || w < 10 || h < 10) { requestAnimationFrame(gameLoop); return; }
 
-            // Зеркальная симметрия относительно центра
-            nodes.rightHand.x = w - nodes.leftLeg.x;
-            nodes.rightHand.y = nodes.leftLeg.y - 2 * (feelingEnd - nodes.leftLeg.y);
-            
-            nodes.leftHand.x = w - nodes.rightLeg.x;
-            nodes.leftHand.y = nodes.rightLeg.y - 2 * (feelingEnd - nodes.rightLeg.y);
+            // СТРОГАЯ ГЕОМЕТРИЯ (пересчет координат каждый кадр)
+            const lx = nodes.leftLeg.x;
+            const ly = nodes.leftLeg.y;
+            const rx = nodes.rightLeg.x;
+            const ry = nodes.rightLeg.y;
 
+            // Правая нога зеркальна левой по X, но на той же Y
+            nodes.rightLeg.x = 2 * cx - lx;
+            nodes.rightLeg.y = ly;
+
+            // Левая рука висит над левой ногой (зеркально по Y относительно feelingEnd)
+            nodes.leftHand.x = lx;
+            nodes.leftHand.y = 2 * feelingEnd - ly;
+
+            // Правая рука висит над правой ногой
+            nodes.rightHand.x = nodes.rightLeg.x;
+            nodes.rightHand.y = nodes.leftHand.y;
+
+            // Сердце всегда строго по центру между руками (по Y)
             nodes.heart.x = cx;
-            nodes.heart.y = feelingEnd - 2 * (feelingEnd - nodes.leftHand.y);
+            nodes.heart.y = nodes.leftHand.y;
 
-            // Движение частиц
+            // Живот статичен
+            nodes.center.x = cx;
+            nodes.center.y = feelingEnd;
+
+            // Пересоздаем пути для частиц (чтобы они бежали по новым координатам)
+            const sun = {x: cx, y: 40};
+            const h = nodes.heart;
+            const lHand = nodes.leftHand;
+            const rHand = nodes.rightHand;
+            const lLeg = nodes.leftLeg;
+            const rLeg = nodes.rightLeg;
+            const c = nodes.center;
+
+            const pathBlue = [h, lHand, c, rLeg, sun];
+            const pathRed = [h, rHand, c, lLeg, sun];
+            const pathGold = [sun, h];
+
+            particles = [
+                { path: pathBlue, progress: 0, speed: 0.004, color: '#4d8bff' },
+                { path: pathRed, progress: 0.33, speed: 0.004, color: '#ff4d4d' },
+                { path: pathGold, progress: 0.66, speed: 0.004, color: '#ffcc00' }
+            ];
+
             if (energyEnabled) {
                 particles.forEach(p => {
                     p.progress += p.speed;
@@ -497,6 +500,7 @@
             if (!isDragging || !draggedNode) return; e.preventDefault();
             const pos = getPointerPos(e); const dx = pos.x - startMouse.x; const dy = pos.y - startMouse.y;
             if (draggedIsNode) {
+                // Двигаем ногу (координаты сразу обновятся в gameLoop)
                 draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
                 draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
             } else {
@@ -594,7 +598,7 @@
         window.addEventListener('resize', resize); resize(); loadData();
         energyStatus.textContent = energyEnabled ? 'Вкл' : 'Выкл';
         gameLoop();
-        console.log('🟣🦅 Уровень 5: Древо Жизни (прямые линии + бегущие частицы) загружено!');
+        console.log('🟣🦅 Уровень 5: Древо Жизни (идеальная симметрия и стабильные линии) загружено!');
     </script>
 </body>
 </html>
