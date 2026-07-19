@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
-    <title>Древо Жизни (3D)</title>
+    <title>👁️ Древо Жизни (3D)</title>
     
-    <meta property="og:title" content="Древо Жизни (3D)" />
+    <meta property="og:title" content="👁️ Древо Жизни (3D)" />
     <meta property="og:description" content="Почувствуй пульс вселенной в 3D. Перемещай узлы и наблюдай за перетеканием синих и красных нитей." />
     <meta property="og:image" content="logo.png" />
     <meta property="og:type" content="website" />
@@ -13,20 +13,17 @@
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; background: #0b0814; }
-        #logo-container { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 60px; height: auto; pointer-events: none; z-index: 20; opacity: 0.8; }
-        #logo { width: 100%; height: auto; }
         #ui-panel { position: absolute; bottom: 30px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px; pointer-events: none; z-index: 10; }
         .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 12px; pointer-events: auto; flex-wrap: wrap; justify-content: center; }
         .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; }
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
         .stats-panel { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; background: rgba(22,17,39,0.85); padding: 6px 16px; border-radius: 30px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; pointer-events: auto; font-size: 14px; color: #b8a6ff; }
-        @media (max-width: 600px) { #logo-container { width: 40px; } #ui-panel { bottom: 15px; } }
+        @media (max-width: 600px) { #ui-panel { bottom: 15px; } }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <div id="logo-container"><img src="logo.png" alt="HighMind" id="logo"></div>
     <div id="canvas-container"></div>
 
     <div id="ui-panel">
@@ -47,7 +44,7 @@
         scene.background = new THREE.Color(0x0b0814);
 
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-        camera.position.set(7, 5, 10);
+        camera.position.set(7, 5, 8);
         camera.lookAt(0, 0.5, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -68,70 +65,80 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // Плоскость пола (Живот и Ноги стоят на ней или под ней)
-        const gridHelper = new THREE.GridHelper(12, 12, 0x6f52c4, 0x3a2f5a);
+        // Пол (прозрачная плоскость с сеткой)
+        const gridHelper = new THREE.GridHelper(10, 10, 0x6f52c4, 0x3a2f5a);
         gridHelper.position.y = 0;
         scene.add(gridHelper);
 
-        // ============= СТРОГАЯ 3D ГЕОМЕТРИЯ (ПО УРОВНЯМ) =============
-        // Уровни высоты (ось Y)
-        const Y_LEVELS = {
-            LEG: -0.8,    // Ноги (ниже пола)
-            CENTER: 0.0,  // Живот (на полу)
-            HAND: 1.5,    // Руки и Сердце (над животом)
-            SUN: 4.0      // Солнце (высоко сверху)
-        };
-
+        // ============= ДАННЫЕ И ФИЗИКА (ТОЧЬ-В-ТОЧЬ КАК В 2D) =============
         let energyEnabled = true;
+        let energyProgress = 0;
+        let energyDirection = 1;
 
-        // Базовые координаты (X, Z) - точная копия 2D схемы
-        let nodes = {
-            leftLeg: { x: -1.2, z: 1.2, color: '#4d8bff', isSquare: true },
-            rightLeg: { x: 1.2, z: 1.2, color: '#ff4d4d', isSquare: true },
-            leftHand: { x: 1.2, z: -1.2, color: '#4d8bff' },
-            rightHand: { x: -1.2, z: -1.2, color: '#ff4d4d' },
-            heart: { x: 0, z: -1.2, color: '#2ecc71' },
-            center: { x: 0, z: 0, color: '#e67e22' },
-            sun: { x: 0, z: 0, color: '#ffcc00' }
+        // Уровни высоты (строгая этажность)
+        const Y_LEVELS = {
+            SUN: 4.0,
+            HAND: 1.5,
+            CENTER: 0.0,
+            LEG: -0.8
         };
 
-        // ============= ФИЗИКА ДВИЖЕНИЯ (ТОЧНО КАК В 2D) =============
+        // Координаты X и Z - абсолютная копия 2D схемы
+        let nodes = {
+            leftLeg:  { x: -1.2, z: 1.2, color: '#4d8bff', isSquare: true },
+            rightLeg: { x: 1.2,  z: 1.2, color: '#ff4d4d', isSquare: true },
+            leftHand: { x: -1.2, z: -1.2, color: '#4d8bff' },
+            rightHand: { x: 1.2,  z: -1.2, color: '#ff4d4d' },
+            heart:    { x: 0,    z: -1.2, color: '#2ecc71' },
+            center:   { x: 0,    z: 0,    color: '#e67e22' },
+            sun:      { x: 0,    z: 0,    color: '#ffcc00' }
+        };
+
         function updateGeometry() {
             const lx = nodes.leftLeg.x, lz = nodes.leftLeg.z;
             const cx = nodes.center.x, cz = nodes.center.z;
 
-            // Правая нога зеркалит левую по X (Z остается той же)
+            // Правая нога (🟥) зеркалит левую (🟦)
             nodes.rightLeg.x = 2 * cx - lx;
             nodes.rightLeg.z = lz;
 
             const rx = nodes.rightLeg.x, rz = nodes.rightLeg.z;
 
-            // Левая рука управляется правой ногой, правая рука - левой
+            // Левая рука (🔵) управляется Правой ногой (🟥)
             nodes.leftHand.x = rx;
             nodes.leftHand.z = 2 * cz - rz;
 
+            // Правая рука (🔴) управляется Левой ногой (🟦)
             nodes.rightHand.x = lx;
             nodes.rightHand.z = 2 * cz - lz;
 
-            // Сердце строго по центру между руками
+            // Сердце (🟢) ровно по центру между руками
             nodes.heart.x = cx;
             nodes.heart.z = (nodes.leftHand.z + nodes.rightHand.z) / 2;
 
-            // Солнце стоит над центром
+            // Солнце (👁️) всегда над центром
             nodes.sun.x = cx;
             nodes.sun.z = cz;
         }
 
-        // ============= СОЗДАНИЕ 3D МЕШЕЙ =============
+        // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
         let meshMap = {};
         let lineSegments = [];
         let particleMeshes = [];
 
-        function createNodeMesh(key, node, isSquare = false) {
+        function getYForNode(node) {
+            if (node === nodes.sun) return Y_LEVELS.SUN;
+            if (node === nodes.leftLeg || node === nodes.rightLeg) return Y_LEVELS.LEG;
+            if (node === nodes.center) return Y_LEVELS.CENTER;
+            if (node === nodes.heart || node === nodes.leftHand || node === nodes.rightHand) return Y_LEVELS.HAND;
+            return 0;
+        }
+
+        function createNodeMesh(key, node) {
             const color = new THREE.Color(node.color);
             let geom, mat;
-            const size = isSquare ? 0.8 : 0.8;
-            if (isSquare) {
+            const size = 0.8;
+            if (node.isSquare) {
                 geom = new THREE.BoxGeometry(size, size, size);
                 mat = new THREE.MeshPhongMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 });
             } else {
@@ -147,30 +154,28 @@
         function buildScene() {
             if (Object.keys(meshMap).length > 0) return;
 
-            // Создаем меши для всех узлов
-            createNodeMesh('sun', nodes.sun);
-            createNodeMesh('leftLeg', nodes.leftLeg, true);
-            createNodeMesh('rightLeg', nodes.rightLeg, true);
+            createNodeMesh('leftLeg', nodes.leftLeg);
+            createNodeMesh('rightLeg', nodes.rightLeg);
             createNodeMesh('leftHand', nodes.leftHand);
             createNodeMesh('rightHand', nodes.rightHand);
             createNodeMesh('heart', nodes.heart);
             createNodeMesh('center', nodes.center);
+            createNodeMesh('sun', nodes.sun);
 
-            // Создаем линии связей с солнцем
+            // Линии связей (включая связи с солнцем)
             const connections = [
-                [nodes.leftLeg, nodes.center, nodes.rightHand],  // Синий путь
-                [nodes.rightLeg, nodes.center, nodes.leftHand],  // Красный путь
-                [nodes.heart, nodes.leftHand],  // Сердце - Левая рука
-                [nodes.heart, nodes.rightHand], // Сердце - Правая рука
-                [nodes.sun, nodes.leftHand],    // Солнце - Левая рука
-                [nodes.sun, nodes.rightHand]    // Солнце - Правая рука
+                [nodes.leftLeg, nodes.center, nodes.rightHand],
+                [nodes.rightLeg, nodes.center, nodes.leftHand],
+                [nodes.heart, nodes.leftHand],
+                [nodes.heart, nodes.rightHand],
+                [nodes.sun, nodes.leftHand],
+                [nodes.sun, nodes.rightHand]
             ];
 
             connections.forEach(pair => {
                 for (let i = 0; i < pair.length - 1; i++) {
                     const start = pair[i], end = pair[i+1];
-                    const startY = getYForNodeKey(start);
-                    const endY = getYForNodeKey(end);
+                    const startY = getYForNode(start), endY = getYForNode(end);
                     const geom = new THREE.BufferGeometry().setFromPoints([
                         new THREE.Vector3(start.x, startY, start.z),
                         new THREE.Vector3(end.x, endY, end.z)
@@ -183,7 +188,7 @@
                 }
             });
 
-            // Создаем 3 сияющие частицы (энергии)
+            // Частицы (синяя, красная и золотая сферы)
             const colors = ['#4d8bff', '#ff4d4d', '#ffcc00'];
             for (let i = 0; i < 3; i++) {
                 const geom = new THREE.SphereGeometry(0.2, 16, 16);
@@ -195,31 +200,23 @@
             }
         }
 
-        function getYForNodeKey(node) {
-            if (node === nodes.sun) return Y_LEVELS.SUN;
-            if (node === nodes.leftLeg || node === nodes.rightLeg) return Y_LEVELS.LEG;
-            if (node === nodes.center) return Y_LEVELS.CENTER;
-            if (node === nodes.heart || node === nodes.leftHand || node === nodes.rightHand) return Y_LEVELS.HAND;
-            return Y_LEVELS.CENTER;
-        }
-
         function updatePositions() {
             updateGeometry();
 
-            // Обновляем меши
+            // Обновляем узлы
             for (let key in meshMap) {
                 const mesh = meshMap[key];
                 const node = nodes[key];
-                const yPos = getYForNodeKey(node);
+                const yPos = getYForNode(node);
                 if (mesh && node) {
                     mesh.position.set(node.x, yPos, node.z);
                 }
             }
 
-            // Обновляем линии связей
+            // Обновляем линии
             lineSegments.forEach(item => {
                 const start = item.startNode, end = item.endNode;
-                const startY = getYForNodeKey(start), endY = getYForNodeKey(end);
+                const startY = getYForNode(start), endY = getYForNode(end);
                 const pos = item.line.geometry.attributes.position.array;
                 pos[0] = start.x; pos[1] = startY; pos[2] = start.z;
                 pos[3] = end.x; pos[4] = endY; pos[5] = end.z;
@@ -227,10 +224,8 @@
             });
         }
 
-        // ============= ЧАСТИЦЫ И ПОТОКИ (ПУТИ ЧЕРЕЗ СОЛНЦЕ) =============
-        let particlesData = [];
-
-        function getPointOnPath2D(path, progress) {
+        // ============= ПОТОКИ ЭНЕРГИИ (ТОЧНО КАК В 2D) =============
+        function getPointOnPath3D(path, progress) {
             if (!path || path.length < 2) return {x:0, z:0};
             let totalLen = 0; let segmentLens = [];
             for (let i = 0; i < path.length - 1; i++) {
@@ -253,37 +248,32 @@
             const h = nodes.heart, lH = nodes.leftHand, rH = nodes.rightHand;
             const lL = nodes.leftLeg, rL = nodes.rightLeg, c = nodes.center, s = nodes.sun;
             
-            // Три маршрута: два идут через солнце, один возвращается
-            const pathBlue = [h, lH, c, rL, s];
+            // Пути 1-в-1 как в 2D коде
             const pathRed  = [h, rH, c, lL, s];
-            const pathGold = [s, h];
-
-            particlesData = [
-                { path: pathBlue, progress: 0, speed: 0.004, color: '#4d8bff' },
-                { path: pathRed,  progress: 0.33, speed: 0.004, color: '#ff4d4d' },
-                { path: pathGold, progress: 0.66, speed: 0.004, color: '#ffcc00' }
-            ];
+            const pathBlue = [h, lH, c, rL, s];
 
             if (energyEnabled) {
-                particlesData.forEach(p => {
-                    p.progress += p.speed;
-                    if (p.progress >= 1.0) p.progress = 0.0;
-                });
+                const speed = 0.006;
+                energyProgress += speed * energyDirection;
+                if (energyProgress >= 1.0) { energyProgress = 1.0; energyDirection = -1; }
+                else if (energyProgress <= 0.0) { energyProgress = 0.0; energyDirection = 1; }
             }
 
-            for (let i = 0; i < particlesData.length; i++) {
-                const pos = getPointOnPath2D(particlesData[i].path, particlesData[i].progress);
-                if (pos) {
-                    const yPos = Y_LEVELS.HAND + 0.2;
-                    particleMeshes[i].position.set(pos.x, yPos, pos.z);
-                }
+            const redPos = getPointOnPath3D(pathRed, energyProgress);
+            const bluePos = getPointOnPath3D(pathBlue, energyProgress);
+
+            if (redPos && bluePos) {
+                const yLevel = Y_LEVELS.HAND + 0.2;
+                particleMeshes[0].position.set(bluePos.x, yLevel, bluePos.z); // Синяя
+                particleMeshes[1].position.set(redPos.x, yLevel, redPos.z);   // Красная
+                particleMeshes[2].position.set(s.x, Y_LEVELS.SUN - 0.5, s.z); // Золотая (застывшая у солнца)
             }
         }
 
-        // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ НОГИ) =============
+        // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ) =============
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), Y_LEVELS.LEG);
         let isDragging = false;
         let draggedNodeKey = null;
         let startMouse = { x: 0, y: 0 };
@@ -308,7 +298,6 @@
                     startPointPos = { x: nodes.leftLeg.x, z: nodes.leftLeg.z };
                     controls.enabled = false;
                     renderer.domElement.style.cursor = 'grabbing';
-                    return;
                 }
             }
         });
@@ -317,6 +306,7 @@
             if (!isDragging || !draggedNodeKey) return;
             getPointer(e);
             raycaster.setFromCamera(pointer, camera);
+            plane.set(new THREE.Vector3(0, 1, 0), Y_LEVELS.LEG);
             const intersectPoint = new THREE.Vector3();
             raycaster.ray.intersectPlane(plane, intersectPoint);
             if (intersectPoint) {
@@ -337,7 +327,7 @@
             }
         });
 
-        // ============= УПРАВЛЕНИЕ КНОПКАМИ =============
+        // ============= КНОПКИ УПРАВЛЕНИЯ =============
         document.getElementById('toggle-energy').addEventListener('click', () => {
             energyEnabled = !energyEnabled;
             document.getElementById('energy-status').textContent = energyEnabled ? '🌀 Энергия: Вкл' : '🌀 Энергия: Выкл';
@@ -355,7 +345,7 @@
             window.location.href = '../2d/';
         });
 
-        // ============= АНИМАЦИОННЫЙ ЦИКЛ =============
+        // ============= АНИМАЦИЯ И ЗАПУСК =============
         function animate() {
             requestAnimationFrame(animate);
             updatePositions();
@@ -364,7 +354,6 @@
             renderer.render(scene, camera);
         }
 
-        // ============= АДАПТАЦИЯ ЭКРАНА =============
         window.addEventListener('resize', () => {
             const width = container.clientWidth;
             const height = container.clientHeight;
@@ -373,12 +362,11 @@
             renderer.setSize(width, height);
         });
 
-        // ============= ЗАПУСК =============
         buildScene();
         updatePositions();
         animate();
 
-        console.log('🟣🦅 Древо Жизни 3D (исправлена геометрия плоскостей и связь с солнцем) загружено!');
+        console.log('🟣🦅 Древо Жизни 3D (идеальная копия 2D-физики и геометрии) загружено!');
     </script>
 </body>
 </html>
