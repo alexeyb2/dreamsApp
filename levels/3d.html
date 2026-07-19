@@ -165,9 +165,8 @@
             }
         }
 
-        // При инициализации загружаем сохраненные позиции, если есть
         if (!loadPositions()) {
-            // если нет сохранения, оставляем дефолтные
+            // Если сохранения нет, остаются дефолтные координаты
         }
 
         // ============= ЛОГИКА ДВИЖЕНИЯ =============
@@ -429,14 +428,14 @@
             nodes[draggedNodeKey].x = Math.max(-3, Math.min(3, startPointPos.x + dx));
             nodes[draggedNodeKey].z = Math.max(-3, Math.min(3, startPointPos.z + dz));
             updatePositions();
-            savePositions(); // сохраняем при каждом движении
+            savePositions(); // СОХРАНЕНИЕ
         });
 
         window.addEventListener('pointerup', () => {
             if (isDragging) {
                 isDragging = false; draggedNodeKey = null;
                 controls.enabled = true; renderer.domElement.style.cursor = 'default';
-                savePositions(); // дополнительное сохранение при отпускании
+                savePositions(); // СОХРАНЕНИЕ
             }
         });
 
@@ -465,7 +464,6 @@
         resetBtn.addEventListener('click', () => {
             dropdown.classList.remove('open');
             if (confirm('Сбросить положение всех узлов?')) {
-                // Возвращаем дефолтные координаты
                 nodes.leftLeg = { ...defaultNodes.leftLeg };
                 nodes.rightLeg = { ...defaultNodes.rightLeg };
                 nodes.center = { ...defaultNodes.center };
@@ -484,7 +482,6 @@
 
         // Переход на 2D
         switch2dBtns.addEventListener('click', () => {
-            // Перед переходом сохраняем текущие позиции
             savePositions();
             window.location.href = '../2d/';
         });
@@ -508,13 +505,12 @@
 
         buildScene();
         updatePositions();
-        // при старте сохраняем, если ещё нет сохранения (но load уже попытался)
         if (!localStorage.getItem('dreams_tree_3d')) {
             savePositions();
         }
         animate();
 
-        console.log('🟣🦅 Древо Жизни 3D (с сохранением позиций) загружено!');
+        console.log('🟣🦅 Древо Жизни 3D (СОХРАНЕНИЕ, КОМПАКТНАЯ ПАНЕЛЬ, ВЫСОКИЙ ГЛАЗ) загружено!');
     </script>
 </body>
 </html>
