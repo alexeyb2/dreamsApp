@@ -3,90 +3,69 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>HighMind — Генератор Промтов</title>
+    <title>HighMind — Генератор 3D Промта</title>
     
     <meta property="og:title" content="HighMind — Твой внутренний чертёж" />
-    <meta property="og:description" content="Сгенерируй точный AI-промт на основе геометрии твоего Древа Жизни, чтобы посадить новый корень." />
+    <meta property="og:description" content="Сгенерируй точный AI-промт на основе 3D геометрии твоего Древа Жизни." />
     <meta property="og:image" content="logo.png" />
     <meta property="og:type" content="website" />
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif;
-            padding: 20px; display: flex; justify-content: center; min-height: 100vh;
-        }
-        #app {
-            max-width: 600px; width: 100%; background: #161127; border-radius: 30px;
-            padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-            display: flex; flex-direction: column; gap: 20px;
-        }
+        body { background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
+        #app { max-width: 600px; width: 100%; background: #161127; border-radius: 30px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 20px; }
         h1 { font-size: 24px; color: #b8a6ff; text-align: center; }
-        
-        .card {
-            background: #221b38; border-radius: 20px; padding: 16px;
-            border: 1px solid #3a2f5a;
-        }
+        .card { background: #221b38; border-radius: 20px; padding: 16px; border: 1px solid #3a2f5a; }
         .card-title { font-size: 14px; color: #8f78e6; font-weight: 600; margin-bottom: 8px; }
         
-        #state-display {
-            font-size: 13px; line-height: 1.6; color: #b8a6ff; background: #100d1e;
-            padding: 12px; border-radius: 12px; font-family: monospace; white-space: pre-wrap;
-        }
+        #state-display { font-size: 13px; line-height: 1.6; color: #b8a6ff; background: #100d1e; padding: 12px; border-radius: 12px; font-family: monospace; white-space: pre-wrap; }
         
-        textarea {
-            width: 100%; background: #100d1e; border: 1px solid #3a2f5a;
-            border-radius: 12px; color: #e0d6ff; padding: 12px; font-size: 14px;
-            font-family: inherit; resize: vertical; min-height: 150px; outline: none;
-        }
+        textarea { width: 100%; background: #100d1e; border: 1px solid #3a2f5a; border-radius: 12px; color: #e0d6ff; padding: 12px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 180px; outline: none; }
         textarea:focus { border-color: #6f52c4; }
+        input[type="text"] { width: 100%; background: #100d1e; border: 1px solid #3a2f5a; border-radius: 12px; color: #e0d6ff; padding: 12px; font-size: 14px; outline: none; margin-top: 4px; }
+        input[type="text"]:focus { border-color: #6f52c4; }
 
-        .btn-group {
-            display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
-        }
-        .btn {
-            background: #2a2348; color: #b8a6ff; border: none; padding: 12px 20px;
-            border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer;
-            text-decoration: none; text-align: center; flex: 1; transition: 0.2s; min-width: 100px;
-        }
+        .btn-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn { background: #2a2348; color: #b8a6ff; border: none; padding: 12px 20px; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; text-decoration: none; text-align: center; flex: 1; transition: 0.2s; min-width: 100px; }
         .btn:active { transform: scale(0.95); }
         .btn-primary { background: #6f52c4; color: #fff; }
         .btn-primary:active { background: #5d43a8; }
         .btn-success { background: #2ecc71; color: #fff; }
         .btn-blue { background: #4d8bff; color: #fff; }
-
-        .status-badge {
-            font-size: 12px; color: #8f78e6; text-align: center; padding: 8px;
-            background: #100d1e; border-radius: 12px;
-        }
+        .status-badge { font-size: 12px; color: #8f78e6; text-align: center; padding: 8px; background: #100d1e; border-radius: 12px; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <h1>👁️ Генератор Промта</h1>
+    <h1>👁️ Генератор 3D Промта</h1>
     
     <div class="card">
-        <div class="card-title">📐 Текущая архитектура Древа</div>
+        <div class="card-title">📐 Текущая архитектура Древа (Центр: Живот 0,0,0)</div>
         <div id="state-display">Загрузка данных...</div>
     </div>
 
     <div class="card">
-        <div class="card-title">🤖 Промт для ИИ (на основе геометрии)</div>
-        <textarea id="prompt-output" placeholder="Сгенерируйте промт, нажав кнопку ниже..."></textarea>
+        <div class="card-title">✍️ Что ты чувствуешь прямо сейчас?</div>
+        <input type="text" id="feeling-input" placeholder="Например: Я чувствую разбалансировку в левой стороне, мне не хватает опоры..." />
+    </div>
+
+    <div class="card">
+        <div class="card-title">🤖 Итоговый Промт для ИИ</div>
+        <textarea id="prompt-output" placeholder="Нажми «Сгенерировать», чтобы создать промт..."></textarea>
     </div>
 
     <div class="btn-group">
-        <button class="btn btn-primary" id="generate-btn">🔄 Сгенерировать промт</button>
+        <button class="btn btn-primary" id="generate-btn">🔄 Сгенерировать</button>
         <button class="btn btn-success" id="copy-btn">📋 Скопировать</button>
     </div>
 
     <div class="btn-group" style="margin-top: 10px; border-top: 1px solid #2a2248; padding-top: 16px;">
-        <a href="../2d/" class="btn btn-blue" target="_blank">🌐 Перейти в 2D</a>
-        <a href="../3d/" class="btn btn-blue" target="_blank">🌐 Перейти в 3D</a>
+        <a href="../2d/" class="btn btn-blue" target="_blank">🌐 2D Древо</a>
+        <a href="../3d/" class="btn btn-blue" target="_blank">🌐 3D Древо</a>
     </div>
     
-    <div class="status-badge" id="status-msg">Данные загружены из localStorage</div>
+    <div class="status-badge" id="status-msg">Готов к генерации</div>
 </div>
 
 <script>
@@ -105,7 +84,7 @@
                 try {
                     const shared = JSON.parse(rawShared);
                     if (shared.points) {
-                        // Преобразуем список точек в узлы
+                        // Преобразуем список точек в узлы (для унификации)
                         data = { points: shared.points };
                     }
                 } catch(e) {}
@@ -114,55 +93,83 @@
         return data;
     }
 
-    // ============= ГЕНЕРАЦИЯ ПРОМТА =============
-    function generatePromptFromTree(nodeData) {
-        if (!nodeData) {
-            return "Древо не найдено. Пожалуйста, откройте уровень 2D или 3D, переместите узлы, чтобы создать структуру, и вернитесь на эту страницу для генерации промта.";
+    // ============= ГЕНЕРАЦИЯ ПРОМТА (ТОЧНАЯ 3D МЕТРИКА) =============
+    function generatePromptFromTree(nodeData, userFeeling) {
+        // Если данных нет, используем эталонную идеальную геометрию, чтобы промт всё равно работал
+        const defaultNodes = {
+            leftLeg:  { x: -1.2, z: 1.2 },
+            rightLeg: { x: 1.2,  z: 1.2 },
+            leftHand: { x: -1.2, z: -1.2 },
+            rightHand: { x: 1.2,  z: -1.2 },
+            heart:    { x: 0,    z: -1.2 },
+            center:   { x: 0,    z: 0 },
+            head:     { x: 0,    z: 0 }
+        };
+
+        // Загружаем данные, если они есть
+        let n = defaultNodes;
+        let has3D = false;
+        if (nodeData && (nodeData.leftLeg || nodeData.rightLeg || nodeData.heart)) {
+            // Если данные из 3D хранилища
+            n = nodeData;
+            has3D = true;
         }
 
-        // Если данные из 3D (ключи leftLeg, rightLeg и т.д.)
-        const nodes = nodeData;
-        let prompt = "Я создаю карту внутреннего состояния на основе Древа Жизни.\n\n";
+        // Строгие Y-координаты (наша абсолютная метрика: 0,0,0 = Живот)
+        const Y_LEVELS = {
+            LEG: -0.8,
+            BELLY: 0.0,
+            HAND: 1.2,
+            HEART: 1.2,
+            EYE: 2.0
+        };
 
-        // Проверяем, есть ли у нас узлы
-        if (nodes.leftLeg || nodes.rightLeg || nodes.heart || nodes.head) {
-            // Описываем слои (этажи)
-            prompt += `1. Уровень Ног (Земля, базовые убеждения):\n`;
-            if (nodes.leftLeg) prompt += `   - Левая нога (Синий 🟦): x=${nodes.leftLeg.x.toFixed(2)}, z=${nodes.leftLeg.z.toFixed(2)} (Принятие, интуиция)\n`;
-            if (nodes.rightLeg) prompt += `   - Правая нога (Красный 🟥): x=${nodes.rightLeg.x.toFixed(2)}, z=${nodes.rightLeg.z.toFixed(2)} (Действие, логика)\n`;
+        // Формируем строку с чувствами
+        const feelingPart = userFeeling && userFeeling.trim() 
+            ? `\n\nМое текущее состояние/мысль: "${userFeeling.trim()}"` 
+            : `\n\nМое текущее состояние: Я наблюдаю за картой и хочу найти точку дисбаланса.`;
 
-            prompt += `\n2. Центр Воли (Живот, точка опоры):\n`;
-            if (nodes.center) prompt += `   - Живот (Оранжевый 🟠): x=${nodes.center.x.toFixed(2)}, z=${nodes.center.z.toFixed(2)} (Воля, центр, баланс)\n`;
-            if (nodes.heart) prompt += `   - Сердце (Зелёный 🟢): x=${nodes.heart.x.toFixed(2)}, z=${nodes.heart.z.toFixed(2)} (Эмоции, связь)\n`;
+        // Создаем структурированный промт для ИИ (ChatGPT, Claude, Gemini)
+        let prompt = `Ты — глубинный наставник, работающий с картой внутреннего состояния человека на основе системы «Древо Жизни».
 
-            prompt += `\n3. Уровень Рук (Действия и проявления):\n`;
-            if (nodes.leftHand) prompt += `   - Левая рука (Синий): x=${nodes.leftHand.x.toFixed(2)}, z=${nodes.leftHand.z.toFixed(2)}\n`;
-            if (nodes.rightHand) prompt += `   - Правая рука (Красный): x=${nodes.rightHand.x.toFixed(2)}, z=${nodes.rightHand.z.toFixed(2)}\n`;
+СИСТЕМА КООРДИНАТ:
+Центр (0, 0, 0) = Живот (точка опоры и воли).
+Ось X: Право (+) / Лево (-).
+Ось Y: Вверх (+) / Вниз (-) от живота.
+Ось Z: Вперед (+) / Назад (-) от живота.
 
-            prompt += `\n4. Уровень Наблюдателя (Разум, ясность):\n`;
-            if (nodes.head) prompt += `   - Глаз (Жёлтый 👁️): x=${nodes.head.x.toFixed(2)}, z=${nodes.head.z.toFixed(2)} (Осознанность, наблюдение)\n`;
+ТЕКУЩАЯ КАРТА (в метрах):
+1. Нижний уровень (Ноги, Заземление):
+   - Левая нога (Синий 🟦): X=${n.leftLeg.x.toFixed(2)}, Y=${Y_LEVELS.LEG.toFixed(2)}, Z=${n.leftLeg.z.toFixed(2)}
+   - Правая нога (Красный 🟥): X=${n.rightLeg.x.toFixed(2)}, Y=${Y_LEVELS.LEG.toFixed(2)}, Z=${n.rightLeg.z.toFixed(2)}
 
-            // Опишем связи
-            prompt += `\n5. Архитектура связей (Потоки энергии):\n`;
-            prompt += `   - Жёлтая вертикаль: Живот 🟠 -> Сердце 🟢 -> Глаз 👁️ (путь внутренней истины).\n`;
-            prompt += `   - Синий диагональный путь: Левая нога 🟦 -> Живот 🟠 -> Правая рука 🔴.\n`;
-            prompt += `   - Красный диагональный путь: Правая нога 🟥 -> Живот 🟠 -> Левая рука 🔵.\n`;
-            prompt += `   - Горизонталь Сердца: Сердце 🟢 соединяется с левой 🔵 и правой 🔴 руками.\n`;
-            prompt += `   - Лучи от ног: Левая 🟦 и правая 🟥 ноги соединены прямыми линиями с Глазом 👁️.\n`;
+2. Центр силы (Живот, опора):
+   - Живот (Оранжевый 🟠): X=${n.center.x.toFixed(2)}, Y=${Y_LEVELS.BELLY.toFixed(2)}, Z=${n.center.z.toFixed(2)}
 
-            prompt += `\n6. Запрос для ИИ:\n`;
-            prompt += `Пользователь чувствует текущее расположение этих узлов. Посмотри на координаты. Если какая-то часть смещена относительно центра или симметрия нарушена, предложи новое глубинное убеждение (Корень), которое поможет вернуть равновесие. Также, исходя из этой архитектуры, предложи самый сильный вопрос к Вселенной, который стоит задать этому человеку прямо сейчас.`;
+3. Эмоциональный мост:
+   - Сердце (Зеленый 🟢): X=${n.heart.x.toFixed(2)}, Y=${Y_LEVELS.HEART.toFixed(2)}, Z=${n.heart.z.toFixed(2)}
 
-        } else if (nodes.points) {
-            // Если данные из 2D (список точек: мысли, чувства, корни)
-            const list = nodes.points;
-            prompt += `Текущее состояние системы (Мысли, Чувства, Корни):\n`;
-            list.forEach(p => {
-                const type = p.type || 'неизвестно';
-                prompt += `- ${p.emoji || '⚡'} ${p.label || 'Без имени'} (${type}), сила: ${Math.round(p.radius || 0)}, x=${(p.x || 0).toFixed(2)}, y=${(p.y || 0).toFixed(2)}\n`;
-            });
-            prompt += `\nНа основе этих данных, сформулируй утверждение, которое объединяет этот список в единое намерение.`;
-        }
+4. Уровень проявления (Руки):
+   - Левая рука (Синий 🔵): X=${n.leftHand.x.toFixed(2)}, Y=${Y_LEVELS.HAND.toFixed(2)}, Z=${n.leftHand.z.toFixed(2)}
+   - Правая рука (Красный 🔴): X=${n.rightHand.x.toFixed(2)}, Y=${Y_LEVELS.HAND.toFixed(2)}, Z=${n.rightHand.z.toFixed(2)}
+
+5. Уровень наблюдателя:
+   - Глаз (Желтый 👁️): X=${n.head.x.toFixed(2)}, Y=${Y_LEVELS.EYE.toFixed(2)}, Z=${n.head.z.toFixed(2)}
+
+АРХИТЕКТУРА СВЯЗЕЙ (Потоки энергии):
+- Синий луч: Левая нога 🟦 — Живот 🟠 — Правая рука 🔴.
+- Красный луч: Правая нога 🟥 — Живот 🟠 — Левая рука 🔵.
+- Желтый восходящий луч: Живот 🟠 → Сердце 🟢 → Глаз 👁️ (путь истины).
+- Лучи от ног к глазу: Левая нога 🟦 → Глаз 👁️; Правая нога 🟥 → Глаз 👁️.
+- Горизонталь сердца: Сердце 🟢 — Левая рука 🔵 и Сердце 🟢 — Правая рука 🔴.${feelingPart}
+
+ЗАДАЧА ДЛЯ ТЕБЯ:
+1. Проанализируй геометрию этой карты. Где нарушена симметрия? Какая точка смещена относительно нуля?
+2. Если в геометрии есть перекос, какое новое глубинное убеждение (Корень) человеку нужно посадить, чтобы вернуть баланс в эту систему?
+3. Если баланс идеален (все узлы на своих местах), какое следующее действие или намерение поможет человеку укрепить этот покой?
+4. Сформулируй свой ответ в виде метафоры, используя образы из этой карты.
+
+Ответ напиши на русском языке.`;
 
         return prompt;
     }
@@ -170,6 +177,7 @@
     // ============= UI ЛОГИКА =============
     const stateDisplay = document.getElementById('state-display');
     const promptOutput = document.getElementById('prompt-output');
+    const feelingInput = document.getElementById('feeling-input');
     const generateBtn = document.getElementById('generate-btn');
     const copyBtn = document.getElementById('copy-btn');
     const statusMsg = document.getElementById('status-msg');
@@ -179,16 +187,17 @@
         if (data) {
             stateDisplay.textContent = JSON.stringify(data, null, 2);
         } else {
-            stateDisplay.textContent = "⚠️ Данные не найдены. Откройте 2D или 3D уровень, чтобы сохранить конфигурацию, и вернитесь сюда.";
+            stateDisplay.textContent = "⚠️ Данные не найдены. Промт будет сгенерирован на основе идеальной симметрии.";
         }
         return data;
     }
 
     function generateAndDisplay() {
         const data = getTreeNodeData();
-        const promptText = generatePromptFromTree(data);
+        const feeling = feelingInput.value;
+        const promptText = generatePromptFromTree(data, feeling);
         promptOutput.value = promptText;
-        statusMsg.textContent = "✅ Промт сгенерирован на основе текущего Древа!";
+        statusMsg.textContent = "✅ Промт с 3D координатами сгенерирован!";
     }
 
     generateBtn.addEventListener('click', generateAndDisplay);
@@ -202,7 +211,6 @@
             await navigator.clipboard.writeText(promptOutput.value);
             statusMsg.textContent = "✅ Промт скопирован в буфер обмена!";
         } catch (err) {
-            // Fallback для старых браузеров
             promptOutput.select();
             document.execCommand('copy');
             statusMsg.textContent = "✅ Промт скопирован (через выделение)!";
