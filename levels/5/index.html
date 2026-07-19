@@ -127,7 +127,6 @@
         let feelings = [];
         let roots = [];
         let nextId = 1;
-        let dashOffset = 0; // Для анимации течения потока
 
         // Координаты зон (границы)
         let skyEnd, feelingEnd, earthStart;
@@ -142,7 +141,7 @@
             rightHand: { x: 0, y: 0, emoji: '🔴', label: 'Правая рука' },
             // Сердце (центр, из него исходят потоки)
             heart: { x: 0, y: 0, emoji: '🟢', label: 'Сердце' },
-            // Живот (граница земли и чувств)
+            // Живот (граница земли и чувств, центр пересечения потоков)
             center: { x: 0, y: 0, emoji: '🟠', label: 'Живот' }
         };
         
@@ -150,11 +149,11 @@
         let draggedNode = null;
         let startMouse = { x: 0, y: 0 };
         let startNodePos = { x: 0, y: 0 };
+        let draggedIsNode = false;
 
-        // ========== ИСПРАВЛЕННОЕ МАСШТАБИРОВАНИЕ (БЕЗ ОШИБОК SAFARI) ==========
+        // ========== МАСШТАБИРОВАНИЕ И ИНИЦИАЛИЗАЦИЯ ==========
         function resize() {
             const rect = canvas.getBoundingClientRect();
-            // Работаем в CSS-пикселях напрямую без dpr
             canvas.width = Math.max(1, rect.width);
             canvas.height = Math.max(1, rect.height);
             w = canvas.width;
@@ -162,16 +161,15 @@
             cx = w / 2;
             cy = h / 2;
 
-            // Определяем границы зон (3 равные части)
             skyEnd = h * 0.33;
             feelingEnd = h * 0.66;
 
-            // Инициализируем узлы, если они еще не заданы
+            // Инициализация, если узлы еще не заданы
             if (nodes.leftLeg.x === 0 && nodes.leftLeg.y === 0) {
-                nodes.leftLeg = { x: cx - 130, y: h - 70, emoji: '🟦', label: 'Левая нога' };
-                nodes.rightLeg = { x: cx + 130, y: h - 70, emoji: '🟥', label: 'Правая нога' };
-                nodes.leftHand = { x: cx - 130, y: 80, emoji: '🔵', label: 'Левая рука' };
-                nodes.rightHand = { x: cx + 130, y: 80, emoji: '🔴', label: 'Правая рука' };
+                nodes.leftLeg = { x: cx - 120, y: h - 70, emoji: '🟦', label: 'Левая нога' };
+                nodes.rightLeg = { x: cx + 120, y: h - 70, emoji: '🟥', label: 'Правая нога' };
+                nodes.leftHand = { x: cx - 120, y: 80, emoji: '🔵', label: 'Левая рука' };
+                nodes.rightHand = { x: cx + 120, y: 80, emoji: '🔴', label: 'Правая рука' };
                 nodes.heart = { x: cx, y: cy - 40, emoji: '🟢', label: 'Сердце' };
                 nodes.center = { x: cx, y: feelingEnd, emoji: '🟠', label: 'Живот' };
             }
@@ -200,7 +198,7 @@
 
         // ========== ОТРИСОВКА ==========
         function drawZones() {
-            // 1. Небо (верхняя треть)
+            // Небо
             const skyGrad = ctx.createLinearGradient(0, 0, 0, skyEnd);
             skyGrad.addColorStop(0, '#1a2a4a');
             skyGrad.addColorStop(1, 'rgba(26, 42, 74, 0)');
@@ -222,21 +220,21 @@
             ctx.textBaseline = 'middle';
             ctx.fillText('☀️', cx, 50);
 
-            // 2. Зона чувств (средняя треть)
+            // Чувства
             const feelGrad = ctx.createLinearGradient(0, skyEnd, 0, feelingEnd);
             feelGrad.addColorStop(0, 'rgba(46, 204, 113, 0)');
             feelGrad.addColorStop(1, 'rgba(46, 204, 113, 0.2)');
             ctx.fillStyle = feelGrad;
             ctx.fillRect(0, skyEnd, w, feelingEnd - skyEnd);
 
-            // 3. Земля (нижняя треть)
+            // Земля
             const earthGrad = ctx.createLinearGradient(0, feelingEnd, 0, h);
             earthGrad.addColorStop(0, 'rgba(60, 40, 20, 0.2)');
             earthGrad.addColorStop(1, 'rgba(60, 40, 20, 0.6)');
             ctx.fillStyle = earthGrad;
             ctx.fillRect(0, feelingEnd, w, h - feelingEnd);
             
-            // Граница чувств и земли
+            // Граница
             ctx.beginPath();
             ctx.moveTo(0, feelingEnd);
             ctx.lineTo(w, feelingEnd);
@@ -247,13 +245,14 @@
 
         function drawSunRays() {
             ctx.shadowBlur = 0;
+            // От солнца к левой ноге
             ctx.beginPath();
             ctx.moveTo(cx, 50);
             ctx.lineTo(nodes.leftLeg.x, nodes.leftLeg.y);
             ctx.strokeStyle = 'rgba(77, 139, 255, 0.3)';
             ctx.lineWidth = 2;
             ctx.stroke();
-
+            // От солнца к правой ноге
             ctx.beginPath();
             ctx.moveTo(cx, 50);
             ctx.lineTo(nodes.rightLeg.x, nodes.rightLeg.y);
@@ -286,49 +285,73 @@
             });
         }
 
+        // ========== ГЛАВНЫЕ ПОТОКИ (ПЕРЕКРЕСТ ЧЕРЕЗ ЖИВОТ) ==========
         function drawFlows() {
-            // Обновляем смещение для анимации течения
-            dashOffset += 0.5; 
+            // Защита от NaN в Safari
+            if (!nodes.heart || !nodes.center || !nodes.leftHand || !nodes.rightHand || !nodes.leftLeg || !nodes.rightLeg) return;
+            if (isNaN(nodes.heart.x) || isNaN(nodes.center.x)) return;
 
-            // 1. Синий луч от Сердца (🟢) к Левой руке (🔵)
-            ctx.beginPath();
-            ctx.moveTo(nodes.heart.x, nodes.heart.y);
-            ctx.lineTo(nodes.leftHand.x, nodes.leftHand.y);
-            ctx.strokeStyle = 'rgba(77, 139, 255, 0.8)';
-            ctx.lineWidth = 6;
-            ctx.shadowColor = 'rgba(77, 139, 255, 0.6)';
-            ctx.shadowBlur = 25;
-            ctx.setLineDash([10, 15]);
-            ctx.lineDashOffset = -dashOffset;
-            ctx.stroke();
-
-            // 2. Красный луч от Сердца (🟢) к Правой руке (🔴)
-            ctx.beginPath();
-            ctx.moveTo(nodes.heart.x, nodes.heart.y);
-            ctx.lineTo(nodes.rightHand.x, nodes.rightHand.y);
-            ctx.strokeStyle = 'rgba(255, 77, 77, 0.8)';
-            ctx.lineWidth = 6;
-            ctx.shadowColor = 'rgba(255, 77, 77, 0.6)';
-            ctx.shadowBlur = 25;
-            ctx.setLineDash([10, 15]);
-            ctx.lineDashOffset = -dashOffset;
-            ctx.stroke();
-
-            ctx.setLineDash([]);
+            // --- Поток 1: 🟢 Сердце -> 🔵 Левая рука -> 🟠 Живот -> 🟥 Правая нога -> ☀️ Солнце ---
             ctx.shadowBlur = 0;
-
-            // 3. Дополнительные лучи от ног к рукам (тонкие, показывающие связь)
+            
+            // Сердце -> Левая рука (синий)
             ctx.beginPath();
-            ctx.moveTo(nodes.leftLeg.x, nodes.leftLeg.y);
+            ctx.moveTo(nodes.heart.x, nodes.heart.y);
             ctx.lineTo(nodes.leftHand.x, nodes.leftHand.y);
-            ctx.strokeStyle = 'rgba(77, 139, 255, 0.15)';
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.6)';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Левая рука -> Живот (синий)
+            ctx.beginPath();
+            ctx.moveTo(nodes.leftHand.x, nodes.leftHand.y);
+            ctx.lineTo(nodes.center.x, nodes.center.y);
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.6)';
+            ctx.stroke();
+
+            // Живот -> Правая нога (красный)
+            ctx.beginPath();
+            ctx.moveTo(nodes.center.x, nodes.center.y);
+            ctx.lineTo(nodes.rightLeg.x, nodes.rightLeg.y);
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.6)';
+            ctx.stroke();
+
+            // Правая нога -> Солнце (красный, тонкий)
+            ctx.beginPath();
+            ctx.moveTo(nodes.rightLeg.x, nodes.rightLeg.y);
+            ctx.lineTo(cx, 50);
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.4)';
             ctx.lineWidth = 2;
             ctx.stroke();
 
+            // --- Поток 2: 🟢 Сердце -> 🔴 Правая рука -> 🟠 Живот -> 🟦 Левая нога -> ☀️ Солнце ---
+            // Сердце -> Правая рука (красный)
             ctx.beginPath();
-            ctx.moveTo(nodes.rightLeg.x, nodes.rightLeg.y);
+            ctx.moveTo(nodes.heart.x, nodes.heart.y);
             ctx.lineTo(nodes.rightHand.x, nodes.rightHand.y);
-            ctx.strokeStyle = 'rgba(255, 77, 77, 0.15)';
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.6)';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Правая рука -> Живот (красный)
+            ctx.beginPath();
+            ctx.moveTo(nodes.rightHand.x, nodes.rightHand.y);
+            ctx.lineTo(nodes.center.x, nodes.center.y);
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.6)';
+            ctx.stroke();
+
+            // Живот -> Левая нога (синий)
+            ctx.beginPath();
+            ctx.moveTo(nodes.center.x, nodes.center.y);
+            ctx.lineTo(nodes.leftLeg.x, nodes.leftLeg.y);
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.6)';
+            ctx.stroke();
+
+            // Левая нога -> Солнце (синий, тонкий)
+            ctx.beginPath();
+            ctx.moveTo(nodes.leftLeg.x, nodes.leftLeg.y);
+            ctx.lineTo(cx, 50);
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.4)';
             ctx.lineWidth = 2;
             ctx.stroke();
         }
@@ -426,7 +449,7 @@
         }
 
         function gameLoop() {
-            // Экстренная защита от NaN и нулевых размеров
+            // Защита от нулевых размеров
             if (!w || !h || w < 10 || h < 10) {
                 requestAnimationFrame(gameLoop);
                 return;
@@ -453,7 +476,7 @@
             drawFeelings();
             drawRoots();
 
-            // Рисуем узлы поверх всего
+            // Рисуем узлы
             drawNode(nodes.leftLeg, 45, true);
             drawNode(nodes.rightLeg, 45, true);
             drawNode(nodes.center, 55, false);
@@ -464,21 +487,24 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // ========== ИНТЕРАКТИВНОСТЬ ==========
+        // ========== ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ) ==========
         function getPointerPos(e) {
             const rect = canvas.getBoundingClientRect();
             return { x: e.clientX - rect.left, y: e.clientY - rect.top };
         }
 
         function checkHit(pointer) {
+            // Проверяем ноги
             if (Math.hypot(pointer.x - nodes.leftLeg.x, pointer.y - nodes.leftLeg.y) < 60) return { type: 'node', key: 'leftLeg' };
             if (Math.hypot(pointer.x - nodes.rightLeg.x, pointer.y - nodes.rightLeg.y) < 60) return { type: 'node', key: 'rightLeg' };
             
+            // Корни
             for (let i = roots.length - 1; i >= 0; i--) {
                 const r = roots[i];
                 const x = r.x || cx; const y = r.y || feelingEnd + 30;
                 if (Math.hypot(pointer.x - x, pointer.y - y) < 45) return { type: 'root', item: r };
             }
+            // Облака и чувства
             for (let i = clouds.length - 1; i >= 0; i--) {
                 const c = clouds[i];
                 if (Math.hypot(pointer.x - c.x, pointer.y - c.y) < 55) return { type: 'cloud', item: c };
@@ -487,6 +513,7 @@
                 const f = feelings[i];
                 if (Math.hypot(pointer.x - f.x, pointer.y - f.y) < 55) return { type: 'feeling', item: f };
             }
+            // Солнце
             if (Math.hypot(pointer.x - cx, pointer.y - 50) < 60) return { type: 'sun' };
             return null;
         }
@@ -502,6 +529,7 @@
             if (hit.type === 'node') {
                 isDragging = true;
                 draggedNode = nodes[hit.key];
+                draggedIsNode = true;
                 startMouse = pos;
                 startNodePos = { x: draggedNode.x, y: draggedNode.y };
                 return;
@@ -509,6 +537,7 @@
             if (hit.type === 'cloud' || hit.type === 'feeling') {
                 isDragging = true;
                 draggedNode = hit.item;
+                draggedIsNode = false;
                 startMouse = pos;
                 startNodePos = { x: hit.item.x, y: hit.item.y };
             }
@@ -521,10 +550,12 @@
             const dx = pos.x - startMouse.x;
             const dy = pos.y - startMouse.y;
             
-            if (hit.type === 'node') {
+            if (draggedIsNode) {
+                // Двигаем ногу
                 draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
                 draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
             } else {
+                // Двигаем облако или чувство
                 draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
                 draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
             }
@@ -535,6 +566,7 @@
             if (isDragging) {
                 isDragging = false;
                 draggedNode = null;
+                draggedIsNode = false;
                 saveData();
             }
         });
@@ -623,7 +655,7 @@
         resize();
         loadData();
         gameLoop();
-        console.log('🟣🦅 Уровень 5: Древо Жизни (исправлена ошибка Safari и добавлены пульсирующие потоки) загружено!');
+        console.log('🟣🦅 Уровень 5: Древо Жизни (исправлен перекрест и управление) загружено!');
     </script>
 </body>
 </html>
