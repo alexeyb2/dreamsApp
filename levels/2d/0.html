@@ -6,7 +6,7 @@
     <title>Древо Жизни (2D)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif; touch-action: none; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        body { background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif; touch-action: none; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; margin: 0; }
         #app { width: 100%; max-width: 480px; height: 100dvh; display: flex; flex-direction: column; position: relative; }
         #canvas { flex: 1; width: 100%; display: block; background: #0b0814; border-radius: 20px; border: 1px solid #2a2248; cursor: grab; touch-action: none; }
         #canvas:active { cursor: grabbing; }
@@ -43,6 +43,7 @@
         <button class="btn" id="add-thought">☁️ Мысль</button>
         <button class="btn" id="add-feeling">🧱 Чувство</button>
         <button class="btn" id="add-root">🌱 Корень</button>
+        <button class="btn" id="switch-3d" style="background:#6f52c4; color:#fff;">3D</button>
         <button class="btn btn-icon" id="menu-btn">⚙️</button>
         <div id="dropdown-menu">
             <div class="menu-item" id="toggle-energy"><span>🌀 Энергия</span><span class="toggle" id="energy-status">Вкл</span></div>
@@ -55,7 +56,7 @@
     </div>
 </div>
 
-<!-- Модальные окна -->
+<!-- Модальное окно добавления -->
 <div id="modal-add" class="modal">
     <div class="modal-box">
         <h3 id="modal-add-title">➕ Добавить</h3>
@@ -72,7 +73,7 @@
     // ============================================================
     const STORAGE_KEY = 'highmind_universe';
     const Y_LEVELS = { LEG: -0.8, BELLY: 0.0, HAND: 1.2, HEART: 1.2, EYE: 2.0 };
-    let cx, cy, feelingEnd, w, h;
+    let cx, cy, w, h;
     let scaleX, scaleY;
 
     // Данные
@@ -92,21 +93,21 @@
     let energyDirection = 1;
     let nextId = 1;
 
-    // ========== Преобразование координат ==========
+    // ========== Преобразование координат (ИСПРАВЛЕННАЯ МАТЕМАТИКА) ==========
     function setScale() {
         const rect = canvas.getBoundingClientRect();
         w = canvas.width = rect.width;
         h = canvas.height = rect.height;
         cx = w / 2;
         cy = h / 2;
-        feelingEnd = h * 0.66;
-        // Масштаб: живот (0,0) находится в feelingEnd, а 1 метр = 10% от высоты/ширины
-        scaleX = w * 0.1; // пикселей на 1 метр по X
-        scaleY = h * 0.1; // пикселей на 1 метр по Y
+        // Масштаб: делаем 1 метр = 100 пикселей (фиксированный удобный масштаб)
+        // Координаты (0,0) проецируются в (cx, cy)
+        scaleX = w * 0.12; 
+        scaleY = h * 0.12;
     }
 
     function meterToPixelX(mX) { return cx + mX * scaleX; }
-    function meterToPixelY(mY) { return feelingEnd + mY * scaleY; }
+    function meterToPixelY(mY) { return cy + mY * scaleY; }
 
     // ========== Сохранение / загрузка ==========
     function saveState() {
@@ -128,32 +129,24 @@
         } catch(e) { return false; }
     }
 
-    // Инициализация при загрузке
     if (!loadState()) {
-        // Если нет сохранения, создаём дефолтные сущности
-        entities.thoughts.push({ id: nextId++, emoji: '☁️', name: 'План', x: -0.5, y: 1.0, z: 0, radius: 0.4 });
-        entities.feelings.push({ id: nextId++, emoji: '🧱', name: 'Усталость', x: 0.5, y: 0.8, z: 0, type: 'heavy', radius: 0.4 });
+        entities.thoughts.push({ id: nextId++, emoji: '☁️', name: 'План', x: -0.5, y: 1.0, z: 0, radius: 0.5 });
+        entities.feelings.push({ id: nextId++, emoji: '🧱', name: 'Усталость', x: 0.5, y: 0.8, z: 0, type: 'heavy', radius: 0.5 });
         entities.roots.push({ id: nextId++, emoji: '🌱', name: 'Я справлюсь', x: 0, y: -0.4, z: 0, type: 'healthy' });
         saveState();
     }
 
     // ========== Физика анатомии ==========
     function updateAnatomy() {
-        const cx = anatomy.center.x;
-        const cz = anatomy.center.z;
+        const cx = anatomy.center.x, cz = anatomy.center.z;
         const lx = anatomy.leftLeg.x, lz = anatomy.leftLeg.z;
         const rx = anatomy.rightLeg.x, rz = anatomy.rightLeg.z;
-
-        // Правая рука зависит от левой ноги
         anatomy.rightHand.x = 2 * cx - lx;
         anatomy.rightHand.z = 2 * cz - lz;
-        // Левая рука зависит от правой ноги
         anatomy.leftHand.x = 2 * cx - rx;
         anatomy.leftHand.z = 2 * cz - rz;
-        // Сердце – по центру между руками
         anatomy.heart.x = cx;
         anatomy.heart.z = (anatomy.leftHand.z + anatomy.rightHand.z) / 2;
-        // Голова над сердцем
         anatomy.head.x = anatomy.heart.x;
         anatomy.head.z = anatomy.heart.z;
     }
@@ -161,7 +154,6 @@
     // ========== Частицы энергии ==========
     function getPath3D(path, progress) {
         if (path.length < 2) return null;
-        // path – массив объектов с x, y, z
         let totalLen = 0, segLen = [];
         for (let i = 0; i < path.length - 1; i++) {
             const dx = path[i+1].x - path[i].x;
@@ -193,7 +185,6 @@
     const ctx = canvas.getContext('2d');
 
     function draw() {
-        // Масштаб
         setScale();
         ctx.clearRect(0, 0, w, h);
 
@@ -222,31 +213,30 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#e0d6ff';
-            ctx.fillText(node.emoji || '🔵', px, py - 8);
+            ctx.fillText(node.emoji || '🔵', px, py - 6);
+            // Подпись (снизу)
             ctx.font = '14px system-ui';
-            ctx.fillText(label, px, py + 35);
+            ctx.fillStyle = '#e0d6ff';
+            ctx.fillText(label, px, py + radius + 20);
         };
 
         // Сначала линии
         ctx.lineWidth = 2;
-        // Левая нога -> Живот -> Правая рука (синий)
-        ctx.strokeStyle = '#4d8bff';
-        ctx.globalAlpha = 0.3;
+        ctx.strokeStyle = '#4d8bff'; ctx.globalAlpha = 0.3;
         ctx.beginPath();
         ctx.moveTo(meterToPixelX(anatomy.leftLeg.x), meterToPixelY(Y_LEVELS.LEG));
         ctx.lineTo(meterToPixelX(anatomy.center.x), meterToPixelY(Y_LEVELS.BELLY));
         ctx.lineTo(meterToPixelX(anatomy.rightHand.x), meterToPixelY(Y_LEVELS.HAND));
         ctx.stroke();
-        // Правая нога -> Живот -> Левая рука (красный)
+        
         ctx.strokeStyle = '#ff4d4d';
         ctx.beginPath();
         ctx.moveTo(meterToPixelX(anatomy.rightLeg.x), meterToPixelY(Y_LEVELS.LEG));
         ctx.lineTo(meterToPixelX(anatomy.center.x), meterToPixelY(Y_LEVELS.BELLY));
         ctx.lineTo(meterToPixelX(anatomy.leftHand.x), meterToPixelY(Y_LEVELS.HAND));
         ctx.stroke();
-        // Сердце -> руки (зелёный)
-        ctx.strokeStyle = '#2ecc71';
-        ctx.globalAlpha = 0.4;
+
+        ctx.strokeStyle = '#2ecc71'; ctx.globalAlpha = 0.4;
         ctx.beginPath();
         ctx.moveTo(meterToPixelX(anatomy.heart.x), meterToPixelY(Y_LEVELS.HEART));
         ctx.lineTo(meterToPixelX(anatomy.leftHand.x), meterToPixelY(Y_LEVELS.HAND));
@@ -255,9 +245,8 @@
         ctx.moveTo(meterToPixelX(anatomy.heart.x), meterToPixelY(Y_LEVELS.HEART));
         ctx.lineTo(meterToPixelX(anatomy.rightHand.x), meterToPixelY(Y_LEVELS.HAND));
         ctx.stroke();
-        // Ноги -> Голова (синий и красный лучи)
-        ctx.strokeStyle = '#4d8bff';
-        ctx.globalAlpha = 0.3;
+
+        ctx.strokeStyle = '#4d8bff'; ctx.globalAlpha = 0.3;
         ctx.beginPath();
         ctx.moveTo(meterToPixelX(anatomy.leftLeg.x), meterToPixelY(Y_LEVELS.LEG));
         ctx.lineTo(meterToPixelX(anatomy.head.x), meterToPixelY(Y_LEVELS.EYE));
@@ -267,10 +256,8 @@
         ctx.moveTo(meterToPixelX(anatomy.rightLeg.x), meterToPixelY(Y_LEVELS.LEG));
         ctx.lineTo(meterToPixelX(anatomy.head.x), meterToPixelY(Y_LEVELS.EYE));
         ctx.stroke();
-        // Жёлтая линия: Живот -> Сердце -> Голова
-        ctx.strokeStyle = '#ffcc00';
-        ctx.globalAlpha = 0.6;
-        ctx.lineWidth = 3;
+
+        ctx.strokeStyle = '#ffcc00'; ctx.globalAlpha = 0.6; ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(meterToPixelX(anatomy.center.x), meterToPixelY(Y_LEVELS.BELLY));
         ctx.lineTo(meterToPixelX(anatomy.heart.x), meterToPixelY(Y_LEVELS.HEART));
@@ -294,7 +281,7 @@
         const drawEntity = (e, color, label) => {
             const px = meterToPixelX(e.x);
             const py = meterToPixelY(e.y || 0);
-            const r = (e.radius || 0.4) * scaleX;
+            const r = (e.radius || 0.5) * scaleX;
             ctx.shadowBlur = 20;
             ctx.shadowColor = color;
             ctx.beginPath();
@@ -322,7 +309,6 @@
         if (energyEnabled) {
             const h = anatomy.heart, lH = anatomy.leftHand, rH = anatomy.rightHand;
             const lL = anatomy.leftLeg, rL = anatomy.rightLeg, c = anatomy.center, hd = anatomy.head;
-            // Пути в 3D (Y берём из Y_LEVELS)
             const pathRed = [
                 { x: h.x, y: Y_LEVELS.HEART, z: h.z },
                 { x: rH.x, y: Y_LEVELS.HAND, z: rH.z },
@@ -345,34 +331,18 @@
             const redPos = getPath3D(pathRed, energyProgress);
             const bluePos = getPath3D(pathBlue, energyProgress);
             if (redPos) {
-                const px = meterToPixelX(redPos.x);
-                const py = meterToPixelY(redPos.y);
-                ctx.beginPath();
-                ctx.arc(px, py, 12, 0, Math.PI * 2);
-                ctx.fillStyle = '#ff4d4d';
-                ctx.shadowColor = '#ff4d4d';
-                ctx.shadowBlur = 30;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.beginPath();
-                ctx.arc(px, py, 22, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255,77,77,0.2)';
-                ctx.fill();
+                const px = meterToPixelX(redPos.x); const py = meterToPixelY(redPos.y);
+                ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff4d4d'; ctx.shadowColor = '#ff4d4d'; ctx.shadowBlur = 30; ctx.fill(); ctx.shadowBlur = 0;
+                ctx.beginPath(); ctx.arc(px, py, 22, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,77,77,0.2)'; ctx.fill();
             }
             if (bluePos) {
-                const px = meterToPixelX(bluePos.x);
-                const py = meterToPixelY(bluePos.y);
-                ctx.beginPath();
-                ctx.arc(px, py, 12, 0, Math.PI * 2);
-                ctx.fillStyle = '#4d8bff';
-                ctx.shadowColor = '#4d8bff';
-                ctx.shadowBlur = 30;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.beginPath();
-                ctx.arc(px, py, 22, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(77,139,255,0.2)';
-                ctx.fill();
+                const px = meterToPixelX(bluePos.x); const py = meterToPixelY(bluePos.y);
+                ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2);
+                ctx.fillStyle = '#4d8bff'; ctx.shadowColor = '#4d8bff'; ctx.shadowBlur = 30; ctx.fill(); ctx.shadowBlur = 0;
+                ctx.beginPath(); ctx.arc(px, py, 22, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(77,139,255,0.2)'; ctx.fill();
             }
         }
     }
@@ -390,7 +360,6 @@
 
     function hitTest(px, py) {
         const tolerance = 35;
-        // Проверяем анатомические узлы (сначала ноги, потом центр, потом всё остальное)
         const items = [
             { key: 'leftLeg', node: anatomy.leftLeg, y: Y_LEVELS.LEG },
             { key: 'rightLeg', node: anatomy.rightLeg, y: Y_LEVELS.LEG },
@@ -401,17 +370,14 @@
             { key: 'rightHand', node: anatomy.rightHand, y: Y_LEVELS.HAND }
         ];
         for (const item of items) {
-            const nx = meterToPixelX(item.node.x);
-            const ny = meterToPixelY(item.y);
+            const nx = meterToPixelX(item.node.x); const ny = meterToPixelY(item.y);
             if (Math.hypot(px - nx, py - ny) < tolerance) {
                 return { type: 'anatomy', key: item.key, node: item.node, y: item.y };
             }
         }
-        // Проверяем сущности
         const allEntities = [...entities.thoughts, ...entities.feelings, ...entities.roots];
         for (const e of allEntities) {
-            const ex = meterToPixelX(e.x);
-            const ey = meterToPixelY(e.y || 0);
+            const ex = meterToPixelX(e.x); const ey = meterToPixelY(e.y || 0);
             if (Math.hypot(px - ex, py - ey) < tolerance) {
                 return { type: 'entity', entity: e };
             }
@@ -448,7 +414,7 @@
         } else {
             const entity = draggedNode.entity;
             entity.x = dragOrig.x + dx;
-            entity.y = (dragOrig.z || 0) + dy; // y храним в z (в сущностях y = z)
+            entity.y = (dragOrig.z || 0) + dy;
         }
         saveState();
     });
@@ -487,7 +453,7 @@
         const emoji = inputEmoji.value.trim() || (addCategory === 'thought' ? '☁️' : addCategory === 'feeling' ? '🧱' : '🌱');
         const name = inputName.value.trim() || 'Без имени';
         const type = inputType.value;
-        const newEntity = { id: nextId++, emoji, name, type, x: 0, y: 0, z: 0, radius: 0.4 };
+        const newEntity = { id: nextId++, emoji, name, type, x: 0, y: 0, z: 0, radius: 0.5 };
         if (addCategory === 'thought') entities.thoughts.push(newEntity);
         else if (addCategory === 'feeling') entities.feelings.push(newEntity);
         else if (addCategory === 'root') entities.roots.push(newEntity);
@@ -529,21 +495,10 @@
     });
 
     // ========== Переключение на 3D ==========
-    // Кнопка "3D" будет в меню? Или отдельная кнопка в интерфейсе?
-    // Добавим в нижнюю панель отдельную кнопку переключения
-    // Для простоты добавим её в меню
-    // Но можно и отдельную кнопку, как в 3D есть "2D". Здесь добавим "3D".
-    // Дополним меню пунктом
-    // Фактически, в 2D мы можем добавить кнопку "3D" в меню или отдельно.
-    // Сделаем отдельную кнопку в controls (заменим одну из кнопок)
-    // Или добавим новую кнопку в controls с id="switch-3d"
-    // Давайте добавим кнопку "3D" в нижнюю панель, например заменим кнопку меню? Нет, лучше добавим рядом с меню.
-    // Сделаем дополнительную кнопку в controls: между кнопками и меню.
-    // В коде добавим кнопку <button class="btn" id="switch-3d">3D</button> и обработаем клик.
-
-    // Добавим кнопку в controls:
-    // После создания элементов добавим её через JS или в HTML.
-    // В HTML уже есть controls, вставим ещё одну кнопку.
+    document.getElementById('switch-3d').addEventListener('click', () => {
+        saveState();
+        window.location.href = '../3d/';
+    });
 
     // ========== Главный цикл ==========
     function loop() {
@@ -558,22 +513,11 @@
     updateAnatomy();
     loop();
 
-    // Восстановим настройки
     document.getElementById('energy-status').textContent = energyEnabled ? 'Вкл' : 'Выкл';
     document.getElementById('speed-val').textContent = energySpeed;
     document.getElementById('energy-speed').value = energySpeed;
 
-    // Добавим кнопку переключения на 3D (в HTML уже должна быть)
-    // Но если нет, добавим динамически.
-    // Лучше сразу в HTML добавить:
-    // <button class="btn" id="switch-3d">3D</button>
-    // В текущем коде добавим обработчик
-    document.getElementById('switch-3d')?.addEventListener('click', () => {
-        saveState();
-        window.location.href = '../3d/';
-    });
-
-    console.log('🟣🦅 2D Древо Жизни (синхронизировано с 3D) загружено');
+    console.log('🟣🦅 2D Древо Жизни (исправленная геометрия) загружено');
 </script>
 </body>
 </html>
