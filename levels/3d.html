@@ -124,7 +124,8 @@
             EYE: 2.0
         };
 
-        let nodes = {
+        // Узлы с дефолтными координатами
+        const defaultNodes = {
             leftLeg:  { x: -1.2, z: 1.2, color: '#4d8bff', isSquare: true },
             rightLeg: { x: 1.2,  z: 1.2, color: '#ff4d4d', isSquare: true },
             leftHand: { x: -1.2, z: -1.2, color: '#4d8bff' },
@@ -134,6 +135,42 @@
             head:     { x: 0,    z: 0,    color: '#ffcc00' }
         };
 
+        let nodes = JSON.parse(JSON.stringify(defaultNodes));
+
+        // ============= СОХРАНЕНИЕ / ЗАГРУЗКА =============
+        function savePositions() {
+            const data = {
+                leftLeg: { x: nodes.leftLeg.x, z: nodes.leftLeg.z },
+                rightLeg: { x: nodes.rightLeg.x, z: nodes.rightLeg.z },
+                center: { x: nodes.center.x, z: nodes.center.z },
+                heart: { x: nodes.heart.x, z: nodes.heart.z },
+                head: { x: nodes.head.x, z: nodes.head.z }
+            };
+            localStorage.setItem('dreams_tree_3d', JSON.stringify(data));
+        }
+
+        function loadPositions() {
+            const raw = localStorage.getItem('dreams_tree_3d');
+            if (!raw) return false;
+            try {
+                const data = JSON.parse(raw);
+                if (data.leftLeg)  { nodes.leftLeg.x  = data.leftLeg.x;  nodes.leftLeg.z  = data.leftLeg.z; }
+                if (data.rightLeg) { nodes.rightLeg.x = data.rightLeg.x; nodes.rightLeg.z = data.rightLeg.z; }
+                if (data.center)   { nodes.center.x   = data.center.x;   nodes.center.z   = data.center.z; }
+                if (data.heart)    { nodes.heart.x    = data.heart.x;    nodes.heart.z    = data.heart.z; }
+                if (data.head)     { nodes.head.x     = data.head.x;     nodes.head.z     = data.head.z; }
+                return true;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        // При инициализации загружаем сохраненные позиции, если есть
+        if (!loadPositions()) {
+            // если нет сохранения, оставляем дефолтные
+        }
+
+        // ============= ЛОГИКА ДВИЖЕНИЯ =============
         function updateGeometry() {
             const cx = nodes.center.x;
             const cz = nodes.center.z;
@@ -392,12 +429,14 @@
             nodes[draggedNodeKey].x = Math.max(-3, Math.min(3, startPointPos.x + dx));
             nodes[draggedNodeKey].z = Math.max(-3, Math.min(3, startPointPos.z + dz));
             updatePositions();
+            savePositions(); // сохраняем при каждом движении
         });
 
         window.addEventListener('pointerup', () => {
             if (isDragging) {
                 isDragging = false; draggedNodeKey = null;
                 controls.enabled = true; renderer.domElement.style.cursor = 'default';
+                savePositions(); // дополнительное сохранение при отпускании
             }
         });
 
@@ -426,12 +465,14 @@
         resetBtn.addEventListener('click', () => {
             dropdown.classList.remove('open');
             if (confirm('Сбросить положение всех узлов?')) {
-                nodes.leftLeg.x = -1.2; nodes.leftLeg.z = 1.2;
-                nodes.rightLeg.x = 1.2; nodes.rightLeg.z = 1.2;
-                nodes.center.x = 0; nodes.center.z = 0;
-                nodes.heart.x = 0; nodes.heart.z = -1.2;
-                nodes.head.x = 0; nodes.head.z = 0;
+                // Возвращаем дефолтные координаты
+                nodes.leftLeg = { ...defaultNodes.leftLeg };
+                nodes.rightLeg = { ...defaultNodes.rightLeg };
+                nodes.center = { ...defaultNodes.center };
+                nodes.heart = { ...defaultNodes.heart };
+                nodes.head = { ...defaultNodes.head };
                 updatePositions();
+                savePositions();
             }
         });
 
@@ -443,6 +484,8 @@
 
         // Переход на 2D
         switch2dBtns.addEventListener('click', () => {
+            // Перед переходом сохраняем текущие позиции
+            savePositions();
             window.location.href = '../2d/';
         });
 
@@ -465,9 +508,13 @@
 
         buildScene();
         updatePositions();
+        // при старте сохраняем, если ещё нет сохранения (но load уже попытался)
+        if (!localStorage.getItem('dreams_tree_3d')) {
+            savePositions();
+        }
         animate();
 
-        console.log('🟣🦅 Древо Жизни 3D (компактная панель, скорость и сброс в меню) загружено!');
+        console.log('🟣🦅 Древо Жизни 3D (с сохранением позиций) загружено!');
     </script>
 </body>
 </html>
