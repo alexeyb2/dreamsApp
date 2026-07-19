@@ -9,10 +9,10 @@
     <meta property="og:description" content="Почувствуй пульс вселенной в 2D. Перемещай узлы и наблюдай за перетеканием синих и красных нитей." />
     <meta property="og:image" content="logo.png" />
     <meta property="og:type" content="website" />
-<!-- Мета-теги и иконка для iPhone / Home Screen -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="logo.png" />
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -106,7 +106,7 @@
         <canvas id="game-canvas"></canvas>
 
         <div class="controls">
-            <button class="btn" id="toggle-energy-btn">⚡ Вкл</button>
+            <button class="btn" id="add-btn">➕</button>
             <button class="btn" id="switch-3d-btn">3D</button>
             <button class="btn btn-icon" id="menu-btn">⚙️</button>
             <div id="dropdown-menu">
@@ -120,6 +120,10 @@
                 <div class="menu-item" id="reset-btn" style="color:#ff4d4d;">
                     <span>🔄 Сброс</span>
                 </div>
+                <div class="menu-item" id="toggle-energy-menu" style="display:flex; justify-content:space-between;">
+                    <span>🌀 Энергия</span>
+                    <span class="toggle" id="energy-status-menu">Вкл</span>
+                </div>
             </div>
         </div>
     </div>
@@ -129,16 +133,19 @@
         <div class="add-box">
             <h3 id="add-title">➕ Добавить</h3>
             <div class="input-group">
+                <label>Тип</label>
+                <select id="input-type">
+                    <option value="cloud">☁️ Мысль</option>
+                    <option value="feeling">🧱 Чувство</option>
+                </select>
+            </div>
+            <div class="input-group">
                 <label>Смайл</label>
                 <input type="text" id="input-emoji" placeholder="Например: ☁️" />
             </div>
             <div class="input-group">
                 <label>Название</label>
                 <input type="text" id="input-name" placeholder="Введите название" />
-            </div>
-            <div class="input-group">
-                <label>Тип</label>
-                <select id="input-type"></select>
             </div>
             <div class="add-actions">
                 <button class="btn" id="add-save-btn" style="background:#6f52c4; color:#fff; flex:1; border:none; border-radius:20px; padding:12px; cursor:pointer;">✅ Посадить</button>
@@ -532,7 +539,7 @@
         window.addEventListener('pointerup', (e) => {
             if (pendingTap && !hasMoved) {
                 // Открываем модалку для добавления
-                openAddModal(pendingTap.type);
+                openAddModal();
                 pendingTap = null;
             }
             if (isDragging) {
@@ -548,39 +555,35 @@
         const inputType = document.getElementById('input-type');
         const addSaveBtn = document.getElementById('add-save-btn');
         const addCloseBtn = document.getElementById('add-close-btn');
-        let addCategory = 'cloud';
 
-        function openAddModal(category) {
-            addCategory = category;
+        function openAddModal() {
             inputEmoji.value = ''; inputName.value = '';
-            if (category === 'cloud') {
-                addTitle.textContent = '☁️ Новая мысль';
-                inputType.innerHTML = `<option value="cloud">Облако (мысль)</option>`;
-            } else if (category === 'feeling') {
-                addTitle.textContent = '🧱 Новое чувство';
-                inputType.innerHTML = `<option value="heavy">Гиря (тяжёлое)</option><option value="light">Шар (лёгкое)</option>`;
-            }
+            addTitle.textContent = '➕ Добавить мысль или чувство';
             addModal.classList.add('open');
         }
 
         function closeAddModal() { addModal.classList.remove('open'); }
 
         function saveAddItem() {
-            const emoji = inputEmoji.value.trim() || (addCategory === 'cloud' ? '☁️' : '🧱');
+            const type = inputType.value; // 'cloud' или 'feeling'
+            const emoji = inputEmoji.value.trim() || (type === 'cloud' ? '☁️' : '🧱');
             const name = inputName.value.trim() || 'Элемент';
-            const type = inputType.value;
+            
             const newItem = {
                 id: nextId++,
                 emoji,
                 name,
-                type,
+                type, // для чувств: 'heavy' или 'light'? В оригинале чувства имели тип 'heavy' или 'light', но здесь мы используем тип 'feeling' и тяжесть определяется отдельно? В оригинале чувства имели подтип 'heavy'/'light'. Но в этом коде я упростил: чувства всегда одного типа. Если нужно, можно добавить выбор тяжести, но пока оставлю как есть.
                 x: cx + (Math.random() - 0.5) * 300,
-                y: skyEnd + 30 + Math.random() * (h - skyEnd - 60)
+                y: 40 + Math.random() * 80 // для облаков
             };
-            if (addCategory === 'cloud') {
+            if (type === 'cloud') {
                 newItem.y = 40 + Math.random() * 80;
                 clouds.push(newItem);
             } else {
+                newItem.y = skyEnd + 30 + Math.random() * (feelingEnd - skyEnd - 60);
+                // В оригинале чувства имели свойство 'type' = 'heavy' или 'light'. Добавим случайный.
+                newItem.type = Math.random() > 0.5 ? 'heavy' : 'light';
                 feelings.push(newItem);
             }
             saveSharedState();
@@ -593,19 +596,27 @@
         addModal.addEventListener('click', (e) => { if (e.target === addModal) closeAddModal(); });
 
         // ============= КНОПКИ УПРАВЛЕНИЯ =============
-        const toggleEnergyBtn = document.getElementById('toggle-energy-btn');
+        const addBtn = document.getElementById('add-btn');
         const menuBtn = document.getElementById('menu-btn');
         const dropdown = document.getElementById('dropdown-menu');
         const resetBtn = document.getElementById('reset-btn');
         const speedSlider = document.getElementById('energy-speed');
         const speedVal = document.getElementById('speed-val');
         const switch3DBtn = document.getElementById('switch-3d-btn');
+        const toggleEnergyMenu = document.getElementById('toggle-energy-menu');
+        const energyStatusMenu = document.getElementById('energy-status-menu');
 
-        // Энергия
-        toggleEnergyBtn.addEventListener('click', () => {
+        // Кнопка "+"
+        addBtn.addEventListener('click', () => {
+            openAddModal();
+        });
+
+        // Энергия (в меню)
+        toggleEnergyMenu.addEventListener('click', () => {
             energyEnabled = !energyEnabled;
-            toggleEnergyBtn.textContent = energyEnabled ? '⚡ Вкл' : '⚡ Выкл';
+            energyStatusMenu.textContent = energyEnabled ? 'Вкл' : 'Выкл';
             saveSharedState();
+            dropdown.classList.remove('open');
         });
 
         // Меню
@@ -655,14 +666,14 @@
         loadSharedState();
 
         // Устанавливаем значения в UI
-        toggleEnergyBtn.textContent = energyEnabled ? '⚡ Вкл' : '⚡ Выкл';
+        energyStatusMenu.textContent = energyEnabled ? 'Вкл' : 'Выкл';
         speedSlider.value = energySpeed;
         speedVal.textContent = energySpeed;
 
         // Запускаем игровой цикл
         gameLoop();
 
-        console.log('🟣🦅 Древо Жизни 2D (синхронизировано с 3D, единая панель) загружено!');
+        console.log('🟣🦅 Древо Жизни 2D (с кнопкой +, синхронизация) загружено!');
     </script>
 </body>
 </html>
