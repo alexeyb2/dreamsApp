@@ -69,12 +69,11 @@
         gridHelper.position.y = 0;
         scene.add(gridHelper);
 
-        // ============= ДАННЫЕ И ФИЗИКА =============
+        // ============= ДАННЫЕ И ФИЗИКА (НЕЗАВИСИМЫЕ НОГИ) =============
         let energyEnabled = true;
         let energyProgress = 0;
         let energyDirection = 1;
 
-        // ЭТАЖНОСТЬ: Ноги на поверхности, Живот чуть выше, Руки/Сердце выше, Глаз сверху
         const Y_LEVELS = {
             LEG: 0.0,
             BELLY: 0.5,
@@ -82,6 +81,7 @@
             EYE: 2.0
         };
 
+        // Узлы. Каждая нога управляет своей противоположной рукой.
         let nodes = {
             leftLeg:  { x: -1.2, z: 1.2, color: '#4d8bff', isSquare: true },
             rightLeg: { x: 1.2,  z: 1.2, color: '#ff4d4d', isSquare: true },
@@ -98,25 +98,18 @@
             const lx = nodes.leftLeg.x, lz = nodes.leftLeg.z;
             const rx = nodes.rightLeg.x, rz = nodes.rightLeg.z;
 
-            // Правая нога зеркалит левую вокруг Живота
-            nodes.rightLeg.x = 2 * cx - lx;
-            nodes.rightLeg.z = lz;
-
-            // Правая рука зависит от левой ноги через Живот
+            // ❗ Ноги НЕ зеркалятся – каждая остаётся на своём месте.
+            // Правая рука зависит от ЛЕВОЙ ноги.
             nodes.rightHand.x = 2 * cx - lx;
             nodes.rightHand.z = 2 * cz - lz;
 
-            // Левая рука зависит от правой ноги через Живот
+            // Левая рука зависит от ПРАВОЙ ноги.
             nodes.leftHand.x = 2 * cx - rx;
             nodes.leftHand.z = 2 * cz - rz;
 
-            // Сердце — по центру между руками
-            nodes.heart.x = cx;
-            nodes.heart.z = (nodes.leftHand.z + nodes.rightHand.z) / 2;
-
-            // Глаз 👁️ следует за Сердцем (вверх по вертикали)
-            nodes.head.x = nodes.heart.x;
-            nodes.head.z = nodes.heart.z;
+            // Сердце – центр между руками (если его не перетащили вручную)
+            // Если сердце было перетащено, оно не пересчитывается – пользователь управляет им сам.
+            // Для автоматического центрирования, если не перетащено, можно добавить флаг, но пока дадим полную свободу.
         }
 
         // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
@@ -136,7 +129,6 @@
             return new THREE.Vector3(node.x, getYForNode(node), node.z);
         }
 
-        // Создание спрайта с эмодзи 👁️ для головы
         function createEyeSprite() {
             const canvas = document.createElement('canvas');
             canvas.width = 128; canvas.height = 128;
@@ -184,7 +176,7 @@
             createNodeMesh('center', nodes.center);
             createNodeMesh('head', nodes.head);
 
-            // Линии связей (включая Живот→Сердце и Сердце→Глаз)
+            // Линии связей
             const connections = [
                 // Левая нога → Живот → Правая рука
                 [nodes.leftLeg, nodes.center, nodes.rightHand],
@@ -198,12 +190,15 @@
                 [nodes.leftLeg, nodes.head],
                 // Правая нога → Глаз
                 [nodes.rightLeg, nodes.head],
-                // Живот → Сердце
+            ];
+
+            // Жёлтые линии: Живот → Сердце → Глаз (цвет жёлтый #ffcc00)
+            const yellowLines = [
                 [nodes.center, nodes.heart],
-                // Сердце → Глаз
                 [nodes.heart, nodes.head]
             ];
 
+            // Обычные линии (цвет стартового узла)
             connections.forEach(pair => {
                 for (let i = 0; i < pair.length - 1; i++) {
                     const start = pair[i], end = pair[i+1];
@@ -214,6 +209,23 @@
                     ]);
                     const color = new THREE.Color(start.color);
                     const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.4 });
+                    const line = new THREE.Line(geom, mat);
+                    scene.add(line);
+                    lineSegments.push({ line, startNode: start, endNode: end });
+                }
+            });
+
+            // Жёлтые линии (отдельно)
+            yellowLines.forEach(pair => {
+                for (let i = 0; i < pair.length - 1; i++) {
+                    const start = pair[i], end = pair[i+1];
+                    const startY = getYForNode(start), endY = getYForNode(end);
+                    const geom = new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(start.x, startY, start.z),
+                        new THREE.Vector3(end.x, endY, end.z)
+                    ]);
+                    const color = new THREE.Color('#ffcc00');
+                    const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.6 });
                     const line = new THREE.Line(geom, mat);
                     scene.add(line);
                     lineSegments.push({ line, startNode: start, endNode: end });
@@ -233,8 +245,10 @@
         }
 
         function updatePositions() {
+            // Обновляем геометрию (руки зависят от ног и живота)
             updateGeometry();
 
+            // Обновляем позиции всех мешей
             for (let key in meshMap) {
                 const mesh = meshMap[key];
                 const node = nodes[key];
@@ -244,6 +258,7 @@
                 }
             }
 
+            // Обновляем линии
             lineSegments.forEach(item => {
                 const start = item.startNode, end = item.endNode;
                 const startY = getYForNode(start), endY = getYForNode(end);
@@ -305,7 +320,7 @@
             }
         }
 
-        // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ) =============
+        // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ ЛЮБОГО УЗЛА) =============
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         let isDragging = false;
@@ -324,19 +339,20 @@
             getPointer(e);
             raycaster.setFromCamera(pointer, camera);
             
-            const objects = ['leftLeg', 'rightLeg', 'center'].map(k => meshMap[k]).filter(m => m !== undefined);
+            // Список перетаскиваемых объектов: ноги, живот, сердце, глаз
+            const draggableKeys = ['leftLeg', 'rightLeg', 'center', 'heart', 'head'];
+            const objects = draggableKeys.map(k => meshMap[k]).filter(m => m !== undefined);
             const intersects = raycaster.intersectObjects(objects);
 
             if (intersects.length > 0) {
                 const hitMesh = intersects[0].object;
                 const hitKey = Object.keys(meshMap).find(k => meshMap[k] === hitMesh);
-                if (hitKey) {
+                if (hitKey && draggableKeys.includes(hitKey)) {
                     isDragging = true; draggedNodeKey = hitKey;
                     startMouse = { x: e.clientX, y: e.clientY };
                     startPointPos = { x: nodes[hitKey].x, z: nodes[hitKey].z };
-                    if (hitKey === 'center') dragPlaneY = Y_LEVELS.BELLY;
-                    else dragPlaneY = Y_LEVELS.LEG;
-                    controls.enabled = false; renderer.domElement.style.cursor = 'grabbing'; return;
+                    dragPlaneY = getYForNode(nodes[hitKey]);
+                    controls.enabled = false; renderer.domElement.style.cursor = 'grabbing';
                 }
             }
         });
@@ -348,7 +364,6 @@
             const intersectPoint = new THREE.Vector3();
             raycaster.ray.intersectPlane(plane, intersectPoint);
             if (intersectPoint) {
-                // Плавное перетаскивание: используем разницу от исходной точки
                 const dx = intersectPoint.x - startPointPos.x;
                 const dz = intersectPoint.z - startPointPos.z;
                 nodes[draggedNodeKey].x = Math.max(-3, Math.min(3, startPointPos.x + dx));
@@ -376,6 +391,8 @@
                 nodes.leftLeg.x = -1.2; nodes.leftLeg.z = 1.2;
                 nodes.rightLeg.x = 1.2; nodes.rightLeg.z = 1.2;
                 nodes.center.x = 0; nodes.center.z = 0;
+                nodes.heart.x = 0; nodes.heart.z = -1.2;
+                nodes.head.x = 0; nodes.head.z = 0;
                 updatePositions();
             }
         });
@@ -405,7 +422,7 @@
         updatePositions();
         animate();
 
-        console.log('🟣🦅 Древо Жизни 3D (плавное движение, подвижный живот, глаз следует за сердцем) загружено!');
+        console.log('🟣🦅 Древо Жизни 3D (независимые ноги, все узлы перетаскиваемые, жёлтая линия живот-сердце-глаз) загружено!');
     </script>
 </body>
 </html>
