@@ -156,7 +156,7 @@
         let skyEnd, feelingEnd;
         let isDragging = false, draggedNode = null, startMouse = {x:0, y:0}, startNodePos = {x:0, y:0}, draggedIsNode = false;
 
-        // ========== УЗЛЫ ==========
+        // ========== ИДЕАЛЬНО СИММЕТРИЧНЫЕ УЗЛЫ (ИДЕАЛЬНЫЙ РОМБ) ==========
         let nodes = {
             leftLeg: { x: 0, y: 0, emoji: '🟦', label: 'Левая нога' },
             rightLeg: { x: 0, y: 0, emoji: '🟥', label: 'Правая нога' },
@@ -166,7 +166,7 @@
             center: { x: 0, y: 0, emoji: '🟠', label: 'Живот' }
         };
 
-        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        // ========== ИНИЦИАЛИЗАЦИЯ БЕЗОПАСНОГО МАСШТАБИРОВАНИЯ ==========
         function resize() {
             const rect = canvas.getBoundingClientRect();
             const wPx = Math.max(1, Math.round(rect.width));
@@ -178,12 +178,16 @@
             skyEnd = h * 0.33;
             feelingEnd = h * 0.66;
 
+            // dx и dy для идеального ромба (все расстояния равны)
+            const dx = w * 0.12;
+            const dy = h * 0.10;
+
             if (nodes.leftLeg.x === 0 && nodes.leftLeg.y === 0) {
-                nodes.leftLeg = { x: cx - 120, y: h - 70, emoji: '🟦', label: 'Левая нога' };
-                nodes.rightLeg = { x: cx + 120, y: h - 70, emoji: '🟥', label: 'Правая нога' };
-                nodes.rightHand = { x: cx - 120, y: 80, emoji: '🔴', label: 'Правая рука' };
-                nodes.leftHand = { x: cx + 120, y: 80, emoji: '🔵', label: 'Левая рука' };
-                nodes.heart = { x: cx, y: cy - 20, emoji: '🟢', label: 'Сердце' };
+                nodes.leftLeg = { x: cx - dx, y: feelingEnd + dy, emoji: '🟦', label: 'Левая нога' };
+                nodes.rightLeg = { x: cx + dx, y: feelingEnd + dy, emoji: '🟥', label: 'Правая нога' };
+                nodes.rightHand = { x: cx - dx, y: feelingEnd - dy, emoji: '🔴', label: 'Правая рука' };
+                nodes.leftHand = { x: cx + dx, y: feelingEnd - dy, emoji: '🔵', label: 'Левая рука' };
+                nodes.heart = { x: cx, y: feelingEnd - 2 * dy, emoji: '🟢', label: 'Сердце' };
                 nodes.center = { x: cx, y: feelingEnd, emoji: '🟠', label: 'Живот' };
             }
         }
@@ -215,7 +219,7 @@
             skyGrad.addColorStop(1, 'rgba(26, 42, 74, 0)');
             ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, w, skyEnd);
 
-            // Солнце (поднято выше, чтобы не сливаться)
+            // Солнце в безопасной зоне (поднято на 40px от верха)
             ctx.save();
             ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 80;
             ctx.beginPath(); ctx.arc(cx, 40, 50, 0, Math.PI * 2);
@@ -253,49 +257,45 @@
             });
         }
 
-        // ========== ГЛАВНАЯ АНИМАЦИЯ ЭНЕРГИИ (ПРЯМЫЕ ЛИНИИ ЧЕРЕЗ ЖИВОТ) ==========
+        // ========== АНИМАЦИЯ ЭНЕРГИИ ПО ПРЯМЫМ ЛИНИЯМ (НИКАКИХ ИЗГИБОВ!) ==========
         function drawAnimatedEnergy() {
             const speed = 2.5;
             if (energyEnabled) dashOffset -= speed;
             
-            // Вспомогательная функция для рисования ломаной линии
-            function drawPath(points, color) {
-                if (points.length < 2) return;
-                ctx.beginPath();
-                ctx.moveTo(points[0].x, points[0].y);
-                for (let i = 1; i < points.length; i++) {
-                    ctx.lineTo(points[i].x, points[i].y); // Строго прямые линии!
-                }
-                if (energyEnabled) {
-                    ctx.setLineDash([10, 20]);
-                    ctx.lineDashOffset = -dashOffset;
-                } else {
-                    ctx.setLineDash([]);
-                }
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 4;
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 15;
-                ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.shadowBlur = 0;
-            }
+            // 1. Синяя диагональ: Левая нога (🟦) -> Живот (🟠) -> Правая рука (🔴)
+            if (energyEnabled) ctx.setLineDash([10, 20]); else ctx.setLineDash([]);
+            ctx.lineDashOffset = -dashOffset;
+            ctx.shadowColor = 'rgba(77, 139, 255, 0.6)'; ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(nodes.leftLeg.x, nodes.leftLeg.y);
+            ctx.lineTo(nodes.center.x, nodes.center.y);
+            ctx.lineTo(nodes.rightHand.x, nodes.rightHand.y);
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.8)';
+            ctx.lineWidth = 5;
+            ctx.stroke();
 
-            // Точки для путей
-            let pSun = {x: cx, y: 40};
-            let pH = nodes.heart;
-            let pRH = nodes.rightHand;
-            let pLH = nodes.leftHand;
-            let pLL = nodes.leftLeg;
-            let pRL = nodes.rightLeg;
-            let pC = nodes.center;
+            // 2. Красная диагональ: Правая нога (🟥) -> Живот (🟠) -> Левая рука (🔵)
+            ctx.setLineDash([10, 20]); ctx.lineDashOffset = -dashOffset;
+            ctx.shadowColor = 'rgba(255, 77, 77, 0.6)'; ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(nodes.rightLeg.x, nodes.rightLeg.y);
+            ctx.lineTo(nodes.center.x, nodes.center.y);
+            ctx.lineTo(nodes.leftHand.x, nodes.leftHand.y);
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.8)';
+            ctx.lineWidth = 5;
+            ctx.stroke();
 
-            // 1. ЛЕВЫЙ ПОТОК: 🟢 Сердце -> 🔴 Правая рука -> 🟠 Живот -> 🟦 Левая нога -> ☀️ Солнце
-            drawPath([pH, pRH, pC, pLL, pSun], 'rgba(77, 139, 255, 0.8)');
-            // 2. ПРАВЫЙ ПОТОК: 🟢 Сердце -> 🔵 Левая рука -> 🟠 Живот -> 🟥 Правая нога -> ☀️ Солнце
-            drawPath([pH, pLH, pC, pRL, pSun], 'rgba(255, 77, 77, 0.8)');
-            // 3. ОБРАТНЫЙ ПОТОК: ☀️ Солнце -> 🟢 Сердце (энергия возвращается)
-            drawPath([pSun, pH], 'rgba(255, 204, 0, 0.6)');
+            // 3. Золотой обратный поток: Солнце (☀️) -> Сердце (🟢)
+            ctx.setLineDash([10, 20]); ctx.lineDashOffset = -dashOffset;
+            ctx.shadowColor = 'rgba(255, 204, 0, 0.6)'; ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(cx, 40);
+            ctx.lineTo(nodes.heart.x, nodes.heart.y);
+            ctx.strokeStyle = 'rgba(255, 204, 0, 0.8)';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+
+            ctx.setLineDash([]); ctx.shadowBlur = 0;
         }
 
         function drawNode(node, radius = 50, isSquare = false) {
@@ -355,17 +355,38 @@
         function gameLoop() {
             if (!w || !h || w < 10 || h < 10) { requestAnimationFrame(gameLoop); return; }
 
-            // Зеркальное движение рук от ног (относительно центра экрана)
-            nodes.rightHand.x = w - nodes.leftLeg.x;
-            nodes.rightHand.y = h - nodes.leftLeg.y;
-            nodes.leftHand.x = w - nodes.rightLeg.x;
-            nodes.leftHand.y = h - nodes.rightLeg.y;
+            // Зеркальное движение рук и ног относительно центра Живота (идеальная симметрия)
+            const dx = w * 0.12;
+            const dy = h * 0.10;
 
-            // Сердце плавно тянется к балансу между руками
-            const hTargetX = (nodes.leftHand.x + nodes.rightHand.x) / 2;
-            const hTargetY = (nodes.leftHand.y + nodes.rightHand.y) / 2;
-            nodes.heart.x += (hTargetX - nodes.heart.x) * 0.08;
-            nodes.heart.y += (hTargetY - nodes.heart.y) * 0.08;
+            // Мы двигаем ноги по диагонали, руки следуют за ними по той же прямой
+            // Если сдвигается левая нога (🟦), правая рука (🔴) сдвигается симметрично
+            if (draggedIsNode && (draggedNode === nodes.leftLeg || draggedNode === nodes.rightLeg)) {
+                // Ничего не делаем, физика движения рук идет от ног
+            }
+
+            // Обновляем позиции рук, чтобы они всегда были на одной прямой с ногами через Живот
+            // Уравнение прямой: относительно центра (cx, feelingEnd)
+            // Левая нога (cx - dx, feelingEnd + dy) -> Правая рука (cx - dx, feelingEnd - dy)
+            // Правая нога (cx + dx, feelingEnd + dy) -> Левая рука (cx + dx, feelingEnd - dy)
+            // Сердце находится на вертикали (cx, feelingEnd - 2*dy)
+
+            // Важно: dx и dy должны быть согласованы. Мы используем постоянные пропорции.
+            const baseX = nodes.leftLeg.x - cx;
+            const baseY = nodes.leftLeg.y - feelingEnd;
+            // Правая рука является зеркальным отражением левой ноги относительно центра
+            nodes.rightHand.x = cx - baseX;
+            nodes.rightHand.y = feelingEnd - baseY;
+            
+            const baseX2 = nodes.rightLeg.x - cx;
+            const baseY2 = nodes.rightLeg.y - feelingEnd;
+            nodes.leftHand.x = cx - baseX2;
+            nodes.leftHand.y = feelingEnd - baseY2;
+
+            // Сердце всегда находится на вертикали и на одной прямой с ногами/руками
+            nodes.heart.x = cx;
+            // Глубина сердца зависит от расстояния dy
+            nodes.heart.y = feelingEnd - 2 * dy;
 
             ctx.clearRect(0, 0, w, h);
             drawZones();
@@ -429,6 +450,7 @@
             if (!isDragging || !draggedNode) return; e.preventDefault();
             const pos = getPointerPos(e); const dx = pos.x - startMouse.x; const dy = pos.y - startMouse.y;
             if (draggedIsNode) {
+                // Двигаем ногу
                 draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
                 draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
             } else {
@@ -526,7 +548,7 @@
         window.addEventListener('resize', resize); resize(); loadData();
         energyStatus.textContent = energyEnabled ? 'Вкл' : 'Выкл';
         gameLoop();
-        console.log('🟣🦅 Уровень 5: Древо Жизни (идеальная циркуляция энергии) загружено!');
+        console.log('🟣🦅 Уровень 5: Древо Жизни (идеальная симметрия и прямые линии) загружено!');
     </script>
 </body>
 </html>
