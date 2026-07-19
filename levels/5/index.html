@@ -198,7 +198,6 @@
         // ========== ИНИЦИАЛИЗАЦИЯ БЕЗОПАСНОГО МАСШТАБИРОВАНИЯ ==========
         function resize() {
             const rect = canvas.getBoundingClientRect();
-            // ОТКАЗ ОТ DPR. Работаем только с реальными CSS-пикселями, чтобы Safari не падал.
             const wPx = Math.max(1, Math.round(rect.width));
             const hPx = Math.max(1, Math.round(rect.height));
             canvas.width = wPx; canvas.height = hPx;
@@ -208,7 +207,6 @@
             skyEnd = h * 0.33;
             feelingEnd = h * 0.66;
 
-            // Расстояния для идеального ромба (все конечности равноудалены от центра)
             const dx = w * 0.12;
             const dy = h * 0.10;
 
@@ -245,7 +243,7 @@
             localStorage.setItem('dreams_level5_tree', JSON.stringify({ clouds, feelings, roots, nodes: { leftLeg: nodes.leftLeg, rightLeg: nodes.rightLeg }, energyEnabled, nextId }));
         }
 
-        // ========== ОТРИСОВКА (С ЗАЩИТОЙ ОТ NaN) ==========
+        // ========== ОТРИСОВКА ==========
         function drawZones() {
             const skyGrad = ctx.createLinearGradient(0, 0, 0, skyEnd);
             skyGrad.addColorStop(0, '#1a2a4a');
@@ -383,9 +381,15 @@
 
         function gameLoop() {
             // ГЛАВНАЯ ЗАЩИТА ОТ ПУСТОГО ЭКРАНА В SAFARI / ЯНДЕКС
-            if (!w || !h || w < 10 || h < 10 || isNaN(nodes.leftLeg.x) || isNaN(nodes.leftLeg.y)) {
+            if (!w || !h || w < 10 || h < 10) {
                 requestAnimationFrame(gameLoop);
                 return;
+            }
+
+            // Если координаты сломаны, принудительно пересчитываем геометрию
+            if (isNaN(nodes.leftLeg.x) || isNaN(nodes.leftLeg.y)) {
+                nodes.leftLeg = { x: 0, y: 0 };
+                resize(); 
             }
 
             // СТРОГАЯ ГЕОМЕТРИЯ (пересчет каждый кадр)
@@ -414,7 +418,7 @@
             nodes.center.x = cx;
             nodes.center.y = feelingEnd;
 
-            // Пути для частиц
+            // Пути для частиц (пересчитываются в каждом кадре, следуя за движением линий)
             const sun = {x: cx, y: 40};
             const h = nodes.heart;
             const lHand = nodes.leftHand;
