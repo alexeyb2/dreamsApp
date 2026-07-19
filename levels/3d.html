@@ -44,8 +44,8 @@
         scene.background = new THREE.Color(0x0b0814);
 
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-        camera.position.set(6, 3, 8);
-        camera.lookAt(0, 0, 0);
+        camera.position.set(5, 2.5, 7);
+        camera.lookAt(0, 0.5, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -55,7 +55,7 @@
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true; controls.dampingFactor = 0.05;
-        controls.target.set(0, 0, 0);
+        controls.target.set(0, 0.5, 0);
         controls.minDistance = 3; controls.maxDistance = 20;
 
         // ============= ОСВЕЩЕНИЕ И ПОЛ =============
@@ -65,21 +65,21 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        const gridHelper = new THREE.GridHelper(10, 10, 0x6f52c4, 0x3a2f5a);
-        gridHelper.position.y = -0.01;
+        const gridHelper = new THREE.GridHelper(8, 8, 0x6f52c4, 0x3a2f5a);
+        gridHelper.position.y = 0;
         scene.add(gridHelper);
 
-        // ============= ДАННЫЕ И ФИЗИКА (СИММЕТРИЯ ТЕЛА) =============
+        // ============= ДАННЫЕ И ФИЗИКА =============
         let energyEnabled = true;
         let energyProgress = 0;
         let energyDirection = 1;
 
-        // Строгая анатомическая симметрия: Голова и Ступни на равном расстоянии от Живота
+        // Ноги на поверхности (Y=0), остальные выше
         const Y_LEVELS = {
-            HEAD: 1.8,    // Солнце (Голова) сверху
-            HAND: 0.9,    // Руки и Сердце (выше живота)
-            CENTER: 0.0,  // Живот (в центре)
-            LEG: -1.8     // Ноги (ступни) снизу
+            LEG: 0.0,
+            CENTER: 0.5,
+            HAND: 1.2,
+            HEAD: 2.0
         };
 
         let nodes = {
@@ -97,21 +97,21 @@
             const rx = nodes.rightLeg.x, rz = nodes.rightLeg.z;
             const cx = nodes.center.x, cz = nodes.center.z;
 
-            // 🔴 Правая рука зависит ТОЛЬКО от Левой ноги (🟦)
+            // Правая рука зависит от левой ноги
             nodes.rightHand.x = 2 * cx - lx;
             nodes.rightHand.z = 2 * cz - lz;
 
-            // 🔵 Левая рука зависит ТОЛЬКО от Правой ноги (🟥)
+            // Левая рука зависит от правой ноги
             nodes.leftHand.x = 2 * cx - rx;
             nodes.leftHand.z = 2 * cz - rz;
 
-            // 🟢 Сердце строго по центру между руками
+            // Сердце — по центру между руками
             nodes.heart.x = cx;
             nodes.heart.z = (nodes.leftHand.z + nodes.rightHand.z) / 2;
 
-            // Голова (Солнце) всегда над центром
-            nodes.head.x = cx;
-            nodes.head.z = cz;
+            // Голова — над сердцем (следует за ним)
+            nodes.head.x = nodes.heart.x;
+            nodes.head.z = nodes.heart.z;
         }
 
         // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
@@ -131,19 +131,42 @@
             return new THREE.Vector3(node.x, getYForNode(node), node.z);
         }
 
+        // Создание спрайта с эмодзи 👁️ для головы
+        function createEyeSprite() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.font = '100px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('👁️', 64, 64);
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(0.8, 0.8, 1);
+            return sprite;
+        }
+
         function createNodeMesh(key, node) {
             const color = new THREE.Color(node.color);
-            let geom, mat;
-            const size = 0.8;
-            if (node.isSquare) {
-                geom = new THREE.BoxGeometry(size, size, size);
-                mat = new THREE.MeshPhongMaterial({ color: color, emissive: color, emissiveIntensity: 0.3 });
+            let mesh;
+            if (key === 'head') {
+                // Голова — эмодзи спрайт
+                mesh = createEyeSprite();
             } else {
-                geom = new THREE.SphereGeometry(size / 2, 32, 32);
-                mat = new THREE.MeshPhongMaterial({ color: color, emissive: color, emissiveIntensity: 0.3, transparent: true, opacity: 0.9 });
+                const size = 0.8;
+                let geom;
+                if (node.isSquare) {
+                    geom = new THREE.BoxGeometry(size, size, size);
+                } else {
+                    geom = new THREE.SphereGeometry(size / 2, 32, 32);
+                }
+                const mat = new THREE.MeshPhongMaterial({ color: color, emissive: color, emissiveIntensity: 0.3, transparent: true, opacity: 0.9 });
+                mesh = new THREE.Mesh(geom, mat);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
             }
-            const mesh = new THREE.Mesh(geom, mat);
-            mesh.castShadow = true; mesh.receiveShadow = true;
             scene.add(mesh);
             meshMap[key] = mesh;
         }
@@ -159,20 +182,24 @@
             createNodeMesh('center', nodes.center);
             createNodeMesh('head', nodes.head);
 
-            // Линии связей (строго как в 2D: без лучей от головы к рукам)
+            // Линии связей (включая новые: живот→сердце, сердце→глаз)
             const connections = [
-                // 🟦 Левая нога -> 🟠 Живот -> 🔴 Правая рука
+                // Левая нога → Живот → Правая рука
                 [nodes.leftLeg, nodes.center, nodes.rightHand],
-                // 🟥 Правая нога -> 🟠 Живот -> 🔵 Левая рука
+                // Правая нога → Живот → Левая рука
                 [nodes.rightLeg, nodes.center, nodes.leftHand],
-                // 🟢 Сердце -> 🔵 Левая рука
+                // Сердце → Левая рука
                 [nodes.heart, nodes.leftHand],
-                // 🟢 Сердце -> 🔴 Правая рука
+                // Сердце → Правая рука
                 [nodes.heart, nodes.rightHand],
-                // 🟦 ЛЕВАЯ НОГА -> 👁️ ГОЛОВА (синий луч)
+                // Левая нога → Голова
                 [nodes.leftLeg, nodes.head],
-                // 🟥 ПРАВАЯ НОГА -> 👁️ ГОЛОВА (красный луч)
-                [nodes.rightLeg, nodes.head]
+                // Правая нога → Голова
+                [nodes.rightLeg, nodes.head],
+                // Живот → Сердце (новая линия)
+                [nodes.center, nodes.heart],
+                // Сердце → Голова (новая линия)
+                [nodes.heart, nodes.head]
             ];
 
             connections.forEach(pair => {
@@ -197,7 +224,8 @@
                 const geom = new THREE.SphereGeometry(0.2, 16, 16);
                 const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors[i]) });
                 const mesh = new THREE.Mesh(geom, mat);
-                mesh.material.transparent = true; mesh.material.opacity = 0.9;
+                mesh.material.transparent = true;
+                mesh.material.opacity = 0.9;
                 scene.add(mesh);
                 particleMeshes.push(mesh);
             }
@@ -211,7 +239,12 @@
                 const node = nodes[key];
                 const yPos = getYForNode(node);
                 if (mesh && node) {
-                    mesh.position.set(node.x, yPos, node.z);
+                    if (key === 'head') {
+                        // Спрайт позиционируется по центру
+                        mesh.position.set(node.x, yPos, node.z);
+                    } else {
+                        mesh.position.set(node.x, yPos, node.z);
+                    }
                 }
             }
 
@@ -228,11 +261,8 @@
         // ============= ПОТОКИ ЭНЕРГИИ (ТОЧНЫЕ 3D-ТРАЕКТОРИИ) =============
         function getPointOnPath3D(path, progress) {
             if (!path || path.length < 2) return null;
-            
-            // Получаем 3D позиции всех точек пути
             const points3D = path.map(p => get3DPos(p));
-            let totalLen = 0;
-            let segmentLens = [];
+            let totalLen = 0, segmentLens = [];
             for (let i = 0; i < points3D.length - 1; i++) {
                 const dx = points3D[i+1].x - points3D[i].x;
                 const dy = points3D[i+1].y - points3D[i].y;
@@ -242,9 +272,7 @@
                 totalLen += len;
             }
             if (totalLen === 0) return points3D[0];
-            
-            let targetDist = progress * totalLen;
-            let accumulated = 0;
+            let targetDist = progress * totalLen, accumulated = 0;
             for (let i = 0; i < segmentLens.length; i++) {
                 if (targetDist <= accumulated + segmentLens[i]) {
                     const t = (targetDist - accumulated) / segmentLens[i];
@@ -263,7 +291,6 @@
             const h = nodes.heart, lH = nodes.leftHand, rH = nodes.rightHand;
             const lL = nodes.leftLeg, rL = nodes.rightLeg, c = nodes.center, hd = nodes.head;
             
-            // Точные маршруты из 2D: Сердце -> Рука -> Живот -> Нога -> Голова
             const pathRed  = [h, rH, c, lL, hd];
             const pathBlue = [h, lH, c, rL, hd];
 
@@ -278,12 +305,12 @@
             const bluePos = getPointOnPath3D(pathBlue, energyProgress);
 
             if (redPos && bluePos) {
-                particleMeshes[0].position.copy(bluePos); // Синяя
-                particleMeshes[1].position.copy(redPos);  // Красная
+                particleMeshes[0].position.copy(bluePos);
+                particleMeshes[1].position.copy(redPos);
             }
         }
 
-        // ============= ИНТЕРАКТИВНОСТЬ (ТЯНЕМ ОБЕ НОГИ) =============
+        // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ НОГ) =============
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         let isDragging = false;
@@ -380,7 +407,7 @@
         updatePositions();
         animate();
 
-        console.log('🟣🦅 Древо Жизни 3D (идеальная анатомия и точные 3D-траектории) загружено!');
+        console.log('🟣🦅 Древо Жизни 3D (глаз 👁️ следует за сердцем, новые линии, ноги на поверхности) загружено!');
     </script>
 </body>
 </html>
