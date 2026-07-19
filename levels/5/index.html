@@ -34,35 +34,14 @@
             flex: 1; text-align: center; transition: 0.2s;
         }
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        .btn-sun { background: #4a4a1a; color: #ffcc00; }
         .btn-feeling { background: #4a2a4a; color: #ff99cc; }
-        .btn-feeling:active { background: #6f52c4; color: #fff; }
-        .btn-thought { background: #2a3a5a; color: #99ccff; }
-        .btn-thought:active { background: #6f52c4; color: #fff; }
-        .btn-action { background: #4a2a2a; color: #ff9999; }
-        .btn-action:active { background: #6f52c4; color: #fff; }
-
-        /* Модальное окно просмотра мысли */
-        #thought-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 100;
-        }
-        #thought-modal.open { display: flex; }
-        .modal-box {
-            background: #161127; border: 1px solid #3a2f5a; border-radius: 30px;
-            padding: 24px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 14px;
-            align-items: center;
-        }
-        .modal-box .big-emoji { font-size: 64px; }
-        .modal-box .big-name { font-size: 20px; font-weight: bold; color: #ffffff; }
-        .modal-box .btn-close-modal {
-            background: #3a2f5a; border: none; border-radius: 20px; padding: 10px 24px;
-            color: #b8a6ff; cursor: pointer; touch-action: manipulation; font-weight: 600;
-        }
+        .btn-root { background: #2a4a2a; color: #66cc66; }
 
         /* Модальное окно добавления */
         #add-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 101;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 100;
         }
         #add-modal.open { display: flex; }
         .add-box {
@@ -80,6 +59,25 @@
         .add-actions { display: flex; gap: 10px; margin-top: 4px; }
         .btn-cancel { background: #3a2f5a; color: #b8a6ff; flex: 1; border: none; border-radius: 20px; padding: 12px; cursor: pointer; touch-action: manipulation; }
 
+        /* Модальное окно просмотра/редактирования корня */
+        #root-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 101;
+        }
+        #root-modal.open { display: flex; }
+        .root-box {
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 30px;
+            padding: 24px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 14px;
+            align-items: center;
+        }
+        .root-box .root-emoji { font-size: 48px; }
+        .root-box .root-name { font-size: 18px; font-weight: bold; color: #ffffff; }
+        .root-actions { display: flex; gap: 10px; margin-top: 8px; }
+        .root-btn { border: none; border-radius: 20px; padding: 10px 20px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
+        .root-btn.transform { background: #2ecc71; color: #fff; }
+        .root-btn.delete { background: #a03a3a; color: #fff; }
+        .root-btn.close { background: #3a2f5a; color: #b8a6ff; }
+
         @media (max-width: 500px) {
             h1 { font-size: 18px; padding: 5px 0; }
             .btn { padding: 8px 12px; font-size: 12px; }
@@ -93,36 +91,44 @@
         <canvas id="game-canvas"></canvas>
         
         <div class="controls">
+            <button class="btn btn-sun" id="add-cloud-btn">☁️ Мысль</button>
             <button class="btn btn-feeling" id="add-feeling-btn">🧱 Чувство</button>
-            <button class="btn btn-thought" id="add-thought-btn">☁️ Мысль</button>
-            <button class="btn btn-action" id="add-action-btn">⚡ Действие</button>
+            <button class="btn btn-root" id="add-root-btn">🌱 Корень</button>
         </div>
     </div>
 
-    <!-- Модальное окно просмотра мысли -->
-    <div id="thought-modal">
-        <div class="modal-box">
-            <div class="big-emoji" id="thought-emoji">☁️</div>
-            <div class="big-name" id="thought-name">Название</div>
-            <button class="btn-close-modal" id="close-thought-btn">Закрыть</button>
-        </div>
-    </div>
-
-    <!-- Модальное окно добавления -->
+    <!-- Модальное окно добавления (универсальное) -->
     <div id="add-modal">
         <div class="add-box">
-            <h3 id="add-title">➕ Добавить элемент</h3>
+            <h3 id="add-title">➕ Добавить</h3>
             <div class="input-group">
                 <label>Смайл</label>
-                <input type="text" id="input-emoji" placeholder="Например: ❤️" />
+                <input type="text" id="input-emoji" placeholder="Например: ☁️" />
             </div>
             <div class="input-group">
                 <label>Название</label>
                 <input type="text" id="input-name" placeholder="Введите название" />
             </div>
+            <div class="input-group" id="type-group">
+                <label>Тип</label>
+                <select id="input-type"></select>
+            </div>
             <div class="add-actions">
                 <button class="btn" id="add-save-btn" style="background:#6f52c4; color:#fff; flex:1; border:none; border-radius:20px; padding:12px; cursor:pointer;">✅ Посадить</button>
                 <button class="btn-cancel" id="add-close-btn">✖ Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно корня (преобразование/удаление) -->
+    <div id="root-modal">
+        <div class="root-box">
+            <div class="root-emoji" id="root-emoji">🌱</div>
+            <div class="root-name" id="root-name">Убеждение</div>
+            <div class="root-actions">
+                <button class="root-btn transform" id="root-transform">✨ Преобразовать</button>
+                <button class="root-btn delete" id="root-delete">🗑️ Убрать</button>
+                <button class="root-btn close" id="root-close">✖ Закрыть</button>
             </div>
         </div>
     </div>
@@ -132,9 +138,9 @@
         const ctx = canvas.getContext('2d');
 
         let w, h, cx, cy;
-        let thoughts = [];
+        let clouds = [];
         let feelings = [];
-        let actions = [];
+        let roots = [];
         let nextId = 1;
 
         // ========== РАЗМЕРЫ ==========
@@ -155,219 +161,195 @@
                 const raw = localStorage.getItem('dreams_level5_tree');
                 if (raw) {
                     const parsed = JSON.parse(raw);
-                    thoughts = parsed.thoughts || [];
+                    clouds = parsed.clouds || [];
                     feelings = parsed.feelings || [];
-                    actions = parsed.actions || [];
+                    roots = parsed.roots || [];
                     nextId = parsed.nextId || 1;
                 }
             } catch(e) {}
-            thoughts.forEach(t => { if (t.id >= nextId) nextId = t.id + 1; });
+            clouds.forEach(t => { if (t.id >= nextId) nextId = t.id + 1; });
             feelings.forEach(f => { if (f.id >= nextId) nextId = f.id + 1; });
-            actions.forEach(a => { if (a.id >= nextId) nextId = a.id + 1; });
+            roots.forEach(r => { if (r.id >= nextId) nextId = r.id + 1; });
         }
         function saveData() {
-            localStorage.setItem('dreams_level5_tree', JSON.stringify({ thoughts, feelings, actions, nextId }));
+            localStorage.setItem('dreams_level5_tree', JSON.stringify({ clouds, feelings, roots, nextId }));
         }
 
         // ========== ОТРИСОВКА ==========
-        function drawTreeBase() {
-            const rootX = cx, rootY = h - 20;
-
-            // 1. Зелёные корни (внизу)
+        function drawSky() {
+            // Солнце
+            ctx.save();
+            ctx.shadowColor = '#ffcc00';
+            ctx.shadowBlur = 60;
             ctx.beginPath();
-            ctx.moveTo(cx - 40, rootY);
-            ctx.quadraticCurveTo(cx - 60, rootY + 30, cx - 20, rootY + 40);
-            ctx.strokeStyle = '#2ecc71';
-            ctx.lineWidth = 6;
-            ctx.shadowColor = 'rgba(46, 204, 113, 0.3)';
-            ctx.shadowBlur = 15;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(cx + 40, rootY);
-            ctx.quadraticCurveTo(cx + 60, rootY + 30, cx + 20, rootY + 40);
-            ctx.stroke();
-
-            ctx.shadowBlur = 0;
-
-            // 2. Центральный столб (позвоночник)
-            const grad = ctx.createLinearGradient(cx, rootY, cx, cy - h*0.4);
-            grad.addColorStop(0, '#6f52c4');
-            grad.addColorStop(1, '#4d8bff');
-            ctx.beginPath();
-            ctx.moveTo(cx, rootY);
-            ctx.lineTo(cx, cy - h*0.4);
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 6;
-            ctx.shadowColor = 'rgba(111, 82, 196, 0.5)';
-            ctx.shadowBlur = 20;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // 3. Чакры
-            // Живот (нижний)
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-            ctx.strokeStyle = '#ff6b6b';
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = 0;
-            ctx.beginPath();
-            ctx.roundRect(cx - 60, cy + 40, 120, 60, 10);
+            ctx.arc(cx, 40, 30, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffcc00';
             ctx.fill();
-            ctx.stroke();
-
-            // Сердце (средняя)
-            ctx.beginPath();
-            ctx.arc(cx, cy - 20, 55, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(46, 204, 113, 0.2)';
-            ctx.fill();
-            ctx.strokeStyle = '#2ecc71';
-            ctx.lineWidth = 3;
-            ctx.shadowColor = 'rgba(46, 204, 113, 0.5)';
-            ctx.shadowBlur = 30;
-            ctx.stroke();
             ctx.shadowBlur = 0;
+            ctx.restore();
 
-            // Голова (верхняя)
-            ctx.beginPath();
-            ctx.arc(cx, cy - 130, 55, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(77, 139, 255, 0.2)';
-            ctx.fill();
-            ctx.strokeStyle = '#4d8bff';
-            ctx.lineWidth = 3;
-            ctx.shadowColor = 'rgba(77, 139, 255, 0.5)';
-            ctx.shadowBlur = 30;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // 4. Пересекающиеся потоки (Действия 🔴 и Мысли 🔵)
-            // Правая нога -> Левая рука (Красный поток)
-            ctx.beginPath();
-            ctx.moveTo(cx + 140, h - 30);
-            ctx.quadraticCurveTo(cx + 50, cy + 40, cx - 100, cy - 120);
-            ctx.strokeStyle = 'rgba(255, 77, 77, 0.6)';
-            ctx.lineWidth = 4;
-            ctx.shadowColor = 'rgba(255, 77, 77, 0.8)';
-            ctx.shadowBlur = 20;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // Левая нога (под землёй) -> Правая рука (Синий поток)
-            ctx.beginPath();
-            ctx.moveTo(cx - 140, h - 30);
-            ctx.quadraticCurveTo(cx - 50, cy + 40, cx + 100, cy - 120);
-            ctx.strokeStyle = 'rgba(77, 139, 255, 0.6)';
-            ctx.lineWidth = 4;
-            ctx.shadowColor = 'rgba(77, 139, 255, 0.8)';
-            ctx.shadowBlur = 20;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // Точки-источники потоков
-            const drawNode = (x, y, color, label) => {
-                ctx.beginPath();
-                ctx.arc(x, y, 12, 0, Math.PI * 2);
-                ctx.fillStyle = color;
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 30;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.font = '10px system-ui';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'bottom';
-                ctx.fillStyle = '#ffffff';
-                ctx.fillText(label, x, y - 16);
-            };
-
-            drawNode(cx + 140, h - 30, '#ff4d4d', 'Правая нога');
-            drawNode(cx - 100, cy - 120, '#ff4d4d', 'Левая рука');
-            drawNode(cx - 140, h - 30, '#4d8bff', 'Левая нога');
-            drawNode(cx + 100, cy - 120, '#4d8bff', 'Правая рука');
+            ctx.font = '28px system-ui';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('☀️', cx, 40);
         }
 
-        function drawThoughts() {
-            thoughts.forEach(t => {
-                const radius = 30;
-                // Парящее облако
+        function drawClouds() {
+            clouds.forEach(c => {
+                const r = 25;
                 ctx.beginPath();
-                ctx.arc(t.x, t.y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
                 ctx.fill();
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
                 ctx.lineWidth = 2;
                 ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
-                ctx.shadowBlur = 15;
+                ctx.shadowBlur = 10;
                 ctx.stroke();
                 ctx.shadowBlur = 0;
 
-                // Эмодзи внутри
-                ctx.font = '30px system-ui';
+                ctx.font = '22px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(t.emoji || '☁️', t.x, t.y - 6);
-                
-                // Имя
-                ctx.font = '10px system-ui';
-                ctx.fillStyle = '#e0d6ff';
-                ctx.fillText(t.name || '', t.x, t.y + 18);
+                ctx.fillText(c.emoji || '☁️', c.x, c.y - 6);
+                ctx.font = '9px system-ui';
+                ctx.fillStyle = '#b8a6ff';
+                ctx.fillText(c.name || '', c.x, c.y + 18);
             });
+        }
+
+        function drawTrunk() {
+            const rootY = h - 60;
+            const topY = cy - 40;
+
+            // Ствол
+            const grad = ctx.createLinearGradient(cx, rootY, cx, topY);
+            grad.addColorStop(0, '#6f52c4');
+            grad.addColorStop(1, '#4d8bff');
+            ctx.beginPath();
+            ctx.moveTo(cx, rootY);
+            ctx.lineTo(cx, topY);
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 10;
+            ctx.shadowColor = 'rgba(111, 82, 196, 0.5)';
+            ctx.shadowBlur = 30;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Чакры
+            // Живот
+            ctx.beginPath();
+            ctx.arc(cx, cy + 40, 45, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fill();
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = 'rgba(255, 107, 107, 0.3)';
+            ctx.shadowBlur = 20;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.font = '12px system-ui';
+            ctx.fillStyle = '#ff6b6b';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('Живот', cx, cy + 40 - 50);
+
+            // Сердце
+            ctx.beginPath();
+            ctx.arc(cx, cy - 20, 45, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(46, 204, 113, 0.2)';
+            ctx.fill();
+            ctx.strokeStyle = '#2ecc71';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = 'rgba(46, 204, 113, 0.3)';
+            ctx.shadowBlur = 20;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.font = '12px system-ui';
+            ctx.fillStyle = '#2ecc71';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('Сердце', cx, cy - 20 - 50);
         }
 
         function drawFeelings() {
             feelings.forEach(f => {
+                const r = 25;
+                const isHeavy = f.type === 'heavy';
                 ctx.beginPath();
-                ctx.arc(f.x, f.y, 25, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 153, 204, 0.2)';
+                ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = isHeavy ? 'rgba(255, 80, 80, 0.2)' : 'rgba(80, 255, 80, 0.2)';
                 ctx.fill();
-                ctx.strokeStyle = '#ff99cc';
+                ctx.strokeStyle = isHeavy ? '#ff4d4d' : '#4dff4d';
                 ctx.lineWidth = 2;
-                ctx.shadowColor = 'rgba(255, 153, 204, 0.5)';
+                ctx.shadowColor = isHeavy ? 'rgba(255, 77, 77, 0.5)' : 'rgba(77, 255, 77, 0.5)';
                 ctx.shadowBlur = 15;
                 ctx.stroke();
                 ctx.shadowBlur = 0;
 
-                ctx.font = '24px system-ui';
+                ctx.font = '22px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(f.emoji || '🧱', f.x, f.y - 6);
-                ctx.font = '10px system-ui';
+                ctx.fillText(f.emoji || (isHeavy ? '🏋️' : '🎈'), f.x, f.y - 6);
+                ctx.font = '9px system-ui';
                 ctx.fillStyle = '#e0d6ff';
                 ctx.fillText(f.name || '', f.x, f.y + 18);
             });
         }
 
-        function drawActions() {
-            actions.forEach(a => {
+        function drawRoots() {
+            const rootY = h - 60;
+            ctx.shadowBlur = 0;
+
+            roots.forEach(r => {
+                const isHealthy = r.type === 'healthy';
+                const x = r.x || cx + (Math.random() - 0.5) * 100;
+                const y = rootY + 10 + Math.random() * 20;
+
+                // Корень (извилистая линия)
                 ctx.beginPath();
-                ctx.arc(a.x, a.y, 25, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 153, 153, 0.2)';
+                ctx.moveTo(cx, rootY);
+                ctx.quadraticCurveTo(x - 20, rootY + 20, x, y);
+                ctx.strokeStyle = isHealthy ? '#2ecc71' : '#ff4d4d';
+                ctx.lineWidth = 4;
+                ctx.shadowColor = isHealthy ? 'rgba(46, 204, 113, 0.4)' : 'rgba(255, 77, 77, 0.4)';
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // Точка корня (убеждение)
+                ctx.beginPath();
+                ctx.arc(x, y, 18, 0, Math.PI * 2);
+                ctx.fillStyle = isHealthy ? 'rgba(46, 204, 113, 0.3)' : 'rgba(255, 77, 77, 0.3)';
                 ctx.fill();
-                ctx.strokeStyle = '#ff9999';
+                ctx.strokeStyle = isHealthy ? '#2ecc71' : '#ff4d4d';
                 ctx.lineWidth = 2;
-                ctx.shadowColor = 'rgba(255, 153, 153, 0.5)';
+                ctx.shadowColor = isHealthy ? 'rgba(46, 204, 113, 0.5)' : 'rgba(255, 77, 77, 0.5)';
                 ctx.shadowBlur = 15;
                 ctx.stroke();
                 ctx.shadowBlur = 0;
 
-                ctx.font = '24px system-ui';
+                ctx.font = '18px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(a.emoji || '⚡', a.x, a.y - 6);
-                ctx.font = '10px system-ui';
+                ctx.fillText(r.emoji || (isHealthy ? '🌱' : '☠️'), x, y - 4);
+                ctx.font = '8px system-ui';
                 ctx.fillStyle = '#e0d6ff';
-                ctx.fillText(a.name || '', a.x, a.y + 18);
+                ctx.fillText(r.name || '', x, y + 16);
             });
         }
 
         function gameLoop() {
             ctx.clearRect(0, 0, w, h);
-            drawTreeBase();
+            drawSky();
+            drawClouds();
+            drawTrunk();
             drawFeelings();
-            drawActions();
-            drawThoughts();
+            drawRoots();
             requestAnimationFrame(gameLoop);
         }
 
-        // ========== ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ И КЛИК) ==========
+        // ========== ИНТЕРАКТИВНОСТЬ ==========
         let isDragging = false;
         let draggedItem = null;
         let startMouse = { x: 0, y: 0 };
@@ -379,20 +361,27 @@
         }
 
         function checkHit(pointer) {
-            // Проверяем облака мыслей
-            for (let i = thoughts.length - 1; i >= 0; i--) {
-                const t = thoughts[i];
-                if (Math.hypot(pointer.x - t.x, pointer.y - t.y) < 40) return { item: t, type: 'thought' };
+            // Облака
+            for (let i = clouds.length - 1; i >= 0; i--) {
+                const c = clouds[i];
+                if (Math.hypot(pointer.x - c.x, pointer.y - c.y) < 30) return { item: c, type: 'cloud' };
             }
-            // Проверяем чувства
+            // Чувства
             for (let i = feelings.length - 1; i >= 0; i--) {
                 const f = feelings[i];
-                if (Math.hypot(pointer.x - f.x, pointer.y - f.y) < 35) return { item: f, type: 'feeling' };
+                if (Math.hypot(pointer.x - f.x, pointer.y - f.y) < 30) return { item: f, type: 'feeling' };
             }
-            // Проверяем действия
-            for (let i = actions.length - 1; i >= 0; i--) {
-                const a = actions[i];
-                if (Math.hypot(pointer.x - a.x, pointer.y - a.y) < 35) return { item: a, type: 'action' };
+            // Корни
+            const rootY = h - 60;
+            for (let i = roots.length - 1; i >= 0; i--) {
+                const r = roots[i];
+                const x = r.x || cx;
+                const y = rootY + 10;
+                if (Math.hypot(pointer.x - x, pointer.y - y) < 25) return { item: r, type: 'root' };
+            }
+            // Солнце (добавить облако)
+            if (Math.hypot(pointer.x - cx, pointer.y - 40) < 40) {
+                return { type: 'sun' };
             }
             return null;
         }
@@ -401,17 +390,22 @@
             e.preventDefault();
             const pos = getPointerPos(e);
             const hit = checkHit(pos);
-            if (hit) {
-                if (hit.type === 'thought') {
-                    // Открываем модалку с мыслью
-                    openThoughtModal(hit.item);
-                } else {
-                    // Включаем перетаскивание
-                    isDragging = true;
-                    draggedItem = hit.item;
-                    startMouse = pos;
-                    startItemPos = { x: hit.item.x, y: hit.item.y };
-                }
+            if (!hit) return;
+
+            if (hit.type === 'sun') {
+                openAddModal('cloud');
+                return;
+            }
+            if (hit.type === 'root') {
+                openRootModal(hit.item);
+                return;
+            }
+            // Перетаскивание облаков и чувств
+            if (hit.type === 'cloud' || hit.type === 'feeling') {
+                isDragging = true;
+                draggedItem = hit.item;
+                startMouse = pos;
+                startItemPos = { x: hit.item.x, y: hit.item.y };
             }
         });
 
@@ -434,84 +428,124 @@
             }
         });
 
-        // ========== МОДАЛЬНОЕ ОКНО МЫСЛИ ==========
-        const thoughtModal = document.getElementById('thought-modal');
-        const thoughtEmoji = document.getElementById('thought-emoji');
-        const thoughtName = document.getElementById('thought-name');
-        const closeThoughtBtn = document.getElementById('close-thought-btn');
-
-        function openThoughtModal(item) {
-            thoughtEmoji.textContent = item.emoji || '☁️';
-            thoughtName.textContent = item.name || 'Мысль';
-            thoughtModal.classList.add('open');
-        }
-        closeThoughtBtn.addEventListener('click', () => thoughtModal.classList.remove('open'));
-        thoughtModal.addEventListener('click', (e) => { if (e.target === thoughtModal) thoughtModal.classList.remove('open'); });
-
         // ========== МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ ==========
         const addModal = document.getElementById('add-modal');
         const addTitle = document.getElementById('add-title');
         const inputEmoji = document.getElementById('input-emoji');
         const inputName = document.getElementById('input-name');
+        const inputType = document.getElementById('input-type');
         const addSaveBtn = document.getElementById('add-save-btn');
         const addCloseBtn = document.getElementById('add-close-btn');
-        let addType = 'thought';
+        let addCategory = 'cloud';
 
-        function openAddModal(type) {
-            addType = type;
-            if (type === 'thought') addTitle.textContent = '☁️ Новая мысль';
-            else if (type === 'feeling') addTitle.textContent = '🧱 Новое чувство';
-            else if (type === 'action') addTitle.textContent = '⚡ Новое действие';
+        function openAddModal(category) {
+            addCategory = category;
             inputEmoji.value = '';
             inputName.value = '';
+            if (category === 'cloud') {
+                addTitle.textContent = '☁️ Новая мысль';
+                inputType.innerHTML = `<option value="cloud">Облако (мысль)</option>`;
+            } else if (category === 'feeling') {
+                addTitle.textContent = '🧱 Новое чувство';
+                inputType.innerHTML = `
+                    <option value="heavy">Гиря (тяжёлое)</option>
+                    <option value="light">Шар (лёгкое)</option>
+                `;
+            } else if (category === 'root') {
+                addTitle.textContent = '🌱 Новое убеждение';
+                inputType.innerHTML = `
+                    <option value="healthy">Здоровое (зелёное)</option>
+                    <option value="toxic">Токсичное (красное)</option>
+                `;
+            }
             addModal.classList.add('open');
         }
 
         function closeAddModal() { addModal.classList.remove('open'); }
 
         function saveAddItem() {
-            const emoji = inputEmoji.value.trim() || (addType === 'thought' ? '☁️' : addType === 'feeling' ? '🧱' : '⚡');
+            const emoji = inputEmoji.value.trim() || (addCategory === 'cloud' ? '☁️' : addCategory === 'feeling' ? '🧱' : '🌱');
             const name = inputName.value.trim() || 'Элемент';
+            const type = inputType.value;
             const newItem = {
                 id: nextId++,
                 emoji: emoji,
                 name: name,
+                type: type,
                 x: cx + (Math.random() - 0.5) * 200,
-                y: cy + (Math.random() - 0.5) * 300
+                y: cy + (Math.random() - 0.5) * 200
             };
-            if (addType === 'thought') thoughts.push(newItem);
-            else if (addType === 'feeling') feelings.push(newItem);
-            else if (addType === 'action') actions.push(newItem);
+            if (addCategory === 'cloud') {
+                newItem.y = 40 + Math.random() * 80; // небо
+                clouds.push(newItem);
+            } else if (addCategory === 'feeling') {
+                newItem.y = cy + (Math.random() - 0.5) * 100; // тело
+                feelings.push(newItem);
+            } else if (addCategory === 'root') {
+                newItem.x = cx + (Math.random() - 0.5) * 80;
+                roots.push(newItem);
+            }
             saveData();
             closeAddModal();
         }
 
-        document.getElementById('add-thought-btn').addEventListener('click', () => openAddModal('thought'));
+        document.getElementById('add-cloud-btn').addEventListener('click', () => openAddModal('cloud'));
         document.getElementById('add-feeling-btn').addEventListener('click', () => openAddModal('feeling'));
-        document.getElementById('add-action-btn').addEventListener('click', () => openAddModal('action'));
+        document.getElementById('add-root-btn').addEventListener('click', () => openAddModal('root'));
         addSaveBtn.addEventListener('click', saveAddItem);
         addCloseBtn.addEventListener('click', closeAddModal);
         addModal.addEventListener('click', (e) => { if (e.target === addModal) closeAddModal(); });
+
+        // ========== МОДАЛЬНОЕ ОКНО КОРНЯ ==========
+        const rootModal = document.getElementById('root-modal');
+        const rootEmoji = document.getElementById('root-emoji');
+        const rootName = document.getElementById('root-name');
+        const rootTransform = document.getElementById('root-transform');
+        const rootDelete = document.getElementById('root-delete');
+        const rootClose = document.getElementById('root-close');
+        let selectedRootId = null;
+
+        function openRootModal(root) {
+            selectedRootId = root.id;
+            rootEmoji.textContent = root.emoji || '🌱';
+            rootName.textContent = root.name || 'Убеждение';
+            rootTransform.style.display = root.type === 'toxic' ? 'block' : 'none';
+            rootModal.classList.add('open');
+        }
+
+        function closeRootModal() {
+            rootModal.classList.remove('open');
+            selectedRootId = null;
+        }
+
+        rootTransform.addEventListener('click', () => {
+            const root = roots.find(r => r.id === selectedRootId);
+            if (root && root.type === 'toxic') {
+                root.type = 'healthy';
+                root.emoji = '🌱';
+                saveData();
+                closeRootModal();
+            }
+        });
+
+        rootDelete.addEventListener('click', () => {
+            const idx = roots.findIndex(r => r.id === selectedRootId);
+            if (idx !== -1) {
+                roots.splice(idx, 1);
+                saveData();
+                closeRootModal();
+            }
+        });
+
+        rootClose.addEventListener('click', closeRootModal);
+        rootModal.addEventListener('click', (e) => { if (e.target === rootModal) closeRootModal(); });
 
         // ========== ЗАПУСК ==========
         window.addEventListener('resize', resize);
         resize();
         loadData();
-        // Полифил roundRect
-        if (!CanvasRenderingContext2D.prototype.roundRect) {
-            CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-                if (r > w/2) r = w/2;
-                if (r > h/2) r = h/2;
-                this.moveTo(x + r, y);
-                this.arcTo(x + w, y, x + w, y + h, r);
-                this.arcTo(x + w, y + h, x, y + h, r);
-                this.arcTo(x, y + h, x, y, r);
-                this.arcTo(x, y, x + w, y, r);
-                return this;
-            };
-        }
         gameLoop();
-        console.log('🟣🦅 Уровень 5: Древо Жизни (потоки) загружено!');
+        console.log('🟣🦅 Уровень 5: Древо Жизни (полная версия) загружено!');
     </script>
 </body>
 </html>
