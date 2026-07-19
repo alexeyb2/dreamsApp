@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    
+    <!-- Мета-теги для красивого превью в соцсетях -->
+    <meta property="og:title" content="👁️ Древо Жизни" />
+    <meta property="og:description" content="Почувствуй потоки энергии. Перемещай точки опоры, наблюдай за перетеканием сил и ищи внутреннее равновесие." />
+    <meta property="og:image" content="logo.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Мета-теги и иконка для iPhone / Home Screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="logo.png" />
+
+    <title>👁️ Древо Жизни</title>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif;
+            /* Защита от обрезания верхней/нижней панели в браузерах (включая Яндекс и PWA) */
+            margin: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            touch-action: none; -webkit-tap-highlight-color: transparent; overflow: hidden;
+            min-height: 100vh; min-height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+        }
+        #app { 
+            width: 100%; max-width: 480px; 
+            height: 100vh; height: 100dvh; 
+            display: flex; flex-direction: column; position: relative; 
+            margin: 0 auto;
+        }
+
+        #game-canvas {
+            flex: 1; width: 100%; display: block;
+            background: #0b0814;
+            border-radius: 20px; border: 1px solid #2a2248; touch-action: none; cursor: grab;
+            min-height: 0; 
+        }
+        #game-canvas:active { cursor: grabbing; }
+
+        .controls {
+            display: flex; justify-content: space-between; gap: 8px; padding: 12px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            background: rgba(22,17,39,0.9); backdrop-filter: blur(8px);
+            border-top: 1px solid #2a2248; border-radius: 20px 20px 0 0; margin-top: -10px;
+            position: relative; z-index: 10;
+        }
+        
+        .btn {
+            border: none; background: #2a2348; color: #b8a6ff; padding: 10px 14px;
+            border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; touch-action: manipulation;
+            flex: 1; text-align: center; transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        .btn-icon { flex: 0.4; min-width: 44px; background: transparent; border: 1px solid #3a2f5a; font-size: 18px; }
+        .btn-icon:active { background: #6f52c4; }
+
+        #dropdown-menu {
+            display: none; position: absolute; bottom: 110%; right: 0;
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 20px;
+            padding: 12px; width: 220px; flex-direction: column; gap: 8px; z-index: 20;
+            backdrop-filter: blur(10px);
+        }
+        #dropdown-menu.open { display: flex; }
+        .menu-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 12px; border-radius: 12px; cursor: pointer; touch-action: manipulation;
+            background: #2a2348; color: #b8a6ff; font-size: 14px; font-weight: 600;
+            transition: 0.2s;
+        }
+        .menu-item:active { background: #6f52c4; color: #fff; }
+        .menu-item .toggle { font-size: 18px; }
+        .menu-item.speed-control {
+            flex-direction: column; align-items: stretch; gap: 4px; padding: 8px 12px;
+        }
+        .menu-item.speed-control .header {
+            display: flex; justify-content: space-between; width: 100%;
+        }
+        #energy-speed {
+            width: 100%; height: 4px; -webkit-appearance: none; background: #3a2f5a; border-radius: 4px; outline: none; margin-top: 2px;
+        }
+        #energy-speed::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #6f52c4; cursor: pointer;
+        }
+
+        #add-modal, #root-modal, #item-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 100;
+        }
+        #add-modal.open, #root-modal.open, #item-modal.open { display: flex; }
+        .add-box, .root-box {
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 30px;
+            padding: 30px; width: 90%; max-width: 420px; display: flex; flex-direction: column; gap: 16px;
+        }
+        .add-box h3, .root-box .root-title { color: #b8a6ff; text-align: center; font-size: 22px; margin-bottom: 4px; }
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { font-size: 14px; color: #8f78e6; font-weight: 500; }
+        .input-group input, .input-group select {
+            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 12px;
+            padding: 12px 14px; font-size: 16px; color: #fff; outline: none; touch-action: manipulation;
+            font-family: inherit;
+        }
+        .add-actions, .root-actions, .item-actions { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-cancel { background: #3a2f5a; color: #b8a6ff; flex: 1; border: none; border-radius: 20px; padding: 12px; cursor: pointer; touch-action: manipulation; }
+        .root-btn, .item-btn { border: none; border-radius: 20px; padding: 12px 20px; font-weight: 700; cursor: pointer; touch-action: manipulation; font-size: 15px; flex: 1;}
+        .root-btn.transform { background: #2ecc71; color: #fff; }
+        .root-btn.delete, .item-btn.delete { background: #a03a3a; color: #fff; }
+        .root-btn.close, .item-btn.close { background: #3a2f5a; color: #b8a6ff; }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <canvas id="game-canvas"></canvas>
+
+        <div class="controls">
+            <button class="btn" id="add-cloud-btn">☁️ Мысль</button>
+            <button class="btn" id="add-feeling-btn">🧱 Чувство</button>
+            <button class="btn" id="add-root-btn">🌱 Корень</button>
+            <button class="btn btn-icon" id="menu-btn">⚙️</button>
+
+            <div id="dropdown-menu">
+                <div class="menu-item" id="toggle-energy">
+                    <span>🌀 Энергия</span>
+                    <span class="toggle" id="energy-status">Вкл</span>
+                </div>
+                <div class="menu-item speed-control">
+                    <div class="header">
+                        <span>⚡ Скорость</span>
+                        <span id="speed-val">5</span>
+                    </div>
+                    <input type="range" id="energy-speed" min="1" max="10" value="5" step="1" />
+                </div>
+                <div class="menu-item" id="clear-all-btn" style="color:#ff4d4d;">
+                    <span>🗑️ Очистить всё</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления -->
+    <div id="add-modal">
+        <div class="add-box">
+            <h3 id="add-title">➕ Добавить</h3>
+            <div class="input-group">
+                <label>Смайл</label>
+                <input type="text" id="input-emoji" placeholder="Например: ☁️" />
+            </div>
+            <div class="input-group">
+                <label>Название</label>
+                <input type="text" id="input-name" placeholder="Введите название" />
+            </div>
+            <div class="input-group">
+                <label>Тип</label>
+                <select id="input-type"></select>
+            </div>
+            <div class="add-actions">
+                <button class="btn" id="add-save-btn" style="background:#6f52c4; color:#fff; flex:1; border:none; border-radius:20px; padding:12px; cursor:pointer;">✅ Посадить</button>
+                <button class="btn-cancel" id="add-close-btn">✖ Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно корня -->
+    <div id="root-modal">
+        <div class="root-box">
+            <div class="root-title">🌱 Редактировать корень</div>
+            <div class="root-emoji" id="root-emoji">🌱</div>
+            <div class="root-name" id="root-name">Убеждение</div>
+            <div class="root-actions">
+                <button class="root-btn transform" id="root-transform">✨ Преобразовать</button>
+                <button class="root-btn delete" id="root-delete">🗑️ Убрать</button>
+                <button class="root-btn close" id="root-close">✖ Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для мыслей и чувств -->
+    <div id="item-modal">
+        <div class="root-box">
+            <div class="root-title">✏️ Редактировать элемент</div>
+            <div class="root-emoji" id="item-emoji">☁️</div>
+            <div class="root-name" id="item-name">Название</div>
+            <div class="item-actions">
+                <button class="item-btn delete" id="item-delete">🗑️ Удалить</button>
+                <button class="item-btn close" id="item-close">✖ Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============= ЗАЩИТА ОТ ОШИБОК ИНИЦИАЛИЗАЦИИ =============
+        let w = Math.max(1, window.innerWidth);
+        let h = Math.max(1, window.innerHeight);
+        let cx = w / 2;
+        let cy = h / 2;
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let clouds = [], feelings = [], roots = [];
+        let nextId = 1;
+        let energyEnabled = true;
+        let energySpeed = 5;
+
+        let skyEnd, feelingEnd;
+        let isDragging = false, hasMoved = false, draggedNode = null, startMouse = {x:0, y:0}, startNodePos = {x:0, y:0}, draggedIsNode = false;
+        let pendingTap = null; // Для обработки нажатия на мысли/чувства (открытие модалки)
+
+        // ========== ОСНОВНЫЕ ТОЧКИ (ГЕОМЕТРИЯ) ==========
+        let nodes = {
+            leftLeg:  { x: 0, y: 0, emoji: '🟦', label: 'Левая нога' },
+            rightLeg: { x: 0, y: 0, emoji: '🟥', label: 'Правая нога' },
+            leftHand: { x: 0, y: 0, emoji: '🔵', label: 'Левая рука' },
+            rightHand: { x: 0, y: 0, emoji: '🔴', label: 'Правая рука' },
+            heart:    { x: 0, y: 0, emoji: '🟢', label: 'Сердце' },
+            center:   { x: 0, y: 0, emoji: '🟠', label: 'Живот' }
+        };
+
+        // ========== ПОЗИЦИЯ СОЛНЦА (С ЗАЩИТОЙ ОТ ВЫЛЕТА ЗА ЭКРАН) ==========
+        let sunPos = { x: cx, y: 40 };
+
+        // ========== ОДИН ОБЩИЙ ПРОГРЕСС ДЛЯ ЭНЕРГИИ (ИДЕАЛЬНАЯ СИНХРОНИЗАЦИЯ) ==========
+        let energyProgress = 0;
+        let energyDirection = 1;
+
+        function getPointOnPath(path, progress) {
+            if (!path || path.length < 2) return {x:0, y:0};
+            let totalLen = 0;
+            let segmentLens = [];
+            for (let i = 0; i < path.length - 1; i++) {
+                const dx = path[i+1].x - path[i].x;
+                const dy = path[i+1].y - path[i].y;
+                const len = Math.sqrt(dx*dx + dy*dy);
+                segmentLens.push(len);
+                totalLen += len;
+            }
+            if (totalLen === 0) return path[0];
+            let targetDist = progress * totalLen;
+            let accumulated = 0;
+            for (let i = 0; i < segmentLens.length; i++) {
+                if (targetDist <= accumulated + segmentLens[i]) {
+                    const t = (targetDist - accumulated) / segmentLens[i];
+                    return {
+                        x: path[i].x + (path[i+1].x - path[i].x) * t,
+                        y: path[i].y + (path[i+1].y - path[i].y) * t
+                    };
+                }
+                accumulated += segmentLens[i];
+            }
+            return path[path.length - 1];
+        }
+
+        // ========== МАСШТАБИРОВАНИЕ ==========
+        function resize() {
+            const rect = canvas.getBoundingClientRect();
+            const wPx = Math.max(1, Math.round(rect.width));
+            const hPx = Math.max(1, Math.round(rect.height));
+            canvas.width = wPx; canvas.height = hPx;
+            w = canvas.width; h = canvas.height;
+            cx = w / 2; cy = h / 2;
+
+            skyEnd = h * 0.33;
+            feelingEnd = h * 0.66;
+
+            const dx = w * 0.12;
+            const dy = h * 0.10;
+
+            if (nodes.leftLeg.x === 0 && nodes.leftLeg.y === 0) {
+                nodes.leftLeg  = { x: cx - dx, y: feelingEnd + dy, emoji: '🟦', label: 'Левая нога' };
+                nodes.rightLeg = { x: cx + dx, y: feelingEnd + dy, emoji: '🟥', label: 'Правая нога' };
+                nodes.leftHand = { x: cx - dx, y: feelingEnd - dy, emoji: '🔵', label: 'Левая рука' };
+                nodes.rightHand = { x: cx + dx, y: feelingEnd - dy, emoji: '🔴', label: 'Правая рука' };
+                nodes.heart = { x: cx, y: feelingEnd - dy, emoji: '🟢', label: 'Сердце' };
+                nodes.center = { x: cx, y: feelingEnd, emoji: '🟠', label: 'Живот' };
+            }
+
+            // Если солнце улетело за границы, принудительно возвращаем его в центр верха
+            if (!sunPos || isNaN(sunPos.x) || isNaN(sunPos.y) || sunPos.y < 0 || sunPos.y > h || sunPos.x < 0 || sunPos.x > w) {
+                sunPos = { x: cx, y: 40 };
+            }
+        }
+
+        // ========== СОХРАНЕНИЕ ==========
+        function loadData() {
+            try {
+                const raw = localStorage.getItem('dreams_level5_tree');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    clouds = parsed.clouds || []; feelings = parsed.feelings || []; roots = parsed.roots || [];
+                    if (parsed.nodes) {
+                        nodes.leftLeg = parsed.nodes.leftLeg || nodes.leftLeg;
+                        nodes.rightLeg = parsed.nodes.rightLeg || nodes.rightLeg;
+                    }
+                    if (parsed.sunPos) {
+                        sunPos = parsed.sunPos;
+                    }
+                    if (parsed.energyEnabled !== undefined) energyEnabled = parsed.energyEnabled;
+                    if (parsed.energySpeed !== undefined) energySpeed = parsed.energySpeed;
+                    nextId = parsed.nextId || 1;
+                }
+            } catch(e) {}
+            clouds.forEach(t => { if (t.id >= nextId) nextId = t.id + 1; });
+            feelings.forEach(f => { if (f.id >= nextId) nextId = f.id + 1; });
+            roots.forEach(r => { if (r.id >= nextId) nextId = r.id + 1; });
+            
+            document.getElementById('energy-speed').value = energySpeed;
+            document.getElementById('speed-val').textContent = energySpeed;
+            document.getElementById('energy-status').textContent = energyEnabled ? 'Вкл' : 'Выкл';
+        }
+        function saveData() {
+            localStorage.setItem('dreams_level5_tree', JSON.stringify({ clouds, feelings, roots, nodes: { leftLeg: nodes.leftLeg, rightLeg: nodes.rightLeg }, sunPos, energyEnabled, energySpeed, nextId }));
+        }
+
+        // ========== ОТРИСОВКА ==========
+        function drawZones() {
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, skyEnd);
+            skyGrad.addColorStop(0, '#1a2a4a');
+            skyGrad.addColorStop(1, 'rgba(26, 42, 74, 0)');
+            ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, w, skyEnd);
+
+            // Жёсткая защита: если солнце за пределами экрана, возвращаем его в видимую зону
+            if (!sunPos || isNaN(sunPos.x) || isNaN(sunPos.y) || sunPos.y < 0 || sunPos.y > h || sunPos.x < 0 || sunPos.x > w) {
+                sunPos = { x: cx, y: 40 };
+            } else {
+                // Зажим, чтобы солнце никогда не уходило за края даже при перетаскивании
+                sunPos.x = Math.max(20, Math.min(w - 20, sunPos.x));
+                sunPos.y = Math.max(20, Math.min(h - 20, sunPos.y));
+            }
+
+            // ИСПРАВЛЕНИЕ: Убираем желтый круг, оставляем только эмодзи 👁️ с мягким свечением
+            ctx.font = '70px system-ui';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 50;
+            ctx.fillText('👁️', sunPos.x, sunPos.y);
+            ctx.shadowBlur = 0;
+
+            const feelGrad = ctx.createLinearGradient(0, skyEnd, 0, feelingEnd);
+            feelGrad.addColorStop(0, 'rgba(46, 204, 113, 0)');
+            feelGrad.addColorStop(1, 'rgba(46, 204, 113, 0.2)');
+            ctx.fillStyle = feelGrad; ctx.fillRect(0, skyEnd, w, feelingEnd - skyEnd);
+
+            const earthGrad = ctx.createLinearGradient(0, feelingEnd, 0, h);
+            earthGrad.addColorStop(0, 'rgba(60, 40, 20, 0.2)');
+            earthGrad.addColorStop(1, 'rgba(60, 40, 20, 0.6)');
+            ctx.fillStyle = earthGrad; ctx.fillRect(0, feelingEnd, w, h - feelingEnd);
+            
+            ctx.beginPath(); ctx.moveTo(0, feelingEnd); ctx.lineTo(w, feelingEnd);
+            ctx.strokeStyle = 'rgba(255, 165, 0, 0.3)'; ctx.lineWidth = 2; ctx.stroke();
+        }
+
+        function drawClouds() {
+            clouds.forEach(c => {
+                const r = 45;
+                ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 3;
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.3)'; ctx.shadowBlur = 20;
+                ctx.stroke(); ctx.shadowBlur = 0;
+                ctx.font = '34px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(c.emoji || '☁️', c.x, c.y - 6);
+                ctx.font = '13px system-ui'; ctx.fillStyle = '#e0d6ff';
+                ctx.fillText(c.name || '', c.x, c.y + 30);
+            });
+        }
+
+        function drawStaticLines() {
+            if (!sunPos || isNaN(sunPos.x) || isNaN(sunPos.y)) return;
+
+            // 🌞 -> 🟦 Левая нога (синий луч)
+            ctx.beginPath(); ctx.moveTo(sunPos.x, sunPos.y); ctx.lineTo(nodes.leftLeg.x, nodes.leftLeg.y);
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.3)'; ctx.lineWidth = 2; ctx.stroke();
+
+            // 🌞 -> 🟥 Правая нога (красный луч)
+            ctx.beginPath(); ctx.moveTo(sunPos.x, sunPos.y); ctx.lineTo(nodes.rightLeg.x, nodes.rightLeg.y);
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.3)'; ctx.lineWidth = 2; ctx.stroke();
+
+            // 🟦 Левая нога -> 🟠 Живот -> 🔴 Правая рука (синяя диагональ)
+            ctx.beginPath(); 
+            ctx.moveTo(nodes.leftLeg.x, nodes.leftLeg.y); 
+            ctx.lineTo(nodes.center.x, nodes.center.y); 
+            ctx.lineTo(nodes.rightHand.x, nodes.rightHand.y);
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.3)'; ctx.lineWidth = 2; ctx.stroke();
+
+            // 🟥 Правая нога -> 🟠 Живот -> 🔵 Левая рука (красная диагональ)
+            ctx.beginPath(); 
+            ctx.moveTo(nodes.rightLeg.x, nodes.rightLeg.y); 
+            ctx.lineTo(nodes.center.x, nodes.center.y); 
+            ctx.lineTo(nodes.leftHand.x, nodes.leftHand.y);
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.3)'; ctx.lineWidth = 2; ctx.stroke();
+
+            // 🟢 Сердце -> 🔵 Левая рука
+            ctx.beginPath(); ctx.moveTo(nodes.heart.x, nodes.heart.y); ctx.lineTo(nodes.leftHand.x, nodes.leftHand.y);
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.4)'; ctx.stroke();
+
+            // 🟢 Сердце -> 🔴 Правая рука
+            ctx.beginPath(); ctx.moveTo(nodes.heart.x, nodes.heart.y); ctx.lineTo(nodes.rightHand.x, nodes.rightHand.y);
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.4)'; ctx.stroke();
+        }
+
+        function drawParticles() {
+            if (!energyEnabled) return;
+
+            const heartNode = nodes.heart;
+            const lHand = nodes.leftHand;
+            const rHand = nodes.rightHand;
+            const lLeg = nodes.leftLeg;
+            const rLeg = nodes.rightLeg;
+            const c = nodes.center;
+
+            // Пути пересчитываются строго каждый кадр
+            // КРАСНЫЙ МАРШРУТ: Сердце -> Правая рука -> Живот -> Левая нога -> Солнце
+            const pathRed = [heartNode, rHand, c, lLeg, sunPos];
+            // СИНИЙ МАРШРУТ: Сердце -> Левая рука -> Живот -> Правая нога -> Солнце
+            const pathBlue = [heartNode, lHand, c, rLeg, sunPos];
+
+            const redPos = getPointOnPath(pathRed, energyProgress);
+            const bluePos = getPointOnPath(pathBlue, energyProgress);
+
+            if (!redPos || isNaN(redPos.x) || isNaN(redPos.y) || !bluePos || isNaN(bluePos.x) || isNaN(bluePos.y)) return;
+            
+            // Рисуем красный шар
+            ctx.beginPath(); ctx.arc(redPos.x, redPos.y, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff4d4d';
+            ctx.shadowColor = '#ff4d4d'; ctx.shadowBlur = 30; ctx.fill(); ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(redPos.x, redPos.y, 22, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 77, 77, 0.2)'; ctx.fill();
+
+            // Рисуем синий шар
+            ctx.beginPath(); ctx.arc(bluePos.x, bluePos.y, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#4d8bff';
+            ctx.shadowColor = '#4d8bff'; ctx.shadowBlur = 30; ctx.fill(); ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(bluePos.x, bluePos.y, 22, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(77, 139, 255, 0.2)'; ctx.fill();
+        }
+
+        function drawNode(node, radius = 50, isSquare = false) {
+            if (isNaN(node.x) || isNaN(node.y)) return;
+            ctx.shadowBlur = 20; ctx.shadowColor = 'rgba(255, 255, 255, 0.15)';
+            if (isSquare) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fillRect(node.x - radius, node.y - radius, radius * 2, radius * 2);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 3;
+                ctx.strokeRect(node.x - radius, node.y - radius, radius * 2, radius * 2);
+            } else {
+                ctx.beginPath(); ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 3; ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+            ctx.font = '42px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(node.emoji, node.x, node.y - 8);
+            ctx.font = '14px system-ui'; ctx.fillStyle = '#e0d6ff';
+            ctx.fillText(node.label, node.x, node.y + 35);
+        }
+
+        function drawFeelings() {
+            feelings.forEach(f => {
+                const r = 45; const isHeavy = f.type === 'heavy';
+                ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = isHeavy ? 'rgba(255, 80, 80, 0.3)' : 'rgba(80, 255, 80, 0.3)'; ctx.fill();
+                ctx.strokeStyle = isHeavy ? '#ff4d4d' : '#4dff4d'; ctx.lineWidth = 3;
+                ctx.shadowColor = isHeavy ? 'rgba(255, 77, 77, 0.5)' : 'rgba(77, 255, 77, 0.5)'; ctx.shadowBlur = 25;
+                ctx.stroke(); ctx.shadowBlur = 0;
+                ctx.font = '34px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(f.emoji || (isHeavy ? '🏋️' : '🎈'), f.x, f.y - 8);
+                ctx.font = '13px system-ui'; ctx.fillStyle = '#e0d6ff';
+                ctx.fillText(f.name || '', f.x, f.y + 25);
+            });
+        }
+
+        function drawRoots() {
+            roots.forEach(r => {
+                const isHealthy = r.type === 'healthy';
+                const x = r.x || cx + (Math.random() - 0.5) * 120; const y = r.y || feelingEnd + 30 + Math.random() * 60;
+                ctx.beginPath(); ctx.moveTo(cx, feelingEnd); ctx.quadraticCurveTo(x - 30, feelingEnd + 20, x, y);
+                ctx.strokeStyle = isHealthy ? '#2ecc71' : '#ff4d4d'; ctx.lineWidth = 6;
+                ctx.shadowColor = isHealthy ? 'rgba(46, 204, 113, 0.4)' : 'rgba(255, 77, 77, 0.4)'; ctx.shadowBlur = 15;
+                ctx.stroke(); ctx.shadowBlur = 0;
+                ctx.beginPath(); ctx.arc(x, y, 35, 0, Math.PI * 2);
+                ctx.fillStyle = isHealthy ? 'rgba(46, 204, 113, 0.3)' : 'rgba(255, 77, 77, 0.3)'; ctx.fill();
+                ctx.strokeStyle = isHealthy ? '#2ecc71' : '#ff4d4d'; ctx.lineWidth = 3;
+                ctx.shadowColor = isHealthy ? 'rgba(46, 204, 113, 0.5)' : 'rgba(255, 77, 77, 0.5)'; ctx.shadowBlur = 20;
+                ctx.stroke(); ctx.shadowBlur = 0;
+                ctx.font = '32px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(r.emoji || (isHealthy ? '🌱' : '☠️'), x, y - 6);
+                ctx.font = '12px system-ui'; ctx.fillStyle = '#e0d6ff';
+                ctx.fillText(r.name || '', x, y + 24);
+            });
+        }
+
+        function gameLoop() {
+            // Защита от ошибок инициализации
+            if (!w || !h || w < 10 || h < 10) {
+                resize();
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+            if (isNaN(skyEnd) || isNaN(feelingEnd)) resize();
+            if (isNaN(nodes.leftLeg.x) || isNaN(nodes.leftLeg.y)) { resize(); }
+
+            // СТРОГАЯ ГЕОМЕТРИЯ И ДИАГОНАЛИ (пересчет каждого кадра)
+            const lx = nodes.leftLeg.x;
+            const ly = nodes.leftLeg.y;
+            const rx = nodes.rightLeg.x;
+            const ry = nodes.rightLeg.y;
+
+            // 🔵 Левая рука - управляется Правой ногой (🟥)
+            nodes.leftHand.x = 2 * cx - rx;
+            nodes.leftHand.y = 2 * feelingEnd - ry;
+
+            // 🔴 Правая рука - управляется Левой ногой (🟦)
+            nodes.rightHand.x = 2 * cx - lx;
+            nodes.rightHand.y = 2 * feelingEnd - ly;
+
+            // 🟢 Сердце всегда по центру между руками
+            nodes.heart.x = cx;
+            nodes.heart.y = (nodes.leftHand.y + nodes.rightHand.y) / 2;
+
+            // 🟠 Живот статичен
+            nodes.center.x = cx;
+            nodes.center.y = feelingEnd;
+
+            // ДВИЖЕНИЕ ЭНЕРГИИ (ИДЕАЛЬНО СИНХРОНИЗИРОВАННОЕ)
+            if (energyEnabled) {
+                const speed = (0.004 * (energySpeed / 5)) * energyDirection;
+                energyProgress += speed;
+                if (energyProgress >= 1.0) {
+                    energyProgress = 1.0;
+                    energyDirection = -1;
+                } else if (energyProgress <= 0.0) {
+                    energyProgress = 0.0;
+                    energyDirection = 1;
+                }
+            }
+
+            ctx.clearRect(0, 0, w, h);
+            drawZones();
+            drawStaticLines();
+            drawParticles();
+            drawClouds();
+            drawFeelings();
+            drawRoots();
+
+            drawNode(nodes.leftLeg, 45, true);
+            drawNode(nodes.rightLeg, 45, true);
+            drawNode(nodes.center, 55, false);
+            drawNode(nodes.leftHand, 50, false);
+            drawNode(nodes.rightHand, 50, false);
+            drawNode(nodes.heart, 50, false);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ========== ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ И УДАЛЕНИЕ) ==========
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+        function checkHit(pointer) {
+            if (Math.hypot(pointer.x - nodes.leftLeg.x, pointer.y - nodes.leftLeg.y) < 60) return { type: 'node', key: 'leftLeg' };
+            if (Math.hypot(pointer.x - nodes.rightLeg.x, pointer.y - nodes.rightLeg.y) < 60) return { type: 'node', key: 'rightLeg' };
+            if (Math.hypot(pointer.x - sunPos.x, pointer.y - sunPos.y) < 60) return { type: 'sun' };
+            for (let i = roots.length - 1; i >= 0; i--) {
+                const r = roots[i]; const x = r.x || cx; const y = r.y || feelingEnd + 30;
+                if (Math.hypot(pointer.x - x, pointer.y - y) < 45) return { type: 'root', item: r };
+            }
+            for (let i = clouds.length - 1; i >= 0; i--) {
+                const c = clouds[i];
+                if (Math.hypot(pointer.x - c.x, pointer.y - c.y) < 55) return { type: 'cloud', item: c };
+            }
+            for (let i = feelings.length - 1; i >= 0; i--) {
+                const f = feelings[i];
+                if (Math.hypot(pointer.x - f.x, pointer.y - f.y) < 55) return { type: 'feeling', item: f };
+            }
+            if (Math.hypot(pointer.x - nodes.heart.x, pointer.y - nodes.heart.y) < 60) return { type: 'heart' };
+            return null;
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            const pos = getPointerPos(e);
+            const hit = checkHit(pos);
+            if (!hit) return;
+
+            pendingTap = null;
+            hasMoved = false;
+
+            if (hit.type === 'sun') {
+                isDragging = true; draggedNode = sunPos; draggedIsNode = false;
+                startMouse = pos; startNodePos = { x: sunPos.x, y: sunPos.y }; return;
+            }
+            if (hit.type === 'heart') { openAddModal('feeling'); return; }
+            if (hit.type === 'root') { openRootModal(hit.item); return; }
+            if (hit.type === 'node') {
+                isDragging = true; draggedNode = nodes[hit.key]; draggedIsNode = true;
+                startMouse = pos; startNodePos = { x: draggedNode.x, y: draggedNode.y }; return;
+            }
+            if (hit.type === 'cloud' || hit.type === 'feeling') {
+                pendingTap = { item: hit.item, type: hit.type };
+                isDragging = true; draggedNode = hit.item; draggedIsNode = false;
+                startMouse = pos; startNodePos = { x: hit.item.x, y: hit.item.y };
+            }
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging || !draggedNode) return; e.preventDefault();
+            const pos = getPointerPos(e);
+            const dx = pos.x - startMouse.x;
+            const dy = pos.y - startMouse.y;
+            
+            if (Math.hypot(dx, dy) > 5) hasMoved = true;
+
+            if (draggedIsNode) {
+                draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
+                draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
+            } else {
+                draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
+                draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
+            }
+            saveData();
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (pendingTap && !hasMoved) {
+                openItemModal(pendingTap.item, pendingTap.type);
+                pendingTap = null;
+            }
+            if (isDragging) {
+                isDragging = false; draggedNode = null; draggedIsNode = false; saveData();
+            }
+        });
+
+        // ========== МЕНЮ И НАСТРОЙКИ ==========
+        const menuBtn = document.getElementById('menu-btn');
+        const dropdown = document.getElementById('dropdown-menu');
+        menuBtn.addEventListener('click', () => { dropdown.classList.toggle('open'); });
+        document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== menuBtn) dropdown.classList.remove('open'); });
+
+        const toggleEnergyBtn = document.getElementById('toggle-energy');
+        const energyStatus = document.getElementById('energy-status');
+        toggleEnergyBtn.addEventListener('click', () => {
+            energyEnabled = !energyEnabled;
+            energyStatus.textContent = energyEnabled ? 'Вкл' : 'Выкл';
+            saveData();
+            dropdown.classList.remove('open');
+        });
+
+        const speedSlider = document.getElementById('energy-speed');
+        const speedVal = document.getElementById('speed-val');
+        speedSlider.addEventListener('input', () => {
+            energySpeed = parseInt(speedSlider.value);
+            speedVal.textContent = energySpeed;
+            saveData();
+        });
+
+        document.getElementById('clear-all-btn').addEventListener('click', () => {
+            dropdown.classList.remove('open');
+            if (confirm('🗑️ Удалить всё: мысли, чувства и корни?')) {
+                clouds = []; feelings = []; roots = []; saveData();
+            }
+        });
+
+        // ========== МОДАЛЬНЫЕ ОКНА ==========
+        const addModal = document.getElementById('add-modal'); const addTitle = document.getElementById('add-title');
+        const inputEmoji = document.getElementById('input-emoji'); const inputName = document.getElementById('input-name');
+        const inputType = document.getElementById('input-type'); const addSaveBtn = document.getElementById('add-save-btn');
+        const addCloseBtn = document.getElementById('add-close-btn'); let addCategory = 'cloud';
+
+        function openAddModal(category) {
+            addCategory = category; inputEmoji.value = ''; inputName.value = '';
+            if (category === 'cloud') {
+                addTitle.textContent = '☁️ Новая мысль'; inputType.innerHTML = `<option value="cloud">Облако (мысль)</option>`;
+            } else if (category === 'feeling') {
+                addTitle.textContent = '🧱 Новое чувство'; inputType.innerHTML = `<option value="heavy">Гиря (тяжёлое)</option><option value="light">Шар (лёгкое)</option>`;
+            } else if (category === 'root') {
+                addTitle.textContent = '🌱 Новое убеждение'; inputType.innerHTML = `<option value="healthy">Здоровое (зелёное)</option><option value="toxic">Токсичное (красное)</option>`;
+            }
+            addModal.classList.add('open');
+        }
+        function closeAddModal() { addModal.classList.remove('open'); }
+        function saveAddItem() {
+            const emoji = inputEmoji.value.trim() || (addCategory === 'cloud' ? '☁️' : addCategory === 'feeling' ? '🧱' : '🌱');
+            const name = inputName.value.trim() || 'Элемент'; const type = inputType.value;
+            const newItem = { id: nextId++, emoji, name, type, x: cx + (Math.random() - 0.5) * 300, y: cy + (Math.random() - 0.5) * 200 };
+            if (addCategory === 'cloud') { newItem.y = 40 + Math.random() * 80; clouds.push(newItem); }
+            else if (addCategory === 'feeling') { newItem.y = skyEnd + 30 + Math.random() * (feelingEnd - skyEnd - 60); feelings.push(newItem); }
+            else if (addCategory === 'root') { newItem.y = feelingEnd + 20 + Math.random() * (h - feelingEnd - 40); roots.push(newItem); }
+            saveData(); closeAddModal();
+        }
+        document.getElementById('add-cloud-btn').addEventListener('click', () => openAddModal('cloud'));
+        document.getElementById('add-feeling-btn').addEventListener('click', () => openAddModal('feeling'));
+        document.getElementById('add-root-btn').addEventListener('click', () => openAddModal('root'));
+        addSaveBtn.addEventListener('click', saveAddItem); addCloseBtn.addEventListener('click', closeAddModal);
+        addModal.addEventListener('click', (e) => { if (e.target === addModal) closeAddModal(); });
+
+        // ========== МОДАЛЬНОЕ ОКНО КОРНЯ ==========
+        const rootModal = document.getElementById('root-modal'); const rootEmoji = document.getElementById('root-emoji');
+        const rootName = document.getElementById('root-name'); const rootTransform = document.getElementById('root-transform');
+        const rootDelete = document.getElementById('root-delete'); const rootClose = document.getElementById('root-close');
+        let selectedRootId = null;
+
+        function openRootModal(root) {
+            selectedRootId = root.id; rootEmoji.textContent = root.emoji || '🌱';
+            rootName.textContent = root.name || 'Убеждение'; rootTransform.style.display = root.type === 'toxic' ? 'flex' : 'none';
+            rootModal.classList.add('open');
+        }
+        function closeRootModal() { rootModal.classList.remove('open'); selectedRootId = null; }
+        rootTransform.addEventListener('click', () => {
+            const root = roots.find(r => r.id === selectedRootId);
+            if (root && root.type === 'toxic') { root.type = 'healthy'; root.emoji = '🌱'; saveData(); closeRootModal(); }
+        });
+        rootDelete.addEventListener('click', () => {
+            if (confirm('Удалить этот корень?')) {
+                const idx = roots.findIndex(r => r.id === selectedRootId);
+                if (idx !== -1) { roots.splice(idx, 1); saveData(); closeRootModal(); }
+            }
+        });
+        rootClose.addEventListener('click', closeRootModal);
+        rootModal.addEventListener('click', (e) => { if (e.target === rootModal) closeRootModal(); });
+
+        // ========== МОДАЛЬНОЕ ОКНО ДЛЯ МЫСЛЕЙ И ЧУВСТВ ==========
+        const itemModal = document.getElementById('item-modal');
+        const itemEmoji = document.getElementById('item-emoji');
+        const itemName = document.getElementById('item-name');
+        const itemDelete = document.getElementById('item-delete');
+        const itemClose = document.getElementById('item-close');
+        let selectedItemId = null;
+        let selectedItemType = null;
+
+        function openItemModal(item, type) {
+            selectedItemId = item.id;
+            selectedItemType = type;
+            itemEmoji.textContent = item.emoji || '☁️';
+            itemName.textContent = item.name || 'Элемент';
+            itemModal.classList.add('open');
+        }
+        function closeItemModal() { itemModal.classList.remove('open'); selectedItemId = null; selectedItemType = null; }
+
+        itemDelete.addEventListener('click', () => {
+            if (confirm('Удалить этот элемент?')) {
+                let idx = -1;
+                if (selectedItemType === 'cloud') {
+                    idx = clouds.findIndex(c => c.id === selectedItemId);
+                    if (idx !== -1) { clouds.splice(idx, 1); saveData(); closeItemModal(); }
+                } else if (selectedItemType === 'feeling') {
+                    idx = feelings.findIndex(f => f.id === selectedItemId);
+                    if (idx !== -1) { feelings.splice(idx, 1); saveData(); closeItemModal(); }
+                }
+            }
+        });
+        itemClose.addEventListener('click', closeItemModal);
+        itemModal.addEventListener('click', (e) => { if (e.target === itemModal) closeItemModal(); });
+
+        // ========== ЗАПУСК ==========
+        window.addEventListener('resize', resize); resize(); loadData();
+        energyStatus.textContent = energyEnabled ? 'Вкл' : 'Выкл';
+        gameLoop();
+        console.log('🟣🦅 Древо Жизни (чистый 👁️ эмодзи, без желтого фона) загружено!');
+    </script>
+</body>
+</html>

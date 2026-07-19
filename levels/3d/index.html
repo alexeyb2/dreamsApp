@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>👁️ Древо Жизни (3D)</title>
+    
+    <meta property="og:title" content="👁️ Древо Жизни (3D)" />
+    <meta property="og:description" content="Почувствуй пульс вселенной в 3D. Перемещай узлы и наблюдай за перетеканием синих и красных нитей." />
+    <meta property="og:image" content="logo.png" />
+    <meta property="og:type" content="website" />
+
+    <style>
+        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; background: #0b0814; }
+        #ui-panel { position: absolute; bottom: 30px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px; pointer-events: none; z-index: 10; }
+        .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 10px; pointer-events: auto; flex-wrap: nowrap; justify-content: center; }
+        .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 14px; border-radius: 20px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        .btn.active { background: #6f52c4; color: #fff; }
+        .btn-icon { width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; background: transparent; border: 1px solid #3a2f5a; }
+        .btn-icon:active { background: #6f52c4; }
+        #dropdown-menu {
+            display: none; position: absolute; bottom: 110%; right: 0;
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 20px;
+            padding: 12px; width: 200px; flex-direction: column; gap: 8px; z-index: 20;
+            backdrop-filter: blur(10px);
+        }
+        #dropdown-menu.open { display: flex; }
+        .menu-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 12px; border-radius: 12px; cursor: pointer; touch-action: manipulation;
+            background: #2a2348; color: #b8a6ff; font-size: 13px; font-weight: 600; transition: 0.2s;
+        }
+        .menu-item:active { background: #6f52c4; color: #fff; }
+        .menu-item .toggle { font-size: 16px; }
+        .menu-item.speed-control {
+            flex-direction: column; align-items: stretch; gap: 4px; padding: 8px 12px;
+        }
+        .menu-item.speed-control .header {
+            display: flex; justify-content: space-between; width: 100%;
+        }
+        #energy-speed {
+            width: 100%; height: 4px; -webkit-appearance: none; background: #3a2f5a; border-radius: 4px; outline: none; margin-top: 2px;
+        }
+        #energy-speed::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #6f52c4; cursor: pointer;
+        }
+        @media (max-width: 600px) {
+            #ui-panel { bottom: 15px; padding: 8px; }
+            .btn-group { padding: 6px 12px; gap: 6px; }
+            .btn { padding: 6px 10px; font-size: 12px; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="ui-panel">
+        <div class="btn-group">
+            <button class="btn" id="toggle-energy-btn">⚡ Вкл</button>
+            <button class="btn" id="switch-2d-btn">2D</button>
+            <button class="btn btn-icon" id="menu-btn">⚙️</button>
+        </div>
+
+        <div id="dropdown-menu">
+            <div class="menu-item speed-control">
+                <div class="header">
+                    <span>⚡ Скорость</span>
+                    <span id="speed-val">5</span>
+                </div>
+                <input type="range" id="energy-speed" min="1" max="10" value="5" step="1" />
+            </div>
+            <div class="menu-item" id="reset-btn" style="color:#ff4d4d;">
+                <span>🔄 Сброс</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============= БАЗОВАЯ НАСТРОЙКА СЦЕНЫ =============
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0b0814);
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        camera.position.set(5, 3, 7);
+        camera.lookAt(0, 0.8, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.target.set(0, 0.8, 0);
+        controls.minDistance = 3; controls.maxDistance = 20;
+
+        // ============= ОСВЕЩЕНИЕ И ПОЛ =============
+        scene.add(new THREE.AmbientLight(0x404060));
+        const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
+        dirLight.position.set(5, 15, 7);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        const gridHelper = new THREE.GridHelper(8, 8, 0x6f52c4, 0x3a2f5a);
+        gridHelper.position.y = 0;
+        scene.add(gridHelper);
+
+        // ============= ДАННЫЕ И ФИЗИКА =============
+        let energyEnabled = true;
+        let energySpeed = 5;
+        let energyProgress = 0;
+        let energyDirection = 1;
+
+        const Y_LEVELS = {
+            LEG: 0.0,
+            BELLY: 0.5,
+            HAND: 1.2,
+            EYE: 2.0
+        };
+
+        // Узлы с дефолтными координатами
+        const defaultNodes = {
+            leftLeg:  { x: -1.2, z: 1.2, color: '#4d8bff', isSquare: true },
+            rightLeg: { x: 1.2,  z: 1.2, color: '#ff4d4d', isSquare: true },
+            leftHand: { x: -1.2, z: -1.2, color: '#4d8bff' },
+            rightHand: { x: 1.2,  z: -1.2, color: '#ff4d4d' },
+            heart:    { x: 0,    z: -1.2, color: '#2ecc71' },
+            center:   { x: 0,    z: 0,    color: '#e67e22' },
+            head:     { x: 0,    z: 0,    color: '#ffcc00' }
+        };
+
+        let nodes = JSON.parse(JSON.stringify(defaultNodes));
+
+        // ============= СОХРАНЕНИЕ / ЗАГРУЗКА =============
+        function savePositions() {
+            const data = {
+                leftLeg: { x: nodes.leftLeg.x, z: nodes.leftLeg.z },
+                rightLeg: { x: nodes.rightLeg.x, z: nodes.rightLeg.z },
+                center: { x: nodes.center.x, z: nodes.center.z },
+                heart: { x: nodes.heart.x, z: nodes.heart.z },
+                head: { x: nodes.head.x, z: nodes.head.z }
+            };
+            localStorage.setItem('dreams_tree_3d', JSON.stringify(data));
+        }
+
+        function loadPositions() {
+            const raw = localStorage.getItem('dreams_tree_3d');
+            if (!raw) return false;
+            try {
+                const data = JSON.parse(raw);
+                if (data.leftLeg)  { nodes.leftLeg.x  = data.leftLeg.x;  nodes.leftLeg.z  = data.leftLeg.z; }
+                if (data.rightLeg) { nodes.rightLeg.x = data.rightLeg.x; nodes.rightLeg.z = data.rightLeg.z; }
+                if (data.center)   { nodes.center.x   = data.center.x;   nodes.center.z   = data.center.z; }
+                if (data.heart)    { nodes.heart.x    = data.heart.x;    nodes.heart.z    = data.heart.z; }
+                if (data.head)     { nodes.head.x     = data.head.x;     nodes.head.z     = data.head.z; }
+                return true;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        if (!loadPositions()) {
+            // Если сохранения нет, остаются дефолтные координаты
+        }
+
+        // ============= ЛОГИКА ДВИЖЕНИЯ =============
+        function updateGeometry() {
+            const cx = nodes.center.x;
+            const cz = nodes.center.z;
+            const lx = nodes.leftLeg.x, lz = nodes.leftLeg.z;
+            const rx = nodes.rightLeg.x, rz = nodes.rightLeg.z;
+
+            // Правая рука зависит от левой ноги
+            nodes.rightHand.x = 2 * cx - lx;
+            nodes.rightHand.z = 2 * cz - lz;
+
+            // Левая рука зависит от правой ноги
+            nodes.leftHand.x = 2 * cx - rx;
+            nodes.leftHand.z = 2 * cz - rz;
+
+            // Сердце перетаскивается пользователем (не пересчитывается автоматически)
+        }
+
+        // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
+        let meshMap = {};
+        let lineSegments = [];
+        let particleMeshes = [];
+
+        function getYForNode(node) {
+            if (node === nodes.head) return Y_LEVELS.EYE;
+            if (node === nodes.leftLeg || node === nodes.rightLeg) return Y_LEVELS.LEG;
+            if (node === nodes.center) return Y_LEVELS.BELLY;
+            if (node === nodes.heart || node === nodes.leftHand || node === nodes.rightHand) return Y_LEVELS.HAND;
+            return 0;
+        }
+
+        function get3DPos(node) {
+            return new THREE.Vector3(node.x, getYForNode(node), node.z);
+        }
+
+        function createEyeSprite() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.font = '100px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 20;
+            ctx.fillText('👁️', 64, 64);
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(0.8, 0.8, 1);
+            return sprite;
+        }
+
+        function createNodeMesh(key, node) {
+            const color = new THREE.Color(node.color);
+            let mesh;
+            if (key === 'head') {
+                mesh = createEyeSprite();
+            } else {
+                const size = 0.8;
+                let geom;
+                if (node.isSquare) {
+                    geom = new THREE.BoxGeometry(size, size, size);
+                } else {
+                    geom = new THREE.SphereGeometry(size / 2, 32, 32);
+                }
+                const mat = new THREE.MeshPhongMaterial({ color: color, emissive: color, emissiveIntensity: 0.3, transparent: true, opacity: 0.9 });
+                mesh = new THREE.Mesh(geom, mat);
+                mesh.castShadow = true; mesh.receiveShadow = true;
+            }
+            scene.add(mesh);
+            meshMap[key] = mesh;
+        }
+
+        function buildScene() {
+            if (Object.keys(meshMap).length > 0) return;
+
+            createNodeMesh('leftLeg', nodes.leftLeg);
+            createNodeMesh('rightLeg', nodes.rightLeg);
+            createNodeMesh('leftHand', nodes.leftHand);
+            createNodeMesh('rightHand', nodes.rightHand);
+            createNodeMesh('heart', nodes.heart);
+            createNodeMesh('center', nodes.center);
+            createNodeMesh('head', nodes.head);
+
+            // Обычные линии
+            const connections = [
+                [nodes.leftLeg, nodes.center, nodes.rightHand],
+                [nodes.rightLeg, nodes.center, nodes.leftHand],
+                [nodes.heart, nodes.leftHand],
+                [nodes.heart, nodes.rightHand],
+                [nodes.leftLeg, nodes.head],
+                [nodes.rightLeg, nodes.head],
+            ];
+
+            // Жёлтые линии: Живот → Сердце → Глаз
+            const yellowLines = [
+                [nodes.center, nodes.heart],
+                [nodes.heart, nodes.head]
+            ];
+
+            connections.forEach(pair => {
+                for (let i = 0; i < pair.length - 1; i++) {
+                    const start = pair[i], end = pair[i+1];
+                    const startY = getYForNode(start), endY = getYForNode(end);
+                    const geom = new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(start.x, startY, start.z),
+                        new THREE.Vector3(end.x, endY, end.z)
+                    ]);
+                    const color = new THREE.Color(start.color);
+                    const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.4 });
+                    const line = new THREE.Line(geom, mat);
+                    scene.add(line);
+                    lineSegments.push({ line, startNode: start, endNode: end });
+                }
+            });
+
+            yellowLines.forEach(pair => {
+                for (let i = 0; i < pair.length - 1; i++) {
+                    const start = pair[i], end = pair[i+1];
+                    const startY = getYForNode(start), endY = getYForNode(end);
+                    const geom = new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(start.x, startY, start.z),
+                        new THREE.Vector3(end.x, endY, end.z)
+                    ]);
+                    const color = new THREE.Color('#ffcc00');
+                    const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.6 });
+                    const line = new THREE.Line(geom, mat);
+                    scene.add(line);
+                    lineSegments.push({ line, startNode: start, endNode: end });
+                }
+            });
+
+            // Частицы (синяя, красная)
+            const colors = ['#4d8bff', '#ff4d4d'];
+            for (let i = 0; i < 2; i++) {
+                const geom = new THREE.SphereGeometry(0.2, 16, 16);
+                const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors[i]) });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.material.transparent = true; mesh.material.opacity = 0.9;
+                scene.add(mesh);
+                particleMeshes.push(mesh);
+            }
+        }
+
+        function updatePositions() {
+            updateGeometry();
+
+            for (let key in meshMap) {
+                const mesh = meshMap[key];
+                const node = nodes[key];
+                const yPos = getYForNode(node);
+                if (mesh && node) {
+                    mesh.position.set(node.x, yPos, node.z);
+                }
+            }
+
+            lineSegments.forEach(item => {
+                const start = item.startNode, end = item.endNode;
+                const startY = getYForNode(start), endY = getYForNode(end);
+                const pos = item.line.geometry.attributes.position.array;
+                pos[0] = start.x; pos[1] = startY; pos[2] = start.z;
+                pos[3] = end.x; pos[4] = endY; pos[5] = end.z;
+                item.line.geometry.attributes.position.needsUpdate = true;
+            });
+        }
+
+        // ============= ПОТОКИ ЭНЕРГИИ =============
+        function getPointOnPath3D(path, progress) {
+            if (!path || path.length < 2) return null;
+            const points3D = path.map(p => get3DPos(p));
+            let totalLen = 0, segmentLens = [];
+            for (let i = 0; i < points3D.length - 1; i++) {
+                const dx = points3D[i+1].x - points3D[i].x;
+                const dy = points3D[i+1].y - points3D[i].y;
+                const dz = points3D[i+1].z - points3D[i].z;
+                const len = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                segmentLens.push(len); totalLen += len;
+            }
+            if (totalLen === 0) return points3D[0];
+            let targetDist = progress * totalLen, accumulated = 0;
+            for (let i = 0; i < segmentLens.length; i++) {
+                if (targetDist <= accumulated + segmentLens[i]) {
+                    const t = (targetDist - accumulated) / segmentLens[i];
+                    return new THREE.Vector3(
+                        points3D[i].x + (points3D[i+1].x - points3D[i].x) * t,
+                        points3D[i].y + (points3D[i+1].y - points3D[i].y) * t,
+                        points3D[i].z + (points3D[i+1].z - points3D[i].z) * t
+                    );
+                }
+                accumulated += segmentLens[i];
+            }
+            return points3D[points3D.length - 1];
+        }
+
+        function updateParticles() {
+            const h = nodes.heart, lH = nodes.leftHand, rH = nodes.rightHand;
+            const lL = nodes.leftLeg, rL = nodes.rightLeg, c = nodes.center, hd = nodes.head;
+            
+            const pathRed  = [h, rH, c, lL, hd];
+            const pathBlue = [h, lH, c, rL, hd];
+
+            if (energyEnabled) {
+                const speed = 0.006 * (energySpeed / 5);
+                energyProgress += speed * energyDirection;
+                if (energyProgress >= 1.0) { energyProgress = 1.0; energyDirection = -1; }
+                else if (energyProgress <= 0.0) { energyProgress = 0.0; energyDirection = 1; }
+            }
+
+            const redPos = getPointOnPath3D(pathRed, energyProgress);
+            const bluePos = getPointOnPath3D(pathBlue, energyProgress);
+
+            if (redPos && bluePos) {
+                particleMeshes[0].position.copy(bluePos);
+                particleMeshes[1].position.copy(redPos);
+            }
+        }
+
+        // ============= ПЛАВНОЕ ПЕРЕТАСКИВАНИЕ =============
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        let isDragging = false;
+        let draggedNodeKey = null;
+        let startMouse = { x: 0, y: 0 };
+        let startPointPos = { x: 0, z: 0 };
+        let dragPlaneY = 0;
+
+        function getPointer(e) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        }
+
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+            getPointer(e);
+            raycaster.setFromCamera(pointer, camera);
+            
+            const draggableKeys = ['leftLeg', 'rightLeg', 'center', 'heart', 'head'];
+            const objects = draggableKeys.map(k => meshMap[k]).filter(m => m !== undefined);
+            const intersects = raycaster.intersectObjects(objects);
+
+            if (intersects.length > 0) {
+                const hitMesh = intersects[0].object;
+                const hitKey = Object.keys(meshMap).find(k => meshMap[k] === hitMesh);
+                if (hitKey && draggableKeys.includes(hitKey)) {
+                    isDragging = true; draggedNodeKey = hitKey;
+                    startMouse = { x: e.clientX, y: e.clientY };
+                    startPointPos = { x: nodes[hitKey].x, z: nodes[hitKey].z };
+                    dragPlaneY = getYForNode(nodes[hitKey]);
+                    controls.enabled = false; renderer.domElement.style.cursor = 'grabbing';
+                }
+            }
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isDragging || !draggedNodeKey) return;
+            getPointer(e);
+            const dx = (e.clientX - startMouse.x) * 0.015;
+            const dz = (e.clientY - startMouse.y) * 0.015;
+            nodes[draggedNodeKey].x = Math.max(-3, Math.min(3, startPointPos.x + dx));
+            nodes[draggedNodeKey].z = Math.max(-3, Math.min(3, startPointPos.z + dz));
+            updatePositions();
+            savePositions(); // СОХРАНЕНИЕ
+        });
+
+        window.addEventListener('pointerup', () => {
+            if (isDragging) {
+                isDragging = false; draggedNodeKey = null;
+                controls.enabled = true; renderer.domElement.style.cursor = 'default';
+                savePositions(); // СОХРАНЕНИЕ
+            }
+        });
+
+        // ============= КНОПКИ УПРАВЛЕНИЯ =============
+        const toggleEnergyBtn = document.getElementById('toggle-energy-btn');
+        const menuBtn = document.getElementById('menu-btn');
+        const dropdown = document.getElementById('dropdown-menu');
+        const resetBtn = document.getElementById('reset-btn');
+        const speedSlider = document.getElementById('energy-speed');
+        const speedVal = document.getElementById('speed-val');
+        const switch2dBtns = document.getElementById('switch-2d-btn');
+
+        // Энергия
+        toggleEnergyBtn.addEventListener('click', () => {
+            energyEnabled = !energyEnabled;
+            toggleEnergyBtn.textContent = energyEnabled ? '⚡ Вкл' : '⚡ Выкл';
+        });
+
+        // Меню
+        menuBtn.addEventListener('click', () => { dropdown.classList.toggle('open'); });
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target) && e.target !== menuBtn) dropdown.classList.remove('open');
+        });
+
+        // Сброс
+        resetBtn.addEventListener('click', () => {
+            dropdown.classList.remove('open');
+            if (confirm('Сбросить положение всех узлов?')) {
+                nodes.leftLeg = { ...defaultNodes.leftLeg };
+                nodes.rightLeg = { ...defaultNodes.rightLeg };
+                nodes.center = { ...defaultNodes.center };
+                nodes.heart = { ...defaultNodes.heart };
+                nodes.head = { ...defaultNodes.head };
+                updatePositions();
+                savePositions();
+            }
+        });
+
+        // Скорость
+        speedSlider.addEventListener('input', () => {
+            energySpeed = parseInt(speedSlider.value);
+            speedVal.textContent = energySpeed;
+        });
+
+        // Переход на 2D
+        switch2dBtns.addEventListener('click', () => {
+            savePositions();
+            window.location.href = '../2d/';
+        });
+
+        // ============= АНИМАЦИЯ И ЗАПУСК =============
+        function animate() {
+            requestAnimationFrame(animate);
+            updatePositions();
+            updateParticles();
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        });
+
+        buildScene();
+        updatePositions();
+        if (!localStorage.getItem('dreams_tree_3d')) {
+            savePositions();
+        }
+        animate();
+
+        console.log('🟣🦅 Древо Жизни 3D (СОХРАНЕНИЕ, КОМПАКТНАЯ ПАНЕЛЬ, ВЫСОКИЙ ГЛАЗ) загружено!');
+    </script>
+</body>
+</html>
