@@ -18,11 +18,13 @@
         .card { background: #221b38; border-radius: 20px; padding: 16px; border: 1px solid #3a2f5a; }
         .card-title { font-size: 14px; color: #8f78e6; font-weight: 600; margin-bottom: 8px; }
         
-        #state-display { font-size: 13px; line-height: 1.6; color: #b8a6ff; background: #100d1e; padding: 12px; border-radius: 12px; font-family: monospace; white-space: pre-wrap; }
+        #state-display { font-size: 13px; line-height: 1.6; color: #b8a6ff; background: #100d1e; padding: 12px; border-radius: 12px; font-family: monospace; white-space: pre-wrap; max-height: 150px; overflow-y: auto; }
         
         textarea { width: 100%; background: #100d1e; border: 1px solid #3a2f5a; border-radius: 12px; color: #e0d6ff; padding: 12px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 180px; outline: none; }
         textarea:focus { border-color: #6f52c4; }
-        input[type="text"] { width: 100%; background: #100d1e; border: 1px solid #3a2f5a; border-radius: 12px; color: #e0d6ff; padding: 12px; font-size: 14px; outline: none; margin-top: 4px; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 13px; color: #b8a6ff; margin-bottom: 4px; font-weight: 500; }
+        input[type="text"] { width: 100%; background: #100d1e; border: 1px solid #3a2f5a; border-radius: 12px; color: #e0d6ff; padding: 12px; font-size: 14px; outline: none; }
         input[type="text"]:focus { border-color: #6f52c4; }
 
         .btn-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
@@ -46,8 +48,19 @@
     </div>
 
     <div class="card">
-        <div class="card-title">✍️ Что ты чувствуешь прямо сейчас?</div>
-        <input type="text" id="feeling-input" placeholder="Например: Я чувствую разбалансировку в левой стороне, мне не хватает опоры..." />
+        <div class="card-title">🧠 Триединство состояния (для ИИ)</div>
+        <div class="input-group">
+            <label>1. Что ты чувствуешь сейчас?</label>
+            <input type="text" id="input-feeling" placeholder="Например: Разбалансировку, тревогу, спокойствие..." />
+        </div>
+        <div class="input-group">
+            <label>2. Что ты думаешь по этому поводу?</label>
+            <input type="text" id="input-thought" placeholder="Например: Я считаю, что это из-за внешнего давления..." />
+        </div>
+        <div class="input-group">
+            <label>3. Чего ты хочешь вместо того, что есть сейчас?</label>
+            <input type="text" id="input-desire" placeholder="Например: Я хочу вернуть устойчивость и ясность..." />
+        </div>
     </div>
 
     <div class="card">
@@ -69,23 +82,41 @@
 </div>
 
 <script>
-    // ============= СБОР ДАННЫХ ИЗ LOCALSTORAGE =============
+    // ============= СБОР ДАННЫХ ИЗ 2D/3D LOCALSTORAGE =============
     function getTreeNodeData() {
         let data = null;
-        // Пытаемся достать из 3D ключа (там точные координаты X, Z)
+        // 1. Ищем данные в 3D (приоритет)
         const raw3d = localStorage.getItem('dreams_tree_3d');
         if (raw3d) {
-            try { data = JSON.parse(raw3d); } catch(e) {}
+            try { 
+                const parsed = JSON.parse(raw3d);
+                if (parsed && (parsed.leftLeg || parsed.rightLeg || parsed.heart)) {
+                    data = parsed;
+                }
+            } catch(e) {}
         }
-        // Если нет 3D, пробуем общий ключ (используется в 2D)
+        
+        // 2. Если 3D нет, пробуем достать из 2D (dreams_shared_state)
         if (!data) {
             const rawShared = localStorage.getItem('dreams_shared_state');
             if (rawShared) {
                 try {
                     const shared = JSON.parse(rawShared);
-                    if (shared.points) {
-                        // Преобразуем список точек в узлы (для унификации)
-                        data = { points: shared.points };
+                    if (shared.points && shared.points.length > 0) {
+                        const map = {};
+                        shared.points.forEach(p => {
+                            if (p.bodyPart) map[p.bodyPart] = p;
+                        });
+                        // Конвертируем точки 2D в структуру узлов 3D
+                        data = {
+                            leftLeg:  { x: map['левая нога']?.x || -1.2, z: map['левая нога']?.y || 1.2 },
+                            rightLeg: { x: map['правая нога']?.x || 1.2, z: map['правая нога']?.y || 1.2 },
+                            leftHand: { x: map['левая рука']?.x || -1.2, z: map['левая рука']?.y || -1.2 },
+                            rightHand: { x: map['правая рука']?.x || 1.2, z: map['правая рука']?.y || -1.2 },
+                            heart:    { x: map['сердце']?.x || 0,    z: map['сердце']?.y || -1.2 },
+                            center:   { x: map['живот']?.x || 0,    z: map['живот']?.y || 0 },
+                            head:     { x: 0, z: 0 }
+                        };
                     }
                 } catch(e) {}
             }
@@ -93,44 +124,40 @@
         return data;
     }
 
-    // ============= ГЕНЕРАЦИЯ ПРОМТА (ТОЧНАЯ 3D МЕТРИКА) =============
-    function generatePromptFromTree(nodeData, userFeeling) {
-        // Если данных нет, используем эталонную идеальную геометрию, чтобы промт всё равно работал
+    // ============= ГЕНЕРАЦИЯ ПРОМТА =============
+    function generatePromptFromTree(nodeData, feeling, thought, desire) {
+        // Эталонная идеальная симметрия, если данных нет
         const defaultNodes = {
-            leftLeg:  { x: -1.2, z: 1.2 },
-            rightLeg: { x: 1.2,  z: 1.2 },
-            leftHand: { x: -1.2, z: -1.2 },
-            rightHand: { x: 1.2,  z: -1.2 },
-            heart:    { x: 0,    z: -1.2 },
-            center:   { x: 0,    z: 0 },
+            leftLeg:  { x: -1.2, z: 1.2 }, rightLeg: { x: 1.2, z: 1.2 },
+            leftHand: { x: -1.2, z: -1.2 }, rightHand: { x: 1.2, z: -1.2 },
+            heart:    { x: 0,    z: -1.2 }, center:   { x: 0,    z: 0 },
             head:     { x: 0,    z: 0 }
         };
 
-        // Загружаем данные, если они есть
         let n = defaultNodes;
-        let has3D = false;
-        if (nodeData && (nodeData.leftLeg || nodeData.rightLeg || nodeData.heart)) {
-            // Если данные из 3D хранилища
-            n = nodeData;
-            has3D = true;
+        if (nodeData) {
+            // Безопасно перезаписываем
+            if (nodeData.leftLeg) n.leftLeg = nodeData.leftLeg;
+            if (nodeData.rightLeg) n.rightLeg = nodeData.rightLeg;
+            if (nodeData.leftHand) n.leftHand = nodeData.leftHand;
+            if (nodeData.rightHand) n.rightHand = nodeData.rightHand;
+            if (nodeData.heart) n.heart = nodeData.heart;
+            if (nodeData.center) n.center = nodeData.center;
+            if (nodeData.head) n.head = nodeData.head;
         }
 
-        // Строгие Y-координаты (наша абсолютная метрика: 0,0,0 = Живот)
-        const Y_LEVELS = {
-            LEG: -0.8,
-            BELLY: 0.0,
-            HAND: 1.2,
-            HEART: 1.2,
-            EYE: 2.0
-        };
+        // Строгие Y-координаты
+        const Y_LEVELS = { LEG: -0.8, BELLY: 0.0, HAND: 1.2, HEART: 1.2, EYE: 2.0 };
 
-        // Формируем строку с чувствами
-        const feelingPart = userFeeling && userFeeling.trim() 
-            ? `\n\nМое текущее состояние/мысль: "${userFeeling.trim()}"` 
-            : `\n\nМое текущее состояние: Я наблюдаю за картой и хочу найти точку дисбаланса.`;
+        // Собираем анкету
+        let userContext = "";
+        if (feeling?.trim()) userContext += `- Чувства: «${feeling.trim()}»\n`;
+        if (thought?.trim()) userContext += `- Мысли: «${thought.trim()}»\n`;
+        if (desire?.trim()) userContext += `- Намерение/Желание: «${desire.trim()}»\n`;
+        if (!userContext) userContext = "- Пользователь не указал конкретных состояний. Проанализируй только геометрию.";
 
-        // Создаем структурированный промт для ИИ (ChatGPT, Claude, Gemini)
-        let prompt = `Ты — глубинный наставник, работающий с картой внутреннего состояния человека на основе системы «Древо Жизни».
+        // Формируем промт
+        return `Ты — глубинный наставник, работающий с картой внутреннего состояния человека на основе системы «Древо Жизни».
 
 СИСТЕМА КООРДИНАТ:
 Центр (0, 0, 0) = Живот (точка опоры и воли).
@@ -139,45 +166,48 @@
 Ось Z: Вперед (+) / Назад (-) от живота.
 
 ТЕКУЩАЯ КАРТА (в метрах):
-1. Нижний уровень (Ноги, Заземление):
+1. Нижний уровень (Заземление, Ноги):
    - Левая нога (Синий 🟦): X=${n.leftLeg.x.toFixed(2)}, Y=${Y_LEVELS.LEG.toFixed(2)}, Z=${n.leftLeg.z.toFixed(2)}
    - Правая нога (Красный 🟥): X=${n.rightLeg.x.toFixed(2)}, Y=${Y_LEVELS.LEG.toFixed(2)}, Z=${n.rightLeg.z.toFixed(2)}
 
 2. Центр силы (Живот, опора):
    - Живот (Оранжевый 🟠): X=${n.center.x.toFixed(2)}, Y=${Y_LEVELS.BELLY.toFixed(2)}, Z=${n.center.z.toFixed(2)}
 
-3. Эмоциональный мост:
+3. Эмоциональный мост (Сердце):
    - Сердце (Зеленый 🟢): X=${n.heart.x.toFixed(2)}, Y=${Y_LEVELS.HEART.toFixed(2)}, Z=${n.heart.z.toFixed(2)}
 
 4. Уровень проявления (Руки):
    - Левая рука (Синий 🔵): X=${n.leftHand.x.toFixed(2)}, Y=${Y_LEVELS.HAND.toFixed(2)}, Z=${n.leftHand.z.toFixed(2)}
    - Правая рука (Красный 🔴): X=${n.rightHand.x.toFixed(2)}, Y=${Y_LEVELS.HAND.toFixed(2)}, Z=${n.rightHand.z.toFixed(2)}
 
-5. Уровень наблюдателя:
+5. Уровень наблюдателя (Глаз):
    - Глаз (Желтый 👁️): X=${n.head.x.toFixed(2)}, Y=${Y_LEVELS.EYE.toFixed(2)}, Z=${n.head.z.toFixed(2)}
 
-АРХИТЕКТУРА СВЯЗЕЙ (Потоки энергии):
-- Синий луч: Левая нога 🟦 — Живот 🟠 — Правая рука 🔴.
-- Красный луч: Правая нога 🟥 — Живот 🟠 — Левая рука 🔵.
-- Желтый восходящий луч: Живот 🟠 → Сердце 🟢 → Глаз 👁️ (путь истины).
+АРХИТЕКТУРА СВЯЗЕЙ:
+- Синий луч: Левая нога 🟦 → Живот 🟠 → Правая рука 🔴.
+- Красный луч: Правая нога 🟥 → Живот 🟠 → Левая рука 🔵.
+- Желтый восходящий луч: Живот 🟠 → Сердце 🟢 → Глаз 👁️.
 - Лучи от ног к глазу: Левая нога 🟦 → Глаз 👁️; Правая нога 🟥 → Глаз 👁️.
-- Горизонталь сердца: Сердце 🟢 — Левая рука 🔵 и Сердце 🟢 — Правая рука 🔴.${feelingPart}
+- Горизонталь сердца: Сердце 🟢 → Левая рука 🔵, Сердце 🟢 → Правая рука 🔴.
+
+ВНУТРЕННЕЕ СОСТОЯНИЕ ПОЛЬЗОВАТЕЛЯ:
+${userContext}
 
 ЗАДАЧА ДЛЯ ТЕБЯ:
-1. Проанализируй геометрию этой карты. Где нарушена симметрия? Какая точка смещена относительно нуля?
-2. Если в геометрии есть перекос, какое новое глубинное убеждение (Корень) человеку нужно посадить, чтобы вернуть баланс в эту систему?
-3. Если баланс идеален (все узлы на своих местах), какое следующее действие или намерение поможет человеку укрепить этот покой?
-4. Сформулируй свой ответ в виде метафоры, используя образы из этой карты.
+1. Проанализируй геометрию карты и внутреннее состояние пользователя. Где нарушена симметрия? Куда сместился центр тяжести?
+2. Если есть перекос, какое новое глубинное убеждение (Корень) пользователю нужно посадить, чтобы вернуть баланс? Учитывай его чувства, мысли и желания.
+3. Если баланс идеален, какое следующее действие или намерение поможет укрепить гармонию?
+4. Сформулируй свой ответ в виде красивой метафоры, используя образы из этой карты и состояния пользователя.
 
 Ответ напиши на русском языке.`;
-
-        return prompt;
     }
 
     // ============= UI ЛОГИКА =============
     const stateDisplay = document.getElementById('state-display');
     const promptOutput = document.getElementById('prompt-output');
-    const feelingInput = document.getElementById('feeling-input');
+    const inputFeeling = document.getElementById('input-feeling');
+    const inputThought = document.getElementById('input-thought');
+    const inputDesire = document.getElementById('input-desire');
     const generateBtn = document.getElementById('generate-btn');
     const copyBtn = document.getElementById('copy-btn');
     const statusMsg = document.getElementById('status-msg');
@@ -194,10 +224,12 @@
 
     function generateAndDisplay() {
         const data = getTreeNodeData();
-        const feeling = feelingInput.value;
-        const promptText = generatePromptFromTree(data, feeling);
+        const feeling = inputFeeling.value;
+        const thought = inputThought.value;
+        const desire = inputDesire.value;
+        const promptText = generatePromptFromTree(data, feeling, thought, desire);
         promptOutput.value = promptText;
-        statusMsg.textContent = "✅ Промт с 3D координатами сгенерирован!";
+        statusMsg.textContent = "✅ Промт сгенерирован! Скопируй и отправь ИИ.";
     }
 
     generateBtn.addEventListener('click', generateAndDisplay);
@@ -217,7 +249,6 @@
         }
     });
 
-    // При загрузке показываем текущее состояние и сразу генерируем промт
     document.addEventListener('DOMContentLoaded', () => {
         loadAndRender();
         generateAndDisplay();
