@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>HighMind — Генератор 3D Промта</title>
+    <title>HighMind — Полный Генератор Промта</title>
     
     <meta property="og:title" content="HighMind — Твой внутренний чертёж" />
-    <meta property="og:description" content="Сгенерируй точный AI-промт на основе 3D геометрии твоего Древа Жизни." />
+    <meta property="og:description" content="Сгенерируй точный AI-промт на основе всех данных твоего Древа (анатомия, мысли, чувства, корни)." />
     <meta property="og:image" content="logo.png" />
     <meta property="og:type" content="website" />
 
@@ -20,7 +20,7 @@
         
         #state-display { font-size: 13px; line-height: 1.6; color: #b8a6ff; background: #100d1e; padding: 12px; border-radius: 12px; font-family: monospace; white-space: pre-wrap; max-height: 150px; overflow-y: auto; }
         
-        textarea { width: 100%; background: #100d1e; border: 1px solid #3a2f5a; border-radius: 12px; color: #e0d6ff; padding: 12px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 180px; outline: none; }
+        textarea { width: 100%; background: #100d1e; border: 1px solid #3a2f5a; border-radius: 12px; color: #e0d6ff; padding: 12px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 220px; outline: none; }
         textarea:focus { border-color: #6f52c4; }
         .input-group { margin-bottom: 12px; }
         .input-group label { display: block; font-size: 13px; color: #b8a6ff; margin-bottom: 4px; font-weight: 500; }
@@ -31,7 +31,6 @@
         .btn { background: #2a2348; color: #b8a6ff; border: none; padding: 12px 20px; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; text-decoration: none; text-align: center; flex: 1; transition: 0.2s; min-width: 100px; }
         .btn:active { transform: scale(0.95); }
         .btn-primary { background: #6f52c4; color: #fff; }
-        .btn-primary:active { background: #5d43a8; }
         .btn-success { background: #2ecc71; color: #fff; }
         .btn-blue { background: #4d8bff; color: #fff; }
         .status-badge { font-size: 12px; color: #8f78e6; text-align: center; padding: 8px; background: #100d1e; border-radius: 12px; }
@@ -40,18 +39,18 @@
 <body>
 
 <div id="app">
-    <h1>👁️ Генератор 3D Промта</h1>
+    <h1>👁️ Полный Генератор Промта</h1>
     
     <div class="card">
-        <div class="card-title">📐 Текущая архитектура Древа (Центр: Живот 0,0,0)</div>
+        <div class="card-title">📐 Слепок состояния (Анатомия, Мысли, Чувства, Корни)</div>
         <div id="state-display">Загрузка данных...</div>
     </div>
 
     <div class="card">
-        <div class="card-title">🧠 Триединство состояния (для ИИ)</div>
+        <div class="card-title">🧠 Анкета для ИИ (Триединство)</div>
         <div class="input-group">
             <label>1. Что ты чувствуешь сейчас?</label>
-            <input type="text" id="input-feeling" placeholder="Например: Разбалансировку, тревогу, спокойствие..." />
+            <input type="text" id="input-feeling" placeholder="Например: Разбалансировку, тревогу..." />
         </div>
         <div class="input-group">
             <label>2. Что ты думаешь по этому поводу?</label>
@@ -82,127 +81,117 @@
 </div>
 
 <script>
-    // ============= СБОР ДАННЫХ ИЗ 2D/3D LOCALSTORAGE =============
-    function getTreeNodeData() {
-        let data = null;
-        // 1. Ищем данные в 3D (приоритет)
+    // ============= СБОР ВСЕХ ДАННЫХ (Анатомия + Мысли + Чувства + Корни) =============
+    function getFullTreeData() {
+        let data = { anatomy: null, thoughts: [], feelings: [], roots: [] };
+
+        // 1. Загружаем анатомию из 3D ключа
         const raw3d = localStorage.getItem('dreams_tree_3d');
         if (raw3d) {
-            try { 
-                const parsed = JSON.parse(raw3d);
-                if (parsed && (parsed.leftLeg || parsed.rightLeg || parsed.heart)) {
-                    data = parsed;
+            try { data.anatomy = JSON.parse(raw3d); } catch(e) {}
+        }
+
+        // 2. Загружаем Мысли, Чувства и Корни из 2D ключа
+        const rawShared = localStorage.getItem('dreams_shared_state');
+        if (rawShared) {
+            try {
+                const shared = JSON.parse(rawShared);
+                // Если это уровень 5 (Древо), там есть отдельные массивы
+                const raw5 = localStorage.getItem('dreams_level5_tree');
+                if (raw5) {
+                    try {
+                        const tree5 = JSON.parse(raw5);
+                        if (tree5.clouds) data.thoughts = tree5.clouds;
+                        if (tree5.feelings) data.feelings = tree5.feelings;
+                        if (tree5.roots) data.roots = tree5.roots;
+                    } catch(e) {}
+                }
+                // Если же это общий shared_state с точками, конвертируем
+                if (shared.points && data.thoughts.length === 0) {
+                    shared.points.forEach(p => {
+                        if (p.type === 'cloud') data.thoughts.push(p);
+                        else if (p.type && (p.type === 'heavy' || p.type === 'light')) data.feelings.push(p);
+                        else if (p.type === 'healthy' || p.type === 'toxic') data.roots.push(p);
+                    });
                 }
             } catch(e) {}
-        }
-        
-        // 2. Если 3D нет, пробуем достать из 2D (dreams_shared_state)
-        if (!data) {
-            const rawShared = localStorage.getItem('dreams_shared_state');
-            if (rawShared) {
-                try {
-                    const shared = JSON.parse(rawShared);
-                    if (shared.points && shared.points.length > 0) {
-                        const map = {};
-                        shared.points.forEach(p => {
-                            if (p.bodyPart) map[p.bodyPart] = p;
-                        });
-                        // Конвертируем точки 2D в структуру узлов 3D
-                        data = {
-                            leftLeg:  { x: map['левая нога']?.x || -1.2, z: map['левая нога']?.y || 1.2 },
-                            rightLeg: { x: map['правая нога']?.x || 1.2, z: map['правая нога']?.y || 1.2 },
-                            leftHand: { x: map['левая рука']?.x || -1.2, z: map['левая рука']?.y || -1.2 },
-                            rightHand: { x: map['правая рука']?.x || 1.2, z: map['правая рука']?.y || -1.2 },
-                            heart:    { x: map['сердце']?.x || 0,    z: map['сердце']?.y || -1.2 },
-                            center:   { x: map['живот']?.x || 0,    z: map['живот']?.y || 0 },
-                            head:     { x: 0, z: 0 }
-                        };
-                    }
-                } catch(e) {}
-            }
         }
         return data;
     }
 
-    // ============= ГЕНЕРАЦИЯ ПРОМТА =============
-    function generatePromptFromTree(nodeData, feeling, thought, desire) {
-        // Эталонная идеальная симметрия, если данных нет
-        const defaultNodes = {
-            leftLeg:  { x: -1.2, z: 1.2 }, rightLeg: { x: 1.2, z: 1.2 },
+    // ============= ГЕНЕРАЦИЯ ПРОМТА (ВКЛЮЧАЯ СПИСКИ) =============
+    function generatePromptFromFullData(fullData, feeling, thought, desire) {
+        let n = fullData.anatomy || {
+            leftLeg: { x: -1.2, z: 1.2 }, rightLeg: { x: 1.2, z: 1.2 },
             leftHand: { x: -1.2, z: -1.2 }, rightHand: { x: 1.2, z: -1.2 },
-            heart:    { x: 0,    z: -1.2 }, center:   { x: 0,    z: 0 },
-            head:     { x: 0,    z: 0 }
+            heart: { x: 0, z: -1.2 }, center: { x: 0, z: 0 },
+            head: { x: 0, z: 0 }
         };
 
-        let n = defaultNodes;
-        if (nodeData) {
-            // Безопасно перезаписываем
-            if (nodeData.leftLeg) n.leftLeg = nodeData.leftLeg;
-            if (nodeData.rightLeg) n.rightLeg = nodeData.rightLeg;
-            if (nodeData.leftHand) n.leftHand = nodeData.leftHand;
-            if (nodeData.rightHand) n.rightHand = nodeData.rightHand;
-            if (nodeData.heart) n.heart = nodeData.heart;
-            if (nodeData.center) n.center = nodeData.center;
-            if (nodeData.head) n.head = nodeData.head;
-        }
-
-        // Строгие Y-координаты
         const Y_LEVELS = { LEG: -0.8, BELLY: 0.0, HAND: 1.2, HEART: 1.2, EYE: 2.0 };
 
-        // Собираем анкету
+        // Формируем текстовый блок для Мыслей, Чувств и Корней
+        let entitiesBlock = "";
+        if (fullData.thoughts.length > 0) {
+            entitiesBlock += `\nМЫСЛИ (Облака):\n`;
+            fullData.thoughts.forEach(t => entitiesBlock += `   - ${t.emoji || '☁️'} "${t.name || 'Без имени'}" (сила/вес: ${Math.round(t.radius || 0)})\n`);
+        }
+        if (fullData.feelings.length > 0) {
+            entitiesBlock += `\nЧУВСТВА (Тяжелые/Легкие):\n`;
+            fullData.feelings.forEach(f => entitiesBlock += `   - ${f.emoji || '🧱'} "${f.name || 'Без имени'}" (тип: ${f.type === 'heavy' ? 'Тяжелое' : 'Легкое'})\n`);
+        }
+        if (fullData.roots.length > 0) {
+            entitiesBlock += `\nКОРНИ (Глубинные убеждения):\n`;
+            fullData.roots.forEach(r => entitiesBlock += `   - ${r.emoji || '🌱'} "${r.name || 'Убеждение'}" (состояние: ${r.type === 'healthy' ? '✅ Здоровое' : '❌ Токсичное'})\n`);
+        }
+        if (!entitiesBlock) entitiesBlock = "\nПользователь пока не посадил мыслей, чувств или корней. Анализируй только анатомию тела.";
+
+        // Анкета пользователя
         let userContext = "";
         if (feeling?.trim()) userContext += `- Чувства: «${feeling.trim()}»\n`;
         if (thought?.trim()) userContext += `- Мысли: «${thought.trim()}»\n`;
         if (desire?.trim()) userContext += `- Намерение/Желание: «${desire.trim()}»\n`;
-        if (!userContext) userContext = "- Пользователь не указал конкретных состояний. Проанализируй только геометрию.";
+        if (!userContext) userContext = "- Пользователь не указал конкретных состояний. Проанализируй только геометрию и список сущностей.";
 
-        // Формируем промт
-        return `Ты — глубинный наставник, работающий с картой внутреннего состояния человека на основе системы «Древо Жизни».
+        // Итоговый промт
+        return `Ты — глубинный наставник, анализирующий внутреннее состояние человека через систему «Древо Жизни».
 
-СИСТЕМА КООРДИНАТ:
-Центр (0, 0, 0) = Живот (точка опоры и воли).
+СИСТЕМА КООРДИНАТ: (Центр 0,0,0 = Живот)
 Ось X: Право (+) / Лево (-).
-Ось Y: Вверх (+) / Вниз (-) от живота.
-Ось Z: Вперед (+) / Назад (-) от живота.
+Ось Y: Вверх (+) / Вниз (-).
+Ось Z: Вперед (+) / Назад (-).
 
-ТЕКУЩАЯ КАРТА (в метрах):
-1. Нижний уровень (Заземление, Ноги):
-   - Левая нога (Синий 🟦): X=${n.leftLeg.x.toFixed(2)}, Y=${Y_LEVELS.LEG.toFixed(2)}, Z=${n.leftLeg.z.toFixed(2)}
-   - Правая нога (Красный 🟥): X=${n.rightLeg.x.toFixed(2)}, Y=${Y_LEVELS.LEG.toFixed(2)}, Z=${n.rightLeg.z.toFixed(2)}
+1. АНАТОМИЯ (3D метры):
+   - Левая нога (🟦): X=${n.leftLeg.x.toFixed(2)}, Y=${Y_LEVELS.LEG.toFixed(2)}, Z=${n.leftLeg.z.toFixed(2)}
+   - Правая нога (🟥): X=${n.rightLeg.x.toFixed(2)}, Y=${Y_LEVELS.LEG.toFixed(2)}, Z=${n.rightLeg.z.toFixed(2)}
+   - Живот (🟠): X=${n.center.x.toFixed(2)}, Y=${Y_LEVELS.BELLY.toFixed(2)}, Z=${n.center.z.toFixed(2)}
+   - Сердце (🟢): X=${n.heart.x.toFixed(2)}, Y=${Y_LEVELS.HEART.toFixed(2)}, Z=${n.heart.z.toFixed(2)}
+   - Левая рука (🔵): X=${n.leftHand.x.toFixed(2)}, Y=${Y_LEVELS.HAND.toFixed(2)}, Z=${n.leftHand.z.toFixed(2)}
+   - Правая рука (🔴): X=${n.rightHand.x.toFixed(2)}, Y=${Y_LEVELS.HAND.toFixed(2)}, Z=${n.rightHand.z.toFixed(2)}
+   - Глаз (👁️): X=${n.head.x.toFixed(2)}, Y=${Y_LEVELS.EYE.toFixed(2)}, Z=${n.head.z.toFixed(2)}
 
-2. Центр силы (Живот, опора):
-   - Живот (Оранжевый 🟠): X=${n.center.x.toFixed(2)}, Y=${Y_LEVELS.BELLY.toFixed(2)}, Z=${n.center.z.toFixed(2)}
+2. АРХИТЕКТУРА СВЯЗЕЙ (Потоки):
+   - Синий луч: Левая нога 🟦 → Живот 🟠 → Правая рука 🔴.
+   - Красный луч: Правая нога 🟥 → Живот 🟠 → Левая рука 🔵.
+   - Желтый луч: Живот 🟠 → Сердце 🟢 → Глаз 👁️.
+   - Лучи от ног к глазу: Левая нога 🟦 → Глаз 👁️; Правая нога 🟥 → Глаз 👁️.
 
-3. Эмоциональный мост (Сердце):
-   - Сердце (Зеленый 🟢): X=${n.heart.x.toFixed(2)}, Y=${Y_LEVELS.HEART.toFixed(2)}, Z=${n.heart.z.toFixed(2)}
+3. СУЩНОСТИ В СИСТЕМЕ (Мысли, Чувства, Корни):${entitiesBlock}
 
-4. Уровень проявления (Руки):
-   - Левая рука (Синий 🔵): X=${n.leftHand.x.toFixed(2)}, Y=${Y_LEVELS.HAND.toFixed(2)}, Z=${n.leftHand.z.toFixed(2)}
-   - Правая рука (Красный 🔴): X=${n.rightHand.x.toFixed(2)}, Y=${Y_LEVELS.HAND.toFixed(2)}, Z=${n.rightHand.z.toFixed(2)}
-
-5. Уровень наблюдателя (Глаз):
-   - Глаз (Желтый 👁️): X=${n.head.x.toFixed(2)}, Y=${Y_LEVELS.EYE.toFixed(2)}, Z=${n.head.z.toFixed(2)}
-
-АРХИТЕКТУРА СВЯЗЕЙ:
-- Синий луч: Левая нога 🟦 → Живот 🟠 → Правая рука 🔴.
-- Красный луч: Правая нога 🟥 → Живот 🟠 → Левая рука 🔵.
-- Желтый восходящий луч: Живот 🟠 → Сердце 🟢 → Глаз 👁️.
-- Лучи от ног к глазу: Левая нога 🟦 → Глаз 👁️; Правая нога 🟥 → Глаз 👁️.
-- Горизонталь сердца: Сердце 🟢 → Левая рука 🔵, Сердце 🟢 → Правая рука 🔴.
-
-ВНУТРЕННЕЕ СОСТОЯНИЕ ПОЛЬЗОВАТЕЛЯ:
+4. СОСТОЯНИЕ ПОЛЬЗОВАТЕЛЯ:
 ${userContext}
 
 ЗАДАЧА ДЛЯ ТЕБЯ:
-1. Проанализируй геометрию карты и внутреннее состояние пользователя. Где нарушена симметрия? Куда сместился центр тяжести?
-2. Если есть перекос, какое новое глубинное убеждение (Корень) пользователю нужно посадить, чтобы вернуть баланс? Учитывай его чувства, мысли и желания.
-3. Если баланс идеален, какое следующее действие или намерение поможет укрепить гармонию?
-4. Сформулируй свой ответ в виде красивой метафоры, используя образы из этой карты и состояния пользователя.
+Учитывая геометрию тела, существующие мысли/чувства/корни и текущее состояние пользователя:
+1. Где в этой системе наблюдается перекос? Какая сущность или анатомическая часть смещена относительно идеального баланса?
+2. Если есть дисбаланс, какое новое глубинное убеждение (Корень) стоит посадить, чтобы вернуть гармонию?
+3. Если баланс идеален, какое следующее действие или мысль поможет укрепить это состояние?
+4. Дай ответ в виде красивой метафоры, связывая анатомию, сущности и состояние пользователя.
 
 Ответ напиши на русском языке.`;
     }
 
-    // ============= UI ЛОГИКА =============
+    // ============= UI =============
     const stateDisplay = document.getElementById('state-display');
     const promptOutput = document.getElementById('prompt-output');
     const inputFeeling = document.getElementById('input-feeling');
@@ -213,32 +202,26 @@ ${userContext}
     const statusMsg = document.getElementById('status-msg');
 
     function loadAndRender() {
-        const data = getTreeNodeData();
-        if (data) {
-            stateDisplay.textContent = JSON.stringify(data, null, 2);
-        } else {
-            stateDisplay.textContent = "⚠️ Данные не найдены. Промт будет сгенерирован на основе идеальной симметрии.";
-        }
-        return data;
+        const fullData = getFullTreeData();
+        stateDisplay.textContent = JSON.stringify(fullData, null, 2);
+        return fullData;
     }
 
     function generateAndDisplay() {
-        const data = getTreeNodeData();
-        const feeling = inputFeeling.value;
-        const thought = inputThought.value;
-        const desire = inputDesire.value;
-        const promptText = generatePromptFromTree(data, feeling, thought, desire);
+        const fullData = getFullTreeData();
+        const promptText = generatePromptFromFullData(
+            fullData, 
+            inputFeeling.value, 
+            inputThought.value, 
+            inputDesire.value
+        );
         promptOutput.value = promptText;
-        statusMsg.textContent = "✅ Промт сгенерирован! Скопируй и отправь ИИ.";
+        statusMsg.textContent = "✅ Промт с полной структурой (3D + Мысли/Чувства/Корни) сгенерирован!";
     }
 
     generateBtn.addEventListener('click', generateAndDisplay);
-
     copyBtn.addEventListener('click', async () => {
-        if (!promptOutput.value) {
-            statusMsg.textContent = "⚠️ Сначала сгенерируйте промт!";
-            return;
-        }
+        if (!promptOutput.value) { statusMsg.textContent = "⚠️ Сначала сгенерируйте промт!"; return; }
         try {
             await navigator.clipboard.writeText(promptOutput.value);
             statusMsg.textContent = "✅ Промт скопирован в буфер обмена!";
@@ -249,10 +232,7 @@ ${userContext}
         }
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        loadAndRender();
-        generateAndDisplay();
-    });
+    document.addEventListener('DOMContentLoaded', () => { loadAndRender(); generateAndDisplay(); });
 </script>
 </body>
 </html>
