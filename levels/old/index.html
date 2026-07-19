@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Настройка состояния</title>
+    <style>
+        body { background: #0b0814; color: #fff; font-family: system-ui; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { max-width: 400px; width: 100%; background: #161127; padding: 24px; border-radius: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+        h1 { text-align: center; color: #b8a6ff; font-size: 24px; margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-size: 14px; opacity: 0.7; }
+        input[type="text"], input[type="range"] { width: 100%; margin-top: 5px; padding: 12px; border-radius: 16px; border: 1px solid #3a2f5a; background: #221b38; color: #fff; box-sizing: border-box; }
+        .body-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .body-btn { padding: 12px; background: #221b38; border: 1px solid #3a2f5a; border-radius: 16px; color: #b8a6ff; text-align: center; cursor: pointer; transition: 0.2s; }
+        .body-btn.active { background: #6f52c4; border-color: #6f52c4; color: #fff; }
+        .submit-btn { width: 100%; margin-top: 25px; padding: 16px; background: #6f52c4; border: none; border-radius: 30px; color: #fff; font-size: 18px; font-weight: 600; cursor: pointer; }
+        .submit-btn:active { transform: scale(0.97); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🟣🦅 Настройка Сил</h1>
+        
+        <label>Какое чувство ты чувствуешь сейчас?</label>
+        <input type="text" id="f_name" placeholder="Например: Спокойствие" />
+        
+        <label>На какой смайлик оно похоже?</label>
+        <input type="text" id="f_emoji" placeholder="Например: 😌" />
+
+        <label>Какая у него противоположность?</label>
+        <input type="text" id="o_name" placeholder="Например: Тревога" />
+
+        <label>Смайл противоположности</label>
+        <input type="text" id="o_emoji" placeholder="Например: 😰" />
+
+        <label>Где оно в теле?</label>
+        <div class="body-grid" id="body-grid">
+            <div class="body-btn" data-part="голова">🧠 Голова</div>
+            <div class="body-btn" data-part="шея">🌀 Шея</div>
+            <div class="body-btn" data-part="грудь">💓 Грудь</div>
+            <div class="body-btn" data-part="живот">🫀 Живот</div>
+            <div class="body-btn" data-part="руки">🤲 Руки</div>
+            <div class="body-btn" data-part="ноги">🦶 Ноги</div>
+        </div>
+
+        <label>Насколько оно сильное?</label>
+        <div style="display:flex; justify-content:space-between; font-size:12px; opacity:0.5; margin-top:5px;">
+            <span>Слабое</span>
+            <span id="power-val">50%</span>
+            <span>Сильное</span>
+        </div>
+        <input type="range" id="power" min="0" max="100" value="50" style="height:6px; padding:0; margin-top:5px;" />
+
+        <button class="submit-btn" id="start-btn">➡️ Перейти к балансу сил</button>
+    </div>
+
+    <script>
+        document.querySelectorAll('.body-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.body-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+        document.getElementById('power').addEventListener('input', (e) => {
+            document.getElementById('power-val').textContent = e.target.value + '%';
+        });
+        
+        document.getElementById('start-btn').addEventListener('click', () => {
+            const feeling = document.getElementById('f_name').value.trim();
+            const emoji = document.getElementById('f_emoji').value.trim();
+            const opposite = document.getElementById('o_name').value.trim();
+            const oppEmoji = document.getElementById('o_emoji').value.trim();
+            const bodyPart = document.querySelector('.body-btn.active')?.dataset?.part || 'грудь';
+            const power = parseInt(document.getElementById('power').value);
+
+            if(!feeling || !emoji || !opposite || !oppEmoji) {
+                alert('Пожалуйста, заполните все поля!');
+                return;
+            }
+
+            const data = { feeling, emoji, opposite, oppEmoji, bodyPart, power };
+            localStorage.setItem('dreams_config', JSON.stringify(data));
+            window.location.href = '0/';
+        });
+    </script>
+</body>
+</html>

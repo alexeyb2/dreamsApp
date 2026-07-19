@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Аффирмация-конструктор</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif;
+            min-height: 100vh; padding: 20px; touch-action: pan-y;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #app { max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
+
+        h1 { text-align: center; font-size: 24px; color: #b8a6ff; margin-bottom: 20px; }
+
+        /* Желание */
+        .desire-panel {
+            background: #161127; border-radius: 20px; padding: 16px; margin-bottom: 16px;
+            border: 1px solid #3a2f5a;
+        }
+        .desire-panel label { font-weight: 600; color: #8f78e6; display: block; margin-bottom: 4px; }
+        .desire-panel input[type="text"] {
+            width: 100%; background: #1a1530; border: 1px solid #3a2f5a; border-radius: 12px;
+            padding: 10px 12px; color: #fff; font-size: 16px; outline: none;
+        }
+        .desire-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+        .desire-row input[type="range"] { flex: 1; height: 6px; accent-color: #6f52c4; }
+        .desire-row .percent { min-width: 40px; text-align: center; font-weight: bold; color: #b8a6ff; }
+
+        /* Итоговая аффирмация (без переносов строк) */
+        .affirmation-box {
+            background: #100d1e; border-radius: 16px; padding: 16px; margin-bottom: 20px;
+            border-left: 4px solid #ffcc00; min-height: 60px;
+            display: flex; align-items: center; flex-wrap: wrap;
+        }
+        .affirmation-text {
+            font-size: 15px; line-height: 1.8; color: #e0d6ff;
+            word-break: break-word;
+        }
+        .affirmation-text .highlight { color: #ffcc00; font-weight: 600; }
+        .affirmation-text .item-emoji { font-size: 1.1em; margin-right: 2px; }
+        
+        .affirmation-text .text-blue { color: #4d8bff; }
+        .affirmation-text .text-green { color: #2ecc71; }
+        .affirmation-text .text-red { color: #ff4d4d; }
+        
+        /* Зачёркивание только для отдельных слов */
+        .affirmation-text .text-remove {
+            color: #888;
+            text-decoration: line-through;
+            filter: blur(1px);
+            opacity: 0.6;
+        }
+        .affirmation-text .text-remove .item-emoji {
+            filter: blur(1px);
+        }
+
+        /* Кнопки категорий (переключатели) */
+        .categories-row {
+            display: flex; justify-content: space-around; gap: 10px; margin-bottom: 20px;
+            padding: 12px 0; border-top: 1px solid #2a2248; border-bottom: 1px solid #2a2248;
+        }
+        .cat-item {
+            display: flex; flex-direction: column; align-items: center; cursor: pointer; touch-action: manipulation;
+            padding: 8px 16px; border-radius: 16px; transition: 0.2s; flex: 1;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .cat-item:active { background: #2a2348; }
+        .cat-emoji { font-size: 28px; }
+        .cat-label { font-size: 12px; font-weight: 600; color: #b8a6ff; margin-top: 4px; }
+
+        /* Секции и подгруппы (нижние панели) */
+        .items-section { display: none; margin-bottom: 20px; }
+        .items-section.active { display: block; }
+
+        .sub-group {
+            background: #100d1e; border-radius: 16px; padding: 12px; margin-bottom: 10px;
+            border: 1px solid #2a2248;
+        }
+        .sub-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        }
+        .sub-title {
+            font-size: 14px; font-weight: 600; color: #8f78e6;
+        }
+        .items-container {
+            display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px;
+        }
+        .item-tag {
+            background: #2a2348; border: 1px solid #4a3f6a; border-radius: 20px;
+            padding: 4px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; touch-action: manipulation;
+            transition: 0.2s; font-size: 14px; -webkit-tap-highlight-color: transparent;
+        }
+        .item-tag:active { background: #6f52c4; border-color: #8f78e6; }
+        .item-tag .emoji { font-size: 16px; }
+        .item-tag .name { color: #fff; font-weight: 500; }
+        .item-tag .del {
+            background: transparent; border: none; color: #ff6b6b; cursor: pointer; touch-action: manipulation;
+            margin-left: 4px; font-size: 14px; padding: 0 4px; -webkit-tap-highlight-color: transparent;
+        }
+        .empty { color: #4a3f6a; font-size: 13px; padding: 4px 0; }
+
+        .add-btn {
+            background: #221b38; border: none; color: #b8a6ff; width: 28px; height: 28px;
+            border-radius: 50%; font-size: 18px; cursor: pointer; touch-action: manipulation;
+            display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;
+        }
+        .add-btn:active { background: #6f52c4; color: #fff; }
+
+        /* Модальные окна */
+        #modal-overlay, #move-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 100;
+        }
+        #modal-overlay.open, #move-modal.open { display: flex; }
+        .modal-box, .move-box {
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 30px;
+            padding: 24px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 16px;
+        }
+        .modal-box h3, .move-box h4 { color: #b8a6ff; text-align: center; margin-bottom: 4px; }
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { font-size: 12px; color: #b8a6ff; font-weight: 500; }
+        .input-group input, .input-group select {
+            background: #1a1530; border: 1px solid #3a2f5a; border-radius: 16px;
+            padding: 12px 14px; font-size: 15px; color: #fff; outline: none; touch-action: manipulation;
+        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-cancel { background: #3a2f5a; color: #b8a6ff; flex: 1; border: none; border-radius: 20px; padding: 12px; cursor: pointer; touch-action: manipulation; }
+        .move-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .move-btn {
+            background: #221b38; border: 1px solid #3a2f5a; border-radius: 12px; padding: 10px;
+            color: #b8a6ff; font-size: 13px; font-weight: 600; cursor: pointer; touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .move-btn:active { background: #6f52c4; color: #fff; }
+        .move-close { background: #3a2f5a; border: none; border-radius: 20px; padding: 10px; color: #b8a6ff; cursor: pointer; touch-action: manipulation; }
+
+        @media (max-width: 500px) { .categories-row { flex-wrap: wrap; } .cat-item { min-width: 80px; } }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <h1>🧠 Аффирмация</h1>
+
+        <div class="desire-panel">
+            <label>💡 Я получу...</label>
+            <input type="text" id="goal-input" placeholder="Например: 💰 внутреннюю свободу" />
+            <div class="desire-row">
+                <span style="font-size:13px;">Вероятность:</span>
+                <input type="range" id="percent-slider" min="0" max="100" value="70" />
+                <span class="percent" id="percent-display">70%</span>
+            </div>
+        </div>
+
+        <div class="affirmation-box">
+            <div class="affirmation-text" id="affirmation-text">
+                <span class="highlight">Начните добавлять элементы...</span>
+            </div>
+        </div>
+
+        <div class="categories-row">
+            <div class="cat-item" data-category="think">
+                <span class="cat-emoji">🔵</span>
+                <span class="cat-label">Мысли</span>
+            </div>
+            <div class="cat-item" data-category="feel">
+                <span class="cat-emoji">🟢</span>
+                <span class="cat-label">Чувства</span>
+            </div>
+            <div class="cat-item" data-category="act">
+                <span class="cat-emoji">🔴</span>
+                <span class="cat-label">Действия</span>
+            </div>
+        </div>
+
+        <!-- Секция Мысли (3 подкатегории) -->
+        <div class="items-section" id="section-think">
+            <div class="sub-group">
+                <div class="sub-header">
+                    <span class="sub-title">я знаю</span>
+                    <button class="add-btn" data-cat="think" data-sub="know">+</button>
+                </div>
+                <div class="items-container" data-cat="think" data-sub="know"></div>
+            </div>
+            <div class="sub-group">
+                <div class="sub-header">
+                    <span class="sub-title">я верю</span>
+                    <button class="add-btn" data-cat="think" data-sub="believe">+</button>
+                </div>
+                <div class="items-container" data-cat="think" data-sub="believe"></div>
+            </div>
+            <div class="sub-group">
+                <div class="sub-header">
+                    <span class="sub-title">я думаю</span>
+                    <button class="add-btn" data-cat="think" data-sub="think">+</button>
+                </div>
+                <div class="items-container" data-cat="think" data-sub="think"></div>
+            </div>
+        </div>
+
+        <!-- Секция Чувства -->
+        <div class="items-section" id="section-feel">
+            <div class="sub-group">
+                <div class="sub-header">
+                    <span class="sub-title">я убираю</span>
+                    <button class="add-btn" data-cat="feel" data-sub="remove">+</button>
+                </div>
+                <div class="items-container" data-cat="feel" data-sub="remove"></div>
+            </div>
+            <div class="sub-group">
+                <div class="sub-header">
+                    <span class="sub-title">я впускаю</span>
+                    <button class="add-btn" data-cat="feel" data-sub="attract">+</button>
+                </div>
+                <div class="items-container" data-cat="feel" data-sub="attract"></div>
+            </div>
+        </div>
+
+        <!-- Секция Действия -->
+        <div class="items-section" id="section-act">
+            <div class="sub-group">
+                <div class="sub-header">
+                    <span class="sub-title">я делаю</span>
+                    <button class="add-btn" data-cat="act" data-sub="do">+</button>
+                </div>
+                <div class="items-container" data-cat="act" data-sub="do"></div>
+            </div>
+            <div class="sub-group">
+                <div class="sub-header">
+                    <span class="sub-title">я жду</span>
+                    <button class="add-btn" data-cat="act" data-sub="wait">+</button>
+                </div>
+                <div class="items-container" data-cat="act" data-sub="wait"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления -->
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modal-title">➕ Новый элемент</h3>
+            <div class="input-group">
+                <label>Смайл</label>
+                <input type="text" id="input-emoji" placeholder="Например: ☁️" />
+            </div>
+            <div class="input-group">
+                <label>Название</label>
+                <input type="text" id="input-name" placeholder="Введите название" />
+            </div>
+            <div class="input-group">
+                <label>Категория</label>
+                <select id="modal-cat">
+                    <option value="think">🔵 Мысли</option>
+                    <option value="feel">🟢 Чувства</option>
+                    <option value="act">🔴 Действия</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Подкатегория</label>
+                <select id="modal-sub"></select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" id="modal-save-btn" style="background:#6f52c4; color:#fff; flex:1; border:none; border-radius:20px; padding:12px; cursor:pointer; touch-action:manipulation;">✅ Сохранить</button>
+                <button class="btn btn-cancel" id="modal-close-btn">✖ Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно перемещения -->
+    <div id="move-modal">
+        <div class="move-box">
+            <h4>📍 Переместить</h4>
+            <div class="move-grid" id="move-grid"></div>
+            <button class="move-close" id="move-close-btn">✖ Закрыть</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== ДАННЫЕ ==========
+        const SUB_MAP = {
+            think: { label: 'Мысли', types: ['know', 'believe', 'think'] },
+            feel: { label: 'Чувства', types: ['remove', 'attract'] },
+            act: { label: 'Действия', types: ['do', 'wait'] }
+        };
+        const SUB_LABELS = {
+            know: 'я знаю', believe: 'я верю', think: 'я думаю',
+            remove: 'я убираю', attract: 'я впускаю', do: 'я делаю', wait: 'я жду'
+        };
+
+        let data = { goal: '', percent: 70, items: [] };
+        let nextId = 1;
+        let activeCategory = null;
+
+        // DOM
+        const goalInput = document.getElementById('goal-input');
+        const percentSlider = document.getElementById('percent-slider');
+        const percentDisplay = document.getElementById('percent-display');
+        const affirmationText = document.getElementById('affirmation-text');
+
+        const catItems = document.querySelectorAll('.cat-item');
+        const modal = document.getElementById('modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const inputEmoji = document.getElementById('input-emoji');
+        const inputName = document.getElementById('input-name');
+        const modalCat = document.getElementById('modal-cat');
+        const modalSub = document.getElementById('modal-sub');
+        const modalSave = document.getElementById('modal-save-btn');
+        const modalClose = document.getElementById('modal-close-btn');
+
+        const moveModal = document.getElementById('move-modal');
+        const moveGrid = document.getElementById('move-grid');
+        const moveClose = document.getElementById('move-close-btn');
+
+        let movingItemId = null;
+
+        // ========== ЗАГРУЗКА ==========
+        function loadData() {
+            try {
+                const raw = localStorage.getItem('dreams_level6');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    data.goal = parsed.goal || '';
+                    data.percent = parsed.percent || 70;
+                    data.items = parsed.items || [];
+                    data.items.forEach(item => {
+                        if (!item.id) item.id = nextId++;
+                        if (!item.subType) {
+                            if (item.category === 'think') item.subType = 'know';
+                            else if (item.category === 'feel') item.subType = 'remove';
+                            else if (item.category === 'act') item.subType = 'do';
+                        }
+                    });
+                }
+            } catch(e) {}
+            data.items.forEach(item => { if (item.id >= nextId) nextId = item.id + 1; });
+        }
+
+        function saveData() {
+            localStorage.setItem('dreams_level6', JSON.stringify({ goal: data.goal, percent: data.percent, items: data.items }));
+        }
+
+        // ========== ОТРИСОВКА ==========
+        function render() {
+            goalInput.value = data.goal || '';
+            percentSlider.value = data.percent;
+            percentDisplay.textContent = data.percent + '%';
+
+            // Отрисовка всех подкатегорий
+            ['think', 'feel', 'act'].forEach(cat => {
+                const types = SUB_MAP[cat].types;
+                types.forEach(sub => {
+                    const container = document.querySelector(`.items-container[data-cat="${cat}"][data-sub="${sub}"]`);
+                    const items = data.items.filter(item => item.category === cat && item.subType === sub);
+                    container.innerHTML = '';
+                    if (items.length === 0) {
+                        const empty = document.createElement('span');
+                        empty.className = 'empty';
+                        empty.textContent = 'пусто';
+                        container.appendChild(empty);
+                    } else {
+                        items.forEach(item => {
+                            const tag = document.createElement('span');
+                            tag.className = 'item-tag';
+                            tag.dataset.id = item.id;
+                            tag.innerHTML = `<span class="emoji">${item.emoji || '🧩'}</span> <span class="name">${item.name || 'Элемент'}</span> <button class="del" data-id="${item.id}">✕</button>`;
+                            container.appendChild(tag);
+                        });
+                    }
+                });
+            });
+
+            updateAffirmation();
+            attachEvents();
+        }
+
+        function updateAffirmation() {
+            const goal = data.goal || '...';
+            const percent = data.percent;
+
+            // Группируем по subType, к названию добавляем смайл
+            const groups = {};
+            data.items.forEach(item => {
+                const key = item.subType || 'know';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(`<span class="item-emoji">${item.emoji || '🧩'}</span> ${item.name}`);
+            });
+
+            let parts = [];
+            parts.push(`<span class="highlight">Я получу</span> ${goal} <span class="highlight">${percent}%</span>`);
+
+            const order = ['know', 'believe', 'think', 'remove', 'attract', 'do', 'wait'];
+            order.forEach(key => {
+                if (groups[key] && groups[key].length > 0) {
+                    let label = SUB_LABELS[key] || key;
+                    let itemsHTML = groups[key].join(', ');
+                    
+                    // Обработка цветов и зачёркивания
+                    if (['know', 'believe', 'think'].includes(key)) {
+                        parts.push(`<span class="highlight text-blue">${label}</span>: ${itemsHTML}`);
+                    } else if (key === 'attract') {
+                        parts.push(`<span class="highlight text-green">${label}</span>: ${itemsHTML}`);
+                    } else if (['do', 'wait'].includes(key)) {
+                        parts.push(`<span class="highlight text-red">${label}</span>: ${itemsHTML}`);
+                    } else if (key === 'remove') {
+                        // Перечёркиваем только сами слова, а не всю строку
+                        let blurredItems = groups[key].map(item => `<span class="text-remove">${item}</span>`).join(', ');
+                        parts.push(`<span class="highlight">${label}</span>: ${blurredItems}`);
+                    }
+                }
+            });
+
+            // Убираем <br>, делаем текст сплошной строкой
+            affirmationText.innerHTML = parts.join(', ') || 'Начните добавлять элементы...';
+        }
+
+        // ========== ДЕЛЕГИРОВАНИЕ СОБЫТИЙ ==========
+        function attachEvents() {
+            // Цель и процент
+            goalInput.oninput = () => { data.goal = goalInput.value; saveData(); render(); };
+            percentSlider.oninput = () => { data.percent = parseInt(percentSlider.value); saveData(); render(); };
+
+            // Категории (открытие/закрытие секций)
+            catItems.forEach(el => {
+                el.onpointerdown = (e) => {
+                    e.preventDefault();
+                    const cat = el.dataset.category;
+                    const sections = document.querySelectorAll('.items-section');
+                    sections.forEach(s => s.classList.remove('active'));
+                    if (activeCategory === cat) { activeCategory = null; return; }
+                    document.getElementById(`section-${cat}`).classList.add('active');
+                    activeCategory = cat;
+                };
+            });
+
+            // Кнопки "+" внутри подкатегорий
+            document.querySelectorAll('.add-btn').forEach(btn => {
+                btn.onpointerdown = (e) => {
+                    e.preventDefault();
+                    const cat = btn.dataset.cat;
+                    const sub = btn.dataset.sub;
+                    openAddModal(cat, sub);
+                };
+            });
+
+            // Контейнеры с элементами (удаление и перемещение)
+            document.querySelectorAll('.items-container').forEach(container => {
+                container.onpointerdown = (e) => {
+                    e.preventDefault();
+                    const tag = e.target.closest('.item-tag');
+                    if (!tag) return;
+                    const id = parseInt(tag.dataset.id);
+                    if (e.target.classList.contains('del')) {
+                        const idx = data.items.findIndex(item => item.id === id);
+                        if (idx !== -1) { data.items.splice(idx, 1); saveData(); render(); }
+                    } else {
+                        openMoveModal(id);
+                    }
+                };
+            });
+
+            // Модалка добавления
+            modalCat.onchange = updateModalSubOptions;
+            modalSave.onpointerdown = (e) => { e.preventDefault(); saveModalItem(); };
+            modalClose.onpointerdown = (e) => { e.preventDefault(); closeAddModal(); };
+            modal.onpointerdown = (e) => { if (e.target === modal) closeAddModal(); };
+
+            // Модалка перемещения
+            moveGrid.onpointerdown = (e) => {
+                const btn = e.target.closest('.move-btn');
+                if (!btn) return;
+                e.preventDefault();
+                const targetSub = btn.dataset.sub;
+                const targetCat = btn.dataset.cat;
+                const targetItem = data.items.find(i => i.id === movingItemId);
+                if (targetItem) {
+                    targetItem.category = targetCat;
+                    targetItem.subType = targetSub;
+                    saveData(); render(); closeMoveModal();
+                }
+            };
+            moveClose.onpointerdown = (e) => { e.preventDefault(); closeMoveModal(); };
+            moveModal.onpointerdown = (e) => { if (e.target === moveModal) closeMoveModal(); };
+        }
+
+        // ========== МОДАЛКИ ==========
+        function updateModalSubOptions() {
+            const cat = modalCat.value;
+            const types = SUB_MAP[cat].types;
+            modalSub.innerHTML = '';
+            types.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = SUB_LABELS[sub] || sub;
+                modalSub.appendChild(opt);
+            });
+        }
+
+        function openAddModal(category, subType) {
+            modalTitle.textContent = `➕ Добавить ${SUB_LABELS[subType] || 'элемент'}`;
+            inputEmoji.value = '';
+            inputName.value = '';
+            modalCat.value = category;
+            updateModalSubOptions();
+            modalSub.value = subType;
+            modal.classList.add('open');
+        }
+
+        function closeAddModal() { modal.classList.remove('open'); }
+
+        function saveModalItem() {
+            const emoji = inputEmoji.value.trim() || '🧩';
+            const name = inputName.value.trim() || 'Элемент';
+            const category = modalCat.value;
+            const subType = modalSub.value;
+            if (!name) return alert('Введите название!');
+            const newItem = { id: nextId++, emoji, name, category, subType };
+            data.items.push(newItem);
+            saveData(); render(); closeAddModal();
+        }
+
+        function openMoveModal(id) {
+            movingItemId = id;
+            const item = data.items.find(i => i.id === id);
+            if (!item) return;
+            moveGrid.innerHTML = '';
+            ['think', 'feel', 'act'].forEach(cat => {
+                SUB_MAP[cat].types.forEach(sub => {
+                    if (cat === item.category && sub === item.subType) return;
+                    const btn = document.createElement('button');
+                    btn.className = 'move-btn';
+                    btn.dataset.cat = cat;
+                    btn.dataset.sub = sub;
+                    btn.textContent = SUB_LABELS[sub] || sub;
+                    moveGrid.appendChild(btn);
+                });
+            });
+            moveModal.classList.add('open');
+        }
+
+        function closeMoveModal() { moveModal.classList.remove('open'); movingItemId = null; }
+
+        // ========== ЗАПУСК ==========
+        loadData(); render();
+        console.log('🟣🦅 Уровень 6 (нижние панели + однострочная аффирмация) загружен.');
+    </script>
+</body>
+</html>
