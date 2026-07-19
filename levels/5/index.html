@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
     
     <!-- Мета-теги для красивого превью в соцсетях -->
-    <meta property="og:title" content="HighMind - Уровень 5: Древо Жизни" />
+    <meta property="og:title" content="👁️ Древо Жизни" />
     <meta property="og:description" content="Почувствуй потоки энергии. Перемещай точки опоры, наблюдай за перетеканием сил и ищи внутреннее равновесие." />
     <meta property="og:image" content="logo.png" />
     <meta property="og:type" content="website" />
@@ -16,7 +16,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="logo.png" />
 
-    <title>HighMind - Уровень 5: Древо Жизни</title>
+    <title>👁️ Древо Жизни</title>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -108,7 +108,6 @@
 <body>
 
     <div id="app">
-        <!-- Логотип внутри страницы убран, чтобы не перекрывать солнце -->
         <canvas id="game-canvas"></canvas>
 
         <div class="controls">
@@ -332,7 +331,7 @@
             ctx.fillStyle = '#ffcc00'; ctx.fill();
             ctx.shadowBlur = 0; ctx.restore();
             ctx.font = '48px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText('☀️', sunPos.x, sunPos.y);
+            ctx.fillText('👁️', sunPos.x, sunPos.y);
 
             const feelGrad = ctx.createLinearGradient(0, skyEnd, 0, feelingEnd);
             feelGrad.addColorStop(0, 'rgba(46, 204, 113, 0)');
@@ -400,7 +399,7 @@
         function drawParticles() {
             if (!energyEnabled) return;
 
-            const hNode = nodes.heart;
+            const heartNode = nodes.heart;
             const lHand = nodes.leftHand;
             const rHand = nodes.rightHand;
             const lLeg = nodes.leftLeg;
@@ -409,9 +408,9 @@
 
             // Пути пересчитываются строго каждый кадр
             // КРАСНЫЙ МАРШРУТ: Сердце -> Правая рука -> Живот -> Левая нога -> Солнце
-            const pathRed = [hNode, rHand, c, lLeg, sunPos];
+            const pathRed = [heartNode, rHand, c, lLeg, sunPos];
             // СИНИЙ МАРШРУТ: Сердце -> Левая рука -> Живот -> Правая нога -> Солнце
-            const pathBlue = [hNode, lHand, c, rLeg, sunPos];
+            const pathBlue = [heartNode, lHand, c, rLeg, sunPos];
 
             const redPos = getPointOnPath(pathRed, energyProgress);
             const bluePos = getPointOnPath(pathBlue, energyProgress);
@@ -755,7 +754,7 @@
         window.addEventListener('resize', resize); resize(); loadData();
         energyStatus.textContent = energyEnabled ? 'Вкл' : 'Выкл';
         gameLoop();
-        console.log('🟣🦅 Древо Жизни (исправлено: солнце не пропадает, шарики синхронны, иконка для iPhone) загружено!');
+        console.log('🟣🦅 Древо Жизни (👁️ Глаз, исправлена ошибка) загружено!');
     </script>
 </body>
 </html>
