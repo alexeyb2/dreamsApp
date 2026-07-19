@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>Древо Жизни (3D)</title>
+    
+    <meta property="og:title" content="Древо Жизни (3D)" />
+    <meta property="og:description" content="Почувствуй пульс вселенной в 3D. Перемещай узлы и наблюдай за перетеканием синих и красных нитей." />
+    <meta property="og:image" content="logo.png" />
+    <meta property="og:type" content="website" />
+
+    <style>
+        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; background: #0b0814; }
+        #logo-container { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 60px; height: auto; pointer-events: none; z-index: 20; opacity: 0.8; }
+        #logo { width: 100%; height: auto; }
+        #ui-panel { position: absolute; bottom: 30px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px; pointer-events: none; z-index: 10; }
+        .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 12px; pointer-events: auto; }
+        .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        .stats-panel { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; background: rgba(22,17,39,0.85); padding: 6px 16px; border-radius: 30px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; pointer-events: auto; font-size: 14px; color: #b8a6ff; }
+        @media (max-width: 600px) { #logo-container { width: 40px; } #ui-panel { bottom: 15px; } }
+    </style>
+    <!-- Подключаем Three.js и OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div id="logo-container"><img src="logo.png" alt="HighMind" id="logo"></div>
+    <div id="canvas-container"></div>
+
+    <div id="ui-panel">
+        <div class="stats-panel">
+            <span id="energy-status">🌀 Энергия: Вкл</span>
+            <span id="particle-count">Частиц: 3</span>
+        </div>
+        <div class="btn-group">
+            <button class="btn" id="toggle-energy">🔁 Выкл. энергию</button>
+            <button class="btn" id="reset-btn">🔄 Сброс</button>
+        </div>
+    </div>
+
+    <script>
+        // ============= БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ =============
+        let w = Math.max(1, window.innerWidth);
+        let h = Math.max(1, window.innerHeight);
+        let cx = w / 2;
+        let cy = h / 2;
+        let energyEnabled = true;
+
+        // ============= СЦЕНА THREE.JS =============
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0b0814);
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        camera.position.set(0, 6, 12);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+        controls.target.set(0, 0, 0);
+        controls.minDistance = 3; controls.maxDistance = 20;
+
+        // ============= ОСВЕЩЕНИЕ =============
+        scene.add(new THREE.AmbientLight(0x404060));
+        const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        // ============= ДАННЫЕ ДРЕВА =============
+        let nodes = {
+            leftLeg: { x: 0, y: 0, color: '#4d8bff', isSquare: true },
+            rightLeg: { x: 0, y: 0, color: '#ff4d4d', isSquare: true },
+            leftHand: { x: 0, y: 0, color: '#4d8bff' },
+            rightHand: { x: 0, y: 0, color: '#ff4d4d' },
+            heart: { x: 0, y: 0, color: '#2ecc71' },
+            center: { x: 0, y: 0, color: '#e67e22' },
+            sun: { x: 0, y: 0, color: '#ffcc00' }
+        };
+
+        let particlesData = [];
+        let meshMap = {};
+        let lineSegments = [];
+        let particleMeshes = [];
+
+        // ============= ГЕОМЕТРИЯ (ИДЕНТИЧНА 2D) =============
+        function resizeCommon() {
+            w = window.innerWidth; h = window.innerHeight;
+            cx = w / 2; cy = h / 2;
+            const feelingEnd = h * 0.66;
+            const dx = w * 0.12; const dy = h * 0.10;
+
+            if (nodes.leftLeg.x === 0) {
+                nodes.leftLeg.x = cx - dx; nodes.leftLeg.y = feelingEnd + dy;
+                nodes.rightLeg.x = cx + dx; nodes.rightLeg.y = feelingEnd + dy;
+                nodes.leftHand.x = cx - dx; nodes.leftHand.y = feelingEnd - dy;
+                nodes.rightHand.x = cx + dx; nodes.rightHand.y = feelingEnd - dy;
+                nodes.heart.x = cx; nodes.heart.y = feelingEnd - dy;
+                nodes.center.x = cx; nodes.center.y = feelingEnd;
+                nodes.sun.x = cx; nodes.sun.y = 40;
+            }
+        }
+
+        function updatePhysics2D() {
+            const lx = nodes.leftLeg.x, ly = nodes.leftLeg.y;
+            const rx = nodes.rightLeg.x, ry = nodes.rightLeg.y;
+            
+            nodes.rightLeg.x = 2 * cx - lx; nodes.rightLeg.y = ly;
+            nodes.leftHand.x = rx; nodes.leftHand.y = 2 * cy - ry;
+            nodes.rightHand.x = lx; nodes.rightHand.y = 2 * cy - ly;
+            nodes.heart.x = cx; nodes.heart.y = (nodes.leftHand.y + nodes.rightHand.y) / 2;
+            nodes.center.x = cx; nodes.center.y = cy;
+            nodes.sun.x = cx; nodes.sun.y = 40;
+
+            const h = nodes.heart, lH = nodes.leftHand, rH = nodes.rightHand, lL = nodes.leftLeg, rL = nodes.rightLeg, c = nodes.center, s = nodes.sun;
+            
+            const pathBlue = [h, lH, c, rL, s];
+            const pathRed  = [h, rH, c, lL, s];
+            const pathGold = [s, h];
+
+            particlesData = [
+                { path: pathBlue, progress: 0, speed: 0.004, color: '#4d8bff' },
+                { path: pathRed,  progress: 0.33, speed: 0.004, color: '#ff4d4d' },
+                { path: pathGold, progress: 0.66, speed: 0.004, color: '#ffcc00' }
+            ];
+            if (energyEnabled) {
+                particlesData.forEach(p => { p.progress += p.speed; if (p.progress >= 1.0) p.progress = 0.0; });
+            }
+        }
+
+        // ============= ПЕРЕВОД В 3D =============
+        function getPointOnPath2D(path, progress) {
+            if (!path || path.length < 2) return {x:0, y:0};
+            let totalLen = 0; let segmentLens = [];
+            for (let i = 0; i < path.length - 1; i++) {
+                const dx = path[i+1].x - path[i].x; const dy = path[i+1].y - path[i].y;
+                const len = Math.sqrt(dx*dx + dy*dy); segmentLens.push(len); totalLen += len;
+            }
+            if (totalLen === 0) return path[0];
+            let targetDist = progress * totalLen; let accumulated = 0;
+            for (let i = 0; i < segmentLens.length; i++) {
+                if (targetDist <= accumulated + segmentLens[i]) {
+                    const t = (targetDist - accumulated) / segmentLens[i];
+                    return { x: path[i].x + (path[i+1].x - path[i].x) * t, y: path[i].y + (path[i+1].y - path[i].y) * t };
+                }
+                accumulated += segmentLens[i];
+            }
+            return path[path.length - 1];
+        }
+
+        function mapTo3D(nodeOrPos) {
+            const scale = 0.015;
+            const depthOffset = (nodeOrPos.y - cy) * 0.6;
+            const x3d = (nodeOrPos.x - cx) * scale;
+            const y3d = (nodeOrPos.y - cy) * scale + 2.0;
+            const z3d = depthOffset * scale * 2;
+            return new THREE.Vector3(x3d, y3d, z3d);
+        }
+
+        // ============= СОЗДАНИЕ 3D СЦЕНЫ =============
+        function buildScene() {
+            // Если сцена уже построена, не пересоздаём
+            if (Object.keys(meshMap).length > 0) return;
+
+            const createNode = (key, node, isSquare = false) => {
+                const color = new THREE.Color(node.color);
+                let geom, mat;
+                if (isSquare) {
+                    geom = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+                    mat = new THREE.MeshPhongMaterial({ color: color, emissive: color, emissiveIntensity: 0.2 });
+                } else {
+                    geom = new THREE.SphereGeometry(0.8, 24, 24);
+                    mat = new THREE.MeshPhongMaterial({ color: color, emissive: color, emissiveIntensity: 0.3, transparent: true, opacity: 0.8 });
+                }
+                const mesh = new THREE.Mesh(geom, mat);
+                scene.add(mesh);
+                meshMap[key] = mesh;
+            };
+
+            createNode('sun', nodes.sun);
+            createNode('leftLeg', nodes.leftLeg, true);
+            createNode('rightLeg', nodes.rightLeg, true);
+            createNode('leftHand', nodes.leftHand);
+            createNode('rightHand', nodes.rightHand);
+            createNode('heart', nodes.heart);
+            createNode('center', nodes.center);
+
+            // Линии
+            const pairs = [
+                [nodes.leftLeg, nodes.center, nodes.rightHand],
+                [nodes.rightLeg, nodes.center, nodes.leftHand],
+                [nodes.heart, nodes.leftHand],
+                [nodes.heart, nodes.rightHand]
+            ];
+            pairs.forEach(pair => {
+                for (let i = 0; i < pair.length - 1; i++) {
+                    const start = mapTo3D(pair[i]);
+                    const end = mapTo3D(pair[i+1]);
+                    const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+                    const color = new THREE.Color(pair[i].color);
+                    const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.3 });
+                    const line = new THREE.Line(geom, mat);
+                    scene.add(line);
+                    lineSegments.push(line);
+                }
+            });
+
+            // Частицы (3 сферы)
+            const colors = ['#4d8bff', '#ff4d4d', '#ffcc00'];
+            for (let i = 0; i < 3; i++) {
+                const geom = new THREE.SphereGeometry(0.2, 16, 16);
+                const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors[i]) });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.material.transparent = true;
+                mesh.material.opacity = 0.9;
+                scene.add(mesh);
+                particleMeshes.push(mesh);
+            }
+        }
+
+        function updateLines() {
+            let idx = 0;
+            const pairs = [
+                [nodes.leftLeg, nodes.center, nodes.rightHand],
+                [nodes.rightLeg, nodes.center, nodes.leftHand],
+                [nodes.heart, nodes.leftHand],
+                [nodes.heart, nodes.rightHand]
+            ];
+            pairs.forEach(pair => {
+                for (let i = 0; i < pair.length - 1; i++) {
+                    const start = mapTo3D(pair[i]);
+                    const end = mapTo3D(pair[i+1]);
+                    const line = lineSegments[idx];
+                    if (line) {
+                        const pos = line.geometry.attributes.position.array;
+                        pos[0] = start.x; pos[1] = start.y; pos[2] = start.z;
+                        pos[3] = end.x; pos[4] = end.y; pos[5] = end.z;
+                        line.geometry.attributes.position.needsUpdate = true;
+                        idx++;
+                    }
+                }
+            });
+        }
+
+        // ============= АНИМАЦИОННЫЙ ЦИКЛ =============
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            updatePhysics2D();
+
+            // Обновляем позиции узлов
+            for (let key in meshMap) {
+                const mesh = meshMap[key];
+                const node = nodes[key];
+                if (mesh && node) {
+                    const pos = mapTo3D(node);
+                    mesh.position.copy(pos);
+                }
+            }
+
+            // Обновляем линии
+            updateLines();
+
+            // Обновляем частицы
+            for (let i = 0; i < particlesData.length; i++) {
+                const pos2D = getPointOnPath2D(particlesData[i].path, particlesData[i].progress);
+                if (pos2D) {
+                    const pos3D = mapTo3D(pos2D);
+                    particleMeshes[i].position.copy(pos3D);
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // ============= УПРАВЛЕНИЕ =============
+        document.getElementById('toggle-energy').addEventListener('click', () => {
+            energyEnabled = !energyEnabled;
+            document.getElementById('energy-status').textContent = energyEnabled ? '🌀 Энергия: Вкл' : '🌀 Энергия: Выкл';
+            document.getElementById('toggle-energy').textContent = energyEnabled ? '🔁 Выкл. энергию' : '🔁 Вкл. энергию';
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            if (confirm('Сбросить положение всех узлов?')) {
+                // Сбрасываем позиции и перезапускаем геометрию
+                nodes.leftLeg.x = 0; nodes.leftLeg.y = 0;
+                resizeCommon();
+                // Пересоздаем линии
+                lineSegments.forEach(l => scene.remove(l));
+                lineSegments = [];
+                const pairs = [
+                    [nodes.leftLeg, nodes.center, nodes.rightHand],
+                    [nodes.rightLeg, nodes.center, nodes.leftHand],
+                    [nodes.heart, nodes.leftHand],
+                    [nodes.heart, nodes.rightHand]
+                ];
+                pairs.forEach(pair => {
+                    for (let i = 0; i < pair.length - 1; i++) {
+                        const start = mapTo3D(pair[i]);
+                        const end = mapTo3D(pair[i+1]);
+                        const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+                        const color = new THREE.Color(pair[i].color);
+                        const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.3 });
+                        const line = new THREE.Line(geom, mat);
+                        scene.add(line);
+                        lineSegments.push(line);
+                    }
+                });
+            }
+        });
+
+        // ============= АДАПТАЦИЯ ЭКРАНА =============
+        window.addEventListener('resize', () => {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        });
+
+        // ============= ЗАПУСК =============
+        resizeCommon();
+        buildScene();
+        animate();
+
+        console.log('🟣🦅 Древо Жизни 3D загружено');
+    </script>
+</body>
+</html>
