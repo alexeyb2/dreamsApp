@@ -14,24 +14,26 @@
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; background: #0b0814; }
         #ui-panel { position: absolute; bottom: 30px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px; pointer-events: none; z-index: 10; }
-        .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 12px; pointer-events: auto; flex-wrap: wrap; justify-content: center; }
-        .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; }
+        .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 10px; pointer-events: auto; flex-wrap: nowrap; justify-content: center; }
+        .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 14px; border-radius: 20px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
-        .stats-panel { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; background: rgba(22,17,39,0.85); padding: 6px 16px; border-radius: 30px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; pointer-events: auto; font-size: 14px; color: #b8a6ff; }
+        .btn.active { background: #6f52c4; color: #fff; }
+        .btn-icon { width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; background: transparent; border: 1px solid #3a2f5a; }
+        .btn-icon:active { background: #6f52c4; }
         #dropdown-menu {
             display: none; position: absolute; bottom: 110%; right: 0;
             background: #161127; border: 1px solid #3a2f5a; border-radius: 20px;
-            padding: 12px; width: 220px; flex-direction: column; gap: 8px; z-index: 20;
+            padding: 12px; width: 200px; flex-direction: column; gap: 8px; z-index: 20;
             backdrop-filter: blur(10px);
         }
         #dropdown-menu.open { display: flex; }
         .menu-item {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 12px; border-radius: 12px; cursor: pointer; touch-action: manipulation;
-            background: #2a2348; color: #b8a6ff; font-size: 14px; font-weight: 600; transition: 0.2s;
+            padding: 6px 12px; border-radius: 12px; cursor: pointer; touch-action: manipulation;
+            background: #2a2348; color: #b8a6ff; font-size: 13px; font-weight: 600; transition: 0.2s;
         }
         .menu-item:active { background: #6f52c4; color: #fff; }
-        .menu-item .toggle { font-size: 18px; }
+        .menu-item .toggle { font-size: 16px; }
         .menu-item.speed-control {
             flex-direction: column; align-items: stretch; gap: 4px; padding: 8px 12px;
         }
@@ -42,9 +44,13 @@
             width: 100%; height: 4px; -webkit-appearance: none; background: #3a2f5a; border-radius: 4px; outline: none; margin-top: 2px;
         }
         #energy-speed::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #6f52c4; cursor: pointer;
+            -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #6f52c4; cursor: pointer;
         }
-        @media (max-width: 600px) { #ui-panel { bottom: 15px; } }
+        @media (max-width: 600px) {
+            #ui-panel { bottom: 15px; padding: 8px; }
+            .btn-group { padding: 6px 12px; gap: 6px; }
+            .btn { padding: 6px 10px; font-size: 12px; }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -53,26 +59,22 @@
     <div id="canvas-container"></div>
 
     <div id="ui-panel">
-        <div class="stats-panel">
-            <span id="energy-status">🌀 Энергия: Вкл</span>
-        </div>
         <div class="btn-group">
-            <button class="btn" id="toggle-energy">🔁 Выкл. энергию</button>
-            <button class="btn" id="reset-btn">🔄 Сброс</button>
-            <button class="btn" id="switch-2d" style="background:#6f52c4; color:#fff;">2D</button>
+            <button class="btn" id="toggle-energy-btn">⚡ Вкл</button>
+            <button class="btn" id="switch-2d-btn">2D</button>
             <button class="btn btn-icon" id="menu-btn">⚙️</button>
-            <div id="dropdown-menu">
-                <div class="menu-item" id="toggle-energy-menu">
-                    <span>🌀 Энергия</span>
-                    <span class="toggle" id="energy-status-menu">Вкл</span>
+        </div>
+
+        <div id="dropdown-menu">
+            <div class="menu-item speed-control">
+                <div class="header">
+                    <span>⚡ Скорость</span>
+                    <span id="speed-val">5</span>
                 </div>
-                <div class="menu-item speed-control">
-                    <div class="header">
-                        <span>⚡ Скорость</span>
-                        <span id="speed-val">5</span>
-                    </div>
-                    <input type="range" id="energy-speed" min="1" max="10" value="5" step="1" />
-                </div>
+                <input type="range" id="energy-speed" min="1" max="10" value="5" step="1" />
+            </div>
+            <div class="menu-item" id="reset-btn" style="color:#ff4d4d;">
+                <span>🔄 Сброс</span>
             </div>
         </div>
     </div>
@@ -146,7 +148,7 @@
             nodes.leftHand.x = 2 * cx - rx;
             nodes.leftHand.z = 2 * cz - rz;
 
-            // Сердце не пересчитывается автоматически – оно перетаскивается пользователем
+            // Сердце перетаскивается пользователем (не пересчитывается автоматически)
         }
 
         // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
@@ -213,19 +215,13 @@
             createNodeMesh('center', nodes.center);
             createNodeMesh('head', nodes.head);
 
-            // Линии связей (обычные)
+            // Обычные линии
             const connections = [
-                // Левая нога → Живот → Правая рука
                 [nodes.leftLeg, nodes.center, nodes.rightHand],
-                // Правая нога → Живот → Левая рука
                 [nodes.rightLeg, nodes.center, nodes.leftHand],
-                // Сердце → Левая рука
                 [nodes.heart, nodes.leftHand],
-                // Сердце → Правая рука
                 [nodes.heart, nodes.rightHand],
-                // Левая нога → Глаз
                 [nodes.leftLeg, nodes.head],
-                // Правая нога → Глаз
                 [nodes.rightLeg, nodes.head],
             ];
 
@@ -352,7 +348,7 @@
             }
         }
 
-        // ============= ПЛАВНОЕ ПЕРЕТАСКИВАНИЕ (как в 2D) =============
+        // ============= ПЛАВНОЕ ПЕРЕТАСКИВАНИЕ =============
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         let isDragging = false;
@@ -391,8 +387,7 @@
         window.addEventListener('pointermove', (e) => {
             if (!isDragging || !draggedNodeKey) return;
             getPointer(e);
-            // ИСПРАВЛЕНИЕ: вычисляем смещение мыши относительно старта
-            const dx = (e.clientX - startMouse.x) * 0.015; // коэффициент масштабирования
+            const dx = (e.clientX - startMouse.x) * 0.015;
             const dz = (e.clientY - startMouse.y) * 0.015;
             nodes[draggedNodeKey].x = Math.max(-3, Math.min(3, startPointPos.x + dx));
             nodes[draggedNodeKey].z = Math.max(-3, Math.min(3, startPointPos.z + dz));
@@ -407,26 +402,29 @@
         });
 
         // ============= КНОПКИ УПРАВЛЕНИЯ =============
+        const toggleEnergyBtn = document.getElementById('toggle-energy-btn');
         const menuBtn = document.getElementById('menu-btn');
         const dropdown = document.getElementById('dropdown-menu');
-        menuBtn.addEventListener('click', () => { dropdown.classList.toggle('open'); });
-        document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== menuBtn) dropdown.classList.remove('open'); });
-
-        document.getElementById('toggle-energy-menu').addEventListener('click', () => {
-            energyEnabled = !energyEnabled;
-            document.getElementById('energy-status').textContent = energyEnabled ? '🌀 Энергия: Вкл' : '🌀 Энергия: Выкл';
-            document.getElementById('energy-status-menu').textContent = energyEnabled ? 'Вкл' : 'Выкл';
-            dropdown.classList.remove('open');
-        });
-
+        const resetBtn = document.getElementById('reset-btn');
         const speedSlider = document.getElementById('energy-speed');
         const speedVal = document.getElementById('speed-val');
-        speedSlider.addEventListener('input', () => {
-            energySpeed = parseInt(speedSlider.value);
-            speedVal.textContent = energySpeed;
+        const switch2dBtns = document.getElementById('switch-2d-btn');
+
+        // Энергия
+        toggleEnergyBtn.addEventListener('click', () => {
+            energyEnabled = !energyEnabled;
+            toggleEnergyBtn.textContent = energyEnabled ? '⚡ Вкл' : '⚡ Выкл';
         });
 
-        document.getElementById('reset-btn').addEventListener('click', () => {
+        // Меню
+        menuBtn.addEventListener('click', () => { dropdown.classList.toggle('open'); });
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target) && e.target !== menuBtn) dropdown.classList.remove('open');
+        });
+
+        // Сброс
+        resetBtn.addEventListener('click', () => {
+            dropdown.classList.remove('open');
             if (confirm('Сбросить положение всех узлов?')) {
                 nodes.leftLeg.x = -1.2; nodes.leftLeg.z = 1.2;
                 nodes.rightLeg.x = 1.2; nodes.rightLeg.z = 1.2;
@@ -437,7 +435,14 @@
             }
         });
 
-        document.getElementById('switch-2d').addEventListener('click', () => {
+        // Скорость
+        speedSlider.addEventListener('input', () => {
+            energySpeed = parseInt(speedSlider.value);
+            speedVal.textContent = energySpeed;
+        });
+
+        // Переход на 2D
+        switch2dBtns.addEventListener('click', () => {
             window.location.href = '../2d/';
         });
 
@@ -462,7 +467,7 @@
         updatePositions();
         animate();
 
-        console.log('🟣🦅 Древо Жизни 3D (плавное перетаскивание, настройка скорости) загружено!');
+        console.log('🟣🦅 Древо Жизни 3D (компактная панель, скорость и сброс в меню) загружено!');
     </script>
 </body>
 </html>
