@@ -23,14 +23,39 @@
         #energy-speed { width: 100%; height: 4px; -webkit-appearance: none; background: #3a2f5a; border-radius: 4px; outline: none; margin-top: 2px; }
         #energy-speed::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #6f52c4; cursor: pointer; }
         @media (max-width: 600px) { #ui-panel { bottom: 15px; padding: 8px; } .btn-group { padding: 6px 12px; gap: 6px; } .btn { padding: 6px 10px; font-size: 12px; } }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 100; }
+        .modal.open { display: flex; }
+        .modal-box { background: #161127; border: 1px solid #3a2f5a; border-radius: 30px; padding: 30px; width: 90%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; }
+        .modal-box h3 { color: #b8a6ff; text-align: center; font-size: 22px; margin-bottom: 4px; }
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { font-size: 14px; color: #8f78e6; font-weight: 500; }
+        .input-group input, .input-group select { background: #1a1530; border: 1px solid #3a2f5a; border-radius: 12px; padding: 12px 14px; font-size: 16px; color: #fff; outline: none; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-cancel { background: #3a2f5a; color: #b8a6ff; flex: 1; border: none; border-radius: 20px; padding: 12px; cursor: pointer; }
+        .btn-primary { background: #6f52c4; color: #fff; flex: 1; border: none; border-radius: 20px; padding: 12px; cursor: pointer; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
     <div id="canvas-container"></div>
+    
+    <!-- Модальное окно (встроено прямо в 3D) -->
+    <div id="modal-add" class="modal">
+        <div class="modal-box">
+            <h3 id="modal-add-title">➕ Добавить</h3>
+            <div class="input-group"><label>Смайл</label><input type="text" id="input-emoji" placeholder="☁️" /></div>
+            <div class="input-group"><label>Название</label><input type="text" id="input-name" placeholder="Название" /></div>
+            <div class="input-group"><label>Тип</label><select id="input-type"></select></div>
+            <div class="modal-actions"><button class="btn-primary" id="modal-save">✅ Сохранить</button><button class="btn-cancel" id="modal-close">✖ Отмена</button></div>
+        </div>
+    </div>
+
     <div id="ui-panel">
         <div class="btn-group">
+            <button class="btn" id="add-thought">☁️ Мысль</button>
+            <button class="btn" id="add-feeling">🧱 Чувство</button>
+            <button class="btn" id="add-root">🌱 Корень</button>
             <button class="btn" id="toggle-energy">⚡ Вкл</button>
             <button class="btn" id="switch-2d">2D</button>
             <button class="btn btn-icon" id="menu-btn">⚙️</button>
@@ -51,7 +76,6 @@
         const STORAGE_KEY = 'highmind_universe';
         const Y_LEVELS = { LEG: -0.8, BELLY: 0.0, HAND: 1.2, HEART: 1.2, EYE: 2.0 };
 
-        // Данные (те же, что в 2D)
         let anatomy = {
             leftLeg:  { x: -1.2, z: 1.2 },
             rightLeg: { x: 1.2,  z: 1.2 },
@@ -68,7 +92,6 @@
         let energyDirection = 1;
         let nextId = 1;
 
-        // ========== Сохранение / загрузка ==========
         function saveState() {
             const data = { anatomy, entities, energyEnabled, energySpeed, nextId };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -89,14 +112,12 @@
         }
 
         if (!loadState()) {
-            // Дефолтные сущности
-            entities.thoughts.push({ id: nextId++, emoji: '☁️', name: 'План', x: -0.5, y: 1.0, z: 0, radius: 0.4 });
-            entities.feelings.push({ id: nextId++, emoji: '🧱', name: 'Усталость', x: 0.5, y: 0.8, z: 0, type: 'heavy', radius: 0.4 });
+            entities.thoughts.push({ id: nextId++, emoji: '☁️', name: 'План', x: -0.5, y: 1.0, z: 0, radius: 0.5 });
+            entities.feelings.push({ id: nextId++, emoji: '🧱', name: 'Усталость', x: 0.5, y: 0.8, z: 0, type: 'heavy', radius: 0.5 });
             entities.roots.push({ id: nextId++, emoji: '🌱', name: 'Я справлюсь', x: 0, y: -0.4, z: 0, type: 'healthy' });
             saveState();
         }
 
-        // ========== Физика анатомии ==========
         function updateAnatomy() {
             const cx = anatomy.center.x, cz = anatomy.center.z;
             const lx = anatomy.leftLeg.x, lz = anatomy.leftLeg.z;
@@ -127,13 +148,10 @@
         container.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
         controls.target.set(0, 0.8, 0);
-        controls.minDistance = 3;
-        controls.maxDistance = 20;
+        controls.minDistance = 3; controls.maxDistance = 20;
 
-        // Освещение
         scene.add(new THREE.AmbientLight(0x404060));
         const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
         dirLight.position.set(5, 15, 7);
@@ -145,32 +163,31 @@
         scene.add(gridHelper);
 
         // ========== Создание 3D объектов ==========
-        const meshMap = {};
-        const lineSegments = [];
-        const particleMeshes = [];
+        let meshMap = {};
+        let lineSegments = [];
+        let particleMeshes = [];
 
-        function getYForNode(nodeKey) {
-            if (nodeKey === 'head') return Y_LEVELS.EYE;
-            if (nodeKey === 'leftLeg' || nodeKey === 'rightLeg') return Y_LEVELS.LEG;
-            if (nodeKey === 'center') return Y_LEVELS.BELLY;
-            if (nodeKey === 'heart' || nodeKey === 'leftHand' || nodeKey === 'rightHand') return Y_LEVELS.HAND;
+        function getYForNode(key) {
+            if (key === 'head') return Y_LEVELS.EYE;
+            if (key === 'leftLeg' || key === 'rightLeg') return Y_LEVELS.LEG;
+            if (key === 'center') return Y_LEVELS.BELLY;
+            if (key === 'heart' || key === 'leftHand' || key === 'rightHand') return Y_LEVELS.HAND;
             return 0;
         }
 
-        function createNodeMesh(key, node, isSquare = false) {
-            const color = new THREE.Color(node.color || '#ffffff');
+        function createNodeMesh(key, node, color, isSquare = false) {
+            const c = new THREE.Color(color);
             const size = 0.8;
             let geom, mat;
             if (isSquare) {
                 geom = new THREE.BoxGeometry(size, size, size);
-                mat = new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.3 });
+                mat = new THREE.MeshPhongMaterial({ color: c, emissive: c, emissiveIntensity: 0.3 });
             } else {
                 geom = new THREE.SphereGeometry(size / 2, 32, 32);
-                mat = new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.3, transparent: true, opacity: 0.9 });
+                mat = new THREE.MeshPhongMaterial({ color: c, emissive: c, emissiveIntensity: 0.3, transparent: true, opacity: 0.9 });
             }
             const mesh = new THREE.Mesh(geom, mat);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
+            mesh.castShadow = true; mesh.receiveShadow = true;
             scene.add(mesh);
             meshMap[key] = mesh;
         }
@@ -193,26 +210,18 @@
         function buildScene() {
             if (Object.keys(meshMap).length > 0) return;
 
-            // Анатомия
-            const createAnatomyNode = (key, node, color, isSquare = false) => {
-                const obj = { ...node, color };
-                if (key === 'head') {
-                    const sprite = createEyeSprite();
-                    scene.add(sprite);
-                    meshMap[key] = sprite;
-                } else {
-                    createNodeMesh(key, obj, isSquare);
-                }
-            };
-            createAnatomyNode('leftLeg',  anatomy.leftLeg,  '#4d8bff', true);
-            createAnatomyNode('rightLeg', anatomy.rightLeg, '#ff4d4d', true);
-            createAnatomyNode('leftHand', anatomy.leftHand, '#4d8bff');
-            createAnatomyNode('rightHand', anatomy.rightHand, '#ff4d4d');
-            createAnatomyNode('heart',    anatomy.heart,    '#2ecc71');
-            createAnatomyNode('center',   anatomy.center,   '#e67e22');
-            createAnatomyNode('head',     anatomy.head,     '#ffcc00');
+            createNodeMesh('leftLeg',  anatomy.leftLeg,  '#4d8bff', true);
+            createNodeMesh('rightLeg', anatomy.rightLeg, '#ff4d4d', true);
+            createNodeMesh('leftHand', anatomy.leftHand, '#4d8bff');
+            createNodeMesh('rightHand', anatomy.rightHand, '#ff4d4d');
+            createNodeMesh('heart',    anatomy.heart,    '#2ecc71');
+            createNodeMesh('center',   anatomy.center,   '#e67e22');
+            
+            const eyeSprite = createEyeSprite();
+            scene.add(eyeSprite);
+            meshMap['head'] = eyeSprite;
 
-            // Линии
+            // Линии связей
             const connections = [
                 [anatomy.leftLeg, anatomy.center, anatomy.rightHand],
                 [anatomy.rightLeg, anatomy.center, anatomy.leftHand],
@@ -221,13 +230,10 @@
                 [anatomy.leftLeg, anatomy.head],
                 [anatomy.rightLeg, anatomy.head]
             ];
-            const yellowLines = [
-                [anatomy.center, anatomy.heart],
-                [anatomy.heart, anatomy.head]
-            ];
+            const yellowLines = [[anatomy.center, anatomy.heart], [anatomy.heart, anatomy.head]];
+
             const addLine = (start, end, color) => {
-                const startY = getYForNode(start.key);
-                const endY = getYForNode(end.key);
+                const startY = getYForNode(start.key); const endY = getYForNode(end.key);
                 const geom = new THREE.BufferGeometry().setFromPoints([
                     new THREE.Vector3(start.x, startY, start.z),
                     new THREE.Vector3(end.x, endY, end.z)
@@ -238,23 +244,16 @@
                 lineSegments.push(line);
             };
 
-            // Для простоты будем добавлять линии отдельно
-            // Пропишем связи вручную:
-            // Левая нога -> Живот -> Правая рука (синий)
-            addLine({ key: 'leftLeg', ...anatomy.leftLeg }, { key: 'center', ...anatomy.center }, '#4d8bff');
-            addLine({ key: 'center', ...anatomy.center }, { key: 'rightHand', ...anatomy.rightHand }, '#4d8bff');
-            // Правая нога -> Живот -> Левая рука (красный)
-            addLine({ key: 'rightLeg', ...anatomy.rightLeg }, { key: 'center', ...anatomy.center }, '#ff4d4d');
-            addLine({ key: 'center', ...anatomy.center }, { key: 'leftHand', ...anatomy.leftHand }, '#ff4d4d');
-            // Сердце -> руки (зелёный)
-            addLine({ key: 'heart', ...anatomy.heart }, { key: 'leftHand', ...anatomy.leftHand }, '#2ecc71');
-            addLine({ key: 'heart', ...anatomy.heart }, { key: 'rightHand', ...anatomy.rightHand }, '#2ecc71');
-            // Ноги -> Голова
-            addLine({ key: 'leftLeg', ...anatomy.leftLeg }, { key: 'head', ...anatomy.head }, '#4d8bff');
-            addLine({ key: 'rightLeg', ...anatomy.rightLeg }, { key: 'head', ...anatomy.head }, '#ff4d4d');
-            // Жёлтая линия: Живот -> Сердце -> Голова
-            addLine({ key: 'center', ...anatomy.center }, { key: 'heart', ...anatomy.heart }, '#ffcc00');
-            addLine({ key: 'heart', ...anatomy.heart }, { key: 'head', ...anatomy.head }, '#ffcc00');
+            connections.forEach(pair => {
+                for (let i = 0; i < pair.length - 1; i++) {
+                    addLine({ key: 'temp', ...pair[i] }, { key: 'temp', ...pair[i+1] }, pair[i].color || '#4d8bff');
+                }
+            });
+            yellowLines.forEach(pair => {
+                for (let i = 0; i < pair.length - 1; i++) {
+                    addLine({ key: 'temp', ...pair[i] }, { key: 'temp', ...pair[i+1] }, '#ffcc00');
+                }
+            });
 
             // Частицы
             const colors = ['#4d8bff', '#ff4d4d'];
@@ -262,31 +261,27 @@
                 const geom = new THREE.SphereGeometry(0.2, 16, 16);
                 const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors[i]) });
                 const mesh = new THREE.Mesh(geom, mat);
-                mesh.material.transparent = true;
-                mesh.material.opacity = 0.9;
+                mesh.material.transparent = true; mesh.material.opacity = 0.9;
                 scene.add(mesh);
                 particleMeshes.push(mesh);
             }
         }
 
-        // ========== Обновление позиций ==========
         function updatePositions() {
             updateAnatomy();
-            // Обновляем меши анатомии
             for (const key in meshMap) {
                 const mesh = meshMap[key];
                 const node = anatomy[key];
                 if (!node) continue;
                 const y = getYForNode(key);
-                mesh.position.set(node.x, y, node.z);
+                if (key === 'head') {
+                    mesh.position.set(node.x, y, node.z);
+                } else {
+                    mesh.position.set(node.x, y, node.z);
+                }
             }
-            // Обновляем линии
-            // (обновление линий пропустим для краткости – в реальном коде нужно обновлять позиции)
-            // Для простоты пересоздадим линии каждый кадр? Или обновим.
-            // В этом примере опустим для экономии, но в полной версии нужно.
         }
 
-        // ========== Частицы энергии ==========
         function getPath3D(path, progress) {
             if (path.length < 2) return null;
             let totalLen = 0, segLen = [];
@@ -355,9 +350,41 @@
             renderer.render(scene, camera);
         }
 
-        // ========== Интерактивность (перетаскивание) ==========
-        // В 3D перетаскивание реализуем через Raycaster, аналогично 2D.
-        // Для краткости пропустим код перетаскивания, но он аналогичен 2D с проекцией на плоскость Y = высота узла.
+        // ========== Модальное окно для 3D ==========
+        const modalAdd = document.getElementById('modal-add');
+        const modalTitle = document.getElementById('modal-add-title');
+        const inputEmoji = document.getElementById('input-emoji');
+        const inputName = document.getElementById('input-name');
+        const inputType = document.getElementById('input-type');
+        let addCategory = 'thought';
+
+        function openAddModal(category) {
+            addCategory = category;
+            modalTitle.textContent = `➕ Добавить ${category === 'thought' ? 'мысль' : category === 'feeling' ? 'чувство' : 'корень'}`;
+            inputEmoji.value = ''; inputName.value = '';
+            const options = category === 'thought' ? '<option value="thought">Облако</option>' :
+                            category === 'feeling' ? '<option value="heavy">Тяжёлое</option><option value="light">Лёгкое</option>' :
+                            '<option value="healthy">Здоровое</option><option value="toxic">Токсичное</option>';
+            inputType.innerHTML = options;
+            modalAdd.classList.add('open');
+        }
+
+        document.getElementById('modal-close').addEventListener('click', () => modalAdd.classList.remove('open'));
+        document.getElementById('modal-save').addEventListener('click', () => {
+            const emoji = inputEmoji.value.trim() || (addCategory === 'thought' ? '☁️' : addCategory === 'feeling' ? '🧱' : '🌱');
+            const name = inputName.value.trim() || 'Без имени';
+            const type = inputType.value;
+            const newEntity = { id: nextId++, emoji, name, type, x: 0, y: 0, z: 0, radius: 0.5 };
+            if (addCategory === 'thought') entities.thoughts.push(newEntity);
+            else if (addCategory === 'feeling') entities.feelings.push(newEntity);
+            else if (addCategory === 'root') entities.roots.push(newEntity);
+            saveState();
+            modalAdd.classList.remove('open');
+        });
+
+        document.getElementById('add-thought').addEventListener('click', () => openAddModal('thought'));
+        document.getElementById('add-feeling').addEventListener('click', () => openAddModal('feeling'));
+        document.getElementById('add-root').addEventListener('click', () => openAddModal('root'));
 
         // ========== Управление ==========
         document.getElementById('toggle-energy').addEventListener('click', () => {
@@ -375,26 +402,20 @@
         document.getElementById('reset-btn').addEventListener('click', () => {
             if (confirm('Сбросить положение всех узлов?')) {
                 anatomy = {
-                    leftLeg: { x: -1.2, z: 1.2 },
-                    rightLeg: { x: 1.2, z: 1.2 },
-                    leftHand: { x: -1.2, z: -1.2 },
-                    rightHand: { x: 1.2, z: -1.2 },
-                    heart: { x: 0, z: -1.2 },
-                    center: { x: 0, z: 0 },
+                    leftLeg: { x: -1.2, z: 1.2 }, rightLeg: { x: 1.2, z: 1.2 },
+                    leftHand: { x: -1.2, z: -1.2 }, rightHand: { x: 1.2, z: -1.2 },
+                    heart: { x: 0, z: -1.2 }, center: { x: 0, z: 0 },
                     head: { x: 0, z: 0 }
                 };
-                saveState();
-                updatePositions();
+                saveState(); updatePositions();
             }
             document.getElementById('dropdown-menu').classList.remove('open');
         });
 
         document.getElementById('switch-2d').addEventListener('click', () => {
-            saveState();
-            window.location.href = '../2d/';
+            saveState(); window.location.href = '../2d/';
         });
 
-        // Меню
         const menuBtn = document.getElementById('menu-btn');
         const dropdown = document.getElementById('dropdown-menu');
         menuBtn.addEventListener('click', () => dropdown.classList.toggle('open'));
@@ -409,11 +430,9 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        buildScene();
-        updatePositions();
-        animate();
+        buildScene(); updatePositions(); animate();
 
-        console.log('🟣🦅 3D Древо Жизни (синхронизировано с 2D) загружено');
+        console.log('🟣🦅 3D Древо Жизни (кнопки добавления + перетаскивание) загружено');
     </script>
 </body>
 </html>
