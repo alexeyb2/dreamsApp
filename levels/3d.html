@@ -65,17 +65,15 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        // Пол (прозрачная плоскость с сеткой)
         const gridHelper = new THREE.GridHelper(10, 10, 0x6f52c4, 0x3a2f5a);
         gridHelper.position.y = 0;
         scene.add(gridHelper);
 
-        // ============= ДАННЫЕ И ФИЗИКА (ТОЧЬ-В-ТОЧЬ КАК В 2D) =============
+        // ============= ДАННЫЕ И ФИЗИКА (НЕЗАВИСИМЫЕ НОГИ) =============
         let energyEnabled = true;
         let energyProgress = 0;
         let energyDirection = 1;
 
-        // Уровни высоты (строгая этажность)
         const Y_LEVELS = {
             SUN: 4.0,
             HAND: 1.5,
@@ -83,12 +81,11 @@
             LEG: -0.8
         };
 
-        // Координаты X и Z - абсолютная копия 2D схемы
         let nodes = {
             leftLeg:  { x: -1.2, z: 1.2, color: '#4d8bff', isSquare: true },
             rightLeg: { x: 1.2,  z: 1.2, color: '#ff4d4d', isSquare: true },
-            leftHand: { x: -1.2, z: -1.2, color: '#4d8bff' },
-            rightHand: { x: 1.2,  z: -1.2, color: '#ff4d4d' },
+            leftHand: { x: 1.2,  z: -1.2, color: '#4d8bff' },
+            rightHand: { x: -1.2, z: -1.2, color: '#ff4d4d' },
             heart:    { x: 0,    z: -1.2, color: '#2ecc71' },
             center:   { x: 0,    z: 0,    color: '#e67e22' },
             sun:      { x: 0,    z: 0,    color: '#ffcc00' }
@@ -96,27 +93,22 @@
 
         function updateGeometry() {
             const lx = nodes.leftLeg.x, lz = nodes.leftLeg.z;
+            const rx = nodes.rightLeg.x, rz = nodes.rightLeg.z;
             const cx = nodes.center.x, cz = nodes.center.z;
 
-            // Правая нога (🟥) зеркалит левую (🟦)
-            nodes.rightLeg.x = 2 * cx - lx;
-            nodes.rightLeg.z = lz;
-
-            const rx = nodes.rightLeg.x, rz = nodes.rightLeg.z;
-
-            // Левая рука (🔵) управляется Правой ногой (🟥)
-            nodes.leftHand.x = rx;
-            nodes.leftHand.z = 2 * cz - rz;
-
-            // Правая рука (🔴) управляется Левой ногой (🟦)
-            nodes.rightHand.x = lx;
+            // 🔴 Правая рука зависит ТОЛЬКО от Левой ноги (🟦)
+            nodes.rightHand.x = 2 * cx - lx;
             nodes.rightHand.z = 2 * cz - lz;
 
-            // Сердце (🟢) ровно по центру между руками
+            // 🔵 Левая рука зависит ТОЛЬКО от Правой ноги (🟥)
+            nodes.leftHand.x = 2 * cx - rx;
+            nodes.leftHand.z = 2 * cz - rz;
+
+            // 🟢 Сердце строго по центру между руками
             nodes.heart.x = cx;
             nodes.heart.z = (nodes.leftHand.z + nodes.rightHand.z) / 2;
 
-            // Солнце (👁️) всегда над центром
+            // Солнце всегда над центром
             nodes.sun.x = cx;
             nodes.sun.z = cz;
         }
@@ -162,14 +154,24 @@
             createNodeMesh('center', nodes.center);
             createNodeMesh('sun', nodes.sun);
 
-            // Линии связей (включая связи с солнцем)
+            // Линии связей (независимые)
             const connections = [
+                // 🟦 Левая нога -> 🟠 Живот -> 🔴 Правая рука
                 [nodes.leftLeg, nodes.center, nodes.rightHand],
+                // 🟥 Правая нога -> 🟠 Живот -> 🔵 Левая рука
                 [nodes.rightLeg, nodes.center, nodes.leftHand],
+                // 🟢 Сердце -> 🔵 Левая рука
                 [nodes.heart, nodes.leftHand],
+                // 🟢 Сердце -> 🔴 Правая рука
                 [nodes.heart, nodes.rightHand],
+                // 👁️ Солнце -> 🔵 Левая рука
                 [nodes.sun, nodes.leftHand],
-                [nodes.sun, nodes.rightHand]
+                // 👁️ Солнце -> 🔴 Правая рука
+                [nodes.sun, nodes.rightHand],
+                // 🟦 ЛЕВАЯ НОГА -> 👁️ СОЛНЦЕ (синий луч)
+                [nodes.leftLeg, nodes.sun],
+                // 🟥 ПРАВАЯ НОГА -> 👁️ СОЛНЦЕ (красный луч)
+                [nodes.rightLeg, nodes.sun]
             ];
 
             connections.forEach(pair => {
@@ -180,7 +182,7 @@
                         new THREE.Vector3(start.x, startY, start.z),
                         new THREE.Vector3(end.x, endY, end.z)
                     ]);
-                    const color = new THREE.Color(start.color);
+                    const color = new THREE.Color(start.color); // Цвет линии = цвету стартовой ноги/узла
                     const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.4 });
                     const line = new THREE.Line(geom, mat);
                     scene.add(line);
@@ -188,9 +190,9 @@
                 }
             });
 
-            // Частицы (синяя, красная и золотая сферы)
-            const colors = ['#4d8bff', '#ff4d4d', '#ffcc00'];
-            for (let i = 0; i < 3; i++) {
+            // Частицы (синяя, красная)
+            const colors = ['#4d8bff', '#ff4d4d'];
+            for (let i = 0; i < 2; i++) {
                 const geom = new THREE.SphereGeometry(0.2, 16, 16);
                 const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors[i]) });
                 const mesh = new THREE.Mesh(geom, mat);
@@ -213,7 +215,7 @@
                 }
             }
 
-            // Обновляем линии
+            // Обновляем линии связей
             lineSegments.forEach(item => {
                 const start = item.startNode, end = item.endNode;
                 const startY = getYForNode(start), endY = getYForNode(end);
@@ -266,14 +268,12 @@
                 const yLevel = Y_LEVELS.HAND + 0.2;
                 particleMeshes[0].position.set(bluePos.x, yLevel, bluePos.z); // Синяя
                 particleMeshes[1].position.set(redPos.x, yLevel, redPos.z);   // Красная
-                particleMeshes[2].position.set(s.x, Y_LEVELS.SUN - 0.5, s.z); // Золотая (застывшая у солнца)
             }
         }
 
-        // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ) =============
+        // ============= ИНТЕРАКТИВНОСТЬ (ТЯНЕМ ОБЕ НОГИ!) =============
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), Y_LEVELS.LEG);
         let isDragging = false;
         let draggedNodeKey = null;
         let startMouse = { x: 0, y: 0 };
@@ -288,17 +288,28 @@
         renderer.domElement.addEventListener('pointerdown', (e) => {
             getPointer(e);
             raycaster.setFromCamera(pointer, camera);
-            const targetMesh = meshMap['leftLeg'];
-            if (targetMesh) {
-                const intersects = raycaster.intersectObject(targetMesh);
-                if (intersects.length > 0) {
-                    isDragging = true;
-                    draggedNodeKey = 'leftLeg';
-                    startMouse = { x: e.clientX, y: e.clientY };
-                    startPointPos = { x: nodes.leftLeg.x, z: nodes.leftLeg.z };
-                    controls.enabled = false;
-                    renderer.domElement.style.cursor = 'grabbing';
-                }
+            
+            // Проверяем попадание в ЛЕВУЮ или ПРАВУЮ ногу
+            const hitLeft = meshMap['leftLeg'] ? raycaster.intersectObject(meshMap['leftLeg']) : [];
+            const hitRight = meshMap['rightLeg'] ? raycaster.intersectObject(meshMap['rightLeg']) : [];
+
+            if (hitLeft.length > 0) {
+                isDragging = true;
+                draggedNodeKey = 'leftLeg';
+                startMouse = { x: e.clientX, y: e.clientY };
+                startPointPos = { x: nodes.leftLeg.x, z: nodes.leftLeg.z };
+                controls.enabled = false;
+                renderer.domElement.style.cursor = 'grabbing';
+                return;
+            }
+            if (hitRight.length > 0) {
+                isDragging = true;
+                draggedNodeKey = 'rightLeg';
+                startMouse = { x: e.clientX, y: e.clientY };
+                startPointPos = { x: nodes.rightLeg.x, z: nodes.rightLeg.z };
+                controls.enabled = false;
+                renderer.domElement.style.cursor = 'grabbing';
+                return;
             }
         });
 
@@ -306,14 +317,14 @@
             if (!isDragging || !draggedNodeKey) return;
             getPointer(e);
             raycaster.setFromCamera(pointer, camera);
-            plane.set(new THREE.Vector3(0, 1, 0), Y_LEVELS.LEG);
+            const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), Y_LEVELS.LEG);
             const intersectPoint = new THREE.Vector3();
             raycaster.ray.intersectPlane(plane, intersectPoint);
             if (intersectPoint) {
                 const dx = intersectPoint.x - startPointPos.x;
                 const dz = intersectPoint.z - startPointPos.z;
-                nodes.leftLeg.x = Math.max(-3, Math.min(3, startPointPos.x + dx));
-                nodes.leftLeg.z = Math.max(-3, Math.min(3, startPointPos.z + dz));
+                nodes[draggedNodeKey].x = Math.max(-3, Math.min(3, startPointPos.x + dx));
+                nodes[draggedNodeKey].z = Math.max(-3, Math.min(3, startPointPos.z + dz));
                 updatePositions();
             }
         });
@@ -337,6 +348,7 @@
         document.getElementById('reset-btn').addEventListener('click', () => {
             if (confirm('Сбросить положение всех узлов?')) {
                 nodes.leftLeg.x = -1.2; nodes.leftLeg.z = 1.2;
+                nodes.rightLeg.x = 1.2; nodes.rightLeg.z = 1.2;
                 updatePositions();
             }
         });
@@ -366,7 +378,7 @@
         updatePositions();
         animate();
 
-        console.log('🟣🦅 Древо Жизни 3D (идеальная копия 2D-физики и геометрии) загружено!');
+        console.log('🟣🦅 Древо Жизни 3D (независимые ноги, точная 2D-физика) загружено!');
     </script>
 </body>
 </html>
