@@ -133,12 +133,16 @@
 
         // ========== УЗЛЫ ЭНЕРГИИ ==========
         let nodes = {
+            // Ноги (управляемые, квадраты)
             leftLeg: { x: 0, y: 0, emoji: '🟦', label: 'Левая нога' },
             rightLeg: { x: 0, y: 0, emoji: '🟥', label: 'Правая нога' },
-            center: { x: 0, y: 0, emoji: '🟠', label: 'Живот' },
-            // Имена рук поменяны местами по твоей просьбе
-            leftArm: { x: 0, y: 0, emoji: '🔴', label: 'Правая рука' },
-            rightArm: { x: 0, y: 0, emoji: '🔵', label: 'Левая рука' }
+            // Руки (связаны с ногами, круги)
+            leftHand: { x: 0, y: 0, emoji: '🔵', label: 'Левая рука' },
+            rightHand: { x: 0, y: 0, emoji: '🔴', label: 'Правая рука' },
+            // Сердце (тянется руками, круг)
+            heart: { x: 0, y: 0, emoji: '🟢', label: 'Сердце' },
+            // Живот (граница земли и чувств, круг)
+            center: { x: 0, y: 0, emoji: '🟠', label: 'Живот' }
         };
         
         let isDragging = false;
@@ -164,14 +168,19 @@
 
             // Инициализируем узлы, если они еще не заданы
             if (nodes.leftLeg.x === 0 && nodes.leftLeg.y === 0) {
-                // Зона земли
+                // Зона земли (ноги)
                 nodes.leftLeg = { x: cx - 130, y: h - 70, emoji: '🟦', label: 'Левая нога' };
                 nodes.rightLeg = { x: cx + 130, y: h - 70, emoji: '🟥', label: 'Правая нога' };
+                
+                // Зона неба (руки, зеркально ногам)
+                nodes.leftHand = { x: cx - 130, y: 80, emoji: '🔵', label: 'Левая рука' };
+                nodes.rightHand = { x: cx + 130, y: 80, emoji: '🔴', label: 'Правая рука' };
+                
+                // Зона сердца (центр груди)
+                nodes.heart = { x: cx, y: cy - 40, emoji: '🟢', label: 'Сердце' };
+                
                 // Граница между чувствами и землей (ровно на линии)
                 nodes.center = { x: cx, y: feelingEnd, emoji: '🟠', label: 'Живот' };
-                // Зона неба
-                nodes.leftArm = { x: cx - 130, y: 80, emoji: '🔴', label: 'Правая рука' };
-                nodes.rightArm = { x: cx + 130, y: 80, emoji: '🔵', label: 'Левая рука' };
             }
         }
 
@@ -251,7 +260,7 @@
             ctx.stroke();
         }
 
-        // Лучи от Солнца к ногам (добавлено по твоей просьбе)
+        // Лучи от Солнца к ногам
         function drawSunRays() {
             ctx.shadowBlur = 0;
             
@@ -297,24 +306,46 @@
         }
 
         function drawFlows() {
-            // Левая нога -> Живот -> Левая рука
+            // 1. Ноги -> Руки (прямая связь)
+            // Левая нога -> Левая рука
             ctx.beginPath();
             ctx.moveTo(nodes.leftLeg.x, nodes.leftLeg.y);
-            ctx.quadraticCurveTo(nodes.center.x, nodes.center.y, nodes.leftArm.x, nodes.leftArm.y);
+            ctx.lineTo(nodes.leftHand.x, nodes.leftHand.y);
             ctx.strokeStyle = 'rgba(77, 139, 255, 0.6)';
             ctx.lineWidth = 8;
             ctx.shadowColor = 'rgba(77, 139, 255, 0.5)';
             ctx.shadowBlur = 30;
             ctx.stroke();
 
-            // Правая нога -> Живот -> Правая рука
+            // Правая нога -> Правая рука
             ctx.beginPath();
             ctx.moveTo(nodes.rightLeg.x, nodes.rightLeg.y);
-            ctx.quadraticCurveTo(nodes.center.x, nodes.center.y, nodes.rightArm.x, nodes.rightArm.y);
+            ctx.lineTo(nodes.rightHand.x, nodes.rightHand.y);
             ctx.strokeStyle = 'rgba(255, 77, 77, 0.6)';
             ctx.lineWidth = 8;
             ctx.shadowColor = 'rgba(255, 77, 77, 0.5)';
             ctx.shadowBlur = 30;
+            ctx.stroke();
+
+            // 2. Руки -> Сердце (руки тянут сердце)
+            // Левая рука -> Сердце
+            ctx.beginPath();
+            ctx.moveTo(nodes.leftHand.x, nodes.leftHand.y);
+            ctx.lineTo(nodes.heart.x, nodes.heart.y);
+            ctx.strokeStyle = 'rgba(46, 204, 113, 0.5)';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = 'rgba(46, 204, 113, 0.3)';
+            ctx.shadowBlur = 20;
+            ctx.stroke();
+
+            // Правая рука -> Сердце
+            ctx.beginPath();
+            ctx.moveTo(nodes.rightHand.x, nodes.rightHand.y);
+            ctx.lineTo(nodes.heart.x, nodes.heart.y);
+            ctx.strokeStyle = 'rgba(46, 204, 113, 0.5)';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = 'rgba(46, 204, 113, 0.3)';
+            ctx.shadowBlur = 20;
             ctx.stroke();
 
             ctx.shadowBlur = 0;
@@ -410,6 +441,22 @@
         }
 
         function gameLoop() {
+            // Обновляем позиции рук и сердца
+            // Левая нога зеркально отражает Левую руку
+            nodes.leftHand.x = w - nodes.leftLeg.x;
+            nodes.leftHand.y = h - nodes.leftLeg.y;
+            
+            // Правая нога зеркально отражает Правую руку
+            nodes.rightHand.x = w - nodes.rightLeg.x;
+            nodes.rightHand.y = h - nodes.rightLeg.y;
+
+            // Сердце плавно тянется к центру между руками
+            const heartTargetX = (nodes.leftHand.x + nodes.rightHand.x) / 2;
+            const heartTargetY = (nodes.leftHand.y + nodes.rightHand.y) / 2;
+            nodes.heart.x += (heartTargetX - nodes.heart.x) * 0.08;
+            nodes.heart.y += (heartTargetY - nodes.heart.y) * 0.08;
+
+            // Отрисовка
             ctx.clearRect(0, 0, w, h);
             drawZones();
             drawSunRays();
@@ -417,12 +464,15 @@
             drawClouds();
             drawFeelings();
             drawRoots();
+
             // Рисуем узлы
             drawNode(nodes.leftLeg, 45, true); // Квадрат
             drawNode(nodes.rightLeg, 45, true); // Квадрат
             drawNode(nodes.center, 55, false); // Круг
-            drawNode(nodes.leftArm, 50, false); // Круг
-            drawNode(nodes.rightArm, 50, false); // Круг
+            drawNode(nodes.leftHand, 50, false); // Круг
+            drawNode(nodes.rightHand, 50, false); // Круг
+            drawNode(nodes.heart, 50, false); // Круг Сердца (зелёный)
+
             requestAnimationFrame(gameLoop);
         }
 
@@ -433,7 +483,7 @@
         }
 
         function checkHit(pointer) {
-            // Проверяем попадание в ноги (перетаскивание)
+            // Проверяем попадание в ноги (только они перетаскиваются!)
             if (Math.hypot(pointer.x - nodes.leftLeg.x, pointer.y - nodes.leftLeg.y) < 60) return { type: 'node', key: 'leftLeg' };
             if (Math.hypot(pointer.x - nodes.rightLeg.x, pointer.y - nodes.rightLeg.y) < 60) return { type: 'node', key: 'rightLeg' };
             
@@ -470,6 +520,7 @@
             if (hit.type === 'sun') { openAddModal('cloud'); return; }
             if (hit.type === 'root') { openRootModal(hit.item); return; }
             if (hit.type === 'node') {
+                // Разрешаем перетаскивать только ноги
                 isDragging = true;
                 draggedNode = nodes[hit.key];
                 draggedIsNode = true;
@@ -494,18 +545,9 @@
             const dy = pos.y - startMouse.y;
             
             if (draggedIsNode) {
-                // Двигаем ногу
+                // Двигаем только ногу
                 draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
                 draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
-
-                // Двигаем связанную руку (прямой путь через центр)
-                if (draggedNode === nodes.leftLeg) {
-                    nodes.leftArm.x = w - nodes.leftLeg.x;
-                    nodes.leftArm.y = h - nodes.leftLeg.y;
-                } else if (draggedNode === nodes.rightLeg) {
-                    nodes.rightArm.x = w - nodes.rightLeg.x;
-                    nodes.rightArm.y = h - nodes.rightLeg.y;
-                }
             } else {
                 // Двигаем облако или чувство
                 draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
@@ -640,7 +682,7 @@
         resize();
         loadData();
         gameLoop();
-        console.log('🟣🦅 Уровень 5: Древо Жизни (финальные правки) загружено!');
+        console.log('🟣🦅 Уровень 5: Древо Жизни (контроль ногами) загружено!');
     </script>
 </body>
 </html>
