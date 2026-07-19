@@ -136,8 +136,9 @@
             leftLeg: { x: 0, y: 0, emoji: '🟦', label: 'Левая нога' },
             rightLeg: { x: 0, y: 0, emoji: '🟥', label: 'Правая нога' },
             center: { x: 0, y: 0, emoji: '🟠', label: 'Живот' },
-            leftArm: { x: 0, y: 0, emoji: '🔴', label: 'Левая рука' },
-            rightArm: { x: 0, y: 0, emoji: '🔵', label: 'Правая рука' }
+            // Имена рук поменяны местами по твоей просьбе
+            leftArm: { x: 0, y: 0, emoji: '🔴', label: 'Правая рука' },
+            rightArm: { x: 0, y: 0, emoji: '🔵', label: 'Левая рука' }
         };
         
         let isDragging = false;
@@ -166,11 +167,11 @@
                 // Зона земли
                 nodes.leftLeg = { x: cx - 130, y: h - 70, emoji: '🟦', label: 'Левая нога' };
                 nodes.rightLeg = { x: cx + 130, y: h - 70, emoji: '🟥', label: 'Правая нога' };
-                // Граница между чувствами и землей
+                // Граница между чувствами и землей (ровно на линии)
                 nodes.center = { x: cx, y: feelingEnd, emoji: '🟠', label: 'Живот' };
                 // Зона неба
-                nodes.leftArm = { x: cx - 130, y: 80, emoji: '🔴', label: 'Левая рука' };
-                nodes.rightArm = { x: cx + 130, y: 80, emoji: '🔵', label: 'Правая рука' };
+                nodes.leftArm = { x: cx - 130, y: 80, emoji: '🔴', label: 'Правая рука' };
+                nodes.rightArm = { x: cx + 130, y: 80, emoji: '🔵', label: 'Левая рука' };
             }
         }
 
@@ -237,7 +238,7 @@
             ctx.beginPath();
             ctx.moveTo(0, feelingEnd);
             ctx.lineTo(w, feelingEnd);
-            ctx.strokeStyle = 'rgba(255, 165, 0, 0.2)';
+            ctx.strokeStyle = 'rgba(255, 165, 0, 0.3)';
             ctx.lineWidth = 2;
             ctx.stroke();
 
@@ -247,6 +248,27 @@
             ctx.lineTo(w, skyEnd);
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
             ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        // Лучи от Солнца к ногам (добавлено по твоей просьбе)
+        function drawSunRays() {
+            ctx.shadowBlur = 0;
+            
+            // Синий луч к левой ноге
+            ctx.beginPath();
+            ctx.moveTo(cx, 50);
+            ctx.lineTo(nodes.leftLeg.x, nodes.leftLeg.y);
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Красный луч к правой ноге
+            ctx.beginPath();
+            ctx.moveTo(cx, 50);
+            ctx.lineTo(nodes.rightLeg.x, nodes.rightLeg.y);
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.3)';
+            ctx.lineWidth = 2;
             ctx.stroke();
         }
 
@@ -390,6 +412,7 @@
         function gameLoop() {
             ctx.clearRect(0, 0, w, h);
             drawZones();
+            drawSunRays();
             drawFlows();
             drawClouds();
             drawFeelings();
@@ -617,7 +640,7 @@
         resize();
         loadData();
         gameLoop();
-        console.log('🟣🦅 Уровень 5: Древо Жизни (чистые зоны) загружено!');
+        console.log('🟣🦅 Уровень 5: Древо Жизни (финальные правки) загружено!');
     </script>
 </body>
 </html>
