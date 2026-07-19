@@ -39,7 +39,6 @@
             flex: 1; width: 100%; display: block;
             background: #0b0814;
             border-radius: 20px; border: 1px solid #2a2248; touch-action: none; cursor: grab;
-            /* Дополнительная защита от вылета за края при адресной строке */
             min-height: 0; 
         }
         #game-canvas:active { cursor: grabbing; }
@@ -334,14 +333,12 @@
                 sunPos.y = Math.max(20, Math.min(h - 20, sunPos.y));
             }
 
-            ctx.save();
-            ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 80;
-            ctx.beginPath(); ctx.arc(sunPos.x, sunPos.y, 50, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffcc00'; ctx.fill();
-            ctx.shadowBlur = 0; ctx.restore();
-            ctx.font = '48px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            // ЗАМЕНА СОЛНЦА НА ГЛАЗ (смайлик)
+            // ИСПРАВЛЕНИЕ: Убираем желтый круг, оставляем только эмодзи 👁️ с мягким свечением
+            ctx.font = '70px system-ui';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 50;
             ctx.fillText('👁️', sunPos.x, sunPos.y);
+            ctx.shadowBlur = 0;
 
             const feelGrad = ctx.createLinearGradient(0, skyEnd, 0, feelingEnd);
             feelGrad.addColorStop(0, 'rgba(46, 204, 113, 0)');
@@ -764,7 +761,7 @@
         window.addEventListener('resize', resize); resize(); loadData();
         energyStatus.textContent = energyEnabled ? 'Вкл' : 'Выкл';
         gameLoop();
-        console.log('🟣🦅 Древо Жизни (👁️ Глаз, исправлен верх/низ для браузеров) загружено!');
+        console.log('🟣🦅 Древо Жизни (чистый 👁️ эмодзи, без желтого фона) загружено!');
     </script>
 </body>
 </html>
