@@ -17,7 +17,7 @@
 
         #game-canvas {
             flex: 1; width: 100%; display: block;
-            background: radial-gradient(circle at center, #131022 0%, #08060e 100%);
+            background: #0b0814;
             border-radius: 20px; border: 1px solid #2a2248; touch-action: none; cursor: grab;
         }
         #game-canvas:active { cursor: grabbing; }
@@ -128,7 +128,10 @@
         let roots = [];
         let nextId = 1;
 
-        // ========== УЗЛЫ ПОТОКОВ (НОГИ И РУКИ) ==========
+        // Координаты зон (границы)
+        let skyEnd, feelingEnd, earthStart;
+
+        // ========== УЗЛЫ ЭНЕРГИИ ==========
         let nodes = {
             leftLeg: { x: 0, y: 0, emoji: '🟦', label: 'Левая нога' },
             rightLeg: { x: 0, y: 0, emoji: '🟥', label: 'Правая нога' },
@@ -136,14 +139,14 @@
             leftArm: { x: 0, y: 0, emoji: '🔴', label: 'Левая рука' },
             rightArm: { x: 0, y: 0, emoji: '🔵', label: 'Правая рука' }
         };
-        // Для перетаскивания
+        
         let isDragging = false;
         let draggedNode = null;
         let startMouse = { x: 0, y: 0 };
         let startNodePos = { x: 0, y: 0 };
         let draggedIsNode = false;
 
-        // ========== ПРАВИЛЬНОЕ МАСШТАБИРОВАНИЕ БЕЗ DPR ==========
+        // ========== ПРАВИЛЬНОЕ МАСШТАБИРОВАНИЕ ==========
         function resize() {
             const rect = canvas.getBoundingClientRect();
             canvas.width = rect.width;
@@ -152,13 +155,22 @@
             h = rect.height;
             cx = w / 2;
             cy = h / 2;
-            // Инициализируем узлы по центру экрана, если они еще не заданы
+
+            // Определяем границы зон (3 равные части)
+            skyEnd = h * 0.33;
+            feelingEnd = h * 0.66;
+            earthStart = h * 0.66;
+
+            // Инициализируем узлы, если они еще не заданы
             if (nodes.leftLeg.x === 0 && nodes.leftLeg.y === 0) {
-                nodes.leftLeg = { x: cx - 120, y: h - 60, emoji: '🟦', label: 'Левая нога' };
-                nodes.rightLeg = { x: cx + 120, y: h - 60, emoji: '🟥', label: 'Правая нога' };
-                nodes.center = { x: cx, y: cy + 40, emoji: '🟠', label: 'Живот' };
-                nodes.leftArm = { x: cx - 120, y: 80, emoji: '🔴', label: 'Левая рука' };
-                nodes.rightArm = { x: cx + 120, y: 80, emoji: '🔵', label: 'Правая рука' };
+                // Зона земли
+                nodes.leftLeg = { x: cx - 130, y: h - 70, emoji: '🟦', label: 'Левая нога' };
+                nodes.rightLeg = { x: cx + 130, y: h - 70, emoji: '🟥', label: 'Правая нога' };
+                // Граница между чувствами и землей
+                nodes.center = { x: cx, y: feelingEnd, emoji: '🟠', label: 'Живот' };
+                // Зона неба
+                nodes.leftArm = { x: cx - 130, y: 80, emoji: '🔴', label: 'Левая рука' };
+                nodes.rightArm = { x: cx + 130, y: 80, emoji: '🔵', label: 'Правая рука' };
             }
         }
 
@@ -184,18 +196,58 @@
         }
 
         // ========== ОТРИСОВКА ==========
-        function drawSky() {
+        function drawZones() {
+            // 1. Небо (верхняя треть)
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, skyEnd);
+            skyGrad.addColorStop(0, '#1a2a4a');
+            skyGrad.addColorStop(1, 'rgba(26, 42, 74, 0)');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, skyEnd);
+
+            // Солнце
+            ctx.save();
             ctx.shadowColor = '#ffcc00';
             ctx.shadowBlur = 80;
             ctx.beginPath();
-            ctx.arc(cx, 50, 45, 0, Math.PI * 2);
+            ctx.arc(cx, 50, 50, 0, Math.PI * 2);
             ctx.fillStyle = '#ffcc00';
             ctx.fill();
             ctx.shadowBlur = 0;
-            ctx.font = '42px system-ui';
+            ctx.restore();
+            ctx.font = '48px system-ui';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('☀️', cx, 50);
+
+            // 2. Зона чувств (средняя треть)
+            const feelGrad = ctx.createLinearGradient(0, skyEnd, 0, feelingEnd);
+            feelGrad.addColorStop(0, 'rgba(46, 204, 113, 0)');
+            feelGrad.addColorStop(1, 'rgba(46, 204, 113, 0.2)');
+            ctx.fillStyle = feelGrad;
+            ctx.fillRect(0, skyEnd, w, feelingEnd - skyEnd);
+
+            // 3. Земля (нижняя треть)
+            const earthGrad = ctx.createLinearGradient(0, feelingEnd, 0, h);
+            earthGrad.addColorStop(0, 'rgba(60, 40, 20, 0.2)');
+            earthGrad.addColorStop(1, 'rgba(60, 40, 20, 0.6)');
+            ctx.fillStyle = earthGrad;
+            ctx.fillRect(0, feelingEnd, w, h - feelingEnd);
+            
+            // Линия-граница между чувствами и землей (для визуальной опоры)
+            ctx.beginPath();
+            ctx.moveTo(0, feelingEnd);
+            ctx.lineTo(w, feelingEnd);
+            ctx.strokeStyle = 'rgba(255, 165, 0, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Линия-граница между небом и чувствами
+            ctx.beginPath();
+            ctx.moveTo(0, skyEnd);
+            ctx.lineTo(w, skyEnd);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
         }
 
         function drawClouds() {
@@ -222,60 +274,22 @@
             });
         }
 
-        function drawTrunk() {
-            // Светящийся ствол
-            ctx.save();
-            const grad = ctx.createLinearGradient(cx, h - 80, cx, cy - 80);
-            grad.addColorStop(0, '#6f52c4');
-            grad.addColorStop(1, '#4d8bff');
-            ctx.beginPath();
-            ctx.moveTo(cx, h - 80);
-            ctx.lineTo(cx, cy - 80);
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 20;
-            ctx.shadowColor = 'rgba(111, 82, 196, 0.6)';
-            ctx.shadowBlur = 40;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            ctx.restore();
-
-            // Чакры
-            // Живот (Оранжевый центр)
-            ctx.beginPath();
-            ctx.arc(nodes.center.x, nodes.center.y, 65, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 165, 0, 0.2)';
-            ctx.fill();
-            ctx.strokeStyle = '#ffa500';
-            ctx.lineWidth = 4;
-            ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
-            ctx.shadowBlur = 30;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            ctx.font = '15px system-ui';
-            ctx.fillStyle = '#ffa500';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.fillText('Живот', nodes.center.x, nodes.center.y - 70);
-        }
-
-        // ========== ПОТОКИ И УЗЛЫ ==========
         function drawFlows() {
-            // Лучи (потоки) через оранжевый центр
-            // 🟦 (Левая нога) -> 🟠 (Живот) -> 🔴 (Левая рука)
+            // Левая нога -> Живот -> Левая рука
             ctx.beginPath();
             ctx.moveTo(nodes.leftLeg.x, nodes.leftLeg.y);
             ctx.quadraticCurveTo(nodes.center.x, nodes.center.y, nodes.leftArm.x, nodes.leftArm.y);
-            ctx.strokeStyle = 'rgba(77, 139, 255, 0.7)';
+            ctx.strokeStyle = 'rgba(77, 139, 255, 0.6)';
             ctx.lineWidth = 8;
             ctx.shadowColor = 'rgba(77, 139, 255, 0.5)';
             ctx.shadowBlur = 30;
             ctx.stroke();
 
-            // 🟥 (Правая нога) -> 🟠 (Живот) -> 🔵 (Правая рука)
+            // Правая нога -> Живот -> Правая рука
             ctx.beginPath();
             ctx.moveTo(nodes.rightLeg.x, nodes.rightLeg.y);
             ctx.quadraticCurveTo(nodes.center.x, nodes.center.y, nodes.rightArm.x, nodes.rightArm.y);
-            ctx.strokeStyle = 'rgba(255, 77, 77, 0.7)';
+            ctx.strokeStyle = 'rgba(255, 77, 77, 0.6)';
             ctx.lineWidth = 8;
             ctx.shadowColor = 'rgba(255, 77, 77, 0.5)';
             ctx.shadowBlur = 30;
@@ -284,10 +298,13 @@
             ctx.shadowBlur = 0;
         }
 
-        function drawNode(node, radius = 45) {
-            // Круглый фон
+        function drawNode(node, radius = 50, isSquare = false) {
             ctx.beginPath();
-            ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+            if (isSquare) {
+                ctx.roundRect(node.x - radius, node.y - radius, radius * 2, radius * 2, 12);
+            } else {
+                ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+            }
             ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
             ctx.fill();
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
@@ -297,19 +314,18 @@
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // Эмодзи и текст
-            ctx.font = '38px system-ui';
+            ctx.font = '42px system-ui';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(node.emoji, node.x, node.y - 8);
-            ctx.font = '13px system-ui';
+            ctx.font = '14px system-ui';
             ctx.fillStyle = '#e0d6ff';
-            ctx.fillText(node.label, node.x, node.y + 30);
+            ctx.fillText(node.label, node.x, node.y + 35);
         }
 
         function drawFeelings() {
             feelings.forEach(f => {
-                const r = 40;
+                const r = 45;
                 const isHeavy = f.type === 'heavy';
                 ctx.beginPath();
                 ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
@@ -322,25 +338,26 @@
                 ctx.stroke();
                 ctx.shadowBlur = 0;
 
-                ctx.font = '32px system-ui';
+                ctx.font = '34px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(f.emoji || (isHeavy ? '🏋️' : '🎈'), f.x, f.y - 8);
-                ctx.font = '12px system-ui';
+                ctx.font = '13px system-ui';
                 ctx.fillStyle = '#e0d6ff';
-                ctx.fillText(f.name || '', f.x, f.y + 24);
+                ctx.fillText(f.name || '', f.x, f.y + 25);
             });
         }
 
         function drawRoots() {
-            const rootY = h - 80;
             roots.forEach(r => {
                 const isHealthy = r.type === 'healthy';
                 const x = r.x || cx + (Math.random() - 0.5) * 120;
-                const y = rootY + 20 + Math.random() * 30;
+                const y = r.y || feelingEnd + 30 + Math.random() * 60;
+                
+                // Линия от центра земли к корню
                 ctx.beginPath();
-                ctx.moveTo(cx, rootY);
-                ctx.quadraticCurveTo(x - 30, rootY + 30, x, y);
+                ctx.moveTo(cx, feelingEnd);
+                ctx.quadraticCurveTo(x - 30, feelingEnd + 20, x, y);
                 ctx.strokeStyle = isHealthy ? '#2ecc71' : '#ff4d4d';
                 ctx.lineWidth = 6;
                 ctx.shadowColor = isHealthy ? 'rgba(46, 204, 113, 0.4)' : 'rgba(255, 77, 77, 0.4)';
@@ -348,8 +365,9 @@
                 ctx.stroke();
                 ctx.shadowBlur = 0;
 
+                // Узел корня
                 ctx.beginPath();
-                ctx.arc(x, y, 30, 0, Math.PI * 2);
+                ctx.arc(x, y, 35, 0, Math.PI * 2);
                 ctx.fillStyle = isHealthy ? 'rgba(46, 204, 113, 0.3)' : 'rgba(255, 77, 77, 0.3)';
                 ctx.fill();
                 ctx.strokeStyle = isHealthy ? '#2ecc71' : '#ff4d4d';
@@ -359,64 +377,90 @@
                 ctx.stroke();
                 ctx.shadowBlur = 0;
 
-                ctx.font = '28px system-ui';
+                ctx.font = '32px system-ui';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(r.emoji || (isHealthy ? '🌱' : '☠️'), x, y - 6);
-                ctx.font = '11px system-ui';
+                ctx.font = '12px system-ui';
                 ctx.fillStyle = '#e0d6ff';
-                ctx.fillText(r.name || '', x, y + 22);
+                ctx.fillText(r.name || '', x, y + 24);
             });
         }
 
         function gameLoop() {
             ctx.clearRect(0, 0, w, h);
-            drawSky();
-            drawClouds();
-            drawTrunk();
+            drawZones();
             drawFlows();
+            drawClouds();
             drawFeelings();
             drawRoots();
-            // Рисуем сами узлы поверх всего
-            drawNode(nodes.leftLeg);
-            drawNode(nodes.rightLeg);
-            drawNode(nodes.center);
-            drawNode(nodes.leftArm);
-            drawNode(nodes.rightArm);
+            // Рисуем узлы
+            drawNode(nodes.leftLeg, 45, true); // Квадрат
+            drawNode(nodes.rightLeg, 45, true); // Квадрат
+            drawNode(nodes.center, 55, false); // Круг
+            drawNode(nodes.leftArm, 50, false); // Круг
+            drawNode(nodes.rightArm, 50, false); // Круг
             requestAnimationFrame(gameLoop);
         }
 
-        // ========== ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ УЗЛОВ) ==========
+        // ========== ИНТЕРАКТИВНОСТЬ ==========
         function getPointerPos(e) {
             const rect = canvas.getBoundingClientRect();
             return { x: e.clientX - rect.left, y: e.clientY - rect.top };
         }
 
-        function checkNodeHit(pointer) {
-            const nodeKeys = ['leftLeg', 'rightLeg'];
-            for (let key of nodeKeys) {
-                const node = nodes[key];
-                if (Math.hypot(pointer.x - node.x, pointer.y - node.y) < 55) {
-                    return { key, node };
-                }
+        function checkHit(pointer) {
+            // Проверяем попадание в ноги (перетаскивание)
+            if (Math.hypot(pointer.x - nodes.leftLeg.x, pointer.y - nodes.leftLeg.y) < 60) return { type: 'node', key: 'leftLeg' };
+            if (Math.hypot(pointer.x - nodes.rightLeg.x, pointer.y - nodes.rightLeg.y) < 60) return { type: 'node', key: 'rightLeg' };
+            
+            // Проверяем корни (клик для преобразования)
+            for (let i = roots.length - 1; i >= 0; i--) {
+                const r = roots[i];
+                const x = r.x || cx;
+                const y = r.y || feelingEnd + 30;
+                if (Math.hypot(pointer.x - x, pointer.y - y) < 45) return { type: 'root', item: r };
             }
+
+            // Проверяем облака и чувства (перетаскивание)
+            for (let i = clouds.length - 1; i >= 0; i--) {
+                const c = clouds[i];
+                if (Math.hypot(pointer.x - c.x, pointer.y - c.y) < 55) return { type: 'cloud', item: c };
+            }
+            for (let i = feelings.length - 1; i >= 0; i--) {
+                const f = feelings[i];
+                if (Math.hypot(pointer.x - f.x, pointer.y - f.y) < 55) return { type: 'feeling', item: f };
+            }
+
+            // Если нажали на солнце
+            if (Math.hypot(pointer.x - cx, pointer.y - 50) < 60) return { type: 'sun' };
+
             return null;
         }
 
         canvas.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             const pos = getPointerPos(e);
-            // Проверяем попадание в ноги (они перетаскиваются)
-            const hit = checkNodeHit(pos);
-            if (hit) {
+            const hit = checkHit(pos);
+            if (!hit) return;
+
+            if (hit.type === 'sun') { openAddModal('cloud'); return; }
+            if (hit.type === 'root') { openRootModal(hit.item); return; }
+            if (hit.type === 'node') {
                 isDragging = true;
-                draggedNode = hit.node;
+                draggedNode = nodes[hit.key];
                 draggedIsNode = true;
                 startMouse = pos;
-                startNodePos = { x: hit.node.x, y: hit.node.y };
+                startNodePos = { x: draggedNode.x, y: draggedNode.y };
                 return;
             }
-            // Остальная логика: облака и т.д.
+            if (hit.type === 'cloud' || hit.type === 'feeling') {
+                isDragging = true;
+                draggedNode = hit.item;
+                draggedIsNode = false;
+                startMouse = pos;
+                startNodePos = { x: hit.item.x, y: hit.item.y };
+            }
         });
 
         window.addEventListener('pointermove', (e) => {
@@ -426,17 +470,23 @@
             const dx = pos.x - startMouse.x;
             const dy = pos.y - startMouse.y;
             
-            // Обновляем позицию перетаскиваемой ноги
-            draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
-            draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
+            if (draggedIsNode) {
+                // Двигаем ногу
+                draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
+                draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
 
-            // ВАЖНО: Двигаем связанную руку (симметричный отклик через центр)
-            if (draggedNode === nodes.leftLeg) {
-                nodes.leftArm.x = w - nodes.leftLeg.x;
-                nodes.leftArm.y = h - nodes.leftLeg.y;
-            } else if (draggedNode === nodes.rightLeg) {
-                nodes.rightArm.x = w - nodes.rightLeg.x;
-                nodes.rightArm.y = h - nodes.rightLeg.y;
+                // Двигаем связанную руку (прямой путь через центр)
+                if (draggedNode === nodes.leftLeg) {
+                    nodes.leftArm.x = w - nodes.leftLeg.x;
+                    nodes.leftArm.y = h - nodes.leftLeg.y;
+                } else if (draggedNode === nodes.rightLeg) {
+                    nodes.rightArm.x = w - nodes.rightLeg.x;
+                    nodes.rightArm.y = h - nodes.rightLeg.y;
+                }
+            } else {
+                // Двигаем облако или чувство
+                draggedNode.x = Math.max(20, Math.min(w - 20, startNodePos.x + dx));
+                draggedNode.y = Math.max(20, Math.min(h - 20, startNodePos.y + dy));
             }
             saveData();
         });
@@ -450,7 +500,7 @@
             }
         });
 
-        // ========== МОДАЛЬНЫЕ ОКНА (ДОБАВЛЕНИЕ) ==========
+        // ========== МОДАЛЬНЫЕ ОКНА ==========
         const addModal = document.getElementById('add-modal');
         const addTitle = document.getElementById('add-title');
         const inputEmoji = document.getElementById('input-emoji');
@@ -498,13 +548,13 @@
                 y: cy + (Math.random() - 0.5) * 200
             };
             if (addCategory === 'cloud') {
-                newItem.y = 60 + Math.random() * (h * 0.25);
+                newItem.y = 40 + Math.random() * 80; // старт в небе
                 clouds.push(newItem);
             } else if (addCategory === 'feeling') {
-                newItem.y = cy + (Math.random() - 0.5) * 120;
+                newItem.y = skyEnd + 30 + Math.random() * (feelingEnd - skyEnd - 60); // зона чувств
                 feelings.push(newItem);
             } else if (addCategory === 'root') {
-                newItem.x = cx + (Math.random() - 0.5) * 120;
+                newItem.y = feelingEnd + 20 + Math.random() * (h - feelingEnd - 40); // земля
                 roots.push(newItem);
             }
             saveData();
@@ -567,7 +617,7 @@
         resize();
         loadData();
         gameLoop();
-        console.log('🟣🦅 Уровень 5: Древо Жизни (исправлен масштаб и потоки) загружено!');
+        console.log('🟣🦅 Уровень 5: Древо Жизни (чистые зоны) загружено!');
     </script>
 </body>
 </html>
