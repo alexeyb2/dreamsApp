@@ -50,7 +50,7 @@
     scene.background = new THREE.Color(0x0b0814);
 
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-    camera.position.set(6, 3, 8);
+    camera.position.set(6, 2.5, 7);
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -94,15 +94,25 @@
         pivotGroup.add(line);
     });
 
-    // ============= ДАННЫЕ И СОХРАНЕНИЕ =============
+    // ============= ДАННЫЕ =============
     const STORAGE_KEY = 'highmind_level7_3d';
     let centerColor = '#ffcc00';
     let energyEnabled = true;
 
-    const botLeft  = { x: -1.2, y: -2.5, z: 1.2 }; const botRight = { x: 1.2, y: -2.5, z: 1.2 }; const botFront = { x: 0, y: -2.5, z: 1.8 };
-    const topLeft  = { x: -1.2, y: 1.5, z: -1.2 }; const topRight = { x: 1.2, y: 1.5, z: -1.2 }; const topBack  = { x: 0, y: 1.5, z: -1.8 };
+    // Нижний треугольник 🔺 (на земле, спереди)
+    const botLeft  = { x: -1.2, y: -2.5, z: 1.2 }; // 🔵
+    const botRight = { x: 1.2, y: -2.5, z: 1.2 }; // 🔴
+    const botFront = { x: 0,   y: -2.5, z: 1.8 }; // 🟠 (центр треугольника)
+
+    // Верхний треугольник 🔻 (на высоте, сзади)
+    const topLeft  = { x: -1.2, y: 1.0, z: -1.2 }; // 🟦
+    const topRight = { x: 1.2, y: 1.0, z: -1.2 }; // 🟥
+    const topBack  = { x: 0,   y: 1.0, z: -1.8 }; // 🟣 (центр треугольника)
+
+    // Шары
     const ballDown = { x: 0, y: -1.0, z: 0, emoji: '🎱', color: '#4d8bff' };
     const ballUp   = { x: 0, y: 1.0, z: 0, emoji: '🎈', color: '#ff4d4d' };
+
     let centerPos = new THREE.Vector3(0, 0, 0);
 
     function saveState() {
@@ -157,7 +167,7 @@
         return sprite;
     }
 
-    // Объекты на сцене
+    // Создаём спрайты
     const sprites = {};
     const createNode = (key, emoji, color, data) => {
         const s = createSprite(emoji, color);
@@ -174,7 +184,7 @@
     const ballDownSprite = createBallSprite('🎱', '#4d8bff'); ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z); pivotGroup.add(ballDownSprite);
     const ballUpSprite   = createBallSprite('🎈', '#ff4d4d'); ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z); pivotGroup.add(ballUpSprite);
 
-    // Центр 🟡 (с обновляемым цветом)
+    // Центр 🟡
     let centerSprite = createSprite('🟡', centerColor, 0.7);
     centerSprite.position.copy(centerPos); pivotGroup.add(centerSprite);
 
@@ -207,48 +217,49 @@
         dynamicMeshes.forEach(m => pivotGroup.remove(m));
         dynamicMeshes = [];
 
-        // Тетраэдры
+        // 1. Тетраэдры
+        // 🎱 (низ) + 🔻 (верхний треугольник)
         const apex1 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
         const base1 = [new THREE.Vector3(topLeft.x, topLeft.y, topLeft.z), new THREE.Vector3(topRight.x, topRight.y, topRight.z), new THREE.Vector3(topBack.x, topBack.y, topBack.z)];
         const t1 = buildTetra(apex1, base1, 0x4d8bff); pivotGroup.add(t1); dynamicMeshes.push(t1);
         const w1 = buildTetra(apex1, base1, 0x4d8bff); w1.material = new THREE.MeshBasicMaterial({ color: 0x4d8bff, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w1); dynamicMeshes.push(w1);
 
+        // 🎈 (верх) + 🔺 (нижний треугольник)
         const apex2 = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
         const base2 = [new THREE.Vector3(botLeft.x, botLeft.y, botLeft.z), new THREE.Vector3(botRight.x, botRight.y, botRight.z), new THREE.Vector3(botFront.x, botFront.y, botFront.z)];
         const t2 = buildTetra(apex2, base2, 0xff4d4d); pivotGroup.add(t2); dynamicMeshes.push(t2);
         const w2 = buildTetra(apex2, base2, 0xff4d4d); w2.material = new THREE.MeshBasicMaterial({ color: 0xff4d4d, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w2); dynamicMeshes.push(w2);
 
-        // ЛИНИИ ЧЕРЕЗ ЦЕНТР
-        const addLine = (p1, p2, color, opacity = 0.6) => {
+        // 2. Сквозные линии через 🟡 (видимые, яркие)
+        const addLine = (p1, p2, color, opacity = 0.8) => {
             const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p1.x, p1.y, p1.z), new THREE.Vector3(p2.x, p2.y, p2.z)]);
             const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
             const line = new THREE.Line(geom, mat); pivotGroup.add(line); dynamicMeshes.push(line);
         };
 
-        // Красная линия: 🟥 (верх-право) -> 🟡 -> 🔵 (низ-лево)
-        addLine(topRight, botLeft, 0xff4d4d, 0.8);
-        // Синяя линия: 🟦 (верх-лево) -> 🟡 -> 🔴 (низ-право)
-        addLine(topLeft, botRight, 0x4d8bff, 0.8);
-        // Золотая линия: 🎱 -> 🟡 -> 🎈 (цвет берём из centerColor)
+        // 🔥 Линия 1: 🎱 -> 🟡 -> 🎈 (Золотая/цвет центра)
         const goldColor = new THREE.Color(centerColor);
-        addLine(ballDown, ballUp, goldColor, 0.7);
+        addLine(ballDown, ballUp, goldColor, 0.8);
 
-        // ОБНОВЛЕНИЕ ПОЗИЦИИ ЦЕНТРА 🟡 (под влиянием натяжения)
-        const avgTopY = (topLeft.y + topRight.y + topBack.y) / 3 - 1.5;
-        const avgBotY = (botLeft.y + botRight.y + botFront.y) / 3 + 2.5;
-        let centerY = (avgTopY * 0.4 + avgBotY * 0.4);
-        centerY = Math.max(-0.8, Math.min(0.8, centerY));
-        centerPos.set(0, centerY, 0);
+        // 🔵 Линия 2: 🟦 (верх-лев) -> 🟡 -> 🔴 (низ-прав) -> Синяя
+        addLine(topLeft, botRight, 0x4d8bff, 0.8);
+
+        // 🔴 Линия 3: 🟥 (верх-прав) -> 🟡 -> 🔵 (низ-лев) -> Красная
+        addLine(topRight, botLeft, 0xff4d4d, 0.8);
+
+        // 🟡 Линия 4: 🔺 -> 🟡 -> 🔻 (Центр нижнего 🔺 к центру верхнего 🔻)
+        // Используем 🟠 (botFront) и 🟣 (topBack)
+        addLine(botFront, topBack, 0xffcc00, 0.8);
+
+        // Центр 🟡 всегда в 0,0,0
+        centerPos.set(0, 0, 0);
         centerSprite.position.copy(centerPos);
 
-        // БАЛАНС (чем ближе центр к 0 по Y, тем лучше)
-        const dist = Math.abs(centerY);
-        const balance = Math.max(0, 100 - (dist / 1.0) * 100);
-        document.getElementById('balance-fill').style.width = balance + '%';
-        document.getElementById('balance-fill').style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
-        
-        if (balance > 95) { centerSprite.scale.set(1.0, 1.0, 1); centerSprite.material.opacity = 1.0; } 
-        else { centerSprite.scale.set(0.8, 0.8, 1); centerSprite.material.opacity = 0.9; }
+        // Баланс (всегда идеальный, так как центр в 0)
+        document.getElementById('balance-fill').style.width = '100%';
+        document.getElementById('balance-fill').style.backgroundColor = '#2ecc71';
+        centerSprite.scale.set(1.2, 1.2, 1);
+        centerSprite.material.opacity = 1.0;
     }
 
     function updatePositions() {
@@ -312,7 +323,7 @@
     // ============= УПРАВЛЕНИЕ =============
     document.getElementById('reset-btn').addEventListener('click', () => {
         Object.assign(botLeft, { x: -1.2, y: -2.5, z: 1.2 }); Object.assign(botRight, { x: 1.2, y: -2.5, z: 1.2 }); Object.assign(botFront, { x: 0, y: -2.5, z: 1.8 });
-        Object.assign(topLeft, { x: -1.2, y: 1.5, z: -1.2 }); Object.assign(topRight, { x: 1.2, y: 1.5, z: -1.2 }); Object.assign(topBack, { x: 0, y: 1.5, z: -1.8 });
+        Object.assign(topLeft, { x: -1.2, y: 1.0, z: -1.2 }); Object.assign(topRight, { x: 1.2, y: 1.0, z: -1.2 }); Object.assign(topBack, { x: 0, y: 1.0, z: -1.8 });
         Object.assign(ballDown, { x: 0, y: -1.0, z: 0 }); Object.assign(ballUp, { x: 0, y: 1.0, z: 0 });
         saveState(); updatePositions();
     });
@@ -352,7 +363,7 @@
 
     updatePositions();
     animate();
-    console.log('🟣🦅 Уровень 7: Куб Сознания (исправленная структура + настройка цвета) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (точная геометрия + все сквозные линии) загружено!');
 </script>
 </body>
 </html>
