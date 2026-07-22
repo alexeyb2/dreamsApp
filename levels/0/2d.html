@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Уровень 7: Квадрат Сознания (2D)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif;
+            overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center;
+            touch-action: none; user-select: none;
+        }
+        #app {
+            width: 100%; max-width: 600px; height: 100vh; display: flex; flex-direction: column;
+            position: relative; background: radial-gradient(circle at center, #131022 0%, #08060e 100%);
+        }
+        #canvas {
+            flex: 1; width: 100%; display: block; cursor: grab; touch-action: none;
+        }
+        #canvas:active { cursor: grabbing; }
+        #ui {
+            position: absolute; bottom: 30px; left: 0; right: 0; display: flex;
+            flex-direction: column; align-items: center; gap: 10px; pointer-events: none;
+        }
+        #balance-bar {
+            width: 80%; height: 8px; background: #1a1530; border-radius: 10px;
+            overflow: hidden; border: 1px solid #3a2f5a;
+        }
+        #balance-fill {
+            height: 100%; width: 50%; background: #6f52c4; border-radius: 10px;
+            transition: width 0.1s;
+        }
+        .btn {
+            border: none; background: #2a2348; color: #b8a6ff;
+            padding: 10px 24px; border-radius: 30px; font-weight: 700; font-size: 14px;
+            cursor: pointer; pointer-events: auto; transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        .hint {
+            font-size: 13px; color: #8f78e6; text-align: center; opacity: 0.7;
+            padding: 0 10px; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <canvas id="canvas"></canvas>
+    <div id="ui">
+        <div id="balance-bar"><div id="balance-fill"></div></div>
+        <button class="btn" id="reset-btn">🔄 Сброс</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const balanceFill = document.getElementById('balance-fill');
+
+    let w, h, cx, cy;
+    // Четыре силы: вверх, вниз, влево, вправо
+    let forces = {
+        up:    { x: 0, y: -150, emoji: '🎈', color: '#ff4d4d', label: 'Вверх' },
+        down:  { x: 0, y: 150,  emoji: '🎱', color: '#4d8bff', label: 'Вниз' },
+        left:  { x: -150, y: 0,  emoji: '🔵', color: '#4d8bff', label: 'Влево' },
+        right: { x: 150, y: 0,   emoji: '🔴', color: '#ff4d4d', label: 'Вправо' }
+    };
+    let isDragging = false;
+    let draggedKey = null;
+    let dragStart = { x: 0, y: 0 };
+    let startPos = { x: 0, y: 0 };
+
+    // Зелёный шар в центре (источник)
+    let centerBall = { x: 0, y: 0, radius: 25, color: '#2ecc71' };
+
+    // Сохранение в localStorage
+    function saveState() {
+        const data = {
+            up: { x: forces.up.x, y: forces.up.y },
+            down: { x: forces.down.x, y: forces.down.y },
+            left: { x: forces.left.x, y: forces.left.y },
+            right: { x: forces.right.x, y: forces.right.y }
+        };
+        localStorage.setItem('highmind_level7_2d', JSON.stringify(data));
+    }
+
+    function loadState() {
+        const raw = localStorage.getItem('highmind_level7_2d');
+        if (!raw) return false;
+        try {
+            const data = JSON.parse(raw);
+            if (data.up) { forces.up.x = data.up.x; forces.up.y = data.up.y; }
+            if (data.down) { forces.down.x = data.down.x; forces.down.y = data.down.y; }
+            if (data.left) { forces.left.x = data.left.x; forces.left.y = data.left.y; }
+            if (data.right) { forces.right.x = data.right.x; forces.right.y = data.right.y; }
+            return true;
+        } catch(e) { return false; }
+    }
+
+    function resize() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        w = canvas.width; h = canvas.height;
+        cx = w / 2; cy = h / 2;
+        centerBall.x = cx; centerBall.y = cy;
+
+        // Если координаты не загружены, ставим по умолчанию
+        if (!loadState()) {
+            forces.up.x = cx; forces.up.y = cy - 150;
+            forces.down.x = cx; forces.down.y = cy + 150;
+            forces.left.x = cx - 150; forces.left.y = cy;
+            forces.right.x = cx + 150; forces.right.y = cy;
+            saveState();
+        } else {
+            // Убедимся, что силы в пределах экрана
+            Object.keys(forces).forEach(key => {
+                forces[key].x = Math.max(20, Math.min(w-20, forces[key].x));
+                forces[key].y = Math.max(20, Math.min(h-20, forces[key].y));
+            });
+        }
+    }
+
+    window.addEventListener('resize', resize);
+
+    function draw() {
+        ctx.clearRect(0, 0, w, h);
+
+        // 1. Рисуем квадрат (контур человека)
+        const size = Math.min(w, h) * 0.5;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx - size/2, cy - size/2, size, size);
+
+        // 2. Диагонали квадрата
+        ctx.beginPath();
+        ctx.moveTo(cx - size/2, cy - size/2);
+        ctx.lineTo(cx + size/2, cy + size/2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + size/2, cy - size/2);
+        ctx.lineTo(cx - size/2, cy + size/2);
+        ctx.stroke();
+
+        // 3. Оси X и Y (пунктирные)
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 4. Линии от сил к центру
+        Object.keys(forces).forEach(key => {
+            const f = forces[key];
+            ctx.beginPath();
+            ctx.moveTo(f.x, f.y);
+            ctx.lineTo(cx, cy);
+            ctx.strokeStyle = f.color + '66';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        });
+
+        // 5. Зелёный шар в центре (источник)
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = '#2ecc71';
+        ctx.beginPath();
+        ctx.arc(centerBall.x, centerBall.y, centerBall.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#2ecc71';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // 6. Силы (перетаскиваемые)
+        Object.keys(forces).forEach(key => {
+            const f = forces[key];
+            // Тень
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = f.color;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, 35, 0, Math.PI * 2);
+            ctx.fillStyle = f.color + '44';
+            ctx.fill();
+            ctx.strokeStyle = f.color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            // Эмодзи
+            ctx.font = '40px system-ui';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(f.emoji, f.x, f.y - 4);
+            // Подпись
+            ctx.font = '14px system-ui';
+            ctx.fillStyle = '#e0d6ff';
+            ctx.fillText(f.label, f.x, f.y + 45);
+        });
+
+        // 7. Вычисляем баланс
+        // Суммарный вектор сил относительно центра
+        let sumX = 0, sumY = 0;
+        Object.keys(forces).forEach(key => {
+            const f = forces[key];
+            const dx = f.x - cx;
+            const dy = f.y - cy;
+            sumX += dx;
+            sumY += dy;
+        });
+        // Нормализуем баланс в процентах (0-100), где 100 - идеальный баланс (сумма близка к нулю)
+        const maxDist = Math.min(w, h) * 0.4;
+        const dist = Math.sqrt(sumX*sumX + sumY*sumY);
+        const balance = Math.max(0, 100 - (dist / maxDist) * 100);
+        balanceFill.style.width = balance + '%';
+        balanceFill.style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
+
+        // Если баланс идеальный, центр загорается ярче
+        if (balance > 95) {
+            ctx.shadowBlur = 60;
+            ctx.shadowColor = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(centerBall.x, centerBall.y, centerBall.radius+5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    // ============= ИНТЕРАКТИВНОСТЬ =============
+    function getPointerPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function hitTest(pos) {
+        const tolerance = 40;
+        for (let key in forces) {
+            const f = forces[key];
+            if (Math.hypot(pos.x - f.x, pos.y - f.y) < tolerance) return key;
+        }
+        return null;
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const pos = getPointerPos(e);
+        const hit = hitTest(pos);
+        if (hit) {
+            isDragging = true;
+            draggedKey = hit;
+            dragStart = pos;
+            startPos = { x: forces[hit].x, y: forces[hit].y };
+            canvas.style.cursor = 'grabbing';
+        }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (!isDragging || !draggedKey) return;
+        e.preventDefault();
+        const pos = getPointerPos(e);
+        const dx = pos.x - dragStart.x;
+        const dy = pos.y - dragStart.y;
+        forces[draggedKey].x = Math.max(20, Math.min(w-20, startPos.x + dx));
+        forces[draggedKey].y = Math.max(20, Math.min(h-20, startPos.y + dy));
+        saveState();
+        draw();
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (isDragging) {
+            isDragging = false;
+            draggedKey = null;
+            canvas.style.cursor = 'grab';
+        }
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        forces.up.x = cx; forces.up.y = cy - 150;
+        forces.down.x = cx; forces.down.y = cy + 150;
+        forces.left.x = cx - 150; forces.left.y = cy;
+        forces.right.x = cx + 150; forces.right.y = cy;
+        saveState();
+        draw();
+    });
+
+    function loop() {
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    resize();
+    loop();
+    console.log('🟣🦅 Уровень 7: Квадрат Сознания (2D) загружено!');
+</script>
+</body>
+</html>
