@@ -22,6 +22,7 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
 </head>
 <body>
 <div id="canvas-container"></div>
@@ -58,6 +59,14 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     container.appendChild(renderer.domElement);
+
+    const labelRenderer = new THREE.CSS2DRenderer();
+    labelRenderer.setSize(container.clientWidth, container.clientHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0';
+    labelRenderer.domElement.style.left = '0';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    container.appendChild(labelRenderer.domElement);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.05;
@@ -100,7 +109,7 @@
     let energyEnabled = true;
     let time = 0;
 
-    // Базовые позиции (сохраняемые, без маятника)
+    // Базовые позиции
     const baseNodes = {
         botBackLeft:  { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
         botBackRight: { x: 1.2, y: -2.5, z: -1.2 }, // 🟥
@@ -111,15 +120,14 @@
         ballUp:       { x: 0,   y: 1.0, z: 0 }       // 🎈
     };
 
-    // Текущие позиции (включая маятник)
     const currentNodes = JSON.parse(JSON.stringify(baseNodes));
-    // Добавляем позицию для ballDown (гиря) — она будет вычисляться маятником
     const ballDown = { x: 0, y: -1.0, z: 0 };
-    // Скорость маятника
     const pendulumVel = { x: 0, y: 0, z: 0 };
 
     let centerPos = new THREE.Vector3(0, 0, 0);
-    const pendulumLength = 1.0; // длина верёвки
+    let isCenterDragged = false;
+    let draggedCenterPos = { x: 0, y: 0, z: 0 };
+    const pendulumLength = 1.0;
 
     function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(baseNodes));
@@ -136,22 +144,16 @@
     if (!loadState()) saveState();
 
     // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
-    function createSprite(emoji, color, scale = 0.6, subLabel = '') {
+    function createSprite(emoji, color, scale = 0.6) {
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
-        ctx.font = '90px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+        ctx.font = '100px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.shadowColor = color; ctx.shadowBlur = 20;
-        ctx.fillText(emoji, 128, 110);
+        ctx.fillText(emoji, 128, 128);
         ctx.shadowBlur = 0;
-        if (subLabel) {
-            ctx.font = 'bold 22px sans-serif';
-            ctx.fillStyle = '#e0d6ff';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-            ctx.fillText(subLabel, 128, 230);
-        }
         const tex = new THREE.CanvasTexture(canvas);
         const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
         const sprite = new THREE.Sprite(mat);
@@ -159,9 +161,26 @@
         return sprite;
     }
 
+    function createLabel(text, parentPos, offsetY = -0.6) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        div.style.color = '#b8a6ff';
+        div.style.fontSize = '16px';
+        div.style.fontWeight = '600';
+        div.style.textShadow = '0 0 10px rgba(0,0,0,0.9)';
+        div.style.background = 'rgba(22,17,39,0.7)';
+        div.style.padding = '2px 12px';
+        div.style.borderRadius = '12px';
+        div.style.border = '1px solid #3a2f5a';
+        div.style.backdropFilter = 'blur(4px)';
+        const label = new THREE.CSS2DObject(div);
+        label.position.set(parentPos.x, parentPos.y + offsetY, parentPos.z);
+        return label;
+    }
+
     const sprites = {};
-    const createNode = (key, emoji, color, data, label = '') => {
-        const s = createSprite(emoji, color, key === 'ballUp' ? 1.6 : 0.6, label);
+    const createNode = (key, emoji, color, data) => {
+        const s = createSprite(emoji, color, key === 'ballUp' ? 1.6 : 0.6);
         s.position.set(data.x, data.y, data.z);
         pivotGroup.add(s);
         sprites[key] = s;
@@ -172,14 +191,18 @@
     createNode('topFrontLeft', '🔵', '#4d8bff', currentNodes.topFrontLeft);
     createNode('topFrontRight', '🔴', '#ff4d4d', currentNodes.topFrontRight);
     createNode('topBack', '🔻', '#9b59b6', currentNodes.topBack);
-    createNode('ballUp', '🎈', '#ff4d4d', currentNodes.ballUp, 'Верхний тетраэдр');
+    createNode('ballUp', '🎈', '#ff4d4d', currentNodes.ballUp);
 
-    // Спрайт для маятника (гиря 🎱)
-    const ballDownSprite = createSprite('🎱', '#4d8bff', 1.6, 'Нижний тетраэдр');
+    const ballDownSprite = createSprite('🎱', '#4d8bff', 1.6);
     ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
     pivotGroup.add(ballDownSprite);
 
-    // Центр 🟡
+    const labelTop = createLabel('Верхний тетраэдр', currentNodes.ballUp, -0.7);
+    pivotGroup.add(labelTop);
+    const labelBottom = createLabel('Нижний тетраэдр', ballDown, -0.7);
+    pivotGroup.add(labelBottom);
+
+    // Центр 🟡 (можно перетаскивать)
     let centerSprite = createSprite('🟡', centerColor, 0.7);
     centerSprite.position.copy(centerPos); pivotGroup.add(centerSprite);
 
@@ -212,8 +235,6 @@
         dynamicMeshes.forEach(m => pivotGroup.remove(m));
         dynamicMeshes = [];
 
-        // === ТЕТРАЭДРЫ ===
-        // Нижний тетраэдр: apex = 🎱 (ballDown), base = 🟦, 🟥, 🔺
         const apex1 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
         const base1 = [
             new THREE.Vector3(currentNodes.botBackLeft.x, currentNodes.botBackLeft.y, currentNodes.botBackLeft.z),
@@ -223,7 +244,6 @@
         const t1 = buildTetra(apex1, base1, 0x4d8bff); pivotGroup.add(t1); dynamicMeshes.push(t1);
         const w1 = buildTetra(apex1, base1, 0x4d8bff); w1.material = new THREE.MeshBasicMaterial({ color: 0x4d8bff, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w1); dynamicMeshes.push(w1);
 
-        // Верхний тетраэдр: apex = 🎈 (ballUp), base = 🔵, 🔴, 🔻
         const apex2 = new THREE.Vector3(currentNodes.ballUp.x, currentNodes.ballUp.y, currentNodes.ballUp.z);
         const base2 = [
             new THREE.Vector3(currentNodes.topFrontLeft.x, currentNodes.topFrontLeft.y, currentNodes.topFrontLeft.z),
@@ -233,7 +253,6 @@
         const t2 = buildTetra(apex2, base2, 0xff4d4d); pivotGroup.add(t2); dynamicMeshes.push(t2);
         const w2 = buildTetra(apex2, base2, 0xff4d4d); w2.material = new THREE.MeshBasicMaterial({ color: 0xff4d4d, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w2); dynamicMeshes.push(w2);
 
-        // === ТОЛСТЫЕ ЛИНИИ (цилиндры) ===
         const createThickLine = (start, end, color, opacity = 0.9) => {
             const dir = new THREE.Vector3().copy(end).sub(start);
             const length = dir.length();
@@ -255,76 +274,50 @@
         };
 
         const goldColor = new THREE.Color(centerColor);
-
-        // 🎱 (ballDown) -> 🟡 -> 🎈 (ballUp) — золотая вертикаль
         addThroughCenter(ballDown, currentNodes.ballUp, goldColor, 0.9);
-
-        // 🟥 (низ-зад-прав) -> 🟡 -> 🔵 (верх-пер-лев) — красная
         addThroughCenter(currentNodes.botBackRight, currentNodes.topFrontLeft, 0xff4d4d, 0.8);
-        // 🟦 (низ-зад-лев) -> 🟡 -> 🔴 (верх-пер-прав) — синяя
         addThroughCenter(currentNodes.botBackLeft, currentNodes.topFrontRight, 0x4d8bff, 0.8);
-        // 🔺 (низ-пер) -> 🟡 -> 🔻 (верх-зад) — связующая
         addThroughCenter(currentNodes.botFront, currentNodes.topBack, 0xffcc00, 0.8);
     }
 
     // ============= ФИЗИКА МАЯТНИКА =============
     function updatePendulum(deltaTime) {
-        // Позиция подвеса — 🟡
         const pivot = centerPos;
-        // Текущая позиция груза
         const mass = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
-        // Вектор от подвеса к грузу
         const r = new THREE.Vector3().copy(mass).sub(pivot);
         const dist = r.length();
-        if (dist < 0.001) {
-            // Если груз совпадает с подвесом, смещаем его вниз
-            r.set(0, -1, 0);
-            dist = 1;
-        }
-        // Целевая позиция: на расстоянии pendulumLength от подвеса в том же направлении
+        if (dist < 0.001) { r.set(0, -1, 0); }
         const target = new THREE.Vector3().copy(pivot).add(r.clone().normalize().multiplyScalar(pendulumLength));
 
-        // Уравнение движения: возвращающая сила пропорциональна отклонению от цели, плюс демпфирование
         const stiffness = 8.0;
         const damping = 1.5;
         const force = new THREE.Vector3().copy(target).sub(mass).multiplyScalar(stiffness);
-        // Демпфирование
         const vel = new THREE.Vector3(pendulumVel.x, pendulumVel.y, pendulumVel.z);
         force.sub(vel.clone().multiplyScalar(damping));
 
-        // Обновляем скорость (массу считаем 1)
         vel.add(force.multiplyScalar(deltaTime));
-        // Ограничиваем скорость, чтобы не улетела
         const maxSpeed = 5.0;
         if (vel.length() > maxSpeed) vel.normalize().multiplyScalar(maxSpeed);
 
-        // Обновляем позицию
         mass.add(vel.clone().multiplyScalar(deltaTime));
 
-        // Принудительно корректируем длину (удерживаем на верёвке)
         const newR = new THREE.Vector3().copy(mass).sub(pivot);
         const newDist = newR.length();
         if (newDist > 0.001) {
             const correction = newR.clone().normalize().multiplyScalar(newDist - pendulumLength);
             mass.sub(correction);
-            // Корректируем скорость перпендикулярно верёвке
             const perp = newR.clone().normalize();
             const vPerp = vel.dot(perp);
             vel.sub(perp.clone().multiplyScalar(vPerp));
         }
 
-        // Сохраняем в состояние
-        ballDown.x = mass.x;
-        ballDown.y = mass.y;
-        ballDown.z = mass.z;
-        pendulumVel.x = vel.x;
-        pendulumVel.y = vel.y;
-        pendulumVel.z = vel.z;
+        ballDown.x = mass.x; ballDown.y = mass.y; ballDown.z = mass.z;
+        pendulumVel.x = vel.x; pendulumVel.y = vel.y; pendulumVel.z = vel.z;
     }
 
     // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
     function updatePositions(deltaTime) {
-        // Копируем базовые позиции в текущие (кроме ballDown)
+        // Копируем базовые позиции в текущие
         currentNodes.botBackLeft.x = baseNodes.botBackLeft.x;
         currentNodes.botBackRight.x = baseNodes.botBackRight.x;
         currentNodes.botFront.x = baseNodes.botFront.x;
@@ -333,7 +326,6 @@
         currentNodes.topBack.x = baseNodes.topBack.x;
         currentNodes.ballUp.x = baseNodes.ballUp.x;
 
-        // Обновляем спрайты для всех точек, кроме ballDown
         sprites['botBackLeft'].position.set(currentNodes.botBackLeft.x, currentNodes.botBackLeft.y, currentNodes.botBackLeft.z);
         sprites['botBackRight'].position.set(currentNodes.botBackRight.x, currentNodes.botBackRight.y, currentNodes.botBackRight.z);
         sprites['botFront'].position.set(currentNodes.botFront.x, currentNodes.botFront.y, currentNodes.botFront.z);
@@ -341,33 +333,31 @@
         sprites['topFrontRight'].position.set(currentNodes.topFrontRight.x, currentNodes.topFrontRight.y, currentNodes.topFrontRight.z);
         sprites['topBack'].position.set(currentNodes.topBack.x, currentNodes.topBack.y, currentNodes.topBack.z);
         sprites['ballUp'].position.set(currentNodes.ballUp.x, currentNodes.ballUp.y, currentNodes.ballUp.z);
+        labelTop.position.set(currentNodes.ballUp.x, currentNodes.ballUp.y - 0.7, currentNodes.ballUp.z);
+        labelBottom.position.set(ballDown.x, ballDown.y - 0.7, ballDown.z);
 
-        // Вычисляем позицию центра 🟡 (среднее всех точек, включая ballDown и ballUp)
-        const allPoints = [
-            currentNodes.botBackLeft, currentNodes.botBackRight, currentNodes.botFront,
-            currentNodes.topFrontLeft, currentNodes.topFrontRight, currentNodes.topBack,
-            currentNodes.ballUp,
-            ballDown // включаем маятник
-        ];
-        centerPos.set(0, 0, 0);
-        allPoints.forEach(p => {
-            centerPos.x += p.x;
-            centerPos.y += p.y;
-            centerPos.z += p.z;
-        });
-        centerPos.divideScalar(allPoints.length);
+        // Центр
+        if (!isCenterDragged) {
+            const allPoints = [
+                currentNodes.botBackLeft, currentNodes.botBackRight, currentNodes.botFront,
+                currentNodes.topFrontLeft, currentNodes.topFrontRight, currentNodes.topBack,
+                currentNodes.ballUp, ballDown
+            ];
+            centerPos.set(0, 0, 0);
+            allPoints.forEach(p => {
+                centerPos.x += p.x; centerPos.y += p.y; centerPos.z += p.z;
+            });
+            centerPos.divideScalar(allPoints.length);
+        } else {
+            centerPos.set(draggedCenterPos.x, draggedCenterPos.y, draggedCenterPos.z);
+        }
         centerSprite.position.copy(centerPos);
 
-        // Обновляем физику маятника
         updatePendulum(deltaTime);
-
-        // Обновляем спрайт маятника
         ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
 
-        // Перестраиваем тетраэдры и линии
         updateStructure();
 
-        // Баланс: расстояние центра от (0,0,0)
         const dist = centerPos.length();
         const maxDist = 3.0;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
@@ -383,13 +373,12 @@
         }
     }
 
-    // ============= ИНТЕРАКТИВНОСТЬ (перетаскивание) =============
+    // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ) =============
     const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
     let isDragging = false, draggedKey = null, dragOffset = new THREE.Vector3(), intersectPlane = new THREE.Plane();
 
     function getPointerNDC(e) { const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1; }
 
-    // Только перетаскиваемые точки (без ballDown)
     const draggableList = [
         { key: 'topFrontLeft', data: baseNodes.topFrontLeft },
         { key: 'topFrontRight', data: baseNodes.topFrontRight },
@@ -397,13 +386,14 @@
         { key: 'botBackLeft', data: baseNodes.botBackLeft },
         { key: 'botBackRight', data: baseNodes.botBackRight },
         { key: 'botFront', data: baseNodes.botFront },
-        { key: 'ballUp', data: baseNodes.ballUp }
+        { key: 'ballUp', data: baseNodes.ballUp },
+        { key: 'center', data: draggedCenterPos }
     ];
     const spriteMap = {
         'topFrontLeft': sprites.topFrontLeft, 'topFrontRight': sprites.topFrontRight,
         'topBack': sprites.topBack, 'botBackLeft': sprites.botBackLeft,
         'botBackRight': sprites.botBackRight, 'botFront': sprites.botFront,
-        'ballUp': sprites.ballUp
+        'ballUp': sprites.ballUp, 'center': centerSprite
     };
 
     renderer.domElement.addEventListener('pointerdown', (e) => {
@@ -418,6 +408,7 @@
                 const point = intersects[0].point; dragOffset.copy(point).sub(hitSprite.position);
                 const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
                 intersectPlane.setFromNormalAndCoplanarPoint(camDir, point);
+                if (draggedKey === 'center') isCenterDragged = true;
             }
         }
     });
@@ -438,7 +429,16 @@
         }
     });
     window.addEventListener('pointerup', () => {
-        if (isDragging) { isDragging = false; draggedKey = null; controls.enabled = true; renderer.domElement.style.cursor = 'default'; saveState(); }
+        if (isDragging) {
+            if (draggedKey === 'center') {
+                isCenterDragged = false; // отпускаем, чтобы снова следовал за средним, если нужно
+                // если хочешь оставить вручную, закомментируй isCenterDragged = false
+                // но ты просил двигать его пальцем, он должен оставаться там, пока не нажмут "Сброс"
+                // оставим isCenterDragged = true, чтобы он не слетал назад
+                isCenterDragged = true;
+            }
+            isDragging = false; draggedKey = null; controls.enabled = true; renderer.domElement.style.cursor = 'default'; saveState();
+        }
     });
 
     // ============= УПРАВЛЕНИЕ =============
@@ -450,7 +450,8 @@
         Object.assign(baseNodes.topFrontRight, { x: 1.2, y: 1.0, z: 1.2 });
         Object.assign(baseNodes.topBack, { x: 0, y: 1.0, z: -1.2 });
         Object.assign(baseNodes.ballUp, { x: 0, y: 1.0, z: 0 });
-        // Сброс маятника в исходное положение
+        isCenterDragged = false;
+        draggedCenterPos.x = 0; draggedCenterPos.y = 0; draggedCenterPos.z = 0;
         ballDown.x = 0; ballDown.y = -1.0; ballDown.z = 0;
         pendulumVel.x = 0; pendulumVel.y = 0; pendulumVel.z = 0;
         saveState();
@@ -482,26 +483,25 @@
         prevTime = currentTime;
 
         time += delta;
-
-        // Плавное качание всей конструкции
         pivotGroup.rotation.y = Math.sin(time * 0.3) * 0.04;
 
-        // Обновляем позиции с физикой маятника
         updatePositions(delta);
 
         controls.update();
         renderer.render(scene, camera);
+        labelRenderer.render(scene, camera);
     }
 
     window.addEventListener('resize', () => {
-        camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight);
+        camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        labelRenderer.setSize(container.clientWidth, container.clientHeight);
     });
 
-    // Инициализация
     updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (маятник 🎱 на верёвке) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (центр 🟡 перетаскивается, гиря качается) загружено!');
 </script>
 </body>
 </html>
