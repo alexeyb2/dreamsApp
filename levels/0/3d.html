@@ -53,12 +53,12 @@
     dirLight.castShadow = true;
     scene.add(dirLight);
 
-    // Сетка пола (прозрачная)
+    // Сетка пола
     const gridHelper = new THREE.GridHelper(10, 10, 0x6f52c4, 0x3a2f5a);
     gridHelper.position.y = -2.5;
     scene.add(gridHelper);
 
-    // ============= КУБ И ДИАГОНАЛИ (статика) =============
+    // ============= КУБ И ДИАГОНАЛИ =============
     const cubeSize = 5.5;
     const cubeGeom = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
     const cubeEdges = new THREE.EdgesGeometry(cubeGeom);
@@ -81,21 +81,20 @@
         scene.add(line);
     });
 
-    // ============= ДАННЫЕ И СОХРАНЕНИЕ =============
+    // ============= ИСПРАВЛЕННАЯ ГЕОМЕТРИЯ =============
     const STORAGE_KEY = 'highmind_level7_3d';
 
-    // Вершины тетраэдров (перетаскиваемые)
-    // Верхний тетраэдр (🔻): 🟦 слева, 🟥 справа, 🟣 сзади
-    const topLeft  = { x: -1.2, y: 1.0, z: 1.2 }; // 🟦
-    const topRight = { x: 1.2, y: 1.0, z: 1.2 }; // 🟥
-    const topBack  = { x: 0,   y: 1.0, z: -1.2 }; // 🟣
+    // 🔺 НИЖНИЙ ТРЕУГОЛЬНИК (на земле, СПЕРЕДИ)
+    const botLeft  = { x: -1.2, y: -2.5, z: 1.2 }; // 🔵
+    const botRight = { x: 1.2, y: -2.5, z: 1.2 }; // 🔴
+    const botFront = { x: 0, y: -2.5, z: 1.8 };   // 🟠
 
-    // Нижний тетраэдр (🔺): 🔵 слева-сзади, 🔴 справа-сзади, 🟠 спереди
-    const botLeft  = { x: -1.2, y: -2.5, z: -1.2 }; // 🔵
-    const botRight = { x: 1.2, y: -2.5, z: -1.2 }; // 🔴
-    const botFront = { x: 0,   y: -2.5, z: 1.2 }; // 🟠
+    // 🔻 ВЕРХНИЙ ТРЕУГОЛЬНИК (наверху, СЗАДИ)
+    const topLeft  = { x: -1.2, y: 1.5, z: -1.2 }; // 🟦
+    const topRight = { x: 1.2, y: 1.5, z: -1.2 }; // 🟥
+    const topBack  = { x: 0, y: 1.5, z: -1.8 };   // 🟣
 
-    // Шары 🎱 (внизу) и 🎈 (вверху)
+    // Шары
     const ballDown = { x: 0, y: -1.0, z: 0, emoji: '🎱', color: '#4d8bff' };
     const ballUp   = { x: 0, y: 1.0, z: 0, emoji: '🎈', color: '#ff4d4d' };
 
@@ -165,7 +164,6 @@
         return sprite;
     }
 
-    // Маппинг для перетаскивания
     const draggableObjects = [];
 
     const topLeftSprite  = createSprite('🟦', '#4d8bff'); topLeftSprite.position.set(topLeft.x, topLeft.y, topLeft.z); scene.add(topLeftSprite); draggableObjects.push({ key: 'topLeft',  sprite: topLeftSprite,  data: topLeft });
@@ -179,214 +177,111 @@
     const ballDownSprite = createBallSprite('🎱', '#4d8bff'); ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z); scene.add(ballDownSprite); draggableObjects.push({ key: 'ballDown', sprite: ballDownSprite, data: ballDown });
     const ballUpSprite   = createBallSprite('🎈', '#ff4d4d'); ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z); scene.add(ballUpSprite); draggableObjects.push({ key: 'ballUp',   sprite: ballUpSprite,   data: ballUp });
 
-    // Центральный зелёный шар (не перетаскивается, он "держится" структурой)
+    // Центральный зелёный шар (подвижный, на линии между 🎱 и 🎈)
     const centerSprite = createSprite('🟢', '#2ecc71', 0.7);
     centerSprite.position.copy(centerPos);
     scene.add(centerSprite);
 
-    // ============= ЛИНИИ СВЯЗЕЙ (ДИНАМИЧЕСКИЕ) =============
+    // ============= ГРАНИ ТЕТРАЭДРОВ И ЛИНИИ =============
+    let tetraMeshes = [];
     let lineMeshes = [];
 
-    function updateLines() {
+    function buildTetra(apex, baseVerts, color) {
+        const v = [apex, baseVerts[0], baseVerts[1], baseVerts[2]];
+        const pos = [
+            v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z, // основание
+            v[0].x, v[0].y, v[0].z, v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z, // грань 1
+            v[0].x, v[0].y, v[0].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z, // грань 2
+            v[0].x, v[0].y, v[0].z, v[3].x, v[3].y, v[3].z, v[1].x, v[1].y, v[1].z  // грань 3
+        ];
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geom.computeVertexNormals();
+
+        const glassMat = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.12,
+            side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(geom, glassMat);
+        return mesh;
+    }
+
+    function updateStructure() {
+        // Удаляем старые меши
+        tetraMeshes.forEach(m => scene.remove(m));
         lineMeshes.forEach(l => scene.remove(l));
+        tetraMeshes = [];
         lineMeshes = [];
 
-        const addLine = (p1, color) => {
-            const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p1.x, p1.y, p1.z), centerPos]);
-            const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.4 });
-            const line = new THREE.Line(geom, mat);
-            scene.add(line);
-            lineMeshes.push(line);
-        };
+        // ===== ГРАНИ ТЕТРАЭДРОВ =====
+        // Тетраэдр 1: 🎱 + Верхний треугольник (🔻) -> Синий
+        const apex1 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
+        const base1 = [
+            new THREE.Vector3(topLeft.x, topLeft.y, topLeft.z),
+            new THREE.Vector3(topRight.x, topRight.y, topRight.z),
+            new THREE.Vector3(topBack.x, topBack.y, topBack.z)
+        ];
+        const tetra1 = buildTetra(apex1, base1, 0x4d8bff);
+        scene.add(tetra1); tetraMeshes.push(tetra1);
+        // Каркас
+        const wire1 = buildTetra(apex1, base1, 0x4d8bff);
+        wire1.material = new THREE.MeshBasicMaterial({ color: 0x4d8bff, wireframe: true, transparent: true, opacity: 0.3 });
+        scene.add(wire1); tetraMeshes.push(wire1);
 
-        const addLineBetween = (p1, p2, color) => {
+        // Тетраэдр 2: 🎈 + Нижний треугольник (🔺) -> Красный
+        const apex2 = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
+        const base2 = [
+            new THREE.Vector3(botLeft.x, botLeft.y, botLeft.z),
+            new THREE.Vector3(botRight.x, botRight.y, botRight.z),
+            new THREE.Vector3(botFront.x, botFront.y, botFront.z)
+        ];
+        const tetra2 = buildTetra(apex2, base2, 0xff4d4d);
+        scene.add(tetra2); tetraMeshes.push(tetra2);
+        const wire2 = buildTetra(apex2, base2, 0xff4d4d);
+        wire2.material = new THREE.MeshBasicMaterial({ color: 0xff4d4d, wireframe: true, transparent: true, opacity: 0.3 });
+        scene.add(wire2); tetraMeshes.push(wire2);
+
+        // ===== СКВОЗНЫЕ ПЕРЕКРЕСТНЫЕ ЛИНИИ (X) =====
+        const addLine = (p1, p2, color, opacity = 0.5) => {
             const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p1.x, p1.y, p1.z), new THREE.Vector3(p2.x, p2.y, p2.z)]);
-            const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.4 });
+            const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: opacity });
             const line = new THREE.Line(geom, mat);
             scene.add(line);
             lineMeshes.push(line);
         };
 
-        // Вертикальный луч жизни: 🎱 -> 🟢 -> 🎈
-        addLine(ballDown, '#4d8bff');
-        addLine(ballUp, '#ff4d4d');
+        // 🔵 (низ-лево) <-> 🟥 (верх-право) -> Синяя линия (сквозь)
+        addLine(botLeft, topRight, 0x4d8bff, 0.6);
+        // 🔴 (низ-право) <-> 🟦 (верх-лево) -> Красная линия (сквозь)
+        addLine(botRight, topLeft, 0xff4d4d, 0.6);
+        // 🟠 (низ-центр) <-> 🟣 (верх-центр) -> Белая/золотая линия (сквозь)
+        addLine(botFront, topBack, 0xffcc00, 0.5);
 
-        // Верхний тетраэдр (🎱 с верхними точками)
-        addLineBetween(ballDown, topLeft, '#4d8bff');
-        addLineBetween(ballDown, topRight, '#ff4d4d');
-        addLineBetween(ballDown, topBack, '#9b59b6');
+        // ===== ВЕРТИКАЛЬНАЯ ЛИНИЯ ОТ 🎱 ДО 🎈 =====
+        addLine(ballDown, ballUp, 0x88bbff, 0.2);
 
-        // Нижний тетраэдр (🎈 с нижними точками)
-        addLineBetween(ballUp, botLeft, '#4d8bff');
-        addLineBetween(ballUp, botRight, '#ff4d4d');
-        addLineBetween(ballUp, botFront, '#e67e22');
+        // ===== 🟢 НА ЛИНИИ МЕЖДУ 🎱 И 🎈 =====
+        // Вычисляем смещение 🟢 от идеального центра (0,0,0) под влиянием верхних и нижних точек
+        const avgTopY = (topLeft.y + topRight.y + topBack.y) / 3;
+        const avgBotY = (botLeft.y + botRight.y + botFront.y) / 3;
+        const pullUp = avgTopY - 1.5; // насколько верхний треугольник поднялся/опустился
+        const pullDown = avgBotY + 2.5; // насколько нижний треугольник поднялся/опустился
 
-        // Перекрестные связи (X)
-        // 🟦 (верх-лево) -> 🔴 (низ-право) = синяя
-        addLineBetween(topLeft, botRight, '#4d8bff');
-        // 🟥 (верх-право) -> 🔵 (низ-лево) = красная
-        addLineBetween(topRight, botLeft, '#ff4d4d');
-        // 🟣 (верх-сзади) -> 🟠 (низ-спереди) = фиолетово-оранжевая (для симметрии)
-        addLineBetween(topBack, botFront, '#9b59b6');
-    }
-
-    // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
-    function updatePositions() {
-        // Обновляем позиции спрайтов
-        topLeftSprite.position.set(topLeft.x, topLeft.y, topLeft.z);
-        topRightSprite.position.set(topRight.x, topRight.y, topRight.z);
-        topBackSprite.position.set(topBack.x, topBack.y, topBack.z);
-        botLeftSprite.position.set(botLeft.x, botLeft.y, botLeft.z);
-        botRightSprite.position.set(botRight.x, botRight.y, botRight.z);
-        botFrontSprite.position.set(botFront.x, botFront.y, botFront.z);
-        ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
-        ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z);
-
-        // Вычисляем центр (среднее всех 8 точек)
-        centerPos.set(0, 0, 0);
-        [topLeft, topRight, topBack, botLeft, botRight, botFront, ballDown, ballUp].forEach(p => {
-            centerPos.x += p.x; centerPos.y += p.y; centerPos.z += p.z;
-        });
-        centerPos.divideScalar(8);
+        // Позиция 🟢 на вертикальной оси (между -1.0 и 1.0, смещается под действием сил)
+        let centerY = 0;
+        if (Math.abs(pullUp) > Math.abs(pullDown)) {
+            centerY += pullUp * 0.1;
+        } else {
+            centerY -= pullDown * 0.1;
+        }
+        centerY = Math.max(-0.8, Math.min(0.8, centerY));
+        centerPos.set(0, centerY, 0);
         centerSprite.position.copy(centerPos);
 
-        updateLines();
-
-        // Баланс
-        const dist = centerPos.length();
-        const maxDist = 3.5;
+        // ===== БАЛАНС =====
+        const dist = Math.abs(centerY);
+        const maxDist = 1.0;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
-        document.getElementById('balance-fill').style.width = balance + '%';
-        document.getElementById('balance-fill').style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
-
-        if (balance > 95) {
-            centerSprite.scale.set(1.0, 1.0, 1);
-            centerSprite.material.opacity = 1.0;
-        } else {
-            centerSprite.scale.set(0.8, 0.8, 1);
-            centerSprite.material.opacity = 0.9;
-        }
-    }
-
-    // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ) =============
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    let isDragging = false;
-    let draggedKey = null;
-    let dragOffset = new THREE.Vector3();
-    let intersectPlane = new THREE.Plane();
-
-    function getPointerNDC(e) {
-        const rect = renderer.domElement.getBoundingClientRect();
-        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    }
-
-    renderer.domElement.addEventListener('pointerdown', (e) => {
-        getPointerNDC(e);
-        raycaster.setFromCamera(pointer, camera);
-        const sprites = draggableObjects.map(o => o.sprite);
-        const intersects = raycaster.intersectObjects(sprites);
-        if (intersects.length > 0) {
-            const hitSprite = intersects[0].object;
-            const found = draggableObjects.find(o => o.sprite === hitSprite);
-            if (found) {
-                draggedKey = found.key;
-                isDragging = true;
-                controls.enabled = false;
-                renderer.domElement.style.cursor = 'grabbing';
-                const point = intersects[0].point;
-                dragOffset.copy(point).sub(found.sprite.position);
-                const camDir = new THREE.Vector3();
-                camera.getWorldDirection(camDir);
-                intersectPlane.setFromNormalAndCoplanarPoint(camDir, point);
-            }
-        }
-    });
-
-    window.addEventListener('pointermove', (e) => {
-        if (!isDragging || !draggedKey) return;
-        getPointerNDC(e);
-        raycaster.setFromCamera(pointer, camera);
-        const intersectPoint = new THREE.Vector3();
-        raycaster.ray.intersectPlane(intersectPlane, intersectPoint);
-        if (intersectPoint) {
-            const newPos = intersectPoint.clone().sub(dragOffset);
-            const limit = 3.5;
-            newPos.x = Math.max(-limit, Math.min(limit, newPos.x));
-            newPos.y = Math.max(-limit, Math.min(limit, newPos.y));
-            newPos.z = Math.max(-limit, Math.min(limit, newPos.z));
-
-            // Обновляем данные
-            if (draggedKey === 'topLeft')  { topLeft.x  = newPos.x; topLeft.y  = newPos.y; topLeft.z  = newPos.z; }
-            else if (draggedKey === 'topRight') { topRight.x = newPos.x; topRight.y = newPos.y; topRight.z = newPos.z; }
-            else if (draggedKey === 'topBack')  { topBack.x  = newPos.x; topBack.y  = newPos.y; topBack.z  = newPos.z; }
-            else if (draggedKey === 'botLeft')  { botLeft.x  = newPos.x; botLeft.y  = newPos.y; botLeft.z  = newPos.z; }
-            else if (draggedKey === 'botRight') { botRight.x = newPos.x; botRight.y = newPos.y; botRight.z = newPos.z; }
-            else if (draggedKey === 'botFront') { botFront.x = newPos.x; botFront.y = newPos.y; botFront.z = newPos.z; }
-            else if (draggedKey === 'ballDown') { ballDown.x = newPos.x; ballDown.y = newPos.y; ballDown.z = newPos.z; }
-            else if (draggedKey === 'ballUp')   { ballUp.x   = newPos.x; ballUp.y   = newPos.y; ballUp.z   = newPos.z; }
-
-            saveState();
-            updatePositions();
-        }
-    });
-
-    window.addEventListener('pointerup', () => {
-        if (isDragging) {
-            isDragging = false;
-            draggedKey = null;
-            controls.enabled = true;
-            renderer.domElement.style.cursor = 'default';
-            saveState();
-            updatePositions();
-        }
-    });
-
-    // ============= СБРОС =============
-    document.getElementById('reset-btn').addEventListener('click', () => {
-        topLeft.x  = -1.2; topLeft.y  = 1.0; topLeft.z  = 1.2;
-        topRight.x = 1.2;  topRight.y = 1.0; topRight.z = 1.2;
-        topBack.x  = 0;    topBack.y  = 1.0; topBack.z  = -1.2;
-        botLeft.x  = -1.2; botLeft.y  = -2.5; botLeft.z  = -1.2;
-        botRight.x = 1.2;  botRight.y = -2.5; botRight.z = -1.2;
-        botFront.x = 0;    botFront.y = -2.5; botFront.z = 1.2;
-        ballDown.x = 0; ballDown.y = -1.0; ballDown.z = 0;
-        ballUp.x   = 0; ballUp.y   = 1.0; ballUp.z   = 0;
-        saveState();
-        updatePositions();
-    });
-
-    // ============= АНИМАЦИЯ И КАЧАНИЕ =============
-    let time = 0;
-
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-
-        // Плавное покачивание всей конструкции (вращение вокруг Y)
-        time += 0.002;
-        const pivotGroup = new THREE.Group();
-        // Чтобы не пересоздавать всю сцену, мы можем просто вращать куб и линии? Нет, они статичны.
-        // Мы можем вращать сами спрайты, но это сложно. Проще добавить вращение для всей сцены, но тогда камера тоже вращается.
-        // Вместо этого я добавлю вращение для центрального шара и небольшое смещение для всех точек?
-        // Или просто оставлю вращение всей сцены, как раньше.
-        // Я добавлю мягкое вращение всей сцены, чтобы имитировать покачивание.
-        scene.rotation.y = Math.sin(time * 0.5) * 0.05;
-
-        renderer.render(scene, camera);
-    }
-
-    // ============= ИНИЦИАЛИЗАЦИЯ =============
-    window.addEventListener('resize', () => {
-        camera.aspect = container.clientWidth / container.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(container.clientWidth, container.clientHeight);
-    });
-
-    updatePositions();
-    animate();
-    console.log('🟣🦅 Уровень 7: Куб Сознания (точная геометрия тетраэдров с перекрестными связями) загружено!');
-</script>
-</body>
-</html>
+        document
