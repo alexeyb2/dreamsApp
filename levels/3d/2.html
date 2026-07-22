@@ -109,7 +109,7 @@
     let energyEnabled = true;
     let time = 0;
 
-    // Базовые позиции
+    // Базовые позиции (7 точек, которые влияют на центр)
     const baseNodes = {
         botBackLeft:  { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
         botBackRight: { x: 1.2, y: -2.5, z: -1.2 }, // 🟥
@@ -121,13 +121,15 @@
     };
 
     const currentNodes = JSON.parse(JSON.stringify(baseNodes));
+    
+    // Переменные маятника (гиря 🎱)
     const ballDown = { x: 0, y: -1.0, z: 0 };
     const pendulumVel = { x: 0, y: 0, z: 0 };
 
     let centerPos = new THREE.Vector3(0, 0, 0);
     let isCenterDragged = false;
     let draggedCenterPos = { x: 0, y: 0, z: 0 };
-    const pendulumLength = 1.0;
+    const pendulumLength = 1.0; // длина верёвки
 
     function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(baseNodes));
@@ -193,10 +195,12 @@
     createNode('topBack', '🔻', '#9b59b6', currentNodes.topBack);
     createNode('ballUp', '🎈', '#ff4d4d', currentNodes.ballUp);
 
+    // Гиря 🎱 (маятник)
     const ballDownSprite = createSprite('🎱', '#4d8bff', 1.6);
     ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
     pivotGroup.add(ballDownSprite);
 
+    // Подписи (CSS2DRenderer)
     const labelTop = createLabel('Верхний тетраэдр', currentNodes.ballUp, -0.7);
     pivotGroup.add(labelTop);
     const labelBottom = createLabel('Нижний тетраэдр', ballDown, -0.7);
@@ -213,7 +217,7 @@
         pivotGroup.add(centerSprite);
     }
 
-    // ============= ГЕОМЕТРИЯ ТЕТРАЭДРОВ И ЛИНИЙ =============
+    // ============= ГЕОМЕТРИЯ ТЕТРАЭДРОВ (ГРАНИ + КАРКАС) И ЛИНИЙ =============
     let dynamicMeshes = [];
 
     function buildTetra(apex, baseVerts, color) {
@@ -227,32 +231,55 @@
         const geom = new THREE.BufferGeometry();
         geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
         geom.computeVertexNormals();
-        const glassMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.12, side: THREE.DoubleSide });
-        return new THREE.Mesh(geom, glassMat);
+        
+        // 1. Стеклянные грани (полупрозрачные)
+        const glassMat = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const glassMesh = new THREE.Mesh(geom.clone(), glassMat);
+        
+        // 2. Проволочный каркас (рёбра)
+        const wireMat = new THREE.MeshBasicMaterial({
+            color: color,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.3
+        });
+        const wireMesh = new THREE.Mesh(geom.clone(), wireMat);
+        
+        return [glassMesh, wireMesh];
     }
 
     function updateStructure() {
         dynamicMeshes.forEach(m => pivotGroup.remove(m));
         dynamicMeshes = [];
 
+        // === ТЕТРАЭДРЫ ===
+        // Нижний тетраэдр: apex = 🎱 (ballDown), base = 🟦, 🟥, 🔺
         const apex1 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
         const base1 = [
             new THREE.Vector3(currentNodes.botBackLeft.x, currentNodes.botBackLeft.y, currentNodes.botBackLeft.z),
             new THREE.Vector3(currentNodes.botBackRight.x, currentNodes.botBackRight.y, currentNodes.botBackRight.z),
             new THREE.Vector3(currentNodes.botFront.x, currentNodes.botFront.y, currentNodes.botFront.z)
         ];
-        const t1 = buildTetra(apex1, base1, 0x4d8bff); pivotGroup.add(t1); dynamicMeshes.push(t1);
-        const w1 = buildTetra(apex1, base1, 0x4d8bff); w1.material = new THREE.MeshBasicMaterial({ color: 0x4d8bff, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w1); dynamicMeshes.push(w1);
+        const tetra1 = buildTetra(apex1, base1, 0x4d8bff);
+        tetra1.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
 
+        // Верхний тетраэдр: apex = 🎈 (ballUp), base = 🔵, 🔴, 🔻
         const apex2 = new THREE.Vector3(currentNodes.ballUp.x, currentNodes.ballUp.y, currentNodes.ballUp.z);
         const base2 = [
             new THREE.Vector3(currentNodes.topFrontLeft.x, currentNodes.topFrontLeft.y, currentNodes.topFrontLeft.z),
             new THREE.Vector3(currentNodes.topFrontRight.x, currentNodes.topFrontRight.y, currentNodes.topFrontRight.z),
             new THREE.Vector3(currentNodes.topBack.x, currentNodes.topBack.y, currentNodes.topBack.z)
         ];
-        const t2 = buildTetra(apex2, base2, 0xff4d4d); pivotGroup.add(t2); dynamicMeshes.push(t2);
-        const w2 = buildTetra(apex2, base2, 0xff4d4d); w2.material = new THREE.MeshBasicMaterial({ color: 0xff4d4d, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w2); dynamicMeshes.push(w2);
+        const tetra2 = buildTetra(apex2, base2, 0xff4d4d);
+        tetra2.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
 
+        // === ТОЛСТЫЕ ЛИНИИ (цилиндры) ===
         const createThickLine = (start, end, color, opacity = 0.9) => {
             const dir = new THREE.Vector3().copy(end).sub(start);
             const length = dir.length();
@@ -289,8 +316,8 @@
         if (dist < 0.001) { r.set(0, -1, 0); }
         const target = new THREE.Vector3().copy(pivot).add(r.clone().normalize().multiplyScalar(pendulumLength));
 
-        const stiffness = 8.0;
-        const damping = 1.5;
+        const stiffness = 10.0;
+        const damping = 2.0;
         const force = new THREE.Vector3().copy(target).sub(mass).multiplyScalar(stiffness);
         const vel = new THREE.Vector3(pendulumVel.x, pendulumVel.y, pendulumVel.z);
         force.sub(vel.clone().multiplyScalar(damping));
@@ -334,14 +361,13 @@
         sprites['topBack'].position.set(currentNodes.topBack.x, currentNodes.topBack.y, currentNodes.topBack.z);
         sprites['ballUp'].position.set(currentNodes.ballUp.x, currentNodes.ballUp.y, currentNodes.ballUp.z);
         labelTop.position.set(currentNodes.ballUp.x, currentNodes.ballUp.y - 0.7, currentNodes.ballUp.z);
-        labelBottom.position.set(ballDown.x, ballDown.y - 0.7, ballDown.z);
 
-        // Центр
+        // ВЫЧИСЛЯЕМ ЦЕНТР ТОЛЬКО ИЗ 7 ТОЧЕК (ИСКЛЮЧАЯ МАЯТНИК)
         if (!isCenterDragged) {
             const allPoints = [
                 currentNodes.botBackLeft, currentNodes.botBackRight, currentNodes.botFront,
                 currentNodes.topFrontLeft, currentNodes.topFrontRight, currentNodes.topBack,
-                currentNodes.ballUp, ballDown
+                currentNodes.ballUp
             ];
             centerPos.set(0, 0, 0);
             allPoints.forEach(p => {
@@ -353,11 +379,15 @@
         }
         centerSprite.position.copy(centerPos);
 
+        // Обновляем физику маятника на основе нового центра
         updatePendulum(deltaTime);
         ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
+        labelBottom.position.set(ballDown.x, ballDown.y - 0.7, ballDown.z);
 
+        // Перестраиваем геометрию
         updateStructure();
 
+        // Баланс: расстояние центра от (0,0,0)
         const dist = centerPos.length();
         const maxDist = 3.0;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
@@ -431,11 +461,7 @@
     window.addEventListener('pointerup', () => {
         if (isDragging) {
             if (draggedKey === 'center') {
-                isCenterDragged = false; // отпускаем, чтобы снова следовал за средним, если нужно
-                // если хочешь оставить вручную, закомментируй isCenterDragged = false
-                // но ты просил двигать его пальцем, он должен оставаться там, пока не нажмут "Сброс"
-                // оставим isCenterDragged = true, чтобы он не слетал назад
-                isCenterDragged = true;
+                isCenterDragged = true; // фиксируем вручную
             }
             isDragging = false; draggedKey = null; controls.enabled = true; renderer.domElement.style.cursor = 'default'; saveState();
         }
@@ -501,7 +527,7 @@
     updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (центр 🟡 перетаскивается, гиря качается) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (исправлены грани и маятник) загружено!');
 </script>
 </body>
 </html>
