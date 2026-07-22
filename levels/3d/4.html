@@ -2,8 +2,20 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
     <title>Уровень 7: Куб Сознания (3D)</title>
+
+    <!-- Мета-теги для красивого превью в соцсетях -->
+    <meta property="og:title" content="HighMind — Куб Сознания" />
+    <meta property="og:description" content="Создай свой поток энергии в 3D. Перемещай точки, строй пути и наблюдай за течением силы." />
+    <meta property="og:image" content="logo.png" />
+    <meta property="og:type" content="website" />
+
+    <!-- Мета-теги и иконка для iPhone / Home Screen -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="logo.png" />
+
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; background: #0b0814; }
@@ -13,7 +25,7 @@
         .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 12px; pointer-events: auto; }
         .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; }
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
-        #dropdown-menu { display: none; position: absolute; bottom: 110%; right: 0; background: #161127; border: 1px solid #3a2f5a; border-radius: 20px; padding: 12px; width: 240px; flex-direction: column; gap: 8px; z-index: 20; backdrop-filter: blur(10px); }
+        #dropdown-menu { display: none; position: absolute; bottom: 110%; right: 0; background: #161127; border: 1px solid #3a2f5a; border-radius: 20px; padding: 12px; width: 240px; flex-direction: column; gap: 8px; z-index: 20; backdrop-filter: blur(10px); pointer-events: auto; }
         #dropdown-menu.open { display: flex; }
         .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-radius: 12px; cursor: pointer; background: #2a2348; color: #b8a6ff; font-size: 13px; font-weight: 600; transition: 0.2s; }
         .menu-item:active { background: #6f52c4; color: #fff; }
@@ -114,14 +126,18 @@
     let isEditingPath = false;
     let time = 0;
 
-    // Геометрия
+    // ИСПРАВЛЕННАЯ ГЕОМЕТРИЯ (Лево/Право теперь визуально верные при взгляде сзади)
     const baseNodes = {
+        // НИЗ (Ноги, сзади): 🔺 спереди, 🟦 слева, 🟥 справа
         bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺
-        bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
-        bottom_right:  { x: 1.2, y: -2.5, z: -1.2 }, // 🟥
+        bottom_left:   { x: 1.2, y: -2.5, z: -1.2 }, // 🟦
+        bottom_right:  { x: -1.2, y: -2.5, z: -1.2 }, // 🟥
+        
+        // ВЕРХ (Руки, спереди): 🔻 сзади, 🔵 слева, 🔴 справа
         top_center:    { x: 0,   y: 1.0, z: -1.2 },  // 🔻
-        top_left:      { x: -1.2, y: 1.0, z: 1.2 },  // 🔵
-        top_right:     { x: 1.2, y: 1.0, z: 1.2 },   // 🔴
+        top_left:      { x: 1.2, y: 1.0, z: 1.2 },  // 🔵
+        top_right:     { x: -1.2, y: 1.0, z: 1.2 },   // 🔴
+        
         center:        { x: 0,   y: 0,   z: 0 }       // 🟡
     };
 
@@ -130,12 +146,12 @@
     let isCenterDragged = false;
     let draggedCenterPos = { x: 0, y: 0, z: 0 };
 
-    // Путь по умолчанию (замкнутый цикл через все точки)
+    // Путь по умолчанию
     const defaultPathKeys = [
         'bottom_right', 'center', 'top_left', 'center', 'top_right', 'center', 'bottom_left', 'center', 'bottom_right'
     ];
 
-    let customPath = null; // null = использовать путь по умолчанию
+    let customPath = null;
 
     // Временные линии редактирования
     let tempLineMeshes = [];
@@ -218,12 +234,10 @@
     let energyProgress = 0;
     const energySpeed = 0.002;
 
-    // Получает позицию частицы на основе пользовательского или дефолтного пути
     function getRoutePoint(progress) {
         let pathKeys = customPath || defaultPathKeys;
         if (!pathKeys || pathKeys.length < 2) return null;
 
-        // Собираем координаты точек в порядке пути
         const points = pathKeys.map(key => {
             if (key === 'center') return { x: centerPos.x, y: centerPos.y, z: centerPos.z };
             const node = currentNodes[key];
@@ -257,13 +271,12 @@
                     z: p1.z + (p2.z - p1.z) * t
                 };
                 
-                // Определяем цвет на основе пары точек
                 const isRed = (pathKeys[i] === 'bottom_right' || pathKeys[i+1] === 'bottom_right' ||
                                pathKeys[i] === 'top_left' || pathKeys[i+1] === 'top_left');
                 const isBlue = (pathKeys[i] === 'bottom_left' || pathKeys[i+1] === 'bottom_left' ||
                                 pathKeys[i] === 'top_right' || pathKeys[i+1] === 'top_right');
                 
-                let color = 0x4d8bff; // синий по умолчанию
+                let color = 0x4d8bff;
                 if (isRed && !isBlue) color = 0xff4d4d;
                 
                 return { pos: pos, color: color };
@@ -311,7 +324,6 @@
         dynamicMeshes.forEach(m => pivotGroup.remove(m));
         dynamicMeshes = [];
 
-        // === ТЕТРАЭДРЫ ===
         const apex1 = centerPos.clone();
         const base1 = [
             new THREE.Vector3(currentNodes.bottom_center.x, currentNodes.bottom_center.y, currentNodes.bottom_center.z),
@@ -330,7 +342,6 @@
         const tetra2 = buildTetra(apex2, base2, 0xff4d4d);
         tetra2.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
 
-        // === ТОНКИЕ ЛИНИИ (ЦИЛИНДРЫ) ===
         const createThinLine = (start, end, color, opacity = 0.9) => {
             const dir = new THREE.Vector3().copy(end).sub(start);
             const length = dir.length();
@@ -362,7 +373,6 @@
         );
     }
 
-    // ============= ВРЕМЕННЫЕ ЛИНИИ (ДЛЯ РЕДАКТИРОВАНИЯ ПУТИ) =============
     function updateTempLines() {
         tempLineMeshes.forEach(m => pivotGroup.remove(m));
         tempLineMeshes = [];
@@ -394,7 +404,6 @@
         }
     }
 
-    // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
     function updatePositions(deltaTime) {
         currentNodes.bottom_center.x = baseNodes.bottom_center.x;
         currentNodes.bottom_left.x = baseNodes.bottom_left.x;
@@ -425,7 +434,6 @@
         }
         centerSprite.position.copy(centerPos);
 
-        // Энергетическая частица
         if (energyEnabled) {
             energyProgress += energySpeed;
             if (energyProgress >= 1.0) energyProgress = 0.0;
@@ -436,7 +444,6 @@
             }
         }
 
-        // Обновляем временные линии, если в режиме редактирования
         if (isEditingPath) updateTempLines();
 
         updateStructure();
@@ -486,20 +493,16 @@
             const hitSprite = intersects[0].object;
             const found = draggableList.find(item => spriteMap[item.key] === hitSprite);
             if (found) {
-                // Если мы в режиме редактирования пути — добавляем точку в путь вместо перетаскивания
                 if (isEditingPath) {
                     const key = found.key;
                     if (!customPath) customPath = [];
-                    // Не добавляем точку, если она уже последняя (чтобы избежать дублей подряд)
                     if (customPath.length === 0 || customPath[customPath.length - 1] !== key) {
                         customPath.push(key);
                         updateTempLines();
                     }
-                    // Выходим, чтобы не начинать перетаскивание
                     return;
                 }
 
-                // Обычное перетаскивание
                 draggedKey = found.key; isDragging = true; controls.enabled = false; renderer.domElement.style.cursor = 'grabbing';
                 const point = intersects[0].point; dragOffset.copy(point).sub(hitSprite.position);
                 const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
@@ -542,11 +545,11 @@
     // ============= УПРАВЛЕНИЕ =============
     document.getElementById('reset-btn').addEventListener('click', () => {
         Object.assign(baseNodes.bottom_center, { x: 0, y: -2.5, z: 1.2 });
-        Object.assign(baseNodes.bottom_left, { x: -1.2, y: -2.5, z: -1.2 });
-        Object.assign(baseNodes.bottom_right, { x: 1.2, y: -2.5, z: -1.2 });
+        Object.assign(baseNodes.bottom_left, { x: 1.2, y: -2.5, z: -1.2 });
+        Object.assign(baseNodes.bottom_right, { x: -1.2, y: -2.5, z: -1.2 });
         Object.assign(baseNodes.top_center, { x: 0, y: 1.0, z: -1.2 });
-        Object.assign(baseNodes.top_left, { x: -1.2, y: 1.0, z: 1.2 });
-        Object.assign(baseNodes.top_right, { x: 1.2, y: 1.0, z: 1.2 });
+        Object.assign(baseNodes.top_left, { x: 1.2, y: 1.0, z: 1.2 });
+        Object.assign(baseNodes.top_right, { x: -1.2, y: 1.0, z: 1.2 });
         isCenterDragged = false;
         draggedCenterPos.x = 0; draggedCenterPos.y = 0; draggedCenterPos.z = 0;
         energyProgress = 0;
@@ -596,7 +599,6 @@
 
     savePathBtn.addEventListener('click', () => {
         if (customPath && customPath.length >= 2) {
-            // Замыкаем путь, добавляя первую точку в конец для цикла
             if (customPath[customPath.length - 1] !== customPath[0]) {
                 customPath.push(customPath[0]);
             }
@@ -648,7 +650,7 @@
     updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (кастомные пути энергии) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (исправлены Лево/Право, кнопки работают) загружено!');
 </script>
 </body>
 </html>
