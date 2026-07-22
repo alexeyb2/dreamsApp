@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Уровень 7: Куб Сознания (3D)</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; background: #0b0814; }
+        #ui { position: absolute; bottom: 30px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
+        #balance-bar { width: 80%; max-width: 400px; height: 8px; background: #1a1530; border-radius: 10px; overflow: hidden; border: 1px solid #3a2f5a; }
+        #balance-fill { height: 100%; width: 50%; background: #6f52c4; border-radius: 10px; transition: width 0.1s; }
+        .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 10px 24px; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; pointer-events: auto; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="ui">
+    <div id="balance-bar"><div id="balance-fill"></div></div>
+    <button class="btn" id="reset-btn">🔄 Сброс</button>
+</div>
+
+<script>
+    // ============= СЦЕНА =============
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0814);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(7, 5, 9);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 0, 0);
+    controls.minDistance = 3;
+    controls.maxDistance = 20;
+
+    // Освещение
+    scene.add(new THREE.AmbientLight(0x404060));
+    const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
+    dirLight.position.set(5, 10, 7);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    // Сетка (прозрачный пол)
+    const gridHelper = new THREE.GridHelper(8, 8, 0x6f52c4, 0x3a2f5a);
+    gridHelper.position.y = -2;
+    scene.add(gridHelper);
+
+    // ============= ДАННЫЕ И ФИЗИКА =============
+    const STORAGE_KEY = 'highmind_level7_3d';
+
+    let forces = {
+        up:    { x: 0, y: 2.5, z: 0, emoji: '🎈', color: '#ff4d4d' },
+        down:  { x: 0, y: -2.5, z: 0, emoji: '🎱', color: '#4d8bff' },
+        left:  { x: -2.5, y: 0, z: 0, emoji: '🔵', color: '#4d8bff' },
+        right: { x: 2.5, y: 0, z: 0, emoji: '🔴', color: '#ff4d4d' }
+    };
+
+    let centerPos = new THREE.Vector3(0, 0, 0);
+    let isDragging = false;
+    let draggedKey = null;
+    let dragPlane = new THREE.Plane();
+    let dragOffset = new THREE.Vector3();
+    let startMouse = new THREE.Vector2();
+
+    // ============= СОХРАНЕНИЕ =============
+    function saveState() {
+        const data = {};
+        for (let key in forces) {
+            data[key] = { x: forces[key].x, y: forces[key].y, z: forces[key].z };
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function loadState() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        try {
+            const data = JSON.parse(raw);
+            for (let key in data) {
+                if (forces[key]) {
+                    forces[key].x = data[key].x;
+                    forces[key].y = data[key].y;
+                    forces[key].z = data[key].z;
+                }
+            }
+            return true;
+        } catch(e) { return false; }
+    }
+
+    if (!loadState()) {
+        saveState();
+    }
+
+    // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
+    const sphereRadius = 0.5;
+    const forceMeshes = {};
+    const forceLabels = {};
+    let centerSphere;
+    let loops = [];
+
+    // Функция для создания текстуры с эмодзи и подписью
+    function createLabelTexture(emoji, label, color) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        // Фон (прозрачный)
+        ctx.clearRect(0, 0, 256, 256);
+
+        // Эмодзи
+        ctx.font = '100px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, 128, 110);
+
+        // Подпись
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillStyle = '#e0d6ff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(label, 128, 230);
+
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    // Создаём сферы для каждой силы
+    for (let key in forces) {
+        const f = forces[key];
+        const color = new THREE.Color(f.color);
+
+        // Сфера с материалом
+        const geometry = new THREE.SphereGeometry(sphereRadius, 32, 32);
+        const material = new THREE.MeshStandardMaterial({
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.3,
+            transparent: true,
+            opacity: 0.9
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(f.x, f.y, f.z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+        forceMeshes[key] = mesh;
+
+        // Создаём спрайт с эмодзи и подписью
+        const texture = createLabelTexture(f.emoji, f.label || key, f.color);
+        const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(1.2, 1.2, 1);
+        sprite.position.set(f.x, f.y, f.z + 0.6); // немного впереди сферы
+        scene.add(sprite);
+        forceLabels[key] = sprite;
+    }
+
+    // Зелёный центр (подвижный)
+    const centerGeom = new THREE.SphereGeometry(0.4, 32, 32);
+    const centerMat = new THREE.MeshStandardMaterial({
+        color: 0x2ecc71,
+        emissive: 0x2ecc71,
+        emissiveIntensity: 0.5
+    });
+    centerSphere = new THREE.Mesh(centerGeom, centerMat);
+    centerSphere.position.copy(centerPos);
+    scene.add(centerSphere);
+
+    // ============= СОЗДАНИЕ ПЕТЕЛЬ (ТОРЫ) =============
+    function createLoop(points, color) {
+        // points: массив из 4 точек в порядке: start, control1, end, control2 (для замкнутой кривой Безье)
+        // Для упрощения используем TubeGeometry с кривой CatmullRom через эти точки.
+        const curvePoints = points.map(p => new THREE.Vector3(p.x, p.y, p.z));
+        const curve = new THREE.CatmullRomCurve3(curvePoints, true);
+        const tubeGeom = new THREE.TubeGeometry(curve, 64, 0.05, 8, true);
+        const tubeMat = new THREE.MeshStandardMaterial({
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.2,
+            transparent: true,
+            opacity: 0.4,
+            side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(tubeGeom, tubeMat);
+        scene.add(mesh);
+        return mesh;
+    }
+
+    // Будем обновлять петли каждый кадр, пересоздавая их, так как точки меняются динамически.
+    // Для производительности можно переиспользовать геометрию, но для простоты пересоздаём.
+    // Вместо пересоздания можно обновлять позиции вершин, но это сложнее. Пока оставим пересоздание.
+    let loopMeshes = [];
+
+    function updateLoops() {
+        // Удаляем старые петли
+        loopMeshes.forEach(m => scene.remove(m));
+        loopMeshes = [];
+
+        const u = forces.up, d = forces.down, l = forces.left, r = forces.right;
+        const c = centerPos;
+
+        // Вычисляем ширину петель на основе разброса шаров (как в 2D)
+        const maxDist = Math.max(
+            Math.hypot(u.x - c.x, u.y - c.y, u.z - c.z),
+            Math.hypot(d.x - c.x, d.y - c.y, d.z - c.z),
+            Math.hypot(l.x - c.x, l.y - c.y, l.z - c.z),
+            Math.hypot(r.x - c.x, r.y - c.y, r.z - c.z)
+        );
+        const loopWidth = Math.max(maxDist * 0.6, 1.0);
+
+        // Вертикальная петля (проходит через верхний и нижний шары, огибая центр слева и справа)
+        const verticalPoints = [
+            new THREE.Vector3(u.x, u.y, u.z),
+            new THREE.Vector3(c.x - loopWidth, (u.y + d.y) / 2, c.z),
+            new THREE.Vector3(d.x, d.y, d.z),
+            new THREE.Vector3(c.x + loopWidth, (u.y + d.y) / 2, c.z)
+        ];
+        const vCurve = new THREE.CatmullRomCurve3(verticalPoints, true);
+        const vGeom = new THREE.TubeGeometry(vCurve, 64, 0.06, 8, true);
+        const vMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.1,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide
+        });
+        const vMesh = new THREE.Mesh(vGeom, vMat);
+        scene.add(vMesh);
+        loopMeshes.push(vMesh);
+
+        // Горизонтальная петля (проходит через левый и правый шары, огибая центр сверху и снизу)
+        const horizontalPoints = [
+            new THREE.Vector3(l.x, l.y, l.z),
+            new THREE.Vector3((l.x + r.x) / 2, c.y + loopWidth, c.z),
+            new THREE.Vector3(r.x, r.y, r.z),
+            new THREE.Vector3((l.x + r.x) / 2, c.y - loopWidth, c.z)
+        ];
+        const hCurve = new THREE.CatmullRomCurve3(horizontalPoints, true);
+        const hGeom = new THREE.TubeGeometry(hCurve, 64, 0.06, 8, true);
+        const hMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.1,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide
+        });
+        const hMesh = new THREE.Mesh(hGeom, hMat);
+        scene.add(hMesh);
+        loopMeshes.push(hMesh);
+    }
+
+    // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
+    function updatePositions() {
+        // Обновляем позиции шаров и их спрайтов
+        for (let key in forces) {
+            const f = forces[key];
+            forceMeshes[key].position.set(f.x, f.y, f.z);
+            forceLabels[key].position.set(f.x, f.y + 0.6, f.z);
+        }
+
+        // Вычисляем центр как среднее координат всех сил
+        centerPos.set(0, 0, 0);
+        for (let key in forces) {
+            const f = forces[key];
+            centerPos.x += f.x;
+            centerPos.y += f.y;
+            centerPos.z += f.z;
+        }
+        centerPos.divideScalar(4);
+        centerSphere.position.copy(centerPos);
+
+        // Обновляем петли
+        updateLoops();
+
+        // Баланс: расстояние центра от начала координат (0,0,0)
+        const dist = centerPos.length();
+        const maxDist = 3.0; // примерно максимальное расстояние
+        const balance = Math.max(0, 100 - (dist / maxDist) * 100);
+        document.getElementById('balance-fill').style.width = balance + '%';
+        document.getElementById('balance-fill').style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
+
+        // Если баланс почти идеальный, зажигаем центр
+        if (balance > 95) {
+            centerSphere.material.emissiveIntensity = 1.5;
+        } else {
+            centerSphere.material.emissiveIntensity = 0.5;
+        }
+    }
+
+    // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ) =============
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const planeNormal = new THREE.Vector3(0, 0, 1); // плоскость по умолчанию (Z=0)
+    let intersectPlane = new THREE.Plane(planeNormal, 0);
+
+    function getPointerNDC(e) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    }
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+        getPointerNDC(e);
+        raycaster.setFromCamera(pointer, camera);
+
+        const meshes = Object.values(forceMeshes);
+        const intersects = raycaster.intersectObjects(meshes);
+        if (intersects.length > 0) {
+            const hitMesh = intersects[0].object;
+            // Находим ключ по мешу
+            for (let key in forceMeshes) {
+                if (forceMeshes[key] === hitMesh) {
+                    draggedKey = key;
+                    break;
+                }
+            }
+            if (draggedKey) {
+                isDragging = true;
+                controls.enabled = false;
+                renderer.domElement.style.cursor = 'grabbing';
+                // Запоминаем смещение
+                const point = intersects[0].point;
+                dragOffset.copy(point).sub(forceMeshes[draggedKey].position);
+                // Устанавливаем плоскость перетаскивания: плоскость, перпендикулярная лучу, проходящая через точку касания
+                const cameraDir = new THREE.Vector3();
+                camera.getWorldDirection(cameraDir);
+                intersectPlane.setFromNormalAndCoplanarPoint(cameraDir, point);
+            }
+        }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (!isDragging || !draggedKey) return;
+        getPointerNDC(e);
+        raycaster.setFromCamera(pointer, camera);
+
+        // Находим точку пересечения с плоскостью перетаскивания
+        const intersectPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(intersectPlane, intersectPoint);
+        if (intersectPoint) {
+            const newPos = intersectPoint.clone().sub(dragOffset);
+            // Ограничиваем, чтобы не улетал слишком далеко
+            const limit = 3.5;
+            forces[draggedKey].x = Math.max(-limit, Math.min(limit, newPos.x));
+            forces[draggedKey].y = Math.max(-limit, Math.min(limit, newPos.y));
+            forces[draggedKey].z = Math.max(-limit, Math.min(limit, newPos.z));
+            saveState();
+            updatePositions();
+        }
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (isDragging) {
+            isDragging = false;
+            draggedKey = null;
+            controls.enabled = true;
+            renderer.domElement.style.cursor = 'default';
+            saveState();
+            updatePositions();
+        }
+    });
+
+    // ============= СБРОС =============
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        forces.up = { x: 0, y: 2.5, z: 0, emoji: '🎈', color: '#ff4d4d' };
+        forces.down = { x: 0, y: -2.5, z: 0, emoji: '🎱', color: '#4d8bff' };
+        forces.left = { x: -2.5, y: 0, z: 0, emoji: '🔵', color: '#4d8bff' };
+        forces.right = { x: 2.5, y: 0, z: 0, emoji: '🔴', color: '#ff4d4d' };
+        saveState();
+        updatePositions();
+    });
+
+    // ============= АНИМАЦИЯ =============
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // ============= ИНИЦИАЛИЗАЦИЯ =============
+    window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    updatePositions();
+    animate();
+    console.log('🟣🦅 Уровень 7: Куб Сознания (3D) загружено!');
+</script>
+</body>
+</html>
