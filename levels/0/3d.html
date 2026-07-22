@@ -99,15 +99,15 @@
     let centerColor = '#ffcc00';
     let energyEnabled = true;
 
-    // 🔺 НИЖНИЙ ТРЕУГОЛЬНИК (на земле, СЗАДИ) для тетраэдра 🎈
+    // 🔺 НИЖНИЙ ТРЕУГОЛЬНИК (на земле, СЗАДИ)
     const botBackLeft  = { x: -1.2, y: -2.5, z: -1.2 }; // 🟦
     const botBackRight = { x: 1.2, y: -2.5, z: -1.2 }; // 🟥
-    const botFront     = { x: 0,   y: -2.5, z: 1.2 };  // 🔺 (вместо 🟠)
+    const botFront     = { x: 0,   y: -2.5, z: 1.2 };  // 🔺
 
-    // 🔻 ВЕРХНИЙ ТРЕУГОЛЬНИК (наверху, СПЕРЕДИ) для тетраэдра 🎱
+    // 🔻 ВЕРХНИЙ ТРЕУГОЛЬНИК (наверху, СПЕРЕДИ)
     const topFrontLeft  = { x: -1.2, y: 1.0, z: 1.2 }; // 🔵
     const topFrontRight = { x: 1.2, y: 1.0, z: 1.2 }; // 🔴
-    const topBack       = { x: 0,   y: 1.0, z: -1.2 }; // 🔻 (вместо 🟣)
+    const topBack       = { x: 0,   y: 1.0, z: -1.2 }; // 🔻
 
     // Шары
     const ballDown = { x: 0, y: -1.0, z: 0, emoji: '🎱', color: '#4d8bff' };
@@ -184,7 +184,7 @@
     const ballDownSprite = createBallSprite('🎱', '#4d8bff'); ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z); pivotGroup.add(ballDownSprite);
     const ballUpSprite   = createBallSprite('🎈', '#ff4d4d'); ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z); pivotGroup.add(ballUpSprite);
 
-    // Центр 🟡 (будет менять позицию!)
+    // Центр 🟡 (плавающий)
     let centerSprite = createSprite('🟡', centerColor, 0.7);
     centerSprite.position.copy(centerPos); pivotGroup.add(centerSprite);
 
@@ -218,7 +218,6 @@
         dynamicMeshes = [];
 
         // === ТЕТРАЭДРЫ ===
-        // 1. Тетраэдр на земле: 🎈 + 🟦 + 🟥 + 🔺
         const apex1 = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
         const base1 = [
             new THREE.Vector3(botBackLeft.x, botBackLeft.y, botBackLeft.z),
@@ -228,7 +227,6 @@
         const t1 = buildTetra(apex1, base1, 0x4d8bff); pivotGroup.add(t1); dynamicMeshes.push(t1);
         const w1 = buildTetra(apex1, base1, 0x4d8bff); w1.material = new THREE.MeshBasicMaterial({ color: 0x4d8bff, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w1); dynamicMeshes.push(w1);
 
-        // 2. Тетраэдр в воздухе: 🎱 + 🔵 + 🔴 + 🔻
         const apex2 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
         const base2 = [
             new THREE.Vector3(topFrontLeft.x, topFrontLeft.y, topFrontLeft.z),
@@ -238,27 +236,36 @@
         const t2 = buildTetra(apex2, base2, 0xff4d4d); pivotGroup.add(t2); dynamicMeshes.push(t2);
         const w2 = buildTetra(apex2, base2, 0xff4d4d); w2.material = new THREE.MeshBasicMaterial({ color: 0xff4d4d, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w2); dynamicMeshes.push(w2);
 
-        // === СКВОЗНЫЕ ЛИНИИ ЧЕРЕЗ 🟡 ===
-        const addLine = (p1, p2, color, opacity = 0.8) => {
-            const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p1.x, p1.y, p1.z), new THREE.Vector3(p2.x, p2.y, p2.z)]);
-            const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
-            const line = new THREE.Line(geom, mat); pivotGroup.add(line); dynamicMeshes.push(line);
+        // === ЛИНИИ ЧЕРЕЗ ЦЕНТР 🟡 (разбиты на две части) ===
+        const addThroughCenter = (p1, p2, color, opacity = 0.8) => {
+            const cPos = centerPos.clone();
+            // 1. От точки 1 к центру
+            const geom1 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p1.x, p1.y, p1.z), cPos]);
+            const mat1 = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+            const line1 = new THREE.Line(geom1, mat1);
+            pivotGroup.add(line1);
+            dynamicMeshes.push(line1);
+
+            // 2. От центра к точке 2
+            const geom2 = new THREE.BufferGeometry().setFromPoints([cPos, new THREE.Vector3(p2.x, p2.y, p2.z)]);
+            const mat2 = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+            const line2 = new THREE.Line(geom2, mat2);
+            pivotGroup.add(line2);
+            dynamicMeshes.push(line2);
         };
 
-        // 🔥 Вертикаль: 🎱 -> 🟡 -> 🎈 (золотая / цвет центра)
         const goldColor = new THREE.Color(centerColor);
-        addLine(ballDown, ballUp, goldColor, 0.9);
 
-        // 🔵 Синяя: 🟦 (низ-зад-лев) -> 🟡 -> 🔴 (верх-пер-прав)
-        addLine(botBackLeft, topFrontRight, 0x4d8bff, 0.8);
+        // 🎱 -> 🟡 -> 🎈
+        addThroughCenter(ballDown, ballUp, goldColor, 0.9);
+        // 🟦 -> 🟡 -> 🔴
+        addThroughCenter(botBackLeft, topFrontRight, 0x4d8bff, 0.8);
+        // 🟥 -> 🟡 -> 🔵
+        addThroughCenter(botBackRight, topFrontLeft, 0xff4d4d, 0.8);
+        // 🔺 -> 🟡 -> 🔻
+        addThroughCenter(botFront, topBack, 0xffcc00, 0.8);
 
-        // 🔴 Красная: 🟥 (низ-зад-прав) -> 🟡 -> 🔵 (верх-пер-лев)
-        addLine(botBackRight, topFrontLeft, 0xff4d4d, 0.8);
-
-        // 🔺🔻 Связующая: 🔺 (низ-пер) -> 🟡 -> 🔻 (верх-зад)
-        addLine(botFront, topBack, 0xffcc00, 0.8);
-
-        // === ВЫЧИСЛЯЕМ НОВУЮ ПОЗИЦИЮ 🟡 (ПЛАВАЮЩИЙ ЦЕНТР МАСС) ===
+        // === ВЫЧИСЛЯЕМ ПОЗИЦИЮ ЦЕНТРА 🟡 ===
         centerPos.set(0, 0, 0);
         const allPoints = [ballDown, ballUp, topFrontLeft, topFrontRight, topBack, botBackLeft, botBackRight, botFront];
         allPoints.forEach(p => {
@@ -269,7 +276,7 @@
         centerPos.divideScalar(8);
         centerSprite.position.copy(centerPos);
 
-        // === БАЛАНС (чем ближе к 0,0,0, тем лучше) ===
+        // === БАЛАНС ===
         const dist = centerPos.length();
         const maxDist = 3.0; 
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
@@ -379,7 +386,6 @@
     function animate() {
         requestAnimationFrame(animate);
         time += 0.005;
-        // Плавное качание всей конструкции
         pivotGroup.rotation.y = Math.sin(time * 0.3) * 0.04;
         controls.update();
         renderer.render(scene, camera);
@@ -391,7 +397,7 @@
 
     updatePositions();
     animate();
-    console.log('🟣🦅 Уровень 7: Куб Сознания (🔺 и 🔻 на местах, точные линии) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (все линии проходят через 🟡) загружено!');
 </script>
 </body>
 </html>
