@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Уровень 6: Баланс 🎱 и 🎈</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0b0814; color: #e0d6ff; font-family: system-ui, sans-serif;
+            overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center;
+            touch-action: none; user-select: none;
+        }
+        #app {
+            width: 100%; max-width: 500px; height: 100vh; display: flex; flex-direction: column;
+            position: relative; background: radial-gradient(circle at center, #131022 0%, #08060e 100%);
+        }
+        #canvas {
+            flex: 1; width: 100%; display: block; cursor: grab; touch-action: none;
+        }
+        #canvas:active { cursor: grabbing; }
+        #ui {
+            position: absolute; bottom: 30px; left: 0; right: 0; display: flex;
+            flex-direction: column; align-items: center; gap: 10px; pointer-events: none;
+        }
+        #balance-bar {
+            width: 80%; height: 8px; background: #1a1530; border-radius: 10px;
+            overflow: hidden; border: 1px solid #3a2f5a;
+        }
+        #balance-fill {
+            height: 100%; width: 50%; background: #6f52c4; border-radius: 10px;
+            transition: width 0.1s;
+        }
+        .btn {
+            border: none; background: #2a2348; color: #b8a6ff;
+            padding: 10px 24px; border-radius: 30px; font-weight: 700; font-size: 14px;
+            cursor: pointer; pointer-events: auto; transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        .hint {
+            font-size: 13px; color: #8f78e6; text-align: center; opacity: 0.7;
+            padding: 0 10px; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <canvas id="canvas"></canvas>
+    <div id="ui">
+        <div class="hint" id="coords-text">🎱 (0, 0) | 🎈 (0, 0)</div>
+        <div id="balance-bar"><div id="balance-fill"></div></div>
+        <button class="btn" id="reset-btn">🔄 Вернуть в центр</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const balanceFill = document.getElementById('balance-fill');
+    const coordsText = document.getElementById('coords-text');
+
+    let w, h, cx, cy;
+    // Силы: 🎱 (низ) и 🎈 (верх)
+    let forces = {
+        down: { x: 0, y: 150, radius: 40, emoji: '🎱', color: '#4d8bff', label: 'Земля (прошлое)' },
+        up: { x: 0, y: -150, radius: 40, emoji: '🎈', color: '#ff4d4d', label: 'Небо (будущее)' }
+    };
+    let isDragging = false;
+    let draggedKey = null;
+    let dragStart = { x: 0, y: 0 };
+    let startPos = { x: 0, y: 0 };
+
+    function resize() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        w = canvas.width; h = canvas.height;
+        cx = w / 2; cy = h / 2;
+        
+        // Инициализация позиций, если они сбились
+        if (Math.abs(forces.down.x) > w) forces.down.x = 0;
+        if (Math.abs(forces.up.x) > w) forces.up.x = 0;
+        if (Math.abs(forces.down.y) > h) forces.down.y = cy + 150;
+        if (Math.abs(forces.up.y) > h) forces.up.y = cy - 150;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function draw() {
+        ctx.clearRect(0, 0, w, h);
+
+        // 1. Рисуем лучи от сил к центру
+        const drawRay = (f, color) => {
+            ctx.beginPath();
+            ctx.moveTo(f.x, f.y);
+            ctx.lineTo(cx, cy);
+            ctx.strokeStyle = color + '66';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        };
+        drawRay(forces.down, '#4d8bff');
+        drawRay(forces.up, '#ff4d4d');
+
+        // 2. Рисуем перекрестие (Центр мира)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke(); // Горизонталь
+        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke(); // Вертикаль
+        ctx.setLineDash([]);
+
+        // 3. Рисуем силы
+        const drawForce = (f) => {
+            // Влияние Z-глубины через прозрачность и масштаб (если смещать по горизонтали)
+            const zDepth = Math.abs(f.x - cx) / (w / 2);
+            const opacity = Math.max(0.4, 1 - zDepth * 0.5);
+            const scale = Math.max(0.7, 1 - zDepth * 0.3);
+
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = f.color;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, f.radius * scale, 0, Math.PI * 2);
+            ctx.fillStyle = f.color + '44';
+            ctx.fill();
+            ctx.strokeStyle = f.color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.font = `${40 * scale}px system-ui`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(f.emoji, f.x, f.y - 4);
+            ctx.font = `14px system-ui`;
+            ctx.fillStyle = '#e0d6ff';
+            ctx.fillText(f.label, f.x, f.y + f.radius * scale + 20);
+            ctx.restore();
+        };
+        drawForce(forces.down);
+        drawForce(forces.up);
+
+        // 4. Точка Центра (где встречаются линии)
+        ctx.shadowBlur = 40;
+        ctx.shadowColor = '#ffcc00';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffcc00';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // 5. Обновляем баланс
+        const dx = forces.down.x - forces.up.x;
+        const dy = forces.down.y - forces.up.y;
+        // Чем меньше расстояние между ними по X, тем лучше баланс лево/право
+        const balanceX = Math.max(0, 100 - Math.abs(dx) / (w / 2) * 100);
+        // Чем ближе они к вертикальной оси, тем лучше баланс верх/низ
+        const balanceY = Math.max(0, 100 - Math.abs(dy - 300) / h * 100);
+        const overall = Math.min(100, (balanceX + balanceY) / 2);
+        balanceFill.style.width = overall + '%';
+        balanceFill.style.backgroundColor = overall > 80 ? '#2ecc71' : overall > 50 ? '#ffcc00' : '#ff4d4d';
+        
+        coordsText.textContent = `🎱 (${
+            Math.round((forces.down.x - cx) / (w/2) * 100)}%, ${Math.round((forces.down.y - cy) / (h/2) * 100)}%) | 🎈 (${
+            Math.round((forces.up.x - cx) / (w/2) * 100)}%, ${Math.round((forces.up.y - cy) / (h/2) * 100)}%)`;
+    }
+
+    // ============= ИНТЕРАКТИВНОСТЬ =============
+    function getPointerPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function hitTest(pos) {
+        const d = forces.down;
+        const u = forces.up;
+        if (Math.hypot(pos.x - d.x, pos.y - d.y) < d.radius + 20) return 'down';
+        if (Math.hypot(pos.x - u.x, pos.y - u.y) < u.radius + 20) return 'up';
+        return null;
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const pos = getPointerPos(e);
+        const hit = hitTest(pos);
+        if (hit) {
+            isDragging = true;
+            draggedKey = hit;
+            dragStart = pos;
+            startPos = { x: forces[hit].x, y: forces[hit].y };
+            canvas.style.cursor = 'grabbing';
+        }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (!isDragging || !draggedKey) return;
+        e.preventDefault();
+        const pos = getPointerPos(e);
+        const dx = pos.x - dragStart.x;
+        const dy = pos.y - dragStart.y;
+        forces[draggedKey].x = Math.max(20, Math.min(w - 20, startPos.x + dx));
+        forces[draggedKey].y = Math.max(20, Math.min(h - 20, startPos.y + dy));
+        draw();
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (isDragging) {
+            isDragging = false;
+            draggedKey = null;
+            canvas.style.cursor = 'grab';
+        }
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        forces.down.x = cx; forces.down.y = cy + 150;
+        forces.up.x = cx; forces.up.y = cy - 150;
+        draw();
+    });
+
+    function loop() {
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    loop();
+    console.log('🟣🦅 Уровень 6: Баланс 🎱 и 🎈 загружено!');
+</script>
+</body>
+</html>
