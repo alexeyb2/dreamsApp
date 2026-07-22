@@ -100,14 +100,14 @@
     let energyEnabled = true;
     let time = 0;
 
-    // Базовые позиции (всего 7 точек)
+    // ИСПРАВЛЕНИЕ ГЕОМЕТРИИ: 🟦 (слева), 🟥 (справа), 🔺 (спереди)
     const baseNodes = {
-        bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺
-        bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
-        bottom_right:  { x: 1.2, y: -2.5, z: -1.2 }, // 🟥
-        top_center:    { x: 0,   y: 1.0, z: -1.2 },  // 🔻
-        top_left:      { x: -1.2, y: 1.0, z: 1.2 },  // 🔵
-        top_right:     { x: 1.2, y: 1.0, z: 1.2 },   // 🔴
+        bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺 (низ, спереди)
+        bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦 (низ, сзади-слева)
+        bottom_right:  { x: 1.2, y: -2.5, z: -1.2 }, // 🟥 (низ, сзади-справа)
+        top_center:    { x: 0,   y: 1.0, z: -1.2 },  // 🔻 (верх, сзади)
+        top_left:      { x: -1.2, y: 1.0, z: 1.2 },  // 🔵 (верх, спереди-слева)
+        top_right:     { x: 1.2, y: 1.0, z: 1.2 },   // 🔴 (верх, спереди-справа)
         center:        { x: 0,   y: 0,   z: 0 }       // 🟡
     };
 
@@ -173,18 +173,17 @@
     }
 
     // ============= ЭНЕРГЕТИЧЕСКАЯ ЧАСТИЦА (КРАСНЫЙ ШАР) =============
-    // Она будет двигаться по маршруту: 🟥 -> 🔵 -> 🔴 -> 🟦 -> 🟥
     const energyParticleGeo = new THREE.SphereGeometry(0.25, 16, 16);
     const energyParticleMat = new THREE.MeshBasicMaterial({ color: 0xff4d4d, transparent: true, opacity: 0.9 });
     const energyParticle = new THREE.Mesh(energyParticleGeo, energyParticleMat);
     energyParticle.material.transparent = true;
     pivotGroup.add(energyParticle);
 
-    let energyProgress = 0; // 0 .. 1
+    let energyProgress = 0;
     const energySpeed = 0.002;
 
+    // Маршрут частицы: 🟥 -> 🔵 -> 🔴 -> 🟦 -> 🟥 (замкнутый цикл)
     function getEnergyRoutePoint(progress) {
-        // Маршрут: 4 отрезка (0..0.25, 0.25..0.5, 0.5..0.75, 0.75..1)
         const route = [
             currentNodes.bottom_right, // 🟥
             currentNodes.top_left,     // 🔵
@@ -258,7 +257,7 @@
         const tetra2 = buildTetra(apex2, base2, 0xff4d4d);
         tetra2.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
 
-        // === ТОНКИЕ ЛИНИИ ===
+        // === ТОНКИЕ ЛИНИИ (ЦИЛИНДРЫ) ===
         const createThinLine = (start, end, color, opacity = 0.9) => {
             const dir = new THREE.Vector3().copy(end).sub(start);
             const length = dir.length();
@@ -280,9 +279,20 @@
         };
 
         const goldColor = new THREE.Color(centerColor);
+
+        // 🟥 -> 🟡 -> 🔵 (красная линия)
         addThroughCenter(currentNodes.bottom_right, currentNodes.top_left, 0xff4d4d, 0.8);
+        // 🟦 -> 🟡 -> 🔴 (синяя линия)
         addThroughCenter(currentNodes.bottom_left, currentNodes.top_right, 0x4d8bff, 0.8);
+        // 🔺 -> 🟡 -> 🔻 (золотая линия)
         addThroughCenter(currentNodes.bottom_center, currentNodes.top_center, goldColor, 0.8);
+
+        // ===== НОВАЯ ЛИНИЯ: 🟦 (низ-лев) -> 🟥 (низ-прав) =====
+        createThinLine(
+            new THREE.Vector3(currentNodes.bottom_left.x, currentNodes.bottom_left.y, currentNodes.bottom_left.z),
+            new THREE.Vector3(currentNodes.bottom_right.x, currentNodes.bottom_right.y, currentNodes.bottom_right.z),
+            0xff4d4d, 0.8
+        );
     }
 
     // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
@@ -302,7 +312,7 @@
         sprites['top_left'].position.set(currentNodes.top_left.x, currentNodes.top_left.y, currentNodes.top_left.z);
         sprites['top_right'].position.set(currentNodes.top_right.x, currentNodes.top_right.y, currentNodes.top_right.z);
 
-        // Центр
+        // Центр 🟡
         if (!isCenterDragged) {
             const allPoints = [
                 currentNodes.bottom_center, currentNodes.bottom_left, currentNodes.bottom_right,
@@ -468,7 +478,7 @@
     updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (замкнутый цикл энергии) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (исправлены лево-право, добавлена красная линия) загружено!');
 </script>
 </body>
 </html>
