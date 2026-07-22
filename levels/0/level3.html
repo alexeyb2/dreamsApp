@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Уровень 3: Крест ножей</title>
+<style>/* аналогично */</style>
+</head>
+<body>
+<div id="app">
+<canvas id="canvas"></canvas>
+<div class="controls"><button class="btn" id="reset-btn">🔄 Сброс</button></div>
+<div id="status">Иллюзий: 5</div>
+</div>
+<script>
+// Механика: проводим крест через центр, уничтожая "иллюзии"
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+let w,h,cx,cy;
+let illusions = 5;
+let lines = []; // [{x1,y1,x2,y2, active}]
+let currentLine = null; // для рисования
+let drawing = false;
+
+function resize() {
+	const rect = canvas.getBoundingClientRect();
+	canvas.width = rect.width;
+	canvas.height = rect.height;
+	w = canvas.width; h = canvas.height;
+	cx = w/2; cy = h/2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function load() {
+	const raw = localStorage.getItem('highmind_universe');
+	if (raw) {
+		try {
+			const data = JSON.parse(raw);
+			if (data.illusions !== undefined) illusions = data.illusions;
+		} catch(e) {}
+	}
+}
+load();
+function save() {
+	const raw = localStorage.getItem('highmind_universe');
+	let data = {};
+	if (raw) try { data = JSON.parse(raw); } catch(e) {}
+	data.illusions = illusions;
+	localStorage.setItem('highmind_universe', JSON.stringify(data));
+}
+
+function draw() {
+	ctx.clearRect(0,0,w,h);
+	// Рисуем крест (горизонталь и вертикаль) пунктиром
+	ctx.setLineDash([8, 8]);
+	ctx.strokeStyle = '#b8a6ff44';
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.moveTo(0, cy);
+	ctx.lineTo(w, cy);
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.moveTo(cx, 0);
+	ctx.lineTo(cx, h);
+	ctx.stroke();
+	ctx.setLineDash([]);
+
+	// Рисуем нарисованные линии
+	lines.forEach(line => {
+		ctx.beginPath();
+		ctx.moveTo(line.x1, line.y1);
+		ctx.lineTo(line.x2, line.y2);
+		ctx.strokeStyle = line.color || '#ffcc00';
+		ctx.lineWidth = 4;
+		ctx.shadowColor = '#ffcc00';
+		ctx.shadowBlur = 20;
+		ctx.stroke();
+		ctx.shadowBlur = 0;
+	});
+
+	// Текущая линия
+	if (currentLine) {
+		ctx.beginPath();
+		ctx.moveTo(currentLine.x1, currentLine.y1);
+		ctx.lineTo(currentLine.x2, currentLine.y2);
+		ctx.strokeStyle = '#ffcc00';
+		ctx.lineWidth = 4;
+		ctx.shadowColor = '#ffcc00';
+		ctx.shadowBlur = 20;
+		ctx.stroke();
+		ctx.shadowBlur = 0;
+	}
+
+	statusEl.textContent = `Иллюзий: ${illusions}`;
+}
+
+// Проверка, что линия пересекает центр
+function lineCrossesCenter(x1,y1,x2,y2) {
+	const dx = x2 - x1;
+	const dy = y2 - y1;
+	// Проверяем, что центр лежит между концами
+	const t = ((cx - x1)*dx + (cy - y1)*dy) / (dx*dx + dy*dy);
+	if (t < 0 || t > 1) return false;
+	const px = x1 + t*dx;
+	const py = y1 + t*dy;
+	const dist = Math.hypot(px - cx, py - cy);
+	return dist < 30; // порог
+}
+
+function getPointerPos(e) {
+	const rect = canvas.getBoundingClientRect();
+	return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+	const pos = getPointerPos(e);
+	drawing = true;
+	currentLine = { x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y };
+});
+canvas.addEventListener('pointermove', (e) => {
+	if (drawing && currentLine) {
+		const pos = getPointerPos(e);
+		currentLine.x2 = pos.x;
+		currentLine.y2 = pos.y;
+	}
+});
+canvas.addEventListener('pointerup', (e) => {
+	if (drawing && currentLine) {
+		const line = currentLine;
+		// Проверяем, пересекает ли центр
+		if (lineCrossesCenter(line.x1, line.y1, line.x2, line.y2)) {
+			if (illusions > 0) {
+				illusions--;
+				save();
+				// Добавляем линию с золотым цветом
+				lines.push({ ...line, color: '#ffcc00' });
+			} else {
+				// уже все иллюзии уничтожены
+			}
+		} else {
+			// не пересекает центр – просто тонкая серая линия
+			lines.push({ ...line, color: '#888' });
+		}
+		currentLine = null;
+		drawing = false;
+	}
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+	illusions = 5;
+	lines = [];
+	save();
+});
+
+function update() {
+	draw();
+	requestAnimationFrame(update);
+}
+update();
+</script>
+</body>
+</html>
