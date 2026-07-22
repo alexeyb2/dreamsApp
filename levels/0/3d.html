@@ -84,26 +84,22 @@
     // ============= ТРЕУГОЛЬНИКИ И ШАРЫ =============
     const STORAGE_KEY = 'highmind_level7_3d';
 
-    // 3 вершины нижнего треугольника (земля)
     const lowerTriangle = [
         { x: -1.5, y: -2.5, z: 0 },
         { x: 1.5, y: -2.5, z: 0 },
         { x: 0, y: -2.5, z: 1.5 }
     ];
-    // 3 вершины верхнего треугольника (небо)
     const upperTriangle = [
         { x: -1.5, y: 2.5, z: 0 },
         { x: 1.5, y: 2.5, z: 0 },
         { x: 0, y: 2.5, z: 1.5 }
     ];
 
-    // Шары: 🎱 (нижний) и 🎈 (верхний)
     const ballDown = { x: 0, y: -1.0, z: 0, emoji: '🎱', color: '#4d8bff', label: 'Вниз' };
     const ballUp = { x: 0, y: 1.0, z: 0, emoji: '🎈', color: '#ff4d4d', label: 'Вверх' };
 
     let centerPos = new THREE.Vector3(0, 0, 0);
 
-    // ============= СОХРАНЕНИЕ =============
     function saveState() {
         const data = {
             lower: lowerTriangle.map(p => ({ x: p.x, y: p.y, z: p.z })),
@@ -122,30 +118,22 @@
             if (data.lower) {
                 data.lower.forEach((p, i) => {
                     if (i < lowerTriangle.length) {
-                        lowerTriangle[i].x = p.x;
-                        lowerTriangle[i].y = p.y;
-                        lowerTriangle[i].z = p.z;
+                        lowerTriangle[i].x = p.x; lowerTriangle[i].y = p.y; lowerTriangle[i].z = p.z;
                     }
                 });
             }
             if (data.upper) {
                 data.upper.forEach((p, i) => {
                     if (i < upperTriangle.length) {
-                        upperTriangle[i].x = p.x;
-                        upperTriangle[i].y = p.y;
-                        upperTriangle[i].z = p.z;
+                        upperTriangle[i].x = p.x; upperTriangle[i].y = p.y; upperTriangle[i].z = p.z;
                     }
                 });
             }
             if (data.ballDown) {
-                ballDown.x = data.ballDown.x;
-                ballDown.y = data.ballDown.y;
-                ballDown.z = data.ballDown.z;
+                ballDown.x = data.ballDown.x; ballDown.y = data.ballDown.y; ballDown.z = data.ballDown.z;
             }
             if (data.ballUp) {
-                ballUp.x = data.ballUp.x;
-                ballUp.y = data.ballUp.y;
-                ballUp.z = data.ballUp.z;
+                ballUp.x = data.ballUp.x; ballUp.y = data.ballUp.y; ballUp.z = data.ballUp.z;
             }
             return true;
         } catch(e) { return false; }
@@ -156,52 +144,42 @@
     }
 
     // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
-    // Спрайты для вершин треугольников (маленькие эмодзи)
-    function createPointSprite(emoji, color) {
+    function createPointSprite(emoji, color, scale = 0.6) {
         const canvas = document.createElement('canvas');
-        canvas.width = 128;
-        canvas.height = 128;
+        canvas.width = 128; canvas.height = 128;
         const ctx = canvas.getContext('2d');
         ctx.font = '80px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.shadowColor = color; ctx.shadowBlur = 20;
         ctx.fillText(emoji, 64, 64);
         ctx.shadowBlur = 0;
-        return new THREE.CanvasTexture(canvas);
+        const tex = new THREE.CanvasTexture(canvas);
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(scale, scale, 1);
+        return sprite;
     }
 
-    // Вершины треугольников – спрайты
     const lowerSprites = [];
     const upperSprites = [];
-    const triangleColor = '#88bbff';
 
     lowerTriangle.forEach((p, i) => {
-        const tex = createPointSprite('🔺', triangleColor);
-        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-        const sprite = new THREE.Sprite(mat);
-        sprite.scale.set(0.6, 0.6, 1);
-        sprite.position.set(p.x, p.y, p.z);
-        scene.add(sprite);
-        lowerSprites.push(sprite);
+        const s = createPointSprite('🔺', '#88bbff');
+        s.position.set(p.x, p.y, p.z);
+        scene.add(s);
+        lowerSprites.push(s);
     });
-
     upperTriangle.forEach((p, i) => {
-        const tex = createPointSprite('🔻', triangleColor);
-        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-        const sprite = new THREE.Sprite(mat);
-        sprite.scale.set(0.6, 0.6, 1);
-        sprite.position.set(p.x, p.y, p.z);
-        scene.add(sprite);
-        upperSprites.push(sprite);
+        const s = createPointSprite('🔻', '#88bbff');
+        s.position.set(p.x, p.y, p.z);
+        scene.add(s);
+        upperSprites.push(s);
     });
 
-    // Шары – крупные спрайты
     function createBallSprite(emoji, color, label) {
         const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
+        canvas.width = 256; canvas.height = 256;
         const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, 256, 256);
         ctx.font = '110px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.shadowColor = color; ctx.shadowBlur = 25;
@@ -228,7 +206,6 @@
     ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z);
     scene.add(ballUpSprite);
 
-    // Центральный зелёный шар
     function createCenterSprite() {
         const canvas = document.createElement('canvas');
         canvas.width = 256; canvas.height = 256;
@@ -249,54 +226,67 @@
     centerSprite.position.copy(centerPos);
     scene.add(centerSprite);
 
-    // ============= ЛИНИИ СВЯЗЕЙ =============
-    // 🎱 (нижний) соединён с верхним треугольником
-    // 🎈 (верхний) соединён с нижним треугольником
-    let lineMeshes = [];
+    // ============= ГРАНИ ТЕТРАЭДРОВ =============
+    let tetraMeshes = [];
 
-    function updateLines() {
-        // Удаляем старые линии
-        lineMeshes.forEach(line => scene.remove(line));
-        lineMeshes = [];
+    function updateTetrahedrons() {
+        tetraMeshes.forEach(m => scene.remove(m));
+        tetraMeshes = [];
 
-        // Линии от 🎱 к каждой вершине верхнего треугольника
-        upperTriangle.forEach(p => {
-            const start = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
-            const end = new THREE.Vector3(p.x, p.y, p.z);
-            const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
-            const mat = new THREE.LineBasicMaterial({ color: 0x4d8bff, transparent: true, opacity: 0.4 });
-            const line = new THREE.Line(geom, mat);
-            scene.add(line);
-            lineMeshes.push(line);
-        });
+        function buildTetra(apex, baseVerts, color) {
+            const v = [apex, baseVerts[0], baseVerts[1], baseVerts[2]];
+            // 4 грани по 3 вершины (всего 12 точек)
+            const pos = [
+                v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z, // основание
+                v[0].x, v[0].y, v[0].z, v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z, // грань 1
+                v[0].x, v[0].y, v[0].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z, // грань 2
+                v[0].x, v[0].y, v[0].z, v[3].x, v[3].y, v[3].z, v[1].x, v[1].y, v[1].z  // грань 3
+            ];
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            geom.computeVertexNormals();
 
-        // Линии от 🎈 к каждой вершине нижнего треугольника
-        lowerTriangle.forEach(p => {
-            const start = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
-            const end = new THREE.Vector3(p.x, p.y, p.z);
-            const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
-            const mat = new THREE.LineBasicMaterial({ color: 0xff4d4d, transparent: true, opacity: 0.4 });
-            const line = new THREE.Line(geom, mat);
-            scene.add(line);
-            lineMeshes.push(line);
-        });
+            // Стеклянные грани (полупрозрачные)
+            const glassMat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide
+            });
+            const mesh = new THREE.Mesh(geom, glassMat);
+            scene.add(mesh);
+            tetraMeshes.push(mesh);
+
+            // Проволочный каркас (рёбра)
+            const wireMat = new THREE.MeshBasicMaterial({
+                color: color,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            });
+            const wireMesh = new THREE.Mesh(geom.clone(), wireMat);
+            scene.add(wireMesh);
+            tetraMeshes.push(wireMesh);
+        }
+
+        // Тетраэдр 1: 🎱 (низ) + 🔻 (верхний треугольник)
+        const apex1 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
+        const base1 = upperTriangle.map(p => new THREE.Vector3(p.x, p.y, p.z));
+        buildTetra(apex1, base1, 0x4d8bff); // синий
+
+        // Тетраэдр 2: 🎈 (верх) + 🔺 (нижний треугольник)
+        const apex2 = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
+        const base2 = lowerTriangle.map(p => new THREE.Vector3(p.x, p.y, p.z));
+        buildTetra(apex2, base2, 0xff4d4d); // красный
     }
 
     // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
     function updatePositions() {
-        // Обновляем позиции спрайтов вершин треугольников
-        lowerTriangle.forEach((p, i) => {
-            lowerSprites[i].position.set(p.x, p.y, p.z);
-        });
-        upperTriangle.forEach((p, i) => {
-            upperSprites[i].position.set(p.x, p.y, p.z);
-        });
-
-        // Обновляем шары
+        lowerTriangle.forEach((p, i) => lowerSprites[i].position.set(p.x, p.y, p.z));
+        upperTriangle.forEach((p, i) => upperSprites[i].position.set(p.x, p.y, p.z));
         ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
         ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z);
 
-        // Вычисляем центр как среднее всех 8 точек (3 нижних + 3 верхних + 2 шара)
         centerPos.set(0, 0, 0);
         lowerTriangle.forEach(p => { centerPos.x += p.x; centerPos.y += p.y; centerPos.z += p.z; });
         upperTriangle.forEach(p => { centerPos.x += p.x; centerPos.y += p.y; centerPos.z += p.z; });
@@ -306,10 +296,8 @@
         centerPos.divideScalar(8);
         centerSprite.position.copy(centerPos);
 
-        // Обновляем линии
-        updateLines();
+        updateTetrahedrons();
 
-        // Баланс: расстояние центра от начала координат
         const dist = centerPos.length();
         const maxDist = 3.5;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
@@ -329,11 +317,10 @@
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let isDragging = false;
-    let draggedKey = null; // строка: 'lower0', 'upper0', 'ballDown', 'ballUp'
+    let draggedKey = null;
     let dragOffset = new THREE.Vector3();
     let intersectPlane = new THREE.Plane();
 
-    // Создаём список всех перетаскиваемых спрайтов с их ключами
     const draggableObjects = [];
     lowerTriangle.forEach((p, i) => {
         draggableObjects.push({ key: `lower${i}`, sprite: lowerSprites[i], data: p });
@@ -386,25 +373,16 @@
             newPos.y = Math.max(-limit, Math.min(limit, newPos.y));
             newPos.z = Math.max(-limit, Math.min(limit, newPos.z));
 
-            // Находим соответствующий объект данных
             if (draggedKey.startsWith('lower')) {
                 const idx = parseInt(draggedKey.replace('lower', ''));
-                lowerTriangle[idx].x = newPos.x;
-                lowerTriangle[idx].y = newPos.y;
-                lowerTriangle[idx].z = newPos.z;
+                lowerTriangle[idx].x = newPos.x; lowerTriangle[idx].y = newPos.y; lowerTriangle[idx].z = newPos.z;
             } else if (draggedKey.startsWith('upper')) {
                 const idx = parseInt(draggedKey.replace('upper', ''));
-                upperTriangle[idx].x = newPos.x;
-                upperTriangle[idx].y = newPos.y;
-                upperTriangle[idx].z = newPos.z;
+                upperTriangle[idx].x = newPos.x; upperTriangle[idx].y = newPos.y; upperTriangle[idx].z = newPos.z;
             } else if (draggedKey === 'ballDown') {
-                ballDown.x = newPos.x;
-                ballDown.y = newPos.y;
-                ballDown.z = newPos.z;
+                ballDown.x = newPos.x; ballDown.y = newPos.y; ballDown.z = newPos.z;
             } else if (draggedKey === 'ballUp') {
-                ballUp.x = newPos.x;
-                ballUp.y = newPos.y;
-                ballUp.z = newPos.z;
+                ballUp.x = newPos.x; ballUp.y = newPos.y; ballUp.z = newPos.z;
             }
             saveState();
             updatePositions();
@@ -452,7 +430,7 @@
 
     updatePositions();
     animate();
-    console.log('🟣🦅 Уровень 7: Куб Сознания (треугольники и шары) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (грани тетраэдров 🎱🔻 и 🎈🔺) загружено!');
 </script>
 </body>
 </html>
