@@ -24,31 +24,59 @@
 
         /* Панель редактирования пути */
         #path-panel {
-            display: none; width: 90%; max-width: 420px; padding: 8px 12px;
+            display: none; width: 90%; max-width: 440px; padding: 12px 16px 16px;
             background: rgba(16, 13, 30, 0.95); backdrop-filter: blur(10px);
             border: 1px solid #3a2f5a; border-radius: 30px;
-            flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px;
+            flex-direction: column; align-items: center; gap: 10px;
             pointer-events: auto; margin-bottom: 6px;
         }
         #path-panel.active { display: flex; }
-        .path-item {
+
+        /* Сетка выбора (3x3 пирамида) */
+        .selector-grid {
+            display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%;
+        }
+        .selector-row {
+            display: flex; justify-content: center; gap: 8px; width: 100%;
+        }
+        .selector-row.center { gap: 0; }
+        .sel-item {
+            font-size: 32px; line-height: 1.2; padding: 4px 10px;
+            background: #1a1530; border: 1px solid #2a2248; border-radius: 16px;
+            cursor: pointer; transition: 0.2s; user-select: none;
+            display: flex; align-items: center; justify-content: center;
+            width: 50px; height: 50px;
+        }
+        .sel-item:active { background: #6f52c4; transform: scale(0.9); border-color: #6f52c4; }
+        .sel-item.center-item { width: 50px; height: 50px; }
+
+        /* Строка построенного маршрута */
+        .route-build-row {
+            display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px;
+            padding: 8px 12px; background: #100d1e; border-radius: 20px;
+            border: 1px dashed #3a2f5a; width: 100%; min-height: 40px;
+        }
+        .route-item {
             display: flex; align-items: center; background: #221b38;
-            padding: 4px 8px; border-radius: 20px; border: 1px solid #3a2f5a; gap: 4px;
+            padding: 2px 8px 2px 10px; border-radius: 16px; border: 1px solid #3a2f5a; gap: 4px;
         }
-        .path-emoji { font-size: 20px; line-height: 1; }
-        .path-del {
+        .route-emoji { font-size: 22px; line-height: 1; }
+        .route-del {
             background: transparent; border: none; color: #ff4d4d; font-size: 14px;
-            cursor: pointer; padding: 0 2px; line-height: 1;
+            cursor: pointer; padding: 0 2px; line-height: 1; font-weight: bold;
         }
-        .path-del:active { transform: scale(1.2); }
-        .path-actions { display: flex; gap: 6px; align-items: center; }
+        .route-del:active { transform: scale(1.2); }
+        .route-empty { font-size: 13px; color: #5a507a; }
+
+        /* Кнопки действий */
+        .route-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; width: 100%; }
         .path-btn {
-            background: #2a2348; border: 1px solid #3a2f5a; border-radius: 20px;
-            color: #b8a6ff; font-size: 12px; padding: 4px 12px; cursor: pointer; font-weight: 600;
+            background: #2a2348; border: 1px solid #3a2f5a; border-radius: 24px;
+            color: #b8a6ff; font-size: 14px; padding: 6px 18px; cursor: pointer; font-weight: 600;
+            transition: 0.2s;
         }
         .path-btn:active { background: #6f52c4; color: #fff; border-color: #6f52c4; }
         .path-btn.save { background: #6f52c4; color: #fff; border-color: #6f52c4; }
-        .path-hint { font-size: 12px; color: #8f78e6; }
 
         .btn-group { background: rgba(22,17,39,0.85); padding: 8px 16px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 10px; pointer-events: auto; }
         .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 14px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; }
@@ -61,7 +89,13 @@
         .menu-item:active { background: #6f52c4; color: #fff; }
         .menu-item input[type="color"] { width: 30px; height: 30px; border: none; padding: 0; background: transparent; cursor: pointer; }
         
-        @media (max-width: 600px) { #ui { bottom: 15px; padding: 8px; } .btn-group { padding: 6px 12px; gap: 6px; } #path-panel { padding: 6px 10px; gap: 4px; } }
+        @media (max-width: 600px) { 
+            #ui { bottom: 15px; padding: 8px; } 
+            .btn-group { padding: 6px 12px; gap: 6px; } 
+            #path-panel { padding: 10px 12px; gap: 8px; }
+            .sel-item { font-size: 28px; width: 44px; height: 44px; }
+            .route-emoji { font-size: 18px; }
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -141,18 +175,14 @@
         pivotGroup.add(line);
     });
 
-    // ============= ИДЕАЛЬНАЯ ГЕОМЕТРИЯ (Лево/Право, Спереди/Сзади) =============
+    // ============= ГЕОМЕТРИЯ (ИДЕАЛЬНЫЕ КООРДИНАТЫ) =============
     const baseNodes = {
-        // НИЗ (Ноги, сзади): 🔺 спереди, 🟦 слева, 🟥 справа
         bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺
         bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
         bottom_right:  { x: 1.2, y: -2.5, z: -1.2 }, // 🟥
-        
-        // ВЕРХ (Руки, спереди): 🔻 сзади, 🔵 слева, 🔴 справа
         top_center:    { x: 0,   y: 1.0, z: -1.2 },  // 🔻
         top_left:      { x: -1.2, y: 1.0, z: 1.2 },  // 🔵
         top_right:     { x: 1.2, y: 1.0, z: 1.2 },   // 🔴
-        
         center:        { x: 0,   y: 0,   z: 0 }       // 🟡
     };
 
@@ -193,7 +223,7 @@
     }
     if (!loadState()) saveState();
 
-    // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
+    // ============= 3D ОБЪЕКТЫ =============
     function createSprite(emoji, color, scale = 0.6) {
         const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
         const ctx = canvas.getContext('2d');
@@ -280,7 +310,7 @@
         return { pos: {x: last.x, y: last.y, z: last.z}, color: 0xff4d4d };
     }
 
-    // ============= ГЕОМЕТРИЯ =============
+    // ============= ГЕОМЕТРИЯ 3D =============
     let dynamicMeshes = [];
 
     function buildTetra(apex, baseVerts, color) {
@@ -354,7 +384,7 @@
         );
     }
 
-    // ============= ПАНЕЛЬ МАРШРУТА (С ЭМОДЗИ) =============
+    // ============= ПАНЕЛЬ МАРШРУТА (ПО ТВОЕЙ СХЕМЕ) =============
     function renderPathUI() {
         const panel = document.getElementById('path-panel');
         panel.innerHTML = '';
@@ -365,21 +395,60 @@
         }
         panel.classList.add('active');
 
-        // 1. Эмодзи маршрута
+        // 1. СЕТКА ВЫБОРА ТОЧЕК (3 строки)
+        const grid = document.createElement('div');
+        grid.className = 'selector-grid';
+
+        // Верхняя строка: 🔴 🔻 🔵
+        const row1 = document.createElement('div');
+        row1.className = 'selector-row';
+        ['top_right', 'top_center', 'top_left'].forEach(key => {
+            const el = document.createElement('div');
+            el.className = 'sel-item';
+            el.textContent = keyToEmoji[key];
+            el.addEventListener('click', () => addPointToPath(key));
+            row1.appendChild(el);
+        });
+        grid.appendChild(row1);
+
+        // Центральная строка: 🟡
+        const rowC = document.createElement('div');
+        rowC.className = 'selector-row center';
+        const elC = document.createElement('div');
+        elC.className = 'sel-item center-item';
+        elC.textContent = '🟡';
+        elC.addEventListener('click', () => addPointToPath('center'));
+        rowC.appendChild(elC);
+        grid.appendChild(rowC);
+
+        // Нижняя строка: 🟥 🔺 🟦
+        const row2 = document.createElement('div');
+        row2.className = 'selector-row';
+        ['bottom_right', 'bottom_center', 'bottom_left'].forEach(key => {
+            const el = document.createElement('div');
+            el.className = 'sel-item';
+            el.textContent = keyToEmoji[key];
+            el.addEventListener('click', () => addPointToPath(key));
+            row2.appendChild(el);
+        });
+        grid.appendChild(row2);
+
+        panel.appendChild(grid);
+
+        // 2. СТРОКА ПОСТРОЕННОГО МАРШРУТА
+        const routeRow = document.createElement('div');
+        routeRow.className = 'route-build-row';
         if (customPath && customPath.length > 0) {
             customPath.forEach((key, index) => {
-                const emoji = keyToEmoji[key] || '❓';
                 const item = document.createElement('div');
-                item.className = 'path-item';
-                
+                item.className = 'route-item';
                 const emojiSpan = document.createElement('span');
-                emojiSpan.className = 'path-emoji';
-                emojiSpan.textContent = emoji;
+                emojiSpan.className = 'route-emoji';
+                emojiSpan.textContent = keyToEmoji[key] || '❓';
                 item.appendChild(emojiSpan);
-
                 if (isEditingPath) {
                     const delBtn = document.createElement('button');
-                    delBtn.className = 'path-del';
+                    delBtn.className = 'route-del';
                     delBtn.textContent = '✕';
                     delBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -391,18 +460,19 @@
                     });
                     item.appendChild(delBtn);
                 }
-                panel.appendChild(item);
+                routeRow.appendChild(item);
             });
-        } else if (isEditingPath) {
+        } else {
             const hint = document.createElement('span');
-            hint.className = 'path-hint';
-            hint.textContent = 'Нажми на точки, чтобы построить путь 🛤️';
-            panel.appendChild(hint);
+            hint.className = 'route-empty';
+            hint.textContent = 'Нажимай на эмодзи, чтобы построить путь...';
+            routeRow.appendChild(hint);
         }
+        panel.appendChild(routeRow);
 
-        // 2. Кнопки действий
+        // 3. КНОПКИ ДЕЙСТВИЙ
         const actions = document.createElement('div');
-        actions.className = 'path-actions';
+        actions.className = 'route-actions';
         
         if (isEditingPath) {
             const saveBtn = document.createElement('button');
@@ -437,6 +507,15 @@
         actions.appendChild(clearBtn);
 
         panel.appendChild(actions);
+    }
+
+    function addPointToPath(key) {
+        if (!customPath) customPath = [];
+        if (customPath.length === 0 || customPath[customPath.length - 1] !== key) {
+            customPath.push(key);
+            renderPathUI();
+            updateTempLines();
+        }
     }
 
     // ============= ВРЕМЕННЫЕ ЛИНИИ =============
@@ -510,7 +589,7 @@
         centerSprite.material.opacity = balance > 95 ? 1.0 : 0.9;
     }
 
-    // ============= ИНТЕРАКТИВНОСТЬ =============
+    // ============= ИНТЕРАКТИВНОСТЬ (3D ПЕРЕТАСКИВАНИЕ) =============
     const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
     let isDragging = false, draggedKey = null, dragOffset = new THREE.Vector3(), intersectPlane = new THREE.Plane();
 
@@ -536,16 +615,9 @@
             const hitSprite = intersects[0].object;
             const found = draggableList.find(item => spriteMap[item.key] === hitSprite);
             if (found) {
-                if (isEditingPath) {
-                    const key = found.key;
-                    if (!customPath) customPath = [];
-                    if (customPath.length === 0 || customPath[customPath.length - 1] !== key) {
-                        customPath.push(key);
-                        renderPathUI();
-                        updateTempLines();
-                    }
-                    return;
-                }
+                // В режиме редактирования пути отключаем перетаскивание 3D
+                if (isEditingPath) return;
+
                 draggedKey = found.key; isDragging = true; controls.enabled = false; renderer.domElement.style.cursor = 'grabbing';
                 const point = intersects[0].point; dragOffset.copy(point).sub(hitSprite.position);
                 const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
@@ -579,7 +651,7 @@
         }
     });
 
-    // ============= УПРАВЛЕНИЕ =============
+    // ============= УПРАВЛЕНИЕ МЕНЮ =============
     document.getElementById('reset-btn').addEventListener('click', () => {
         Object.assign(baseNodes.bottom_center, { x: 0, y: -2.5, z: 1.2 });
         Object.assign(baseNodes.bottom_left, { x: -1.2, y: -2.5, z: -1.2 });
@@ -642,12 +714,11 @@
         renderer.setSize(container.clientWidth, container.clientHeight);
     });
 
-    // Инициализация панели
     renderPathUI();
     updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (панель с эмодзи, удаление точек) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (панель выбора по схеме, удобные тапы) загружено!');
 </script>
 </body>
 </html>
