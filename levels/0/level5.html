@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Уровень 5: Два дерева</title>
+<style>/* аналогично */</style>
+</head>
+<body>
+<div id="app">
+<canvas id="canvas"></canvas>
+<div class="controls"><button class="btn" id="reset-btn">🔄 Сброс</button></div>
+<div id="status">Сила: 0% | Поддержка: 0%</div>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+let w,h,cx,cy;
+let power = 0, support = 0; // 0..100
+let touchingLeft = false, touchingRight = false;
+
+function resize() {
+	const rect = canvas.getBoundingClientRect();
+	canvas.width = rect.width;
+	canvas.height = rect.height;
+	w = canvas.width; h = canvas.height;
+	cx = w/2; cy = h/2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function load() {
+	const raw = localStorage.getItem('highmind_universe');
+	if (raw) {
+		try {
+			const data = JSON.parse(raw);
+			if (data.power !== undefined) power = data.power;
+			if (data.support !== undefined) support = data.support;
+		} catch(e) {}
+	}
+}
+load();
+function save() {
+	const raw = localStorage.getItem('highmind_universe');
+	let data = {};
+	if (raw) try { data = JSON.parse(raw); } catch(e) {}
+	data.power = power;
+	data.support = support;
+	localStorage.setItem('highmind_universe', JSON.stringify(data));
+}
+
+function drawTree(x, y, growth, color, label) {
+	const height = 30 + growth * 1.5;
+	// Ствол
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.lineTo(x, y - height);
+	ctx.strokeStyle = color;
+	ctx.lineWidth = 6;
+	ctx.shadowColor = color;
+	ctx.shadowBlur = 20;
+	ctx.stroke();
+	// Крона
+	ctx.beginPath();
+	ctx.arc(x, y - height, 20 + growth*0.3, 0, Math.PI*2);
+	ctx.fillStyle = color+'44';
+	ctx.fill();
+	ctx.strokeStyle = color;
+	ctx.lineWidth = 2;
+	ctx.stroke();
+	ctx.shadowBlur = 0;
+	// Подпись
+	ctx.font = '14px system-ui';
+	ctx.fillStyle = '#e0d6ff';
+	ctx.textAlign = 'center';
+	ctx.fillText(label, x, y + 30);
+}
+
+function draw() {
+	ctx.clearRect(0,0,w,h);
+	// Рисуем два дерева по бокам
+	const leftX = cx - 120;
+	const rightX = cx + 120;
+	const groundY = cy + 50;
+	drawTree(leftX, groundY, power, '#4d8bff', 'Сила 🎱');
+	drawTree(rightX, groundY, support, '#ff4d4d', 'Поддержка 🎈');
+	// Центральная линия (позвоночник)
+	ctx.beginPath();
+	ctx.moveTo(cx, groundY);
+	ctx.lineTo(cx, groundY - 200);
+	ctx.strokeStyle = '#b8a6ff33';
+	ctx.lineWidth = 2;
+	ctx.setLineDash([4,4]);
+	ctx.stroke();
+	ctx.setLineDash([]);
+
+	statusEl.textContent = `Сила: ${Math.round(power)}% | Поддержка: ${Math.round(support)}%`;
+}
+
+function getPointerPos(e) {
+	const rect = canvas.getBoundingClientRect();
+	return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function isLeft(pos) {
+	return pos.x < cx - 60 && pos.y > cy - 80 && pos.y < cy + 80;
+}
+function isRight(pos) {
+	return pos.x > cx + 60 && pos.y > cy - 80 && pos.y < cy + 80;
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+	const pos = getPointerPos(e);
+	if (isLeft(pos)) { touchingLeft = true; }
+	if (isRight(pos)) { touchingRight = true; }
+});
+canvas.addEventListener('pointermove', (e) => {
+	if (touchingLeft || touchingRight) {
+		const pos = getPointerPos(e);
+		if (!isLeft(pos)) touchingLeft = false;
+		if (!isRight(pos)) touchingRight = false;
+		if (touchingLeft) {
+			power = Math.min(100, power + 0.5);
+			save();
+		}
+		if (touchingRight) {
+			support = Math.min(100, support + 0.5);
+			save();
+		}
+	}
+});
+canvas.addEventListener('pointerup', () => { touchingLeft = false; touchingRight = false; });
+canvas.addEventListener('pointerleave', () => { touchingLeft = false; touchingRight = false; });
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+	power = 0; support = 0; save();
+});
+
+function update() {
+	draw();
+	requestAnimationFrame(update);
+}
+update();
+</script>
+</body>
+</html>
