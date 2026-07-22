@@ -31,7 +31,6 @@
         }
         #path-panel.active { display: flex; }
         
-        /* Кнопка закрытия панели */
         .panel-close {
             position: absolute; top: 10px; right: 14px;
             background: transparent; border: none; color: #8f78e6; font-size: 20px;
@@ -243,7 +242,6 @@
     let isEditingPath = false;
     let time = 0;
 
-    // Настройки шара
     let energySpeedMultiplier = 5;
     let energyParticleSize = 0.25;
 
@@ -364,10 +362,15 @@
                 const t = (targetDist - accumulated) / segmentLens[i];
                 const p1 = points[i], p2 = points[i+1];
                 const pos = { x: p1.x + (p2.x - p1.x) * t, y: p1.y + (p2.y - p1.y) * t, z: p1.z + (p2.z - p1.z) * t };
+                
                 const isRed = (pathKeys[i] === 'bottom_right' || pathKeys[i+1] === 'bottom_right' || pathKeys[i] === 'top_left' || pathKeys[i+1] === 'top_left');
                 const isBlue = (pathKeys[i] === 'bottom_left' || pathKeys[i+1] === 'bottom_left' || pathKeys[i] === 'top_right' || pathKeys[i+1] === 'top_right');
-                let color = 0x4d8bff;
-                if (isRed && !isBlue) color = 0xff4d4d;
+                const isYellow = (pathKeys[i] === 'bottom_center' || pathKeys[i+1] === 'bottom_center' || pathKeys[i] === 'top_center' || pathKeys[i+1] === 'top_center');
+                
+                let color = 0x4d8bff; // синий по умолчанию
+                if (isRed && !isBlue) color = 0xff4d4d; // красный
+                else if (isYellow && !isRed && !isBlue) color = new THREE.Color(centerColor).getHex(); // жёлтый/золотой
+                
                 return { pos, color };
             }
             accumulated += segmentLens[i];
@@ -450,7 +453,7 @@
         );
     }
 
-    // ============= ПАНЕЛЬ МАРШРУТА (ПО ТВОЕЙ СХЕМЕ) =============
+    // ============= ПАНЕЛЬ МАРШРУТА =============
     function renderPathUI() {
         const panel = document.getElementById('path-panel');
         panel.innerHTML = '<button class="panel-close" id="close-panel-btn">✖</button>';
@@ -461,14 +464,13 @@
         }
         panel.classList.add('active');
 
-        // 1. СЕТКА ВЫБОРА
         const grid = document.createElement('div');
         grid.className = 'selector-grid';
 
-        // Верхняя строка: 🔴 🔻 🔵
+        // Верхняя строка: 🔴 🔺 🔵
         const row1 = document.createElement('div');
         row1.className = 'selector-row';
-        ['top_right', 'top_center', 'top_left'].forEach(key => {
+        ['top_right', 'bottom_center', 'top_left'].forEach(key => {
             const el = document.createElement('div');
             el.className = 'sel-item';
             el.textContent = keyToEmoji[key];
@@ -487,10 +489,10 @@
         rowC.appendChild(elC);
         grid.appendChild(rowC);
 
-        // Нижняя строка: 🟥 🔺 🟦
+        // Нижняя строка: 🟥 🔻 🟦
         const row2 = document.createElement('div');
         row2.className = 'selector-row';
-        ['bottom_right', 'bottom_center', 'bottom_left'].forEach(key => {
+        ['bottom_right', 'top_center', 'bottom_left'].forEach(key => {
             const el = document.createElement('div');
             el.className = 'sel-item';
             el.textContent = keyToEmoji[key];
@@ -501,7 +503,6 @@
 
         panel.appendChild(grid);
 
-        // 2. СТРОКА МАРШРУТА
         const routeRow = document.createElement('div');
         routeRow.className = 'route-build-row';
         if (customPath && customPath.length > 0) {
@@ -536,7 +537,6 @@
         }
         panel.appendChild(routeRow);
 
-        // 3. КНОПКИ
         const actions = document.createElement('div');
         actions.className = 'route-actions';
         
@@ -574,14 +574,11 @@
 
         panel.appendChild(actions);
 
-        // Обработчик закрытия панели (крестик)
         document.getElementById('close-panel-btn').addEventListener('click', () => {
             if (isEditingPath) {
-                // Если в режиме редактирования, выходим из него
                 isEditingPath = false;
                 document.getElementById('edit-path-btn').style.borderColor = '#6f52c4';
             }
-            // В любом случае скрываем панель
             panel.classList.remove('active');
             updateTempLines();
         });
@@ -732,7 +729,7 @@
         }
     });
 
-    // ============= УПРАВЛЕНИЕ МЕНЮ И НАСТРОЙКАМИ =============
+    // ============= УПРАВЛЕНИЕ МЕНЮ =============
     document.getElementById('reset-btn').addEventListener('click', () => {
         Object.assign(baseNodes.bottom_center, { x: 0, y: -2.5, z: 1.2 });
         Object.assign(baseNodes.bottom_left, { x: -1.2, y: -2.5, z: -1.2 });
@@ -820,7 +817,7 @@
     updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (настройки размера, скорости и закрытие панели) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (исправлены позиции 🔺 и 🔻, добавлен жёлтый цвет) загружено!');
 </script>
 </body>
 </html>
