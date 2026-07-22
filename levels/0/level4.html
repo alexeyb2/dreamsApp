@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Уровень 4: Пирамида и струна</title>
+<style>/* аналогично */</style>
+</head>
+<body>
+<div id="app">
+<canvas id="canvas"></canvas>
+<div class="controls"><button class="btn" id="reset-btn">🔄 Сброс</button></div>
+<div id="status">Баланс: 0%</div>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+let w,h,cx,cy;
+let ball1 = { x: cx - 80, y: cy + 60, r: 40, label: '🎱', color: '#4d8bff', draggable: true };
+let ball2 = { x: cx + 80, y: cy + 60, r: 40, label: '🎈', color: '#ff4d4d', draggable: true };
+let top = { x: cx, y: cy - 120, r: 30, label: '🔗', color: '#ffcc00' };
+let dragging = null;
+let offset = {x:0,y:0};
+let balance = 0;
+
+function resize() {
+	const rect = canvas.getBoundingClientRect();
+	canvas.width = rect.width;
+	canvas.height = rect.height;
+	w = canvas.width; h = canvas.height;
+	cx = w/2; cy = h/2;
+	// инициализация позиций
+	if (ball1.x === 0) { ball1.x = cx - 80; ball1.y = cy + 60; }
+	if (ball2.x === 0) { ball2.x = cx + 80; ball2.y = cy + 60; }
+	top.x = cx; top.y = cy - 120;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function load() {
+	const raw = localStorage.getItem('highmind_universe');
+	if (raw) {
+		try {
+			const data = JSON.parse(raw);
+			if (data.balance !== undefined) balance = data.balance;
+		} catch(e) {}
+	}
+}
+load();
+function save() {
+	const raw = localStorage.getItem('highmind_universe');
+	let data = {};
+	if (raw) try { data = JSON.parse(raw); } catch(e) {}
+	data.balance = balance;
+	localStorage.setItem('highmind_universe', JSON.stringify(data));
+}
+
+function draw() {
+	ctx.clearRect(0,0,w,h);
+	// Рисуем пирамиду (треугольник)
+	ctx.beginPath();
+	ctx.moveTo(cx - 150, cy + 100);
+	ctx.lineTo(cx + 150, cy + 100);
+	ctx.lineTo(cx, cy - 150);
+	ctx.closePath();
+	ctx.strokeStyle = '#b8a6ff44';
+	ctx.lineWidth = 2;
+	ctx.setLineDash([5,5]);
+	ctx.stroke();
+	ctx.setLineDash([]);
+
+	// Шары основания
+	function drawBall(ball) {
+		ctx.beginPath();
+		ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+		ctx.fillStyle = ball.color+'44';
+		ctx.fill();
+		ctx.strokeStyle = ball.color;
+		ctx.lineWidth = 3;
+		ctx.shadowColor = ball.color;
+		ctx.shadowBlur = 20;
+		ctx.stroke();
+		ctx.shadowBlur = 0;
+		ctx.font = '40px system-ui';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillStyle = '#fff';
+		ctx.fillText(ball.label, ball.x, ball.y-4);
+	}
+	drawBall(ball1);
+	drawBall(ball2);
+
+	// Вершина
+	ctx.beginPath();
+	ctx.arc(top.x, top.y, top.r, 0, Math.PI*2);
+	ctx.fillStyle = '#ffcc0044';
+	ctx.fill();
+	ctx.strokeStyle = '#ffcc00';
+	ctx.lineWidth = 3;
+	ctx.shadowColor = '#ffcc00';
+	ctx.shadowBlur = 20;
+	ctx.stroke();
+	ctx.shadowBlur = 0;
+	ctx.font = '30px system-ui';
+	ctx.fillStyle = '#fff';
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	ctx.fillText(top.label, top.x, top.y-4);
+
+	// Струна между основаниями и вершиной
+	ctx.beginPath();
+	ctx.moveTo(ball1.x, ball1.y);
+	ctx.lineTo(top.x, top.y);
+	ctx.strokeStyle = '#b8a6ff';
+	ctx.lineWidth = 2;
+	ctx.globalAlpha = 0.5;
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.moveTo(ball2.x, ball2.y);
+	ctx.lineTo(top.x, top.y);
+	ctx.stroke();
+	ctx.globalAlpha = 1;
+
+	// Баланс
+	const dx1 = ball1.x - cx;
+	const dx2 = ball2.x - cx;
+	const ideal = 0;
+	balance = 100 - Math.abs(dx1 - dx2) * 1.5;
+	if (balance > 100) balance = 100;
+	if (balance < 0) balance = 0;
+	statusEl.textContent = `Баланс: ${Math.round(balance)}%`;
+}
+
+function getPointerPos(e) {
+	const rect = canvas.getBoundingClientRect();
+	return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function hitTest(pos, ball) {
+	const dx = pos.x - ball.x;
+	const dy = pos.y - ball.y;
+	return (dx*dx + dy*dy) < (ball.r+20)*(ball.r+20);
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+	const pos = getPointerPos(e);
+	if (hitTest(pos, ball1)) {
+		dragging = ball1;
+		offset = { x: pos.x - ball1.x, y: pos.y - ball1.y };
+	} else if (hitTest(pos, ball2)) {
+		dragging = ball2;
+		offset = { x: pos.x - ball2.x, y: pos.y - ball2.y };
+	}
+});
+canvas.addEventListener('pointermove', (e) => {
+	if (dragging) {
+		const pos = getPointerPos(e);
+		dragging.x = pos.x - offset.x;
+		dragging.y = pos.y - offset.y;
+		// Ограничиваем внутри пирамиды (просто)
+		if (dragging.y > cy + 100) dragging.y = cy + 100;
+		if (dragging.y < cy - 50) dragging.y = cy - 50;
+		save();
+	}
+});
+canvas.addEventListener('pointerup', () => { dragging = null; });
+canvas.addEventListener('pointerleave', () => { dragging = null; });
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+	ball1.x = cx - 80; ball1.y = cy + 60;
+	ball2.x = cx + 80; ball2.y = cy + 60;
+	balance = 0;
+	save();
+});
+
+function update() {
+	draw();
+	requestAnimationFrame(update);
+}
+update();
+</script>
+</body>
+</html>
