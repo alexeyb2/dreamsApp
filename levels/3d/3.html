@@ -217,7 +217,7 @@
             new THREE.Vector3(currentNodes.bottom_left.x, currentNodes.bottom_left.y, currentNodes.bottom_left.z),
             new THREE.Vector3(currentNodes.bottom_right.x, currentNodes.bottom_right.y, currentNodes.bottom_right.z)
         ];
-        const tetra1 = buildTetra(apex1, base1, 0x4d8bff); // синий оттенок
+        const tetra1 = buildTetra(apex1, base1, 0x4d8bff);
         tetra1.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
 
         // 2. Верхний тетраэдр: вершина 🟡 + основание 🔻, 🔴, 🔵
@@ -227,7 +227,7 @@
             new THREE.Vector3(currentNodes.top_left.x, currentNodes.top_left.y, currentNodes.top_left.z),
             new THREE.Vector3(currentNodes.top_right.x, currentNodes.top_right.y, currentNodes.top_right.z)
         ];
-        const tetra2 = buildTetra(apex2, base2, 0xff4d4d); // красный оттенок
+        const tetra2 = buildTetra(apex2, base2, 0xff4d4d);
         tetra2.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
 
         // === ТОНКИЕ ЛИНИИ ЧЕРЕЗ ЦЕНТР 🟡 (радиус 0.06) ===
@@ -279,7 +279,6 @@
 
         // Центр 🟡: либо фиксированный вручную, либо среднее всех точек основания
         if (!isCenterDragged) {
-            // Вычисляем центр как среднее всех точек, кроме самого центра
             const allPoints = [
                 currentNodes.bottom_center, currentNodes.bottom_left, currentNodes.bottom_right,
                 currentNodes.top_center, currentNodes.top_left, currentNodes.top_right
@@ -359,8 +358,20 @@
             const newPos = intersectPoint.clone().sub(dragOffset);
             const limit = 3.5;
             newPos.x = Math.max(-limit, Math.min(limit, newPos.x));
-            newPos.y = Math.max(-limit, Math.min(limit, newPos.y));
+            
+            // ИСПРАВЛЕНИЕ: Ограничиваем движение ТОЛЬКО по горизонтальной поверхности!
+            if (draggedKey === 'center') {
+                // Центр 🟡 можно двигать по Y
+                newPos.y = Math.max(-limit, Math.min(limit, newPos.y));
+            } else if (draggedKey.startsWith('bottom_')) {
+                // Нижние точки строго на Y = -2.5
+                newPos.y = -2.5;
+            } else if (draggedKey.startsWith('top_')) {
+                // Верхние точки строго на Y = 1.0
+                newPos.y = 1.0;
+            }
             newPos.z = Math.max(-limit, Math.min(limit, newPos.z));
+
             const data = draggableList.find(item => item.key === draggedKey).data;
             Object.assign(data, newPos);
             saveState();
@@ -427,7 +438,7 @@
     updatePositions();
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (два тетраэдра + подвижный центр 🟡) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (движение строго по плоскости) загружено!');
 </script>
 </body>
 </html>
