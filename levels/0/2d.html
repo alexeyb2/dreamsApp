@@ -55,11 +55,12 @@
 
     let w, h, cx, cy;
     
+    // 4 силы: Верх теперь 🎈, низ 🎱, лево 🔵, право 🔴
     let forces = {
-        up:    { x: 0, y: -150, label: 'Вверх', color: '#ff4d4d', type: 'ball' },
-        down:  { x: 0, y: 150,  label: 'Вниз',  color: '#222222', type: '8ball' },
-        left:  { x: -150, y: 0,  label: 'Влево', color: '#4d8bff', type: 'ball' },
-        right: { x: 150, y: 0,   label: 'Вправо', color: '#ff4d4d', type: 'ball' }
+        up:    { x: 0, y: -150, label: 'Вверх', emoji: '🎈', color: '#ff4d4d' },
+        down:  { x: 0, y: 150,  label: 'Вниз',  emoji: '🎱', color: '#4d8bff' },
+        left:  { x: -150, y: 0,  label: 'Влево', emoji: '🔵', color: '#4d8bff' },
+        right: { x: 150, y: 0,   label: 'Вправо', emoji: '🔴', color: '#ff4d4d' }
     };
     
     let isDragging = false;
@@ -119,54 +120,52 @@
 
     // ============= ФИЗИКА ЦЕНТРА =============
     function updateCenterPosition() {
-        // Центр — это точка равновесия (среднее арифметическое)
         centerBall.x = (forces.up.x + forces.down.x + forces.left.x + forces.right.x) / 4;
         centerBall.y = (forces.up.y + forces.down.y + forces.left.y + forces.right.y) / 4;
     }
 
-    // ============= ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ (Стеклянный стиль Apple) =============
-    function drawGlassCurve(pathPoints, isClosed) {
-        // Слой 1: Мягкое полупрозрачное свечение
+    // ============= СТЕКЛЯННЫЕ ПЕТЛИ (Плавные овалы, стиль Apple) =============
+    function drawGlassLoop(points) {
+        if (points.length < 4) return;
+
+        // Слой 1: Мягкое свечение
         ctx.save();
         ctx.shadowColor = 'rgba(255, 255, 255, 0.15)';
         ctx.shadowBlur = 40;
         ctx.lineWidth = 6;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.beginPath();
-        ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
-        for (let i = 1; i < pathPoints.length; i++) {
-            ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
-        }
-        if (isClosed) ctx.closePath();
+        ctx.moveTo(points[0].x, points[0].y);
+        ctx.quadraticCurveTo(points[1].x, points[1].y, points[2].x, points[2].y);
+        ctx.quadraticCurveTo(points[3].x, points[3].y, points[0].x, points[0].y);
+        ctx.closePath();
         ctx.stroke();
         ctx.restore();
 
-        // Слой 2: Основной полупрозрачный контур
+        // Слой 2: Основной прозрачный овал
         ctx.save();
         ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
         ctx.shadowBlur = 20;
         ctx.lineWidth = 3;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
         ctx.beginPath();
-        ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
-        for (let i = 1; i < pathPoints.length; i++) {
-            ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
-        }
-        if (isClosed) ctx.closePath();
+        ctx.moveTo(points[0].x, points[0].y);
+        ctx.quadraticCurveTo(points[1].x, points[1].y, points[2].x, points[2].y);
+        ctx.quadraticCurveTo(points[3].x, points[3].y, points[0].x, points[0].y);
+        ctx.closePath();
         ctx.stroke();
         ctx.restore();
 
-        // Слой 3: Тонкая внутренняя кайма (блик Apple)
+        // Слой 3: Тонкая кайма (глянец)
         ctx.save();
         ctx.shadowBlur = 0;
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.beginPath();
-        ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
-        for (let i = 1; i < pathPoints.length; i++) {
-            ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
-        }
-        if (isClosed) ctx.closePath();
+        ctx.moveTo(points[0].x, points[0].y);
+        ctx.quadraticCurveTo(points[1].x, points[1].y, points[2].x, points[2].y);
+        ctx.quadraticCurveTo(points[3].x, points[3].y, points[0].x, points[0].y);
+        ctx.closePath();
         ctx.stroke();
         ctx.restore();
     }
@@ -189,15 +188,23 @@
         ctx.stroke();
     }
 
-    function draw8Ball(x, y, radius) {
-        const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 5, x, y, radius);
-        grad.addColorStop(0, '#444'); grad.addColorStop(0.5, '#111'); grad.addColorStop(1, '#000');
-        ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = grad; ctx.shadowBlur = 20; ctx.shadowColor = '#4d8bff'; ctx.fill(); ctx.shadowBlur = 0;
-        const innerR = radius * 0.6;
-        ctx.beginPath(); ctx.arc(x, y, innerR, 0, Math.PI * 2); ctx.fillStyle = '#f0f0f0'; ctx.fill();
-        ctx.fillStyle = '#111'; ctx.font = `bold ${innerR * 1.3}px sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('8', x, y + 2);
+    function drawEmojiBall(x, y, radius, emoji, color) {
+        // Сначала рисуем подложку, чтобы эмодзи смотрелся как шар
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = color;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = color + '44';
+        ctx.fill();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        // Теперь сам эмодзи
+        ctx.font = `${radius * 1.2}px system-ui`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(emoji, x, y - 2);
     }
 
     function draw() {
@@ -207,6 +214,7 @@
         const size = Math.min(w, h) * 0.45;
         const u = forces.up, d = forces.down, l = forces.left, r = forces.right;
         const cX = centerBall.x, cY = centerBall.y;
+        const loopWidth = Math.min(w, h) * 0.10; // Ширина петель
 
         // 1. Сетка (квадрат, диагонали, оси)
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1;
@@ -217,55 +225,67 @@
         ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke(); ctx.setLineDash([]);
 
-        // Ширина петель (достаточно большая, чтобы зелёный шар был внутри)
-        const loopWidth = Math.min(w, h) * 0.13;
-
-        // 2. Вертикальная петля (Верх -> Низ через центр)
-        const verticalPath = [
+        // 2. Гладкие стеклянные петли (Вертикальная и Горизонтальная)
+        // Вертикальная: U -> (влево от центра) -> D -> (вправо от центра)
+        const verticalLoop = [
             { x: u.x, y: u.y },
             { x: cX - loopWidth, y: (u.y + d.y) / 2 },
             { x: d.x, y: d.y },
-            { x: cX + loopWidth, y: (u.y + d.y) / 2 },
-            { x: u.x, y: u.y }
+            { x: cX + loopWidth, y: (u.y + d.y) / 2 }
         ];
-        drawGlassCurve(verticalPath, true);
+        drawGlassLoop(verticalLoop);
 
-        // 3. Горизонтальная петля (Лево -> Право через центр)
-        const horizontalPath = [
+        // Горизонтальная: L -> (снизу от центра) -> R -> (сверху от центра)
+        const horizontalLoop = [
             { x: l.x, y: l.y },
-            { x: (l.x + r.x) / 2, y: cY - loopWidth },
-            { x: r.x, y: r.y },
             { x: (l.x + r.x) / 2, y: cY + loopWidth },
-            { x: l.x, y: l.y }
+            { x: r.x, y: r.y },
+            { x: (l.x + r.x) / 2, y: cY - loopWidth }
         ];
-        drawGlassCurve(horizontalPath, true);
+        drawGlassLoop(horizontalLoop);
 
-        // 4. Линии от шаров к центру (пунктирные, почти прозрачные)
+        // 3. Линии от сил к центру
         for (let key in forces) {
             const f = forces[key];
             ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(cX, cY);
-            ctx.strokeStyle = f.color + '44'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+            ctx.strokeStyle = f.color + '55'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
         }
 
-        // 5. Зелёный центр (теперь гарантированно внутри петель)
+        // 4. Зелёный центр (внутри петель)
         ctx.shadowBlur = 40; ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath(); ctx.arc(cX, cY, centerBall.radius + 6, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(cX, cY, centerBall.radius + 8, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill();
         ctx.shadowBlur = 0;
         ctx.shadowBlur = 30; ctx.shadowColor = '#2ecc71';
         ctx.beginPath(); ctx.arc(cX, cY, centerBall.radius, 0, Math.PI * 2);
         ctx.fillStyle = '#2ecc71'; ctx.fill(); ctx.shadowBlur = 0;
 
-        // 6. Четыре силы (перетаскиваемые шары)
+        // 5. Четыре силы (с уникальной прорисовкой)
+        const radius = 40;
         for (let key in forces) {
-            const f = forces[key]; const radius = 40;
-            if (f.type === '8ball') draw8Ball(f.x, f.y, radius);
-            else drawRoundedBall(f.x, f.y, radius, f.color);
+            const f = forces[key];
+            if (key === 'up') {
+                drawEmojiBall(f.x, f.y, radius, f.emoji, f.color);
+            } else if (key === 'down') {
+                // Шар 8 (особая отрисовка)
+                const grad = ctx.createRadialGradient(f.x - radius*0.3, f.y - radius*0.3, 5, f.x, f.y, radius);
+                grad.addColorStop(0, '#444'); grad.addColorStop(0.5, '#111'); grad.addColorStop(1, '#000');
+                ctx.beginPath(); ctx.arc(f.x, f.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad; ctx.shadowBlur = 20; ctx.shadowColor = '#4d8bff'; ctx.fill(); ctx.shadowBlur = 0;
+                const innerR = radius * 0.6;
+                ctx.beginPath(); ctx.arc(f.x, f.y, innerR, 0, Math.PI * 2); ctx.fillStyle = '#f0f0f0'; ctx.fill();
+                ctx.fillStyle = '#111'; ctx.font = `bold ${innerR * 1.3}px sans-serif`;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('8', f.x, f.y + 2);
+            } else {
+                drawRoundedBall(f.x, f.y, radius, f.color);
+            }
+            // Подпись
             ctx.font = '14px system-ui'; ctx.fillStyle = '#e0d6ff';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(f.label, f.x, f.y + radius + 8);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText(f.label, f.x, f.y + radius + 8);
         }
 
-        // 7. Баланс
+        // 6. Баланс
         const dist = Math.hypot(cX - cx, cY - cy);
         const maxDist = Math.min(w, h) * 0.4;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
@@ -321,7 +341,7 @@
 
     function loop() { draw(); requestAnimationFrame(loop); }
     resize(); loop();
-    console.log('🟣🦅 Уровень 7: Квадрат Сознания (исправленные границы, стеклянный стиль) загружено!');
+    console.log('🟣🦅 Уровень 7: Квадрат Сознания (гладкие овалы + 🎈) загружено!');
 </script>
 </body>
 </html>
