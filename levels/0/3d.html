@@ -102,12 +102,12 @@
     // 🔺 НИЖНИЙ ТРЕУГОЛЬНИК (на земле, СЗАДИ) для тетраэдра 🎈
     const botBackLeft  = { x: -1.2, y: -2.5, z: -1.2 }; // 🟦
     const botBackRight = { x: 1.2, y: -2.5, z: -1.2 }; // 🟥
-    const botFront     = { x: 0,   y: -2.5, z: 1.2 };  // 🟠
+    const botFront     = { x: 0,   y: -2.5, z: 1.2 };  // 🔺 (вместо 🟠)
 
     // 🔻 ВЕРХНИЙ ТРЕУГОЛЬНИК (наверху, СПЕРЕДИ) для тетраэдра 🎱
     const topFrontLeft  = { x: -1.2, y: 1.0, z: 1.2 }; // 🔵
     const topFrontRight = { x: 1.2, y: 1.0, z: 1.2 }; // 🔴
-    const topBack       = { x: 0,   y: 1.0, z: -1.2 }; // 🟣
+    const topBack       = { x: 0,   y: 1.0, z: -1.2 }; // 🔻 (вместо 🟣)
 
     // Шары
     const ballDown = { x: 0, y: -1.0, z: 0, emoji: '🎱', color: '#4d8bff' };
@@ -177,10 +177,10 @@
     };
     createNode('botBackLeft', '🟦', '#4d8bff', botBackLeft);
     createNode('botBackRight', '🟥', '#ff4d4d', botBackRight);
-    createNode('botFront', '🟠', '#e67e22', botFront);
+    createNode('botFront', '🔺', '#e67e22', botFront);
     createNode('topFrontLeft', '🔵', '#4d8bff', topFrontLeft);
     createNode('topFrontRight', '🔴', '#ff4d4d', topFrontRight);
-    createNode('topBack', '🟣', '#9b59b6', topBack);
+    createNode('topBack', '🔻', '#9b59b6', topBack);
     const ballDownSprite = createBallSprite('🎱', '#4d8bff'); ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z); pivotGroup.add(ballDownSprite);
     const ballUpSprite   = createBallSprite('🎈', '#ff4d4d'); ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z); pivotGroup.add(ballUpSprite);
 
@@ -218,7 +218,7 @@
         dynamicMeshes = [];
 
         // === ТЕТРАЭДРЫ ===
-        // 1. Тетраэдр на земле: 🎈 + 🟦 + 🟥 + 🟠
+        // 1. Тетраэдр на земле: 🎈 + 🟦 + 🟥 + 🔺
         const apex1 = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
         const base1 = [
             new THREE.Vector3(botBackLeft.x, botBackLeft.y, botBackLeft.z),
@@ -228,7 +228,7 @@
         const t1 = buildTetra(apex1, base1, 0x4d8bff); pivotGroup.add(t1); dynamicMeshes.push(t1);
         const w1 = buildTetra(apex1, base1, 0x4d8bff); w1.material = new THREE.MeshBasicMaterial({ color: 0x4d8bff, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w1); dynamicMeshes.push(w1);
 
-        // 2. Тетраэдр в воздухе: 🎱 + 🔵 + 🔴 + 🟣
+        // 2. Тетраэдр в воздухе: 🎱 + 🔵 + 🔴 + 🔻
         const apex2 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
         const base2 = [
             new THREE.Vector3(topFrontLeft.x, topFrontLeft.y, topFrontLeft.z),
@@ -245,7 +245,7 @@
             const line = new THREE.Line(geom, mat); pivotGroup.add(line); dynamicMeshes.push(line);
         };
 
-        // 🔥 Вертикаль: 🎱 -> 🟡 -> 🎈
+        // 🔥 Вертикаль: 🎱 -> 🟡 -> 🎈 (золотая / цвет центра)
         const goldColor = new THREE.Color(centerColor);
         addLine(ballDown, ballUp, goldColor, 0.9);
 
@@ -255,7 +255,7 @@
         // 🔴 Красная: 🟥 (низ-зад-прав) -> 🟡 -> 🔵 (верх-пер-лев)
         addLine(botBackRight, topFrontLeft, 0xff4d4d, 0.8);
 
-        // 🟡 Связующая: 🟠 (низ-пер) -> 🟡 -> 🟣 (верх-зад)
+        // 🔺🔻 Связующая: 🔺 (низ-пер) -> 🟡 -> 🔻 (верх-зад)
         addLine(botFront, topBack, 0xffcc00, 0.8);
 
         // === ВЫЧИСЛЯЕМ НОВУЮ ПОЗИЦИЮ 🟡 (ПЛАВАЮЩИЙ ЦЕНТР МАСС) ===
@@ -391,7 +391,7 @@
 
     updatePositions();
     animate();
-    console.log('🟣🦅 Уровень 7: Куб Сознания (Центр 🟡 плавает по линиям) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (🔺 и 🔻 на местах, точные линии) загружено!');
 </script>
 </body>
 </html>
