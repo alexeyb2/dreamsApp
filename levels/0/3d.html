@@ -7,20 +7,40 @@
     <style>
         body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; background: #0b0814; }
-        #ui { position: absolute; bottom: 30px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
+        #ui { position: absolute; bottom: 30px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; z-index: 10; }
         #balance-bar { width: 80%; max-width: 400px; height: 8px; background: #1a1530; border-radius: 10px; overflow: hidden; border: 1px solid #3a2f5a; }
         #balance-fill { height: 100%; width: 50%; background: #6f52c4; border-radius: 10px; transition: width 0.1s; }
-        .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 10px 24px; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer; pointer-events: auto; transition: 0.2s; }
+        .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 12px; pointer-events: auto; }
+        .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; }
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        #dropdown-menu { display: none; position: absolute; bottom: 110%; right: 0; background: #161127; border: 1px solid #3a2f5a; border-radius: 20px; padding: 12px; width: 240px; flex-direction: column; gap: 8px; z-index: 20; backdrop-filter: blur(10px); }
+        #dropdown-menu.open { display: flex; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-radius: 12px; cursor: pointer; background: #2a2348; color: #b8a6ff; font-size: 13px; font-weight: 600; transition: 0.2s; }
+        .menu-item:active { background: #6f52c4; color: #fff; }
+        .menu-item input[type="color"] { width: 30px; height: 30px; border: none; padding: 0; background: transparent; cursor: pointer; }
+        @media (max-width: 600px) { #ui { bottom: 15px; padding: 8px; } .btn-group { padding: 6px 12px; gap: 6px; } }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 <div id="canvas-container"></div>
+
 <div id="ui">
     <div id="balance-bar"><div id="balance-fill"></div></div>
-    <button class="btn" id="reset-btn">🔄 Сброс</button>
+    <div class="btn-group">
+        <button class="btn" id="reset-btn">🔄 Сброс</button>
+        <button class="btn btn-icon" id="menu-btn" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid #3a2f5a;font-size:18px;">⚙️</button>
+    </div>
+    <div id="dropdown-menu">
+        <div class="menu-item">
+            <span>🎨 Цвет центра</span>
+            <input type="color" id="center-color-picker" value="#ffcc00" />
+        </div>
+        <div class="menu-item" id="toggle-energy" style="justify-content:center;">
+            <span id="energy-status">🌀 Энергия: Вкл</span>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -30,7 +50,7 @@
     scene.background = new THREE.Color(0x0b0814);
 
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-    camera.position.set(7, 4, 10);
+    camera.position.set(6, 3, 8);
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -40,23 +60,16 @@
     container.appendChild(renderer.domElement);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.target.set(0, 0, 0);
-    controls.minDistance = 3;
-    controls.maxDistance = 20;
+    controls.enableDamping = true; controls.dampingFactor = 0.05;
+    controls.target.set(0, 0, 0); controls.minDistance = 3; controls.maxDistance = 20;
 
-    // Освещение
     scene.add(new THREE.AmbientLight(0x404060));
-    const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
-    dirLight.position.set(5, 10, 7);
-    dirLight.castShadow = true;
-    scene.add(dirLight);
+    const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5); dirLight.position.set(5, 10, 7); dirLight.castShadow = true; scene.add(dirLight);
+    const gridHelper = new THREE.GridHelper(10, 10, 0x6f52c4, 0x3a2f5a); gridHelper.position.y = -2.5; scene.add(gridHelper);
 
-    // Сетка пола
-    const gridHelper = new THREE.GridHelper(10, 10, 0x6f52c4, 0x3a2f5a);
-    gridHelper.position.y = -2.5;
-    scene.add(gridHelper);
+    // ============= ГРУППА ДЛЯ КАЧАНИЯ =============
+    const pivotGroup = new THREE.Group(); 
+    scene.add(pivotGroup);
 
     // ============= КУБ И ДИАГОНАЛИ =============
     const cubeSize = 5.5;
@@ -65,7 +78,7 @@
     const cubeMat = new THREE.LineBasicMaterial({ color: 0x444466, transparent: true, opacity: 0.2 });
     const cubeWireframe = new THREE.LineSegments(cubeEdges, cubeMat);
     cubeWireframe.position.set(0, 0, 0);
-    scene.add(cubeWireframe);
+    pivotGroup.add(cubeWireframe);
 
     const half = cubeSize / 2;
     const diagPoints = [
@@ -78,63 +91,47 @@
         const geom = new THREE.BufferGeometry().setFromPoints(pair);
         const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
         const line = new THREE.Line(geom, mat);
-        scene.add(line);
+        pivotGroup.add(line);
     });
 
-    // ============= ИСПРАВЛЕННАЯ ГЕОМЕТРИЯ =============
+    // ============= ДАННЫЕ И СОХРАНЕНИЕ =============
     const STORAGE_KEY = 'highmind_level7_3d';
+    let centerColor = '#ffcc00';
+    let energyEnabled = true;
 
-    // 🔺 НИЖНИЙ ТРЕУГОЛЬНИК (на земле, СПЕРЕДИ)
-    const botLeft  = { x: -1.2, y: -2.5, z: 1.2 }; // 🔵
-    const botRight = { x: 1.2, y: -2.5, z: 1.2 }; // 🔴
-    const botFront = { x: 0, y: -2.5, z: 1.8 };   // 🟠
-
-    // 🔻 ВЕРХНИЙ ТРЕУГОЛЬНИК (наверху, СЗАДИ)
-    const topLeft  = { x: -1.2, y: 1.5, z: -1.2 }; // 🟦
-    const topRight = { x: 1.2, y: 1.5, z: -1.2 }; // 🟥
-    const topBack  = { x: 0, y: 1.5, z: -1.8 };   // 🟣
-
-    // Шары
+    const botLeft  = { x: -1.2, y: -2.5, z: 1.2 }; const botRight = { x: 1.2, y: -2.5, z: 1.2 }; const botFront = { x: 0, y: -2.5, z: 1.8 };
+    const topLeft  = { x: -1.2, y: 1.5, z: -1.2 }; const topRight = { x: 1.2, y: 1.5, z: -1.2 }; const topBack  = { x: 0, y: 1.5, z: -1.8 };
     const ballDown = { x: 0, y: -1.0, z: 0, emoji: '🎱', color: '#4d8bff' };
     const ballUp   = { x: 0, y: 1.0, z: 0, emoji: '🎈', color: '#ff4d4d' };
-
     let centerPos = new THREE.Vector3(0, 0, 0);
 
     function saveState() {
-        const data = {
-            topLeft, topRight, topBack,
-            botLeft, botRight, botFront,
-            ballDown: { x: ballDown.x, y: ballDown.y, z: ballDown.z },
-            ballUp:   { x: ballUp.x, y: ballUp.y, z: ballUp.z }
-        };
+        const data = { topLeft, topRight, topBack, botLeft, botRight, botFront, ballDown, ballUp, centerColor, energyEnabled };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
-
     function loadState() {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return false;
         try {
             const data = JSON.parse(raw);
-            if (data.topLeft)  { topLeft.x  = data.topLeft.x;  topLeft.y  = data.topLeft.y;  topLeft.z  = data.topLeft.z; }
-            if (data.topRight) { topRight.x = data.topRight.x; topRight.y = data.topRight.y; topRight.z = data.topRight.z; }
-            if (data.topBack)  { topBack.x  = data.topBack.x;  topBack.y  = data.topBack.y;  topBack.z  = data.topBack.z; }
-            if (data.botLeft)  { botLeft.x  = data.botLeft.x;  botLeft.y  = data.botLeft.y;  botLeft.z  = data.botLeft.z; }
-            if (data.botRight) { botRight.x = data.botRight.x; botRight.y = data.botRight.y; botRight.z = data.botRight.z; }
-            if (data.botFront) { botFront.x = data.botFront.x; botFront.y = data.botFront.y; botFront.z = data.botFront.z; }
-            if (data.ballDown) { ballDown.x = data.ballDown.x; ballDown.y = data.ballDown.y; ballDown.z = data.ballDown.z; }
-            if (data.ballUp)   { ballUp.x   = data.ballUp.x;   ballUp.y   = data.ballUp.y;   ballUp.z   = data.ballUp.z; }
+            if (data.topLeft) Object.assign(topLeft, data.topLeft);
+            if (data.topRight) Object.assign(topRight, data.topRight);
+            if (data.topBack) Object.assign(topBack, data.topBack);
+            if (data.botLeft) Object.assign(botLeft, data.botLeft);
+            if (data.botRight) Object.assign(botRight, data.botRight);
+            if (data.botFront) Object.assign(botFront, data.botFront);
+            if (data.ballDown) Object.assign(ballDown, data.ballDown);
+            if (data.ballUp) Object.assign(ballUp, data.ballUp);
+            if (data.centerColor) centerColor = data.centerColor;
+            if (data.energyEnabled !== undefined) energyEnabled = data.energyEnabled;
             return true;
         } catch(e) { return false; }
     }
-
-    if (!loadState()) {
-        saveState();
-    }
+    if (!loadState()) saveState();
 
     // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
     function createSprite(emoji, color, scale = 0.6) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 128; canvas.height = 128;
+        const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128;
         const ctx = canvas.getContext('2d');
         ctx.font = '80px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -143,14 +140,11 @@
         ctx.shadowBlur = 0;
         const tex = new THREE.CanvasTexture(canvas);
         const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-        const sprite = new THREE.Sprite(mat);
-        sprite.scale.set(scale, scale, 1);
+        const sprite = new THREE.Sprite(mat); sprite.scale.set(scale, scale, 1);
         return sprite;
     }
-
     function createBallSprite(emoji, color, scale = 1.6) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 256; canvas.height = 256;
+        const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
         const ctx = canvas.getContext('2d');
         ctx.font = '120px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -159,129 +153,206 @@
         ctx.shadowBlur = 0;
         const tex = new THREE.CanvasTexture(canvas);
         const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-        const sprite = new THREE.Sprite(mat);
-        sprite.scale.set(scale, scale, 1);
+        const sprite = new THREE.Sprite(mat); sprite.scale.set(scale, scale, 1);
         return sprite;
     }
 
-    const draggableObjects = [];
+    // Объекты на сцене
+    const sprites = {};
+    const createNode = (key, emoji, color, data) => {
+        const s = createSprite(emoji, color);
+        s.position.set(data.x, data.y, data.z);
+        pivotGroup.add(s);
+        sprites[key] = s;
+    };
+    createNode('botLeft', '🔵', '#4d8bff', botLeft);
+    createNode('botRight', '🔴', '#ff4d4d', botRight);
+    createNode('botFront', '🟠', '#e67e22', botFront);
+    createNode('topLeft', '🟦', '#4d8bff', topLeft);
+    createNode('topRight', '🟥', '#ff4d4d', topRight);
+    createNode('topBack', '🟣', '#9b59b6', topBack);
+    const ballDownSprite = createBallSprite('🎱', '#4d8bff'); ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z); pivotGroup.add(ballDownSprite);
+    const ballUpSprite   = createBallSprite('🎈', '#ff4d4d'); ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z); pivotGroup.add(ballUpSprite);
 
-    const topLeftSprite  = createSprite('🟦', '#4d8bff'); topLeftSprite.position.set(topLeft.x, topLeft.y, topLeft.z); scene.add(topLeftSprite); draggableObjects.push({ key: 'topLeft',  sprite: topLeftSprite,  data: topLeft });
-    const topRightSprite = createSprite('🟥', '#ff4d4d'); topRightSprite.position.set(topRight.x, topRight.y, topRight.z); scene.add(topRightSprite); draggableObjects.push({ key: 'topRight', sprite: topRightSprite, data: topRight });
-    const topBackSprite  = createSprite('🟣', '#9b59b6'); topBackSprite.position.set(topBack.x, topBack.y, topBack.z); scene.add(topBackSprite); draggableObjects.push({ key: 'topBack',  sprite: topBackSprite,  data: topBack });
+    // Центр 🟡 (с обновляемым цветом)
+    let centerSprite = createSprite('🟡', centerColor, 0.7);
+    centerSprite.position.copy(centerPos); pivotGroup.add(centerSprite);
 
-    const botLeftSprite  = createSprite('🔵', '#4d8bff'); botLeftSprite.position.set(botLeft.x, botLeft.y, botLeft.z); scene.add(botLeftSprite); draggableObjects.push({ key: 'botLeft',  sprite: botLeftSprite,  data: botLeft });
-    const botRightSprite = createSprite('🔴', '#ff4d4d'); botRightSprite.position.set(botRight.x, botRight.y, botRight.z); scene.add(botRightSprite); draggableObjects.push({ key: 'botRight', sprite: botRightSprite, data: botRight });
-    const botFrontSprite = createSprite('🟠', '#e67e22'); botFrontSprite.position.set(botFront.x, botFront.y, botFront.z); scene.add(botFrontSprite); draggableObjects.push({ key: 'botFront', sprite: botFrontSprite, data: botFront });
+    function updateCenterSpriteColor(newColor) {
+        pivotGroup.remove(centerSprite);
+        centerSprite = createSprite('🟡', newColor, 0.7);
+        centerSprite.position.copy(centerPos);
+        pivotGroup.add(centerSprite);
+    }
 
-    const ballDownSprite = createBallSprite('🎱', '#4d8bff'); ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z); scene.add(ballDownSprite); draggableObjects.push({ key: 'ballDown', sprite: ballDownSprite, data: ballDown });
-    const ballUpSprite   = createBallSprite('🎈', '#ff4d4d'); ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z); scene.add(ballUpSprite); draggableObjects.push({ key: 'ballUp',   sprite: ballUpSprite,   data: ballUp });
-
-    // Центральный зелёный шар (подвижный, на линии между 🎱 и 🎈)
-    const centerSprite = createSprite('🟢', '#2ecc71', 0.7);
-    centerSprite.position.copy(centerPos);
-    scene.add(centerSprite);
-
-    // ============= ГРАНИ ТЕТРАЭДРОВ И ЛИНИИ =============
-    let tetraMeshes = [];
-    let lineMeshes = [];
+    // ============= ГЕОМЕТРИЯ ТЕТРАЭДРОВ И ЛИНИЙ =============
+    let dynamicMeshes = [];
 
     function buildTetra(apex, baseVerts, color) {
         const v = [apex, baseVerts[0], baseVerts[1], baseVerts[2]];
         const pos = [
-            v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z, // основание
-            v[0].x, v[0].y, v[0].z, v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z, // грань 1
-            v[0].x, v[0].y, v[0].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z, // грань 2
-            v[0].x, v[0].y, v[0].z, v[3].x, v[3].y, v[3].z, v[1].x, v[1].y, v[1].z  // грань 3
+            v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z,
+            v[0].x, v[0].y, v[0].z, v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z,
+            v[0].x, v[0].y, v[0].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z,
+            v[0].x, v[0].y, v[0].z, v[3].x, v[3].y, v[3].z, v[1].x, v[1].y, v[1].z
         ];
         const geom = new THREE.BufferGeometry();
         geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
         geom.computeVertexNormals();
-
-        const glassMat = new THREE.MeshBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: 0.12,
-            side: THREE.DoubleSide
-        });
-        const mesh = new THREE.Mesh(geom, glassMat);
-        return mesh;
+        const glassMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.12, side: THREE.DoubleSide });
+        return new THREE.Mesh(geom, glassMat);
     }
 
     function updateStructure() {
-        // Удаляем старые меши
-        tetraMeshes.forEach(m => scene.remove(m));
-        lineMeshes.forEach(l => scene.remove(l));
-        tetraMeshes = [];
-        lineMeshes = [];
+        dynamicMeshes.forEach(m => pivotGroup.remove(m));
+        dynamicMeshes = [];
 
-        // ===== ГРАНИ ТЕТРАЭДРОВ =====
-        // Тетраэдр 1: 🎱 + Верхний треугольник (🔻) -> Синий
+        // Тетраэдры
         const apex1 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
-        const base1 = [
-            new THREE.Vector3(topLeft.x, topLeft.y, topLeft.z),
-            new THREE.Vector3(topRight.x, topRight.y, topRight.z),
-            new THREE.Vector3(topBack.x, topBack.y, topBack.z)
-        ];
-        const tetra1 = buildTetra(apex1, base1, 0x4d8bff);
-        scene.add(tetra1); tetraMeshes.push(tetra1);
-        // Каркас
-        const wire1 = buildTetra(apex1, base1, 0x4d8bff);
-        wire1.material = new THREE.MeshBasicMaterial({ color: 0x4d8bff, wireframe: true, transparent: true, opacity: 0.3 });
-        scene.add(wire1); tetraMeshes.push(wire1);
+        const base1 = [new THREE.Vector3(topLeft.x, topLeft.y, topLeft.z), new THREE.Vector3(topRight.x, topRight.y, topRight.z), new THREE.Vector3(topBack.x, topBack.y, topBack.z)];
+        const t1 = buildTetra(apex1, base1, 0x4d8bff); pivotGroup.add(t1); dynamicMeshes.push(t1);
+        const w1 = buildTetra(apex1, base1, 0x4d8bff); w1.material = new THREE.MeshBasicMaterial({ color: 0x4d8bff, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w1); dynamicMeshes.push(w1);
 
-        // Тетраэдр 2: 🎈 + Нижний треугольник (🔺) -> Красный
         const apex2 = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
-        const base2 = [
-            new THREE.Vector3(botLeft.x, botLeft.y, botLeft.z),
-            new THREE.Vector3(botRight.x, botRight.y, botRight.z),
-            new THREE.Vector3(botFront.x, botFront.y, botFront.z)
-        ];
-        const tetra2 = buildTetra(apex2, base2, 0xff4d4d);
-        scene.add(tetra2); tetraMeshes.push(tetra2);
-        const wire2 = buildTetra(apex2, base2, 0xff4d4d);
-        wire2.material = new THREE.MeshBasicMaterial({ color: 0xff4d4d, wireframe: true, transparent: true, opacity: 0.3 });
-        scene.add(wire2); tetraMeshes.push(wire2);
+        const base2 = [new THREE.Vector3(botLeft.x, botLeft.y, botLeft.z), new THREE.Vector3(botRight.x, botRight.y, botRight.z), new THREE.Vector3(botFront.x, botFront.y, botFront.z)];
+        const t2 = buildTetra(apex2, base2, 0xff4d4d); pivotGroup.add(t2); dynamicMeshes.push(t2);
+        const w2 = buildTetra(apex2, base2, 0xff4d4d); w2.material = new THREE.MeshBasicMaterial({ color: 0xff4d4d, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w2); dynamicMeshes.push(w2);
 
-        // ===== СКВОЗНЫЕ ПЕРЕКРЕСТНЫЕ ЛИНИИ (X) =====
-        const addLine = (p1, p2, color, opacity = 0.5) => {
+        // ЛИНИИ ЧЕРЕЗ ЦЕНТР
+        const addLine = (p1, p2, color, opacity = 0.6) => {
             const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p1.x, p1.y, p1.z), new THREE.Vector3(p2.x, p2.y, p2.z)]);
-            const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: opacity });
-            const line = new THREE.Line(geom, mat);
-            scene.add(line);
-            lineMeshes.push(line);
+            const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+            const line = new THREE.Line(geom, mat); pivotGroup.add(line); dynamicMeshes.push(line);
         };
 
-        // 🔵 (низ-лево) <-> 🟥 (верх-право) -> Синяя линия (сквозь)
-        addLine(botLeft, topRight, 0x4d8bff, 0.6);
-        // 🔴 (низ-право) <-> 🟦 (верх-лево) -> Красная линия (сквозь)
-        addLine(botRight, topLeft, 0xff4d4d, 0.6);
-        // 🟠 (низ-центр) <-> 🟣 (верх-центр) -> Белая/золотая линия (сквозь)
-        addLine(botFront, topBack, 0xffcc00, 0.5);
+        // Красная линия: 🟥 (верх-право) -> 🟡 -> 🔵 (низ-лево)
+        addLine(topRight, botLeft, 0xff4d4d, 0.8);
+        // Синяя линия: 🟦 (верх-лево) -> 🟡 -> 🔴 (низ-право)
+        addLine(topLeft, botRight, 0x4d8bff, 0.8);
+        // Золотая линия: 🎱 -> 🟡 -> 🎈 (цвет берём из centerColor)
+        const goldColor = new THREE.Color(centerColor);
+        addLine(ballDown, ballUp, goldColor, 0.7);
 
-        // ===== ВЕРТИКАЛЬНАЯ ЛИНИЯ ОТ 🎱 ДО 🎈 =====
-        addLine(ballDown, ballUp, 0x88bbff, 0.2);
-
-        // ===== 🟢 НА ЛИНИИ МЕЖДУ 🎱 И 🎈 =====
-        // Вычисляем смещение 🟢 от идеального центра (0,0,0) под влиянием верхних и нижних точек
-        const avgTopY = (topLeft.y + topRight.y + topBack.y) / 3;
-        const avgBotY = (botLeft.y + botRight.y + botFront.y) / 3;
-        const pullUp = avgTopY - 1.5; // насколько верхний треугольник поднялся/опустился
-        const pullDown = avgBotY + 2.5; // насколько нижний треугольник поднялся/опустился
-
-        // Позиция 🟢 на вертикальной оси (между -1.0 и 1.0, смещается под действием сил)
-        let centerY = 0;
-        if (Math.abs(pullUp) > Math.abs(pullDown)) {
-            centerY += pullUp * 0.1;
-        } else {
-            centerY -= pullDown * 0.1;
-        }
+        // ОБНОВЛЕНИЕ ПОЗИЦИИ ЦЕНТРА 🟡 (под влиянием натяжения)
+        const avgTopY = (topLeft.y + topRight.y + topBack.y) / 3 - 1.5;
+        const avgBotY = (botLeft.y + botRight.y + botFront.y) / 3 + 2.5;
+        let centerY = (avgTopY * 0.4 + avgBotY * 0.4);
         centerY = Math.max(-0.8, Math.min(0.8, centerY));
         centerPos.set(0, centerY, 0);
         centerSprite.position.copy(centerPos);
 
-        // ===== БАЛАНС =====
+        // БАЛАНС (чем ближе центр к 0 по Y, тем лучше)
         const dist = Math.abs(centerY);
-        const maxDist = 1.0;
-        const balance = Math.max(0, 100 - (dist / maxDist) * 100);
-        document
+        const balance = Math.max(0, 100 - (dist / 1.0) * 100);
+        document.getElementById('balance-fill').style.width = balance + '%';
+        document.getElementById('balance-fill').style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
+        
+        if (balance > 95) { centerSprite.scale.set(1.0, 1.0, 1); centerSprite.material.opacity = 1.0; } 
+        else { centerSprite.scale.set(0.8, 0.8, 1); centerSprite.material.opacity = 0.9; }
+    }
+
+    function updatePositions() {
+        sprites['botLeft'].position.set(botLeft.x, botLeft.y, botLeft.z);
+        sprites['botRight'].position.set(botRight.x, botRight.y, botRight.z);
+        sprites['botFront'].position.set(botFront.x, botFront.y, botFront.z);
+        sprites['topLeft'].position.set(topLeft.x, topLeft.y, topLeft.z);
+        sprites['topRight'].position.set(topRight.x, topRight.y, topRight.z);
+        sprites['topBack'].position.set(topBack.x, topBack.y, topBack.z);
+        ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
+        ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z);
+        updateStructure();
+    }
+
+    // ============= ИНТЕРАКТИВНОСТЬ =============
+    const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
+    let isDragging = false, draggedKey = null, dragOffset = new THREE.Vector3(), intersectPlane = new THREE.Plane();
+
+    function getPointerNDC(e) { const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1; }
+
+    const draggableList = [
+        { key: 'topLeft', data: topLeft }, { key: 'topRight', data: topRight }, { key: 'topBack', data: topBack },
+        { key: 'botLeft', data: botLeft }, { key: 'botRight', data: botRight }, { key: 'botFront', data: botFront },
+        { key: 'ballDown', data: ballDown }, { key: 'ballUp', data: ballUp }
+    ];
+    const spriteMap = { 'topLeft': sprites.topLeft, 'topRight': sprites.topRight, 'topBack': sprites.topBack, 'botLeft': sprites.botLeft, 'botRight': sprites.botRight, 'botFront': sprites.botFront, 'ballDown': ballDownSprite, 'ballUp': ballUpSprite };
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+        getPointerNDC(e); raycaster.setFromCamera(pointer, camera);
+        const allSprites = Object.values(spriteMap);
+        const intersects = raycaster.intersectObjects(allSprites);
+        if (intersects.length > 0) {
+            const hitSprite = intersects[0].object;
+            const found = draggableList.find(item => spriteMap[item.key] === hitSprite);
+            if (found) {
+                draggedKey = found.key; isDragging = true; controls.enabled = false; renderer.domElement.style.cursor = 'grabbing';
+                const point = intersects[0].point; dragOffset.copy(point).sub(hitSprite.position);
+                const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+                intersectPlane.setFromNormalAndCoplanarPoint(camDir, point);
+            }
+        }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (!isDragging || !draggedKey) return;
+        getPointerNDC(e); raycaster.setFromCamera(pointer, camera);
+        const intersectPoint = new THREE.Vector3(); raycaster.ray.intersectPlane(intersectPlane, intersectPoint);
+        if (intersectPoint) {
+            const newPos = intersectPoint.clone().sub(dragOffset);
+            const limit = 3.5;
+            newPos.x = Math.max(-limit, Math.min(limit, newPos.x)); newPos.y = Math.max(-limit, Math.min(limit, newPos.y)); newPos.z = Math.max(-limit, Math.min(limit, newPos.z));
+            const data = draggableList.find(item => item.key === draggedKey).data;
+            Object.assign(data, newPos);
+            saveState(); updatePositions();
+        }
+    });
+    window.addEventListener('pointerup', () => {
+        if (isDragging) { isDragging = false; draggedKey = null; controls.enabled = true; renderer.domElement.style.cursor = 'default'; saveState(); }
+    });
+
+    // ============= УПРАВЛЕНИЕ =============
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        Object.assign(botLeft, { x: -1.2, y: -2.5, z: 1.2 }); Object.assign(botRight, { x: 1.2, y: -2.5, z: 1.2 }); Object.assign(botFront, { x: 0, y: -2.5, z: 1.8 });
+        Object.assign(topLeft, { x: -1.2, y: 1.5, z: -1.2 }); Object.assign(topRight, { x: 1.2, y: 1.5, z: -1.2 }); Object.assign(topBack, { x: 0, y: 1.5, z: -1.8 });
+        Object.assign(ballDown, { x: 0, y: -1.0, z: 0 }); Object.assign(ballUp, { x: 0, y: 1.0, z: 0 });
+        saveState(); updatePositions();
+    });
+
+    const menuBtn = document.getElementById('menu-btn'); const dropdown = document.getElementById('dropdown-menu');
+    menuBtn.addEventListener('click', () => dropdown.classList.toggle('open'));
+    document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== menuBtn) dropdown.classList.remove('open'); });
+
+    document.getElementById('toggle-energy').addEventListener('click', () => {
+        energyEnabled = !energyEnabled;
+        document.getElementById('energy-status').textContent = energyEnabled ? '🌀 Энергия: Вкл' : '🌀 Энергия: Выкл';
+        saveState(); dropdown.classList.remove('open');
+    });
+
+    const colorPicker = document.getElementById('center-color-picker');
+    colorPicker.value = centerColor;
+    colorPicker.addEventListener('input', (e) => {
+        centerColor = e.target.value;
+        updateCenterSpriteColor(centerColor);
+        saveState();
+    });
+
+    // ============= АНИМАЦИЯ И ЗАПУСК =============
+    let time = 0;
+    function animate() {
+        requestAnimationFrame(animate);
+        time += 0.005;
+        // Плавное качание всей конструкции
+        pivotGroup.rotation.y = Math.sin(time * 0.3) * 0.04;
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    updatePositions();
+    animate();
+    console.log('🟣🦅 Уровень 7: Куб Сознания (исправленная структура + настройка цвета) загружено!');
+</script>
+</body>
+</html>
