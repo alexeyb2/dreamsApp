@@ -19,32 +19,85 @@
             flex: 1; width: 100%; display: block; cursor: grab; touch-action: none;
         }
         #canvas:active { cursor: grabbing; }
+        
         #ui {
-            position: absolute; bottom: 30px; left: 0; right: 0; display: flex;
-            flex-direction: column; align-items: center; gap: 10px; pointer-events: none;
+            position: absolute; bottom: calc(20px + env(safe-area-inset-bottom)); left: 0; right: 0;
+            display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none;
+        }
+        #controls-row {
+            display: flex; gap: 10px; align-items: center; pointer-events: auto;
+            background: rgba(22,17,39,0.9); backdrop-filter: blur(8px);
+            padding: 8px 16px; border-radius: 40px; border: 1px solid #3a2f5a;
         }
         #balance-bar {
             width: 80%; height: 8px; background: #1a1530; border-radius: 10px;
-            overflow: hidden; border: 1px solid #3a2f5a;
+            overflow: hidden; border: 1px solid #3a2f5a; pointer-events: none;
         }
         #balance-fill {
-            height: 100%; width: 50%; background: #6f52c4; border-radius: 10px;
-            transition: width 0.1s;
+            height: 100%; width: 50%; background: #6f52c4; border-radius: 10px; transition: width 0.1s;
         }
         .btn {
-            border: none; background: #2a2348; color: #b8a6ff;
-            padding: 10px 24px; border-radius: 30px; font-weight: 700; font-size: 14px;
+            border: none; background: transparent; color: #b8a6ff;
+            padding: 8px 14px; border-radius: 30px; font-weight: 700; font-size: 13px;
             cursor: pointer; pointer-events: auto; transition: 0.2s;
         }
-        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        .btn:active { transform: scale(0.95); }
+        .btn.active { background: #6f52c4; color: #fff; }
+        
+        /* Модальное окно добавления силы */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal.open { display: flex; }
+        .modal-box {
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 30px;
+            padding: 30px; width: 90%; max-width: 420px; display: flex; flex-direction: column; gap: 16px;
+        }
+        .modal-box h3 { color: #b8a6ff; text-align: center; font-size: 22px; margin-bottom: 4px; }
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { font-size: 14px; color: #8f78e6; font-weight: 500; }
+        .input-group input { background: #1a1530; border: 1px solid #3a2f5a; border-radius: 12px; padding: 12px 14px; font-size: 16px; color: #fff; outline: none; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+        .btn-cancel { background: #3a2f5a; color: #b8a6ff; flex: 1; border: none; border-radius: 20px; padding: 12px; cursor: pointer; }
+        .btn-primary { background: #6f52c4; color: #fff; flex: 1; border: none; border-radius: 20px; padding: 12px; cursor: pointer; }
+        @media (max-width: 600px) { .btn { font-size: 12px; padding: 6px 10px; } }
     </style>
 </head>
 <body>
 <div id="app">
     <canvas id="canvas"></canvas>
+    
     <div id="ui">
         <div id="balance-bar"><div id="balance-fill"></div></div>
-        <button class="btn" id="reset-btn">🔄 Сброс</button>
+        <div id="controls-row">
+            <button class="btn" id="reset-btn">🔄 Сброс</button>
+            <button class="btn" id="add-force-btn" style="background:#6f52c4; color:#fff;">➕ Сила</button>
+            <button class="btn" id="cut-btn">✂️ Резать</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно добавления новой силы -->
+<div id="modal-add-force" class="modal">
+    <div class="modal-box">
+        <h3>➕ Новая сила</h3>
+        <div class="input-group">
+            <label>Смайл (сила)</label>
+            <input type="text" id="input-emoji" placeholder="Например: 🔥" />
+        </div>
+        <div class="input-group">
+            <label>Название силы</label>
+            <input type="text" id="input-name" placeholder="Введите название" />
+        </div>
+        <div class="input-group">
+            <label>Цвет силы</label>
+            <input type="color" id="input-color" value="#ffcc00" />
+        </div>
+        <div class="modal-actions">
+            <button class="btn-primary" id="save-force-btn">✅ Добавить</button>
+            <button class="btn-cancel" id="close-modal-btn">✖ Отмена</button>
+        </div>
     </div>
 </div>
 
@@ -52,10 +105,12 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const balanceFill = document.getElementById('balance-fill');
+    const cutBtn = document.getElementById('cut-btn');
 
     let w, h, cx, cy;
+    let nextForceId = 100;
+    let isCutMode = false; // Режим "резать"
     
-    // 4 силы: Верх теперь 🎈, низ 🎱, лево 🔵, право 🔴
     let forces = {
         up:    { x: 0, y: -150, label: 'Вверх', emoji: '🎈', color: '#ff4d4d' },
         down:  { x: 0, y: 150,  label: 'Вниз',  emoji: '🎱', color: '#4d8bff' },
@@ -68,14 +123,13 @@
     let dragStart = { x: 0, y: 0 };
     let startPos = { x: 0, y: 0 };
 
-    // Зелёный шар в центре (подвижный)
-    let centerBall = { x: 0, y: 0, radius: 20, color: '#2ecc71' };
+    let centerBall = { x: 0, y: 0, radius: 22, color: '#2ecc71' };
 
     // ============= СОХРАНЕНИЕ =============
     function saveState() {
         const data = {};
         for (let key in forces) {
-            data[key] = { x: forces[key].x, y: forces[key].y };
+            data[key] = { x: forces[key].x, y: forces[key].y, label: forces[key].label, emoji: forces[key].emoji, color: forces[key].color };
         }
         localStorage.setItem('highmind_level7_2d', JSON.stringify(data));
     }
@@ -89,6 +143,9 @@
                 if (forces[key]) {
                     forces[key].x = data[key].x;
                     forces[key].y = data[key].y;
+                } else {
+                    forces[key] = data[key];
+                    if (parseInt(key) >= nextForceId) nextForceId = parseInt(key) + 1;
                 }
             }
             return true;
@@ -97,8 +154,7 @@
 
     function resize() {
         const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+        canvas.width = rect.width; canvas.height = rect.height;
         w = canvas.width; h = canvas.height;
         cx = w / 2; cy = h / 2;
 
@@ -109,9 +165,10 @@
             forces.right.x = cx + 150; forces.right.y = cy;
             saveState();
         } else {
+            const limit = 60;
             for (let key in forces) {
-                forces[key].x = Math.max(30, Math.min(w-30, forces[key].x));
-                forces[key].y = Math.max(30, Math.min(h-30, forces[key].y));
+                forces[key].x = Math.max(limit, Math.min(w - limit, forces[key].x));
+                forces[key].y = Math.max(limit, Math.min(h - limit, forces[key].y));
             }
         }
         updateCenterPosition();
@@ -120,91 +177,64 @@
 
     // ============= ФИЗИКА ЦЕНТРА =============
     function updateCenterPosition() {
-        centerBall.x = (forces.up.x + forces.down.x + forces.left.x + forces.right.x) / 4;
-        centerBall.y = (forces.up.y + forces.down.y + forces.left.y + forces.right.y) / 4;
+        let sumX = 0, sumY = 0, totalWeight = 0;
+        for (let key in forces) {
+            const f = forces[key];
+            const dist = Math.hypot(f.x - cx, f.y - cy);
+            const weight = 1 / (dist + 1); 
+            sumX += f.x * weight;
+            sumY += f.y * weight;
+            totalWeight += weight;
+        }
+        if (totalWeight > 0) {
+            centerBall.x = sumX / totalWeight;
+            centerBall.y = sumY / totalWeight;
+        }
     }
 
-    // ============= СТЕКЛЯННЫЕ ПЕТЛИ (Плавные овалы, стиль Apple) =============
+    // ============= СТЕКЛЯННЫЕ ПЕТЛИ =============
     function drawGlassLoop(points) {
         if (points.length < 4) return;
 
-        // Слой 1: Мягкое свечение
         ctx.save();
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.15)';
-        ctx.shadowBlur = 40;
-        ctx.lineWidth = 6;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.15)'; ctx.shadowBlur = 30;
+        ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
         ctx.quadraticCurveTo(points[1].x, points[1].y, points[2].x, points[2].y);
         ctx.quadraticCurveTo(points[3].x, points[3].y, points[0].x, points[0].y);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.restore();
+        ctx.closePath(); ctx.stroke(); ctx.restore();
 
-        // Слой 2: Основной прозрачный овал
         ctx.save();
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
-        ctx.shadowBlur = 20;
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.2)'; ctx.shadowBlur = 15;
+        ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
         ctx.quadraticCurveTo(points[1].x, points[1].y, points[2].x, points[2].y);
         ctx.quadraticCurveTo(points[3].x, points[3].y, points[0].x, points[0].y);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.restore();
+        ctx.closePath(); ctx.stroke(); ctx.restore();
 
-        // Слой 3: Тонкая кайма (глянец)
         ctx.save();
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
+        ctx.shadowBlur = 0; ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
         ctx.quadraticCurveTo(points[1].x, points[1].y, points[2].x, points[2].y);
         ctx.quadraticCurveTo(points[3].x, points[3].y, points[0].x, points[0].y);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.restore();
+        ctx.closePath(); ctx.stroke(); ctx.restore();
     }
 
     // ============= ОТРИСОВКА =============
     function drawRoundedBall(x, y, radius, color) {
         const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 5, x, y, radius);
-        grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(0.15, color);
-        grad.addColorStop(1, '#000000');
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = color;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.15, color); grad.addColorStop(1, '#000000');
+        ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = grad; ctx.shadowBlur = 20; ctx.shadowColor = color; ctx.fill(); ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2; ctx.stroke();
     }
 
     function drawEmojiBall(x, y, radius, emoji, color) {
-        // Сначала рисуем подложку, чтобы эмодзи смотрелся как шар
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = color;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = color + '44';
-        ctx.fill();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-        // Теперь сам эмодзи
-        ctx.font = `${radius * 1.2}px system-ui`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(emoji, x, y - 2);
+        ctx.shadowBlur = 30; ctx.shadowColor = color;
+        ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = color + '44'; ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+        ctx.shadowBlur = 0; ctx.font = `bold ${radius * 1.6}px system-ui`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(emoji, x, y - 2);
     }
 
     function draw() {
@@ -212,11 +242,18 @@
         ctx.clearRect(0, 0, w, h);
 
         const size = Math.min(w, h) * 0.45;
-        const u = forces.up, d = forces.down, l = forces.left, r = forces.right;
         const cX = centerBall.x, cY = centerBall.y;
-        const loopWidth = Math.min(w, h) * 0.10; // Ширина петель
 
-        // 1. Сетка (квадрат, диагонали, оси)
+        // ИСПРАВЛЕНИЕ ГРАНИЦ КАНАЛА: ширина зависит от разброса сил, но всегда больше
+        let maxDist = 0;
+        for (let key in forces) {
+            const f = forces[key];
+            const d = Math.hypot(f.x - cX, f.y - cY);
+            if (d > maxDist) maxDist = d;
+        }
+        const loopWidth = Math.max(centerBall.radius * 2.0, maxDist * 0.75);
+
+        // 1. Сетка
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1;
         ctx.strokeRect(cx - size/2, cy - size/2, size, size);
         ctx.beginPath(); ctx.moveTo(cx - size/2, cy - size/2); ctx.lineTo(cx + size/2, cy + size/2); ctx.stroke();
@@ -225,49 +262,44 @@
         ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke(); ctx.setLineDash([]);
 
-        // 2. Гладкие стеклянные петли (Вертикальная и Горизонтальная)
-        // Вертикальная: U -> (влево от центра) -> D -> (вправо от центра)
+        // 2. Петли
+        const u = forces.up || { x: cX, y: cY - 50 };
+        const d = forces.down || { x: cX, y: cY + 50 };
+        const l = forces.left || { x: cX - 50, y: cY };
+        const r = forces.right || { x: cX + 50, y: cY };
+
         const verticalLoop = [
-            { x: u.x, y: u.y },
-            { x: cX - loopWidth, y: (u.y + d.y) / 2 },
-            { x: d.x, y: d.y },
-            { x: cX + loopWidth, y: (u.y + d.y) / 2 }
+            { x: u.x, y: u.y }, { x: cX - loopWidth, y: (u.y + d.y) / 2 },
+            { x: d.x, y: d.y }, { x: cX + loopWidth, y: (u.y + d.y) / 2 }
         ];
         drawGlassLoop(verticalLoop);
 
-        // Горизонтальная: L -> (снизу от центра) -> R -> (сверху от центра)
         const horizontalLoop = [
-            { x: l.x, y: l.y },
-            { x: (l.x + r.x) / 2, y: cY + loopWidth },
-            { x: r.x, y: r.y },
-            { x: (l.x + r.x) / 2, y: cY - loopWidth }
+            { x: l.x, y: l.y }, { x: (l.x + r.x) / 2, y: cY + loopWidth },
+            { x: r.x, y: r.y }, { x: (l.x + r.x) / 2, y: cY - loopWidth }
         ];
         drawGlassLoop(horizontalLoop);
 
-        // 3. Линии от сил к центру
+        // 3. Линии к центру
         for (let key in forces) {
             const f = forces[key];
             ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(cX, cY);
             ctx.strokeStyle = f.color + '55'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
         }
 
-        // 4. Зелёный центр (внутри петель)
+        // 4. Зелёный центр
         ctx.shadowBlur = 40; ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath(); ctx.arc(cX, cY, centerBall.radius + 8, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(cX, cY, centerBall.radius + 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill(); ctx.shadowBlur = 0;
         ctx.shadowBlur = 30; ctx.shadowColor = '#2ecc71';
         ctx.beginPath(); ctx.arc(cX, cY, centerBall.radius, 0, Math.PI * 2);
         ctx.fillStyle = '#2ecc71'; ctx.fill(); ctx.shadowBlur = 0;
 
-        // 5. Четыре силы (с уникальной прорисовкой)
-        const radius = 40;
+        // 5. Все силы
+        const radius = 44;
         for (let key in forces) {
             const f = forces[key];
-            if (key === 'up') {
-                drawEmojiBall(f.x, f.y, radius, f.emoji, f.color);
-            } else if (key === 'down') {
-                // Шар 8 (особая отрисовка)
+            if (key === 'down') {
                 const grad = ctx.createRadialGradient(f.x - radius*0.3, f.y - radius*0.3, 5, f.x, f.y, radius);
                 grad.addColorStop(0, '#444'); grad.addColorStop(0.5, '#111'); grad.addColorStop(1, '#000');
                 ctx.beginPath(); ctx.arc(f.x, f.y, radius, 0, Math.PI * 2);
@@ -276,19 +308,19 @@
                 ctx.beginPath(); ctx.arc(f.x, f.y, innerR, 0, Math.PI * 2); ctx.fillStyle = '#f0f0f0'; ctx.fill();
                 ctx.fillStyle = '#111'; ctx.font = `bold ${innerR * 1.3}px sans-serif`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('8', f.x, f.y + 2);
+            } else if (key === 'up') {
+                drawEmojiBall(f.x, f.y, radius, f.emoji, f.color);
             } else {
                 drawRoundedBall(f.x, f.y, radius, f.color);
             }
-            // Подпись
             ctx.font = '14px system-ui'; ctx.fillStyle = '#e0d6ff';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-            ctx.fillText(f.label, f.x, f.y + radius + 8);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(f.label || 'Сила', f.x, f.y + radius + 8);
         }
 
         // 6. Баланс
         const dist = Math.hypot(cX - cx, cY - cy);
-        const maxDist = Math.min(w, h) * 0.4;
-        const balance = Math.max(0, 100 - (dist / maxDist) * 100);
+        const maxDistC = Math.min(w, h) * 0.4;
+        const balance = Math.max(0, 100 - (dist / maxDistC) * 100);
         balanceFill.style.width = balance + '%';
         balanceFill.style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
 
@@ -299,7 +331,7 @@
         }
     }
 
-    // ============= ИНТЕРАКТИВНОСТЬ =============
+    // ============= ИНТЕРАКТИВНОСТЬ: ПЕРЕТАСКИВАНИЕ =============
     function getPointerPos(e) {
         const rect = canvas.getBoundingClientRect();
         return { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -315,33 +347,121 @@
     }
 
     canvas.addEventListener('pointerdown', (e) => {
-        e.preventDefault(); const pos = getPointerPos(e); const hit = hitTest(pos);
-        if (hit) { isDragging = true; draggedKey = hit; dragStart = pos; startPos = { x: forces[hit].x, y: forces[hit].y }; canvas.style.cursor = 'grabbing'; }
+        e.preventDefault();
+        const pos = getPointerPos(e);
+        
+        if (isCutMode) {
+            // Режим "резать": запоминаем начало линии
+            dragStart = pos;
+            return;
+        }
+
+        const hit = hitTest(pos);
+        if (hit) {
+            isDragging = true; draggedKey = hit;
+            startPos = { x: forces[hit].x, y: forces[hit].y };
+            canvas.style.cursor = 'grabbing';
+        }
     });
 
     window.addEventListener('pointermove', (e) => {
-        if (!isDragging || !draggedKey) return; e.preventDefault();
-        const pos = getPointerPos(e); const dx = pos.x - dragStart.x; const dy = pos.y - dragStart.y;
-        forces[draggedKey].x = Math.max(30, Math.min(w-30, startPos.x + dx));
-        forces[draggedKey].y = Math.max(30, Math.min(h-30, startPos.y + dy));
+        if (isCutMode) {
+            // В режиме "резать" рисуем временную линию
+            const pos = getPointerPos(e);
+            draw();
+            ctx.beginPath(); ctx.moveTo(dragStart.x, dragStart.y);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 10; ctx.shadowColor = '#fff'; ctx.stroke(); ctx.shadowBlur = 0;
+            return;
+        }
+
+        if (!isDragging || !draggedKey) return;
+        e.preventDefault();
+        const pos = getPointerPos(e);
+        const dx = pos.x - dragStart.x; const dy = pos.y - dragStart.y;
+        const limit = 60;
+        forces[draggedKey].x = Math.max(limit, Math.min(w - limit, startPos.x + dx));
+        forces[draggedKey].y = Math.max(limit, Math.min(h - limit, startPos.y + dy));
         saveState(); draw();
     });
 
-    window.addEventListener('pointerup', () => {
-        if (isDragging) { isDragging = false; draggedKey = null; canvas.style.cursor = 'grab'; }
+    window.addEventListener('pointerup', (e) => {
+        if (isCutMode) {
+            // Завершаем разрез
+            const endPos = getPointerPos(e);
+            const start = dragStart; const end = endPos;
+            // Проверяем пересечение с каждой силой
+            let cutKey = null;
+            for (let key in forces) {
+                const f = forces[key];
+                const dx = end.x - start.x; const dy = end.y - start.y;
+                if (dx === 0 && dy === 0) continue;
+                const t = ((f.x - start.x) * dx + (f.y - start.y) * dy) / (dx*dx + dy*dy);
+                if (t >= 0 && t <= 1) {
+                    const projX = start.x + t * dx;
+                    const projY = start.y + t * dy;
+                    if (Math.hypot(projX - f.x, projY - f.y) < 44) {
+                        cutKey = key; break;
+                    }
+                }
+            }
+            if (cutKey) {
+                delete forces[cutKey];
+                saveState();
+            }
+            return;
+        }
+
+        if (isDragging) {
+            isDragging = false; draggedKey = null; canvas.style.cursor = 'grab';
+        }
     });
 
+    // ============= КНОПКИ УПРАВЛЕНИЯ =============
     document.getElementById('reset-btn').addEventListener('click', () => {
-        forces.up.x = cx; forces.up.y = cy - 150;
-        forces.down.x = cx; forces.down.y = cy + 150;
-        forces.left.x = cx - 150; forces.left.y = cy;
-        forces.right.x = cx + 150; forces.right.y = cy;
+        forces = {
+            up:    { x: cx, y: cy - 150, label: 'Вверх', emoji: '🎈', color: '#ff4d4d' },
+            down:  { x: cx, y: cy + 150, label: 'Вниз',  emoji: '🎱', color: '#4d8bff' },
+            left:  { x: cx - 150, y: cy, label: 'Влево', emoji: '🔵', color: '#4d8bff' },
+            right: { x: cx + 150, y: cy, label: 'Вправо', emoji: '🔴', color: '#ff4d4d' }
+        };
+        nextForceId = 100;
         saveState(); draw();
+    });
+
+    // Переключатель режима "Резать"
+    cutBtn.addEventListener('click', () => {
+        isCutMode = !isCutMode;
+        cutBtn.classList.toggle('active');
+        cutBtn.textContent = isCutMode ? '✂️ Режем' : '✂️ Резать';
+        canvas.style.cursor = isCutMode ? 'crosshair' : 'grab';
+    });
+
+    // ============= ДОБАВЛЕНИЕ НОВЫХ СИЛ =============
+    const modal = document.getElementById('modal-add-force');
+    const inputEmoji = document.getElementById('input-emoji');
+    const inputName = document.getElementById('input-name');
+    const inputColor = document.getElementById('input-color');
+
+    document.getElementById('add-force-btn').addEventListener('click', () => modal.classList.add('open'));
+    document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.remove('open'));
+    document.getElementById('save-force-btn').addEventListener('click', () => {
+        const emoji = inputEmoji.value.trim() || '⚡';
+        const name = inputName.value.trim() || 'Новая сила';
+        const color = inputColor.value;
+        const id = nextForceId++;
+        forces[id] = { x: cx + (Math.random() - 0.5) * 40, y: cy + (Math.random() - 0.5) * 40, label: name, emoji: emoji, color: color };
+        saveState();
+        modal.classList.remove('open');
+        inputEmoji.value = ''; inputName.value = '';
+        draw();
     });
 
     function loop() { draw(); requestAnimationFrame(loop); }
     resize(); loop();
-    console.log('🟣🦅 Уровень 7: Квадрат Сознания (гладкие овалы + 🎈) загружено!');
+    console.log('🟣🦅 Уровень 7: Канал с плотными границами и механикой разрезания загружено!');
 </script>
 </body>
 </html>
