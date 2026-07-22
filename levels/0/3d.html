@@ -184,7 +184,7 @@
     const ballDownSprite = createBallSprite('🎱', '#4d8bff'); ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z); pivotGroup.add(ballDownSprite);
     const ballUpSprite   = createBallSprite('🎈', '#ff4d4d'); ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z); pivotGroup.add(ballUpSprite);
 
-    // Центр 🟡
+    // Центр 🟡 (будет менять позицию!)
     let centerSprite = createSprite('🟡', centerColor, 0.7);
     centerSprite.position.copy(centerPos); pivotGroup.add(centerSprite);
 
@@ -249,24 +249,40 @@
         const goldColor = new THREE.Color(centerColor);
         addLine(ballDown, ballUp, goldColor, 0.9);
 
-        // 🔵 Синяя линия: 🟦 (низ-зад-лев) -> 🟡 -> 🔴 (верх-пер-прав)
+        // 🔵 Синяя: 🟦 (низ-зад-лев) -> 🟡 -> 🔴 (верх-пер-прав)
         addLine(botBackLeft, topFrontRight, 0x4d8bff, 0.8);
 
-        // 🔴 Красная линия: 🟥 (низ-зад-прав) -> 🟡 -> 🔵 (верх-пер-лев)
+        // 🔴 Красная: 🟥 (низ-зад-прав) -> 🟡 -> 🔵 (верх-пер-лев)
         addLine(botBackRight, topFrontLeft, 0xff4d4d, 0.8);
 
-        // 🟡 Связующая линия: 🔺 -> 🟡 -> 🔻 (🟠 -> 🟡 -> 🟣)
+        // 🟡 Связующая: 🟠 (низ-пер) -> 🟡 -> 🟣 (верх-зад)
         addLine(botFront, topBack, 0xffcc00, 0.8);
 
-        // Центр 🟡 всегда в 0,0,0
+        // === ВЫЧИСЛЯЕМ НОВУЮ ПОЗИЦИЮ 🟡 (ПЛАВАЮЩИЙ ЦЕНТР МАСС) ===
         centerPos.set(0, 0, 0);
+        const allPoints = [ballDown, ballUp, topFrontLeft, topFrontRight, topBack, botBackLeft, botBackRight, botFront];
+        allPoints.forEach(p => {
+            centerPos.x += p.x;
+            centerPos.y += p.y;
+            centerPos.z += p.z;
+        });
+        centerPos.divideScalar(8);
         centerSprite.position.copy(centerPos);
 
-        // Баланс (всегда идеальный, так как центр в 0)
-        document.getElementById('balance-fill').style.width = '100%';
-        document.getElementById('balance-fill').style.backgroundColor = '#2ecc71';
-        centerSprite.scale.set(1.2, 1.2, 1);
-        centerSprite.material.opacity = 1.0;
+        // === БАЛАНС (чем ближе к 0,0,0, тем лучше) ===
+        const dist = centerPos.length();
+        const maxDist = 3.0; 
+        const balance = Math.max(0, 100 - (dist / maxDist) * 100);
+        document.getElementById('balance-fill').style.width = balance + '%';
+        document.getElementById('balance-fill').style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
+
+        if (balance > 95) {
+            centerSprite.scale.set(1.2, 1.2, 1);
+            centerSprite.material.opacity = 1.0;
+        } else {
+            centerSprite.scale.set(0.8, 0.8, 1);
+            centerSprite.material.opacity = 0.9;
+        }
     }
 
     function updatePositions() {
@@ -375,7 +391,7 @@
 
     updatePositions();
     animate();
-    console.log('🟣🦅 Уровень 7: Куб Сознания (исправленные тетраэдры, квадраты снизу сзади) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (Центр 🟡 плавает по линиям) загружено!');
 </script>
 </body>
 </html>
