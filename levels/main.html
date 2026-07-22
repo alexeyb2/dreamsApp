@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Каталог Древа Жизни</title>
+    <meta property="og:title" content="HighMind — Каталог уровней" />
+    <meta property="og:description" content="Исследуй вселенные внутри себя. Переходи между уровнями сознания." />
+    <meta property="og:image" content="logo.png" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0b0814;
+            color: #e0d6ff;
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+        #app {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 10px 0;
+        }
+        header h1 {
+            font-size: 28px;
+            color: #b8a6ff;
+            margin-bottom: 4px;
+        }
+        header p {
+            font-size: 15px;
+            color: #8f78e6;
+        }
+        .grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .card {
+            background: #161127;
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid #2a2248;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: 0.2s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .card:active {
+            transform: scale(0.97);
+            border-color: #6f52c4;
+        }
+        .card .info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .card .info .title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .card .info .desc {
+            font-size: 13px;
+            color: #b8a6ff;
+            opacity: 0.8;
+        }
+        .card .action {
+            background: #2a2348;
+            padding: 10px 18px;
+            border-radius: 30px;
+            color: #b8a6ff;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: 0.2s;
+            white-space: nowrap;
+            border: 1px solid #3a2f5a;
+        }
+        .card .action:active {
+            background: #6f52c4;
+            color: #fff;
+            border-color: #6f52c4;
+        }
+        .card .emoji {
+            font-size: 32px;
+            margin-right: 12px;
+        }
+        .flex-row {
+            display: flex;
+            align-items: center;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            opacity: 0.3;
+            padding: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <header>
+        <h1>🌳 Древо Жизни</h1>
+        <p>Выбери уровень, чтобы начать путешествие</p>
+    </header>
+
+    <div class="grid">
+        
+        <!-- Уровень 2D (старый) -->
+        <div class="card">
+            <div class="flex-row">
+                <span class="emoji">🟣</span>
+                <div class="info">
+                    <div class="title">Классическое Древо (2D)</div>
+                    <div class="desc">Плоская карта внутренней геометрии. Баланс сил.</div>
+                </div>
+            </div>
+            <a href="../0/" class="action">Открыть</a>
+        </div>
+
+        <!-- Уровень 3D (старый) -->
+        <div class="card">
+            <div class="flex-row">
+                <span class="emoji">🔮</span>
+                <div class="info">
+                    <div class="title">Классическое Древо (3D)</div>
+                    <div class="desc">Объёмный мир. Вращай и перестраивай реальность.</div>
+                </div>
+            </div>
+            <a href="../1/" class="action">Открыть</a>
+        </div>
+
+        <!-- Новый уровень 1 -->
+        <div class="card">
+            <div class="flex-row">
+                <span class="emoji">🌱</span>
+                <div class="info">
+                    <div class="title">Уровень 1: Росток веры</div>
+                    <div class="desc">Коснись шаров, чтобы поливать верой и растить дерево.</div>
+                </div>
+            </div>
+            <a href="0/level1.html" class="action">Играть</a>
+        </div>
+
+        <!-- Новый уровень 2 -->
+        <div class="card">
+            <div class="flex-row">
+                <span class="emoji">🎱↔🎈</span>
+                <div class="info">
+                    <div class="title">Уровень 2: Маятник жизни</div>
+                    <div class="desc">Найди ритм, раскачивая маятник между двумя мирами.</div>
+                </div>
+            </div>
+            <a href="0/level2.html" class="action">Играть</a>
+        </div>
+
+        <!-- Новый уровень 3 -->
+        <div class="card">
+            <div class="flex-row">
+                <span class="emoji">🔪✖️</span>
+                <div class="info">
+                    <div class="title">Уровень 3: Крест ножей</div>
+                    <div class="desc">Проведи линии через центр, чтобы разрезать иллюзии.</div>
+                </div>
+            </div>
+            <a href="0/level3.html" class="action">Играть</a>
+        </div>
+
+        <!-- Новый уровень 4 -->
+        <div class="card">
+            <div class="flex-row">
+                <span class="emoji">🎱🎈🔗</span>
+                <div class="info">
+                    <div class="title">Уровень 4: Пирамида и струна</div>
+                    <div class="desc">Выстрой баланс шаров в пирамиде, чтобы зазвучала струна.</div>
+                </div>
+            </div>
+            <a href="0/level4.html" class="action">Играть</a>
+        </div>
+
+        <!-- Новый уровень 5 -->
+        <div class="card">
+            <div class="flex-row">
+                <span class="emoji">🌴🌳</span>
+                <div class="info">
+                    <div class="title">Уровень 5: Два дерева</div>
+                    <div class="desc">Вырасти силу и поддержку по бокам позвоночника.</div>
+                </div>
+            </div>
+            <a href="0/level5.html" class="action">Играть</a>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        HighMind · Путь к себе
+    </div>
+</div>
+
+</body>
+</html>
