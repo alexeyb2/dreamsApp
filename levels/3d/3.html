@@ -100,14 +100,18 @@
     let energyEnabled = true;
     let time = 0;
 
-    // ИСПРАВЛЕНИЕ ГЕОМЕТРИИ: 🟦 (слева), 🟥 (справа), 🔺 (спереди)
+    // ИСПРАВЛЕННАЯ ГЕОМЕТРИЯ (Точное расположение Лево/Право, Низ/Верх)
     const baseNodes = {
-        bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺 (низ, спереди)
-        bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦 (низ, сзади-слева)
-        bottom_right:  { x: 1.2, y: -2.5, z: -1.2 }, // 🟥 (низ, сзади-справа)
-        top_center:    { x: 0,   y: 1.0, z: -1.2 },  // 🔻 (верх, сзади)
-        top_left:      { x: -1.2, y: 1.0, z: 1.2 },  // 🔵 (верх, спереди-слева)
-        top_right:     { x: 1.2, y: 1.0, z: 1.2 },   // 🔴 (верх, спереди-справа)
+        // НИЗ (Ноги, сзади): 🔺 спереди, 🟦 слева, 🟥 справа
+        bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺
+        bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
+        bottom_right:  { x: 1.2, y: -2.5, z: -1.2 }, // 🟥
+        
+        // ВЕРХ (Руки, спереди): 🔻 сзади, 🔵 слева, 🔴 справа
+        top_center:    { x: 0,   y: 1.0, z: -1.2 },  // 🔻
+        top_left:      { x: -1.2, y: 1.0, z: 1.2 },  // 🔵
+        top_right:     { x: 1.2, y: 1.0, z: 1.2 },   // 🔴
+        
         center:        { x: 0,   y: 0,   z: 0 }       // 🟡
     };
 
@@ -172,7 +176,7 @@
         pivotGroup.add(centerSprite);
     }
 
-    // ============= ЭНЕРГЕТИЧЕСКАЯ ЧАСТИЦА (КРАСНЫЙ ШАР) =============
+    // ============= ЭНЕРГИЯ ПО ЛИНИЯМ ЧЕРЕЗ 🟡 =============
     const energyParticleGeo = new THREE.SphereGeometry(0.25, 16, 16);
     const energyParticleMat = new THREE.MeshBasicMaterial({ color: 0xff4d4d, transparent: true, opacity: 0.9 });
     const energyParticle = new THREE.Mesh(energyParticleGeo, energyParticleMat);
@@ -182,23 +186,65 @@
     let energyProgress = 0;
     const energySpeed = 0.002;
 
-    // Маршрут частицы: 🟥 -> 🔵 -> 🔴 -> 🟦 -> 🟥 (замкнутый цикл)
+    // Маршрут строго через центр: 🟥 -> 🟡 -> 🔵 -> 🟡 -> 🔴 -> 🟡 -> 🟦 -> 🟡 -> 🟥
     function getEnergyRoutePoint(progress) {
-        const route = [
-            currentNodes.bottom_right, // 🟥
-            currentNodes.top_left,     // 🔵
-            currentNodes.top_right,    // 🔴
-            currentNodes.bottom_left   // 🟦
+        // Собираем динамические координаты
+        const c = { x: centerPos.x, y: centerPos.y, z: centerPos.z };
+        const br = currentNodes.bottom_right; // 🟥
+        const tl = currentNodes.top_left;     // 🔵
+        const tr = currentNodes.top_right;    // 🔴
+        const bl = currentNodes.bottom_left;  // 🟦
+
+        // Определяем путь как массив объектов
+        const fullPath = [
+            br, c, tl, c, tr, c, bl, c, br
         ];
-        const segment = Math.floor(progress * 4) % 4;
-        const t = (progress * 4) % 1;
-        const p1 = route[segment];
-        const p2 = route[(segment + 1) % 4];
-        return {
-            x: p1.x + (p2.x - p1.x) * t,
-            y: p1.y + (p2.y - p1.y) * t,
-            z: p1.z + (p2.z - p1.z) * t
-        };
+
+        // Вычисляем общую длину пути
+        let totalLen = 0;
+        let segmentLens = [];
+        for (let i = 0; i < fullPath.length - 1; i++) {
+            const dx = fullPath[i+1].x - fullPath[i].x;
+            const dy = fullPath[i+1].y - fullPath[i].y;
+            const dz = fullPath[i+1].z - fullPath[i].z;
+            const len = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            segmentLens.push(len);
+            totalLen += len;
+        }
+        
+        // Ищем сегмент
+        let targetDist = progress * totalLen;
+        let accumulated = 0;
+        for (let i = 0; i < segmentLens.length; i++) {
+            if (targetDist <= accumulated + segmentLens[i]) {
+                const t = (targetDist - accumulated) / segmentLens[i];
+                const pos = {
+                    x: fullPath[i].x + (fullPath[i+1].x - fullPath[i].x) * t,
+                    y: fullPath[i].y + (fullPath[i+1].y - fullPath[i].y) * t,
+                    z: fullPath[i].z + (fullPath[i+1].z - fullPath[i].z) * t
+                };
+                
+                // ОПРЕДЕЛЯЕМ ЦВЕТ НА ОСНОВЕ СЕГМЕНТА
+                // 0: br->c (КРАСНЫЙ)
+                // 1: c->tl (КРАСНЫЙ)
+                // 2: tl->c (КРАСНЫЙ)
+                // 3: c->tr (СИНИЙ)
+                // 4: tr->c (СИНИЙ)
+                // 5: c->bl (СИНИЙ)
+                // 6: bl->c (СИНИЙ)
+                // 7: c->br (КРАСНЫЙ)
+                let color = 0xff4d4d; // красный по умолчанию
+                if (i === 3 || i === 4 || i === 5 || i === 6) {
+                    color = 0x4d8bff; // синий
+                }
+                
+                return { pos: pos, color: color };
+            }
+            accumulated += segmentLens[i];
+        }
+        // Последняя точка
+        const last = fullPath[fullPath.length - 1];
+        return { pos: {x: last.x, y: last.y, z: last.z}, color: 0xff4d4d };
     }
 
     // ============= ГЕОМЕТРИЯ ТЕТРАЭДРОВ И ЛИНИЙ =============
@@ -280,14 +326,14 @@
 
         const goldColor = new THREE.Color(centerColor);
 
-        // 🟥 -> 🟡 -> 🔵 (красная линия)
+        // 🟥 (низ-пр) -> 🟡 -> 🔵 (верх-л) — красная линия
         addThroughCenter(currentNodes.bottom_right, currentNodes.top_left, 0xff4d4d, 0.8);
-        // 🟦 -> 🟡 -> 🔴 (синяя линия)
+        // 🟦 (низ-л) -> 🟡 -> 🔴 (верх-пр) — синяя линия
         addThroughCenter(currentNodes.bottom_left, currentNodes.top_right, 0x4d8bff, 0.8);
-        // 🔺 -> 🟡 -> 🔻 (золотая линия)
+        // 🔺 (низ-ц) -> 🟡 -> 🔻 (верх-ц) — золотая линия
         addThroughCenter(currentNodes.bottom_center, currentNodes.top_center, goldColor, 0.8);
 
-        // ===== НОВАЯ ЛИНИЯ: 🟦 (низ-лев) -> 🟥 (низ-прав) =====
+        // 🟦 (низ-л) -> 🟥 (низ-пр) — красная линия (замыкающая)
         createThinLine(
             new THREE.Vector3(currentNodes.bottom_left.x, currentNodes.bottom_left.y, currentNodes.bottom_left.z),
             new THREE.Vector3(currentNodes.bottom_right.x, currentNodes.bottom_right.y, currentNodes.bottom_right.z),
@@ -332,8 +378,9 @@
         if (energyEnabled) {
             energyProgress += energySpeed;
             if (energyProgress >= 1.0) energyProgress = 0.0;
-            const pos = getEnergyRoutePoint(energyProgress);
-            energyParticle.position.set(pos.x, pos.y, pos.z);
+            const data = getEnergyRoutePoint(energyProgress);
+            energyParticle.position.set(data.pos.x, data.pos.y, data.pos.z);
+            energyParticle.material.color.setHex(data.color);
         }
 
         updateStructure();
@@ -478,7 +525,7 @@
     updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (исправлены лево-право, добавлена красная линия) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (энергия течёт строго через 🟡 и меняет цвет) загружено!');
 </script>
 </body>
 </html>
