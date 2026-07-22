@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Уровень 7: Куб Сознания (3D)</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0b0814; touch-action: none; font-family: system-ui, sans-serif; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: block; background: #0b0814; }
+        #ui { position: absolute; bottom: 30px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; z-index: 10; }
+        #balance-bar { width: 80%; max-width: 400px; height: 8px; background: #1a1530; border-radius: 10px; overflow: hidden; border: 1px solid #3a2f5a; }
+        #balance-fill { height: 100%; width: 50%; background: #6f52c4; border-radius: 10px; transition: width 0.1s; }
+        .btn-group { background: rgba(22,17,39,0.85); padding: 10px 20px; border-radius: 40px; backdrop-filter: blur(8px); border: 1px solid #3a2f5a; display: flex; gap: 12px; pointer-events: auto; }
+        .btn { border: none; background: #2a2348; color: #b8a6ff; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
+        #dropdown-menu { display: none; position: absolute; bottom: 110%; right: 0; background: #161127; border: 1px solid #3a2f5a; border-radius: 20px; padding: 12px; width: 240px; flex-direction: column; gap: 8px; z-index: 20; backdrop-filter: blur(10px); }
+        #dropdown-menu.open { display: flex; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-radius: 12px; cursor: pointer; background: #2a2348; color: #b8a6ff; font-size: 13px; font-weight: 600; transition: 0.2s; }
+        .menu-item:active { background: #6f52c4; color: #fff; }
+        .menu-item input[type="color"] { width: 30px; height: 30px; border: none; padding: 0; background: transparent; cursor: pointer; }
+        #edit-status { text-align: center; font-size: 12px; color: #8f78e6; padding: 4px 12px; background: #100d1e; border-radius: 20px; border: 1px solid #3a2f5a; opacity: 0; transition: 0.3s; pointer-events: none; }
+        #edit-status.active { opacity: 1; }
+        @media (max-width: 600px) { #ui { bottom: 15px; padding: 8px; } .btn-group { padding: 6px 12px; gap: 6px; } }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<div id="canvas-container"></div>
+
+<div id="ui">
+    <div id="edit-status">🛤️ Режим редактирования: кликай по точкам, чтобы построить путь</div>
+    <div id="balance-bar"><div id="balance-fill"></div></div>
+    <div class="btn-group">
+        <button class="btn" id="reset-btn">🔄 Сброс</button>
+        <button class="btn btn-icon" id="menu-btn" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid #3a2f5a;font-size:18px;">⚙️</button>
+    </div>
+    <div id="dropdown-menu">
+        <div class="menu-item">
+            <span>🎨 Цвет центра</span>
+            <input type="color" id="center-color-picker" value="#ffcc00" />
+        </div>
+        <div class="menu-item" id="toggle-energy" style="justify-content:center;">
+            <span id="energy-status">🌀 Энергия: Вкл</span>
+        </div>
+        <div class="menu-item" id="edit-path-btn" style="justify-content:center; background:transparent; border:1px solid #6f52c4; color:#b8a6ff;">
+            <span>🛤️ Редактировать путь</span>
+        </div>
+        <div class="menu-item" id="save-path-btn" style="justify-content:center; background:#6f52c4; color:#fff; display:none;">
+            <span>💾 Сохранить путь</span>
+        </div>
+        <div class="menu-item" id="clear-path-btn" style="justify-content:center;">
+            <span>🗑️ Очистить путь</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============= СЦЕНА =============
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0814);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(0, 0.5, 8);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.05;
+    controls.target.set(0, 0, 0); controls.minDistance = 3; controls.maxDistance = 20;
+
+    scene.add(new THREE.AmbientLight(0x404060));
+    const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5); dirLight.position.set(5, 10, 7); dirLight.castShadow = true; scene.add(dirLight);
+    const gridHelper = new THREE.GridHelper(10, 10, 0x6f52c4, 0x3a2f5a); gridHelper.position.y = -2.5; scene.add(gridHelper);
+
+    // ============= ГРУППА ДЛЯ КАЧАНИЯ =============
+    const pivotGroup = new THREE.Group(); 
+    scene.add(pivotGroup);
+
+    // ============= КУБ И ДИАГОНАЛИ =============
+    const cubeSize = 5.5;
+    const cubeGeom = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+    const cubeEdges = new THREE.EdgesGeometry(cubeGeom);
+    const cubeMat = new THREE.LineBasicMaterial({ color: 0x444466, transparent: true, opacity: 0.2 });
+    const cubeWireframe = new THREE.LineSegments(cubeEdges, cubeMat);
+    cubeWireframe.position.set(0, 0, 0);
+    pivotGroup.add(cubeWireframe);
+
+    const half = cubeSize / 2;
+    const diagPoints = [
+        [new THREE.Vector3(-half, -half, -half), new THREE.Vector3(half, half, half)],
+        [new THREE.Vector3(-half, half, -half), new THREE.Vector3(half, -half, half)],
+        [new THREE.Vector3(half, -half, -half), new THREE.Vector3(-half, half, half)],
+        [new THREE.Vector3(half, half, -half), new THREE.Vector3(-half, -half, half)]
+    ];
+    diagPoints.forEach(pair => {
+        const geom = new THREE.BufferGeometry().setFromPoints(pair);
+        const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
+        const line = new THREE.Line(geom, mat);
+        pivotGroup.add(line);
+    });
+
+    // ============= ДАННЫЕ И СОХРАНЕНИЕ =============
+    const STORAGE_KEY = 'highmind_level7_3d';
+    const PATH_KEY = 'highmind_level7_custom_path';
+    let centerColor = '#ffcc00';
+    let energyEnabled = true;
+    let isEditingPath = false;
+    let time = 0;
+
+    // Геометрия
+    const baseNodes = {
+        bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺
+        bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
+        bottom_right:  { x: 1.2, y: -2.5, z: -1.2 }, // 🟥
+        top_center:    { x: 0,   y: 1.0, z: -1.2 },  // 🔻
+        top_left:      { x: -1.2, y: 1.0, z: 1.2 },  // 🔵
+        top_right:     { x: 1.2, y: 1.0, z: 1.2 },   // 🔴
+        center:        { x: 0,   y: 0,   z: 0 }       // 🟡
+    };
+
+    const currentNodes = JSON.parse(JSON.stringify(baseNodes));
+    let centerPos = new THREE.Vector3(0, 0, 0);
+    let isCenterDragged = false;
+    let draggedCenterPos = { x: 0, y: 0, z: 0 };
+
+    // Путь по умолчанию (замкнутый цикл через все точки)
+    const defaultPathKeys = [
+        'bottom_right', 'center', 'top_left', 'center', 'top_right', 'center', 'bottom_left', 'center', 'bottom_right'
+    ];
+
+    let customPath = null; // null = использовать путь по умолчанию
+
+    // Временные линии редактирования
+    let tempLineMeshes = [];
+
+    function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(baseNodes));
+        if (customPath) {
+            localStorage.setItem(PATH_KEY, JSON.stringify(customPath));
+        } else {
+            localStorage.removeItem(PATH_KEY);
+        }
+    }
+
+    function loadState() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            try {
+                const data = JSON.parse(raw);
+                Object.assign(baseNodes, data);
+            } catch(e) {}
+        }
+        const pathRaw = localStorage.getItem(PATH_KEY);
+        if (pathRaw) {
+            try {
+                customPath = JSON.parse(pathRaw);
+            } catch(e) {}
+        }
+    }
+    if (!loadState()) saveState();
+
+    // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
+    function createSprite(emoji, color, scale = 0.6) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        ctx.font = '100px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.shadowColor = color; ctx.shadowBlur = 20;
+        ctx.fillText(emoji, 128, 128);
+        ctx.shadowBlur = 0;
+        const tex = new THREE.CanvasTexture(canvas);
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(scale, scale, 1);
+        return sprite;
+    }
+
+    const sprites = {};
+    const createNode = (key, emoji, color, data) => {
+        const s = createSprite(emoji, color, 0.7);
+        s.position.set(data.x, data.y, data.z);
+        pivotGroup.add(s);
+        sprites[key] = s;
+    };
+    createNode('bottom_center', '🔺', '#e67e22', currentNodes.bottom_center);
+    createNode('bottom_left', '🟦', '#4d8bff', currentNodes.bottom_left);
+    createNode('bottom_right', '🟥', '#ff4d4d', currentNodes.bottom_right);
+    createNode('top_center', '🔻', '#9b59b6', currentNodes.top_center);
+    createNode('top_left', '🔵', '#4d8bff', currentNodes.top_left);
+    createNode('top_right', '🔴', '#ff4d4d', currentNodes.top_right);
+
+    // Центр 🟡
+    let centerSprite = createSprite('🟡', centerColor, 0.7);
+    centerSprite.position.copy(centerPos); pivotGroup.add(centerSprite);
+
+    function updateCenterSpriteColor(newColor) {
+        pivotGroup.remove(centerSprite);
+        centerSprite = createSprite('🟡', newColor, 0.7);
+        centerSprite.position.copy(centerPos);
+        pivotGroup.add(centerSprite);
+    }
+
+    // ============= ЭНЕРГИЯ (КАСТОМНЫЙ ПУТЬ) =============
+    const energyParticleGeo = new THREE.SphereGeometry(0.25, 16, 16);
+    const energyParticleMat = new THREE.MeshBasicMaterial({ color: 0xff4d4d, transparent: true, opacity: 0.9 });
+    const energyParticle = new THREE.Mesh(energyParticleGeo, energyParticleMat);
+    energyParticle.material.transparent = true;
+    pivotGroup.add(energyParticle);
+
+    let energyProgress = 0;
+    const energySpeed = 0.002;
+
+    // Получает позицию частицы на основе пользовательского или дефолтного пути
+    function getRoutePoint(progress) {
+        let pathKeys = customPath || defaultPathKeys;
+        if (!pathKeys || pathKeys.length < 2) return null;
+
+        // Собираем координаты точек в порядке пути
+        const points = pathKeys.map(key => {
+            if (key === 'center') return { x: centerPos.x, y: centerPos.y, z: centerPos.z };
+            const node = currentNodes[key];
+            if (!node) return null;
+            return { x: node.x, y: node.y, z: node.z };
+        }).filter(p => p !== null);
+
+        if (points.length < 2) return null;
+
+        let totalLen = 0;
+        let segmentLens = [];
+        for (let i = 0; i < points.length - 1; i++) {
+            const dx = points[i+1].x - points[i].x;
+            const dy = points[i+1].y - points[i].y;
+            const dz = points[i+1].z - points[i].z;
+            const len = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            segmentLens.push(len);
+            totalLen += len;
+        }
+
+        let targetDist = progress * totalLen;
+        let accumulated = 0;
+        for (let i = 0; i < segmentLens.length; i++) {
+            if (targetDist <= accumulated + segmentLens[i]) {
+                const t = (targetDist - accumulated) / segmentLens[i];
+                const p1 = points[i];
+                const p2 = points[i+1];
+                const pos = {
+                    x: p1.x + (p2.x - p1.x) * t,
+                    y: p1.y + (p2.y - p1.y) * t,
+                    z: p1.z + (p2.z - p1.z) * t
+                };
+                
+                // Определяем цвет на основе пары точек
+                const isRed = (pathKeys[i] === 'bottom_right' || pathKeys[i+1] === 'bottom_right' ||
+                               pathKeys[i] === 'top_left' || pathKeys[i+1] === 'top_left');
+                const isBlue = (pathKeys[i] === 'bottom_left' || pathKeys[i+1] === 'bottom_left' ||
+                                pathKeys[i] === 'top_right' || pathKeys[i+1] === 'top_right');
+                
+                let color = 0x4d8bff; // синий по умолчанию
+                if (isRed && !isBlue) color = 0xff4d4d;
+                
+                return { pos: pos, color: color };
+            }
+            accumulated += segmentLens[i];
+        }
+        const last = points[points.length - 1];
+        return { pos: {x: last.x, y: last.y, z: last.z}, color: 0xff4d4d };
+    }
+
+    // ============= ГЕОМЕТРИЯ ТЕТРАЭДРОВ И ЛИНИЙ =============
+    let dynamicMeshes = [];
+
+    function buildTetra(apex, baseVerts, color) {
+        const v = [apex, baseVerts[0], baseVerts[1], baseVerts[2]];
+        const pos = [
+            v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z,
+            v[0].x, v[0].y, v[0].z, v[1].x, v[1].y, v[1].z, v[2].x, v[2].y, v[2].z,
+            v[0].x, v[0].y, v[0].z, v[2].x, v[2].y, v[2].z, v[3].x, v[3].y, v[3].z,
+            v[0].x, v[0].y, v[0].z, v[3].x, v[3].y, v[3].z, v[1].x, v[1].y, v[1].z
+        ];
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        geom.computeVertexNormals();
+        
+        const glassMat = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.15,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const glassMesh = new THREE.Mesh(geom.clone(), glassMat);
+        const wireMat = new THREE.MeshBasicMaterial({
+            color: color,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.3
+        });
+        const wireMesh = new THREE.Mesh(geom.clone(), wireMat);
+        return [glassMesh, wireMesh];
+    }
+
+    function updateStructure() {
+        dynamicMeshes.forEach(m => pivotGroup.remove(m));
+        dynamicMeshes = [];
+
+        // === ТЕТРАЭДРЫ ===
+        const apex1 = centerPos.clone();
+        const base1 = [
+            new THREE.Vector3(currentNodes.bottom_center.x, currentNodes.bottom_center.y, currentNodes.bottom_center.z),
+            new THREE.Vector3(currentNodes.bottom_left.x, currentNodes.bottom_left.y, currentNodes.bottom_left.z),
+            new THREE.Vector3(currentNodes.bottom_right.x, currentNodes.bottom_right.y, currentNodes.bottom_right.z)
+        ];
+        const tetra1 = buildTetra(apex1, base1, 0x4d8bff);
+        tetra1.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
+
+        const apex2 = centerPos.clone();
+        const base2 = [
+            new THREE.Vector3(currentNodes.top_center.x, currentNodes.top_center.y, currentNodes.top_center.z),
+            new THREE.Vector3(currentNodes.top_left.x, currentNodes.top_left.y, currentNodes.top_left.z),
+            new THREE.Vector3(currentNodes.top_right.x, currentNodes.top_right.y, currentNodes.top_right.z)
+        ];
+        const tetra2 = buildTetra(apex2, base2, 0xff4d4d);
+        tetra2.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
+
+        // === ТОНКИЕ ЛИНИИ (ЦИЛИНДРЫ) ===
+        const createThinLine = (start, end, color, opacity = 0.9) => {
+            const dir = new THREE.Vector3().copy(end).sub(start);
+            const length = dir.length();
+            if (length < 0.01) return;
+            const mid = new THREE.Vector3().copy(start).add(end).multiplyScalar(0.5);
+            const geom = new THREE.CylinderGeometry(0.06, 0.06, length, 6);
+            const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.position.copy(mid);
+            mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+            pivotGroup.add(mesh);
+            dynamicMeshes.push(mesh);
+        };
+
+        const addThroughCenter = (p1, p2, color, opacity = 0.9) => {
+            const cPos = centerPos.clone();
+            createThinLine(new THREE.Vector3(p1.x, p1.y, p1.z), cPos, color, opacity);
+            createThinLine(cPos, new THREE.Vector3(p2.x, p2.y, p2.z), color, opacity);
+        };
+
+        const goldColor = new THREE.Color(centerColor);
+        addThroughCenter(currentNodes.bottom_right, currentNodes.top_left, 0xff4d4d, 0.8);
+        addThroughCenter(currentNodes.bottom_left, currentNodes.top_right, 0x4d8bff, 0.8);
+        addThroughCenter(currentNodes.bottom_center, currentNodes.top_center, goldColor, 0.8);
+        createThinLine(
+            new THREE.Vector3(currentNodes.bottom_left.x, currentNodes.bottom_left.y, currentNodes.bottom_left.z),
+            new THREE.Vector3(currentNodes.bottom_right.x, currentNodes.bottom_right.y, currentNodes.bottom_right.z),
+            0xff4d4d, 0.8
+        );
+    }
+
+    // ============= ВРЕМЕННЫЕ ЛИНИИ (ДЛЯ РЕДАКТИРОВАНИЯ ПУТИ) =============
+    function updateTempLines() {
+        tempLineMeshes.forEach(m => pivotGroup.remove(m));
+        tempLineMeshes = [];
+        if (!isEditingPath || !customPath || customPath.length < 2) return;
+
+        const points = customPath.map(key => {
+            if (key === 'center') return { x: centerPos.x, y: centerPos.y, z: centerPos.z };
+            const node = currentNodes[key];
+            if (!node) return null;
+            return { x: node.x, y: node.y, z: node.z };
+        }).filter(p => p !== null);
+
+        if (points.length < 2) return;
+
+        for (let i = 0; i < points.length - 1; i++) {
+            const start = new THREE.Vector3(points[i].x, points[i].y, points[i].z);
+            const end = new THREE.Vector3(points[i+1].x, points[i+1].y, points[i+1].z);
+            const dir = new THREE.Vector3().copy(end).sub(start);
+            const length = dir.length();
+            if (length < 0.01) continue;
+            const mid = new THREE.Vector3().copy(start).add(end).multiplyScalar(0.5);
+            const geom = new THREE.CylinderGeometry(0.04, 0.04, length, 4);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x88ccff, transparent: true, opacity: 0.5 });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.position.copy(mid);
+            mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+            pivotGroup.add(mesh);
+            tempLineMeshes.push(mesh);
+        }
+    }
+
+    // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
+    function updatePositions(deltaTime) {
+        currentNodes.bottom_center.x = baseNodes.bottom_center.x;
+        currentNodes.bottom_left.x = baseNodes.bottom_left.x;
+        currentNodes.bottom_right.x = baseNodes.bottom_right.x;
+        currentNodes.top_center.x = baseNodes.top_center.x;
+        currentNodes.top_left.x = baseNodes.top_left.x;
+        currentNodes.top_right.x = baseNodes.top_right.x;
+
+        sprites['bottom_center'].position.set(currentNodes.bottom_center.x, currentNodes.bottom_center.y, currentNodes.bottom_center.z);
+        sprites['bottom_left'].position.set(currentNodes.bottom_left.x, currentNodes.bottom_left.y, currentNodes.bottom_left.z);
+        sprites['bottom_right'].position.set(currentNodes.bottom_right.x, currentNodes.bottom_right.y, currentNodes.bottom_right.z);
+        sprites['top_center'].position.set(currentNodes.top_center.x, currentNodes.top_center.y, currentNodes.top_center.z);
+        sprites['top_left'].position.set(currentNodes.top_left.x, currentNodes.top_left.y, currentNodes.top_left.z);
+        sprites['top_right'].position.set(currentNodes.top_right.x, currentNodes.top_right.y, currentNodes.top_right.z);
+
+        if (!isCenterDragged) {
+            const allPoints = [
+                currentNodes.bottom_center, currentNodes.bottom_left, currentNodes.bottom_right,
+                currentNodes.top_center, currentNodes.top_left, currentNodes.top_right
+            ];
+            centerPos.set(0, 0, 0);
+            allPoints.forEach(p => {
+                centerPos.x += p.x; centerPos.y += p.y; centerPos.z += p.z;
+            });
+            centerPos.divideScalar(allPoints.length);
+        } else {
+            centerPos.set(draggedCenterPos.x, draggedCenterPos.y, draggedCenterPos.z);
+        }
+        centerSprite.position.copy(centerPos);
+
+        // Энергетическая частица
+        if (energyEnabled) {
+            energyProgress += energySpeed;
+            if (energyProgress >= 1.0) energyProgress = 0.0;
+            const data = getRoutePoint(energyProgress);
+            if (data) {
+                energyParticle.position.set(data.pos.x, data.pos.y, data.pos.z);
+                energyParticle.material.color.setHex(data.color);
+            }
+        }
+
+        // Обновляем временные линии, если в режиме редактирования
+        if (isEditingPath) updateTempLines();
+
+        updateStructure();
+
+        const dist = centerPos.length();
+        const maxDist = 3.0;
+        const balance = Math.max(0, 100 - (dist / maxDist) * 100);
+        document.getElementById('balance-fill').style.width = balance + '%';
+        document.getElementById('balance-fill').style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
+
+        if (balance > 95) {
+            centerSprite.scale.set(1.2, 1.2, 1);
+            centerSprite.material.opacity = 1.0;
+        } else {
+            centerSprite.scale.set(0.8, 0.8, 1);
+            centerSprite.material.opacity = 0.9;
+        }
+    }
+
+    // ============= ИНТЕРАКТИВНОСТЬ =============
+    const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
+    let isDragging = false, draggedKey = null, dragOffset = new THREE.Vector3(), intersectPlane = new THREE.Plane();
+
+    function getPointerNDC(e) { const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1; }
+
+    const draggableList = [
+        { key: 'bottom_center', data: baseNodes.bottom_center },
+        { key: 'bottom_left', data: baseNodes.bottom_left },
+        { key: 'bottom_right', data: baseNodes.bottom_right },
+        { key: 'top_center', data: baseNodes.top_center },
+        { key: 'top_left', data: baseNodes.top_left },
+        { key: 'top_right', data: baseNodes.top_right },
+        { key: 'center', data: draggedCenterPos }
+    ];
+    const spriteMap = {
+        'bottom_center': sprites.bottom_center, 'bottom_left': sprites.bottom_left,
+        'bottom_right': sprites.bottom_right, 'top_center': sprites.top_center,
+        'top_left': sprites.top_left, 'top_right': sprites.top_right,
+        'center': centerSprite
+    };
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+        getPointerNDC(e); raycaster.setFromCamera(pointer, camera);
+        const allSprites = Object.values(spriteMap);
+        const intersects = raycaster.intersectObjects(allSprites);
+        if (intersects.length > 0) {
+            const hitSprite = intersects[0].object;
+            const found = draggableList.find(item => spriteMap[item.key] === hitSprite);
+            if (found) {
+                // Если мы в режиме редактирования пути — добавляем точку в путь вместо перетаскивания
+                if (isEditingPath) {
+                    const key = found.key;
+                    if (!customPath) customPath = [];
+                    // Не добавляем точку, если она уже последняя (чтобы избежать дублей подряд)
+                    if (customPath.length === 0 || customPath[customPath.length - 1] !== key) {
+                        customPath.push(key);
+                        updateTempLines();
+                    }
+                    // Выходим, чтобы не начинать перетаскивание
+                    return;
+                }
+
+                // Обычное перетаскивание
+                draggedKey = found.key; isDragging = true; controls.enabled = false; renderer.domElement.style.cursor = 'grabbing';
+                const point = intersects[0].point; dragOffset.copy(point).sub(hitSprite.position);
+                const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+                intersectPlane.setFromNormalAndCoplanarPoint(camDir, point);
+                if (draggedKey === 'center') isCenterDragged = true;
+            }
+        }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (!isDragging || !draggedKey) return;
+        getPointerNDC(e); raycaster.setFromCamera(pointer, camera);
+        const intersectPoint = new THREE.Vector3(); raycaster.ray.intersectPlane(intersectPlane, intersectPoint);
+        if (intersectPoint) {
+            const newPos = intersectPoint.clone().sub(dragOffset);
+            const limit = 3.5;
+            newPos.x = Math.max(-limit, Math.min(limit, newPos.x));
+            
+            if (draggedKey === 'center') {
+                newPos.y = Math.max(-limit, Math.min(limit, newPos.y));
+            } else if (draggedKey.startsWith('bottom_')) {
+                newPos.y = -2.5;
+            } else if (draggedKey.startsWith('top_')) {
+                newPos.y = 1.0;
+            }
+            newPos.z = Math.max(-limit, Math.min(limit, newPos.z));
+
+            const data = draggableList.find(item => item.key === draggedKey).data;
+            Object.assign(data, newPos);
+            saveState();
+        }
+    });
+    window.addEventListener('pointerup', () => {
+        if (isDragging) {
+            if (draggedKey === 'center') isCenterDragged = true;
+            isDragging = false; draggedKey = null; controls.enabled = true; renderer.domElement.style.cursor = 'default'; saveState();
+        }
+    });
+
+    // ============= УПРАВЛЕНИЕ =============
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        Object.assign(baseNodes.bottom_center, { x: 0, y: -2.5, z: 1.2 });
+        Object.assign(baseNodes.bottom_left, { x: -1.2, y: -2.5, z: -1.2 });
+        Object.assign(baseNodes.bottom_right, { x: 1.2, y: -2.5, z: -1.2 });
+        Object.assign(baseNodes.top_center, { x: 0, y: 1.0, z: -1.2 });
+        Object.assign(baseNodes.top_left, { x: -1.2, y: 1.0, z: 1.2 });
+        Object.assign(baseNodes.top_right, { x: 1.2, y: 1.0, z: 1.2 });
+        isCenterDragged = false;
+        draggedCenterPos.x = 0; draggedCenterPos.y = 0; draggedCenterPos.z = 0;
+        energyProgress = 0;
+        saveState();
+    });
+
+    const menuBtn = document.getElementById('menu-btn'); const dropdown = document.getElementById('dropdown-menu');
+    menuBtn.addEventListener('click', () => dropdown.classList.toggle('open'));
+    document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== menuBtn) dropdown.classList.remove('open'); });
+
+    document.getElementById('toggle-energy').addEventListener('click', () => {
+        energyEnabled = !energyEnabled;
+        document.getElementById('energy-status').textContent = energyEnabled ? '🌀 Энергия: Вкл' : '🌀 Энергия: Выкл';
+        dropdown.classList.remove('open');
+    });
+
+    const colorPicker = document.getElementById('center-color-picker');
+    colorPicker.value = centerColor;
+    colorPicker.addEventListener('input', (e) => {
+        centerColor = e.target.value;
+        updateCenterSpriteColor(centerColor);
+    });
+
+    // ============= РЕДАКТИРОВАНИЕ ПУТИ =============
+    const editPathBtn = document.getElementById('edit-path-btn');
+    const savePathBtn = document.getElementById('save-path-btn');
+    const clearPathBtn = document.getElementById('clear-path-btn');
+    const editStatus = document.getElementById('edit-status');
+
+    editPathBtn.addEventListener('click', () => {
+        isEditingPath = !isEditingPath;
+        if (isEditingPath) {
+            if (!customPath) customPath = [];
+            editPathBtn.style.borderColor = '#ffcc00';
+            editStatus.classList.add('active');
+            savePathBtn.style.display = 'flex';
+            updateTempLines();
+        } else {
+            editPathBtn.style.borderColor = '#6f52c4';
+            editStatus.classList.remove('active');
+            savePathBtn.style.display = 'none';
+            tempLineMeshes.forEach(m => pivotGroup.remove(m));
+            tempLineMeshes = [];
+        }
+        dropdown.classList.remove('open');
+    });
+
+    savePathBtn.addEventListener('click', () => {
+        if (customPath && customPath.length >= 2) {
+            // Замыкаем путь, добавляя первую точку в конец для цикла
+            if (customPath[customPath.length - 1] !== customPath[0]) {
+                customPath.push(customPath[0]);
+            }
+            saveState();
+            isEditingPath = false;
+            editPathBtn.style.borderColor = '#6f52c4';
+            editStatus.classList.remove('active');
+            savePathBtn.style.display = 'none';
+            tempLineMeshes.forEach(m => pivotGroup.remove(m));
+            tempLineMeshes = [];
+            dropdown.classList.remove('open');
+        } else {
+            alert('Пожалуйста, выберите хотя бы две точки для создания пути.');
+        }
+    });
+
+    clearPathBtn.addEventListener('click', () => {
+        customPath = null;
+        saveState();
+        dropdown.classList.remove('open');
+        if (isEditingPath) {
+            tempLineMeshes.forEach(m => pivotGroup.remove(m));
+            tempLineMeshes = [];
+            if (!customPath) customPath = [];
+        }
+    });
+
+    // ============= АНИМАЦИЯ И ЗАПУСК =============
+    let prevTime = performance.now();
+
+    function animate(currentTime) {
+        requestAnimationFrame(animate);
+        const delta = Math.min((currentTime - prevTime) / 1000, 0.05);
+        prevTime = currentTime;
+
+        time += delta;
+        pivotGroup.rotation.y = Math.sin(time * 0.3) * 0.04;
+
+        updatePositions(delta);
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    updatePositions(0.016);
+    animate(performance.now());
+
+    console.log('🟣🦅 Уровень 7: Куб Сознания (кастомные пути энергии) загружено!');
+</script>
+</body>
+</html>
