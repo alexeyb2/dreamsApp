@@ -123,20 +123,6 @@
         centerBall.y = (forces.up.y + forces.down.y + forces.left.y + forces.right.y) / 4;
     }
 
-    // ============= ВСПОМОГАТЕЛЬНАЯ ГЕОМЕТРИЯ (для внешних овалов) =============
-    function getOutwardControlPoint(p1, p2, center, strength) {
-        const mx = (p1.x + p2.x) / 2;
-        const my = (p1.y + p2.y) / 2;
-        const dx = mx - center.x;
-        const dy = my - center.y;
-        const len = Math.hypot(dx, dy);
-        if (len === 0) return { x: mx, y: my };
-        return { 
-            x: mx + (dx / len) * strength, 
-            y: my + (dy / len) * strength 
-        };
-    }
-
     // ============= ОТРИСОВКА =============
     function drawRoundedBall(x, y, radius, color) {
         const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 5, x, y, radius);
@@ -167,14 +153,14 @@
     }
 
     function draw() {
-        // Сначала обновляем позицию зелёного центра
         updateCenterPosition();
-
         ctx.clearRect(0, 0, w, h);
 
         const size = Math.min(w, h) * 0.45;
+        const u = forces.up, d = forces.down, l = forces.left, r = forces.right;
+        const cX = centerBall.x, cY = centerBall.y;
 
-        // 1. Сетка (квадрат, диагонали, оси)
+        // 1. Сетка
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1;
         ctx.strokeRect(cx - size/2, cy - size/2, size, size);
         ctx.beginPath(); ctx.moveTo(cx - size/2, cy - size/2); ctx.lineTo(cx + size/2, cy + size/2); ctx.stroke();
@@ -183,89 +169,76 @@
         ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke(); ctx.setLineDash([]);
 
-        // 2. Два пересекающихся внешних овала (Полупрозрачные границы)
-        const u = forces.up, d = forces.down, l = forces.left, r = forces.right;
-        const midX = centerBall.x, midY = centerBall.y;
-        const center = { x: midX, y: midY };
-        const boundaryStrength = 55; // Насколько сильно овал выгибается наружу
+        // 2. Две петли в стиле Apple (вертикальная и горизонтальная восьмёрки)
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
 
-        // Левый овал: U -> L -> D (внешняя граница)
-        const cp1l = getOutwardControlPoint(u, l, center, boundaryStrength);
-        const cp2l = getOutwardControlPoint(l, d, center, boundaryStrength);
-        const cp3l = getOutwardControlPoint(d, u, center, boundaryStrength);
+        // Вертикальная петля: U -> D, огибая центр справа и слева
+        ctx.beginPath();
+        ctx.moveTo(u.x, u.y);
+        ctx.quadraticCurveTo(cX + 40, (u.y + d.y) / 2, d.x, d.y);
+        ctx.quadraticCurveTo(cX - 40, (u.y + d.y) / 2, u.x, u.y);
+        ctx.closePath();
+        ctx.stroke();
 
-        ctx.lineWidth = 2;
-        ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(255,255,255,0.2)';
-        // Левый овал
+        // Горизонтальная петля: L -> R, огибая центр снизу и сверху
+        ctx.beginPath();
+        ctx.moveTo(l.x, l.y);
+        ctx.quadraticCurveTo((l.x + r.x) / 2, cY + 40, r.x, r.y);
+        ctx.quadraticCurveTo((l.x + r.x) / 2, cY - 40, l.x, l.y);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Внутренняя тонкая линия для глянцевого эффекта Apple
+        ctx.shadowBlur = 10; ctx.shadowColor = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.beginPath(); ctx.moveTo(u.x, u.y);
-        ctx.quadraticCurveTo(cp1l.x, cp1l.y, l.x, l.y);
-        ctx.quadraticCurveTo(cp2l.x, cp2l.y, d.x, d.y);
-        ctx.quadraticCurveTo(cp3l.x, cp3l.y, u.x, u.y);
-        ctx.closePath(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.stroke();
+        ctx.quadraticCurveTo(cX + 30, (u.y + d.y) / 2, d.x, d.y);
+        ctx.quadraticCurveTo(cX - 30, (u.y + d.y) / 2, u.x, u.y);
+        ctx.closePath(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(l.x, l.y);
+        ctx.quadraticCurveTo((l.x + r.x) / 2, cY + 30, r.x, r.y);
+        ctx.quadraticCurveTo((l.x + r.x) / 2, cY - 30, l.x, l.y);
+        ctx.closePath(); ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Правый овал: U -> R -> D (внешняя граница)
-        const cp1r = getOutwardControlPoint(u, r, center, boundaryStrength);
-        const cp2r = getOutwardControlPoint(r, d, center, boundaryStrength);
-        const cp3r = getOutwardControlPoint(d, u, center, boundaryStrength);
-
-        ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(255,255,255,0.2)';
-        ctx.beginPath(); ctx.moveTo(u.x, u.y);
-        ctx.quadraticCurveTo(cp1r.x, cp1r.y, r.x, r.y);
-        ctx.quadraticCurveTo(cp2r.x, cp2r.y, d.x, d.y);
-        ctx.quadraticCurveTo(cp3r.x, cp3r.y, u.x, u.y);
-        ctx.closePath(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // 3. Связи через центр (линии от шаров к зелёному центру)
+        // 3. Линии от шаров к центру
         for (let key in forces) {
             const f = forces[key];
-            ctx.beginPath();
-            ctx.moveTo(f.x, f.y);
-            ctx.lineTo(midX, midY);
-            ctx.strokeStyle = f.color + '44'; // ещё более прозрачные
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([4, 4]); // пунктирные, чтобы не перегружать
-            ctx.stroke();
-            ctx.setLineDash([]);
+            ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(cX, cY);
+            ctx.strokeStyle = f.color + '44'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
         }
 
-        // 4. Зелёный центр (подвижный, с эффектом запутанности)
-        // Сначала рисуем свечение на пересечении овалов
-        ctx.shadowBlur = 50; ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
-        ctx.beginPath(); ctx.arc(midX, midY, centerBall.radius + 6, 0, Math.PI * 2);
+        // 4. Зелёный центр (запутанный в петлях)
+        ctx.shadowBlur = 40; ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+        ctx.beginPath(); ctx.arc(cX, cY, centerBall.radius + 8, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill();
         ctx.shadowBlur = 0;
-
-        // Сам зелёный шар
         ctx.shadowBlur = 30; ctx.shadowColor = '#2ecc71';
-        ctx.beginPath(); ctx.arc(midX, midY, centerBall.radius, 0, Math.PI * 2);
-        ctx.fillStyle = '#2ecc71'; ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(cX, cY, centerBall.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#2ecc71'; ctx.fill(); ctx.shadowBlur = 0;
 
-        // 5. Четыре силы (перетаскиваемые шары)
+        // 5. Шары
         for (let key in forces) {
-            const f = forces[key];
-            const radius = 40;
+            const f = forces[key]; const radius = 40;
             if (f.type === '8ball') draw8Ball(f.x, f.y, radius);
             else drawRoundedBall(f.x, f.y, radius, f.color);
             ctx.font = '14px system-ui'; ctx.fillStyle = '#e0d6ff';
-            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-            ctx.fillText(f.label, f.x, f.y + radius + 8);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(f.label, f.x, f.y + radius + 8);
         }
 
         // 6. Баланс
-        const dist = Math.hypot(midX - cx, midY - cy);
+        const dist = Math.hypot(cX - cx, cY - cy);
         const maxDist = Math.min(w, h) * 0.4;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
         balanceFill.style.width = balance + '%';
         balanceFill.style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
-
         if (balance > 95) {
             ctx.shadowBlur = 60; ctx.shadowColor = '#ffffff';
-            ctx.beginPath(); ctx.arc(midX, midY, centerBall.radius+5, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
-            ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(cX, cY, centerBall.radius+5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill(); ctx.shadowBlur = 0;
         }
     }
 
@@ -285,36 +258,20 @@
     }
 
     canvas.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        const pos = getPointerPos(e);
-        const hit = hitTest(pos);
-        if (hit) {
-            isDragging = true;
-            draggedKey = hit;
-            dragStart = pos;
-            startPos = { x: forces[hit].x, y: forces[hit].y };
-            canvas.style.cursor = 'grabbing';
-        }
+        e.preventDefault(); const pos = getPointerPos(e); const hit = hitTest(pos);
+        if (hit) { isDragging = true; draggedKey = hit; dragStart = pos; startPos = { x: forces[hit].x, y: forces[hit].y }; canvas.style.cursor = 'grabbing'; }
     });
 
     window.addEventListener('pointermove', (e) => {
-        if (!isDragging || !draggedKey) return;
-        e.preventDefault();
-        const pos = getPointerPos(e);
-        const dx = pos.x - dragStart.x;
-        const dy = pos.y - dragStart.y;
+        if (!isDragging || !draggedKey) return; e.preventDefault();
+        const pos = getPointerPos(e); const dx = pos.x - dragStart.x; const dy = pos.y - dragStart.y;
         forces[draggedKey].x = Math.max(30, Math.min(w-30, startPos.x + dx));
         forces[draggedKey].y = Math.max(30, Math.min(h-30, startPos.y + dy));
-        saveState();
-        draw();
+        saveState(); draw();
     });
 
     window.addEventListener('pointerup', () => {
-        if (isDragging) {
-            isDragging = false;
-            draggedKey = null;
-            canvas.style.cursor = 'grab';
-        }
+        if (isDragging) { isDragging = false; draggedKey = null; canvas.style.cursor = 'grab'; }
     });
 
     document.getElementById('reset-btn').addEventListener('click', () => {
@@ -322,18 +279,12 @@
         forces.down.x = cx; forces.down.y = cy + 150;
         forces.left.x = cx - 150; forces.left.y = cy;
         forces.right.x = cx + 150; forces.right.y = cy;
-        saveState();
-        draw();
+        saveState(); draw();
     });
 
-    function loop() {
-        draw();
-        requestAnimationFrame(loop);
-    }
-
-    resize();
-    loop();
-    console.log('🟣🦅 Уровень 7: Квадрат Сознания (внешние границы, запутанный центр) загружено!');
+    function loop() { draw(); requestAnimationFrame(loop); }
+    resize(); loop();
+    console.log('🟣🦅 Уровень 7: Квадрат Сознания (исправленные петли, стиль Apple) загружено!');
 </script>
 </body>
 </html>
