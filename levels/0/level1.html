@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Уровень 1: Росток веры</title>
+<style>
+* { margin:0; padding:0; }
+body { background:#0b0814; color:#e0d6ff; font-family:system-ui,sans-serif; overflow:hidden; display:flex; justify-content:center; align-items:center; height:100vh; touch-action:none; }
+#app { width:100%; max-width:500px; height:100vh; display:flex; flex-direction:column; position:relative; }
+canvas { flex:1; width:100%; display:block; background:#0b0814; cursor:default; touch-action:none; }
+.controls { display:flex; justify-content:center; gap:20px; padding:20px; background:rgba(22,17,39,0.85); border-top:1px solid #3a2f5a; }
+.btn { background:#2a2348; border:none; color:#b8a6ff; padding:10px 20px; border-radius:30px; font-size:14px; cursor:pointer; transition:0.2s; }
+.btn:active { background:#6f52c4; color:#fff; }
+#status { text-align:center; padding:10px; font-size:14px; color:#8f78e6; }
+</style>
+</head>
+<body>
+<div id="app">
+<canvas id="canvas"></canvas>
+<div class="controls"><button class="btn" id="reset-btn">🔄 Сброс</button></div>
+<div id="status">Вера: 0%</div>
+</div>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+
+let w, h, cx, cy;
+let faith = 0; // 0..100
+let growing = false;
+let touchActive = false;
+
+function resize() {
+	const rect = canvas.getBoundingClientRect();
+	canvas.width = rect.width;
+	canvas.height = rect.height;
+	w = canvas.width; h = canvas.height;
+	cx = w/2; cy = h/2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Загрузка сохранения
+function load() {
+	const raw = localStorage.getItem('highmind_universe');
+	if (raw) {
+		try {
+			const data = JSON.parse(raw);
+			if (data.faith !== undefined) faith = data.faith;
+		} catch(e) {}
+	}
+}
+load();
+
+function save() {
+	const raw = localStorage.getItem('highmind_universe');
+	let data = {};
+	if (raw) try { data = JSON.parse(raw); } catch(e) {}
+	data.faith = faith;
+	localStorage.setItem('highmind_universe', JSON.stringify(data));
+}
+
+// Шары
+const ball1 = { x: cx - 100, y: cy, radius: 40, color: '#4d8bff', label: '🎱', heavy: true };
+const ball2 = { x: cx + 100, y: cy, radius: 40, color: '#ff4d4d', label: '🎈', heavy: false };
+
+function draw() {
+	ctx.clearRect(0,0,w,h);
+	// Росток в центре
+	const size = 10 + faith * 0.6;
+	ctx.save();
+	ctx.translate(cx, cy);
+	// Стебель
+	ctx.beginPath();
+	ctx.moveTo(0, 40);
+	ctx.quadraticCurveTo(-20, -20 + faith*0.2, 0, -40 - faith*0.4);
+	ctx.strokeStyle = '#2ecc71';
+	ctx.lineWidth = 4;
+	ctx.shadowColor = '#2ecc71';
+	ctx.shadowBlur = 15;
+	ctx.stroke();
+	// Листья
+	ctx.beginPath();
+	ctx.arc(-15, -20 - faith*0.2, 12, 0, Math.PI*2);
+	ctx.fillStyle = '#2ecc71';
+	ctx.shadowBlur = 20;
+	ctx.fill();
+	ctx.beginPath();
+	ctx.arc(15, -30 - faith*0.2, 12, 0, Math.PI*2);
+	ctx.fill();
+	ctx.shadowBlur = 0;
+	ctx.restore();
+
+	// Шары
+	function drawBall(ball) {
+		ctx.beginPath();
+		ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+		ctx.fillStyle = ball.color + '44';
+		ctx.fill();
+		ctx.strokeStyle = ball.color;
+		ctx.lineWidth = 3;
+		ctx.shadowColor = ball.color;
+		ctx.shadowBlur = 20;
+		ctx.stroke();
+		ctx.shadowBlur = 0;
+		ctx.font = '40px system-ui';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillStyle = '#fff';
+		ctx.fillText(ball.label, ball.x, ball.y-4);
+	}
+	drawBall(ball1);
+	drawBall(ball2);
+
+	// Подсказка
+	ctx.font = '14px system-ui';
+	ctx.fillStyle = '#b8a6ff';
+	ctx.textAlign = 'center';
+	ctx.fillText('Коснись шаров, чтобы поливать верой 🌱', cx, h - 40);
+}
+
+function update() {
+	if (touchActive) {
+		if (faith < 100) {
+			faith += 0.5;
+			if (faith > 100) faith = 100;
+			save();
+		}
+	}
+	statusEl.textContent = `Вера: ${Math.round(faith)}%`;
+	draw();
+	requestAnimationFrame(update);
+}
+
+// Обработка касаний
+function getPointerPos(e) {
+	const rect = canvas.getBoundingClientRect();
+	return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function isInsideBall(pos, ball) {
+	const dx = pos.x - ball.x;
+	const dy = pos.y - ball.y;
+	return (dx*dx + dy*dy) < (ball.radius+20)*(ball.radius+20);
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+	const pos = getPointerPos(e);
+	if (isInsideBall(pos, ball1) || isInsideBall(pos, ball2)) {
+		touchActive = true;
+	}
+});
+canvas.addEventListener('pointermove', (e) => {
+	if (touchActive) {
+		const pos = getPointerPos(e);
+		if (!isInsideBall(pos, ball1) && !isInsideBall(pos, ball2)) {
+			touchActive = false;
+		}
+	}
+});
+canvas.addEventListener('pointerup', () => { touchActive = false; });
+canvas.addEventListener('pointerleave', () => { touchActive = false; });
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+	faith = 0;
+	save();
+});
+
+update();
+</script>
+</body>
+</html>
