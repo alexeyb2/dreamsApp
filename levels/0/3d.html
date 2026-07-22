@@ -30,7 +30,7 @@
     scene.background = new THREE.Color(0x0b0814);
 
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-    camera.position.set(7, 4, 9);
+    camera.position.set(7, 5, 9);
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -53,15 +53,40 @@
     dirLight.castShadow = true;
     scene.add(dirLight);
 
-    // Сетка (прозрачный пол для ощущения глубины)
+    // Сетка пола
     const gridHelper = new THREE.GridHelper(10, 10, 0x6f52c4, 0x3a2f5a);
     gridHelper.position.y = -2.5;
     scene.add(gridHelper);
 
+    // ============= КУБ И ДИАГОНАЛИ =============
+    const cubeSize = 5.5;
+    // Прозрачный куб
+    const cubeGeom = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+    const cubeEdges = new THREE.EdgesGeometry(cubeGeom);
+    const cubeMat = new THREE.LineBasicMaterial({ color: 0x444466, transparent: true, opacity: 0.2 });
+    const cubeWireframe = new THREE.LineSegments(cubeEdges, cubeMat);
+    cubeWireframe.position.set(0, 0, 0);
+    scene.add(cubeWireframe);
+
+    // 4 Диагонали куба (соединяющие противоположные вершины)
+    const half = cubeSize / 2;
+    const diagPoints = [
+        [new THREE.Vector3(-half, -half, -half), new THREE.Vector3(half, half, half)],
+        [new THREE.Vector3(-half, half, -half), new THREE.Vector3(half, -half, half)],
+        [new THREE.Vector3(half, -half, -half), new THREE.Vector3(-half, half, half)],
+        [new THREE.Vector3(half, half, -half), new THREE.Vector3(-half, -half, half)]
+    ];
+
+    diagPoints.forEach(pair => {
+        const geom = new THREE.BufferGeometry().setFromPoints(pair);
+        const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
+        const line = new THREE.Line(geom, mat);
+        scene.add(line);
+    });
+
     // ============= ДАННЫЕ И ФИЗИКА =============
     const STORAGE_KEY = 'highmind_level7_3d';
 
-    // Силы только с эмодзи (сферы убраны)
     let forces = {
         up:    { x: 0, y: 2.5, z: 0, emoji: '🎈', color: '#ff4d4d', label: 'Вверх' },
         down:  { x: 0, y: -2.5, z: 0, emoji: '🎱', color: '#4d8bff', label: 'Вниз' },
@@ -75,7 +100,6 @@
     let dragOffset = new THREE.Vector3();
     let intersectPlane = new THREE.Plane();
 
-    // ============= СОХРАНЕНИЕ =============
     function saveState() {
         const data = {};
         for (let key in forces) {
@@ -104,22 +128,17 @@
         saveState();
     }
 
-    // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ (ТОЛЬКО СПРАЙТЫ) =============
+    // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ (ЭМОДЗИ И ПЕТЛИ) =============
     const forceSprites = {};
     let centerSprite;
     let loopMeshes = [];
 
-    // Функция создания текстуры спрайта
     function createSpriteTexture(emoji, label, color) {
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
-
-        // Прозрачный фон
         ctx.clearRect(0, 0, 256, 256);
-
-        // Большой эмодзи
         ctx.font = '110px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -127,30 +146,26 @@
         ctx.shadowBlur = 25;
         ctx.fillText(emoji, 128, 110);
         ctx.shadowBlur = 0;
-
-        // Подпись
         ctx.font = 'bold 24px sans-serif';
         ctx.fillStyle = '#e0d6ff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         ctx.fillText(label, 128, 240);
-
         return new THREE.CanvasTexture(canvas);
     }
 
-    // Создаём спрайты для каждой силы (вместо сфер)
     for (let key in forces) {
         const f = forces[key];
         const texture = createSpriteTexture(f.emoji, f.label, f.color);
         const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
         const sprite = new THREE.Sprite(material);
-        sprite.scale.set(1.6, 1.6, 1); // Крупный размер
+        sprite.scale.set(1.6, 1.6, 1);
         sprite.position.set(f.x, f.y, f.z);
         scene.add(sprite);
         forceSprites[key] = sprite;
     }
 
-    // Зелёный центр (тоже спрайт для единообразия)
+    // Зелёный центр (спрайт)
     function createCenterSprite() {
         const canvas = document.createElement('canvas');
         canvas.width = 256;
@@ -172,16 +187,13 @@
     centerSprite.position.copy(centerPos);
     scene.add(centerSprite);
 
-    // ============= 3D ОВАЛЫ (ПЕТЛИ) =============
+    // Петли (овалы в 3D)
     function updateLoops() {
-        // Удаляем старые петли
         loopMeshes.forEach(m => scene.remove(m));
         loopMeshes = [];
 
         const u = forces.up, d = forces.down, l = forces.left, r = forces.right;
         const c = centerPos;
-
-        // Динамический размах петель (всегда охватывают центр)
         const maxDist = Math.max(
             Math.hypot(u.x - c.x, u.y - c.y, u.z - c.z),
             Math.hypot(d.x - c.x, d.y - c.y, d.z - c.z),
@@ -190,7 +202,6 @@
         );
         const loopWidth = Math.max(maxDist * 0.7, 0.8);
 
-        // Вертикальная петля
         const vPoints = [
             new THREE.Vector3(u.x, u.y, u.z),
             new THREE.Vector3(c.x - loopWidth, (u.y + d.y) / 2, c.z),
@@ -200,18 +211,13 @@
         const vCurve = new THREE.CatmullRomCurve3(vPoints, true);
         const vGeom = new THREE.TubeGeometry(vCurve, 64, 0.08, 8, true);
         const vMat = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            emissive: 0x88bbff,
-            emissiveIntensity: 0.2,
-            transparent: true,
-            opacity: 0.35,
-            side: THREE.DoubleSide
+            color: 0xffffff, emissive: 0x88bbff, emissiveIntensity: 0.2,
+            transparent: true, opacity: 0.35, side: THREE.DoubleSide
         });
         const vMesh = new THREE.Mesh(vGeom, vMat);
         scene.add(vMesh);
         loopMeshes.push(vMesh);
 
-        // Горизонтальная петля
         const hPoints = [
             new THREE.Vector3(l.x, l.y, l.z),
             new THREE.Vector3((l.x + r.x) / 2, c.y + loopWidth, c.z),
@@ -221,12 +227,8 @@
         const hCurve = new THREE.CatmullRomCurve3(hPoints, true);
         const hGeom = new THREE.TubeGeometry(hCurve, 64, 0.08, 8, true);
         const hMat = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            emissive: 0x88bbff,
-            emissiveIntensity: 0.2,
-            transparent: true,
-            opacity: 0.35,
-            side: THREE.DoubleSide
+            color: 0xffffff, emissive: 0x88bbff, emissiveIntensity: 0.2,
+            transparent: true, opacity: 0.35, side: THREE.DoubleSide
         });
         const hMesh = new THREE.Mesh(hGeom, hMat);
         scene.add(hMesh);
@@ -235,13 +237,10 @@
 
     // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
     function updatePositions() {
-        // Обновляем позиции спрайтов
         for (let key in forces) {
             const f = forces[key];
             forceSprites[key].position.set(f.x, f.y, f.z);
         }
-
-        // Вычисляем центр как среднее координат
         centerPos.set(0, 0, 0);
         for (let key in forces) {
             const f = forces[key];
@@ -252,17 +251,14 @@
         centerPos.divideScalar(4);
         centerSprite.position.copy(centerPos);
 
-        // Обновляем петли
         updateLoops();
 
-        // Баланс
         const dist = centerPos.length();
         const maxDist = 3.5;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
         document.getElementById('balance-fill').style.width = balance + '%';
         document.getElementById('balance-fill').style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
         
-        // Эффект при идеальном балансе
         if (balance > 95) {
             centerSprite.scale.set(1.0, 1.0, 1);
             centerSprite.material.opacity = 1.0;
@@ -272,7 +268,7 @@
         }
     }
 
-    // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ СПРАЙТОВ) =============
+    // ============= ИНТЕРАКТИВНОСТЬ =============
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
 
@@ -285,7 +281,6 @@
     renderer.domElement.addEventListener('pointerdown', (e) => {
         getPointerNDC(e);
         raycaster.setFromCamera(pointer, camera);
-
         const sprites = Object.values(forceSprites);
         const intersects = raycaster.intersectObjects(sprites);
         if (intersects.length > 0) {
@@ -302,7 +297,6 @@
                 renderer.domElement.style.cursor = 'grabbing';
                 const point = intersects[0].point;
                 dragOffset.copy(point).sub(forceSprites[draggedKey].position);
-                // Плоскость перпендикулярно взгляду камеры
                 const camDir = new THREE.Vector3();
                 camera.getWorldDirection(camDir);
                 intersectPlane.setFromNormalAndCoplanarPoint(camDir, point);
@@ -314,7 +308,6 @@
         if (!isDragging || !draggedKey) return;
         getPointerNDC(e);
         raycaster.setFromCamera(pointer, camera);
-
         const intersectPoint = new THREE.Vector3();
         raycaster.ray.intersectPlane(intersectPlane, intersectPoint);
         if (intersectPoint) {
@@ -365,7 +358,7 @@
 
     updatePositions();
     animate();
-    console.log('🟣🦅 Уровень 7: Куб Сознания (3D с эмодзи и петлями) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (Добавлен куб + 4 диагонали) загружено!');
 </script>
 </body>
 </html>
