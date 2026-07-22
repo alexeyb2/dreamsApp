@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Уровень 2: Маятник жизни</title>
+<style>/* аналогично level1 */</style>
+</head>
+<body>
+<div id="app">
+<canvas id="canvas"></canvas>
+<div class="controls"><button class="btn" id="reset-btn">🔄 Сброс</button></div>
+<div id="status">Энергия: 0</div>
+</div>
+<script>
+// Аналогичная структура, но с маятником
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+let w,h,cx,cy;
+let angle = 0, angularSpeed = 0, energy = 0;
+const pivot = {x: 0, y: -150};
+const mass = {x: 0, y: 0};
+let dragging = false;
+
+function resize() {
+	const rect = canvas.getBoundingClientRect();
+	canvas.width = rect.width;
+	canvas.height = rect.height;
+	w = canvas.width; h = canvas.height;
+	cx = w/2; cy = h/2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function load() {
+	const raw = localStorage.getItem('highmind_universe');
+	if (raw) {
+		try {
+			const data = JSON.parse(raw);
+			if (data.energy !== undefined) energy = data.energy;
+		} catch(e) {}
+	}
+}
+load();
+
+function save() {
+	const raw = localStorage.getItem('highmind_universe');
+	let data = {};
+	if (raw) try { data = JSON.parse(raw); } catch(e) {}
+	data.energy = energy;
+	localStorage.setItem('highmind_universe', JSON.stringify(data));
+}
+
+function draw() {
+	ctx.clearRect(0,0,w,h);
+	// Точка подвеса
+	ctx.beginPath();
+	ctx.arc(cx, cy - 150, 6, 0, Math.PI*2);
+	ctx.fillStyle = '#ffcc00';
+	ctx.fill();
+
+	// Нить и груз
+	const x = cx + Math.sin(angle) * 150;
+	const y = cy - 150 + Math.cos(angle) * 150;
+	ctx.beginPath();
+	ctx.moveTo(cx, cy - 150);
+	ctx.lineTo(x, y);
+	ctx.strokeStyle = '#b8a6ff';
+	ctx.lineWidth = 2;
+	ctx.stroke();
+
+	// Груз
+	ctx.beginPath();
+	ctx.arc(x, y, 30, 0, Math.PI*2);
+	ctx.fillStyle = '#ff4d4d44';
+	ctx.fill();
+	ctx.strokeStyle = '#ff4d4d';
+	ctx.lineWidth = 3;
+	ctx.shadowColor = '#ff4d4d';
+	ctx.shadowBlur = 20;
+	ctx.stroke();
+	ctx.shadowBlur = 0;
+	ctx.font = '30px system-ui';
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	ctx.fillStyle = '#fff';
+	ctx.fillText('🎱', x, y-2);
+
+	// Энергия шкала
+	ctx.fillStyle = '#b8a6ff';
+	ctx.font = '14px system-ui';
+	ctx.fillText('Энергия: ' + Math.round(energy), cx, 30);
+}
+
+function update() {
+	// Физика маятника (если не перетаскивается)
+	if (!dragging) {
+		const gravity = 0.01;
+		const friction = 0.995;
+		angularSpeed += -Math.sin(angle) * gravity;
+		angularSpeed *= friction;
+		angle += angularSpeed;
+		// Накапливаем энергию от колебаний
+		energy += Math.abs(angularSpeed) * 0.1;
+		if (energy > 100) energy = 100;
+		save();
+	}
+	statusEl.textContent = 'Энергия: ' + Math.round(energy);
+	draw();
+	requestAnimationFrame(update);
+}
+
+// Перетаскивание груза
+function getPointerPos(e) {
+	const rect = canvas.getBoundingClientRect();
+	return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function hitTest(pos) {
+	const x = cx + Math.sin(angle) * 150;
+	const y = cy - 150 + Math.cos(angle) * 150;
+	const dx = pos.x - x;
+	const dy = pos.y - y;
+	return (dx*dx + dy*dy) < 40*40;
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+	const pos = getPointerPos(e);
+	if (hitTest(pos)) {
+		dragging = true;
+	}
+});
+canvas.addEventListener('pointermove', (e) => {
+	if (dragging) {
+		const pos = getPointerPos(e);
+		const dx = pos.x - cx;
+		const dy = pos.y - (cy - 150);
+		angle = Math.atan2(dx, dy);
+	}
+});
+canvas.addEventListener('pointerup', () => {
+	dragging = false;
+});
+canvas.addEventListener('pointerleave', () => {
+	dragging = false;
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+	energy = 0;
+	angle = 0;
+	angularSpeed = 0;
+	save();
+});
+
+update();
+</script>
+</body>
+</html>
