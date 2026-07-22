@@ -22,17 +22,23 @@
         #balance-bar { width: 80%; max-width: 400px; height: 8px; background: #1a1530; border-radius: 10px; overflow: hidden; border: 1px solid #3a2f5a; }
         #balance-fill { height: 100%; width: 50%; background: #6f52c4; border-radius: 10px; transition: width 0.1s; }
 
-        /* Панель редактирования пути */
         #path-panel {
             display: none; width: 90%; max-width: 440px; padding: 12px 16px 16px;
             background: rgba(16, 13, 30, 0.95); backdrop-filter: blur(10px);
             border: 1px solid #3a2f5a; border-radius: 30px;
             flex-direction: column; align-items: center; gap: 10px;
-            pointer-events: auto; margin-bottom: 6px;
+            pointer-events: auto; margin-bottom: 6px; position: relative;
         }
         #path-panel.active { display: flex; }
+        
+        /* Кнопка закрытия панели */
+        .panel-close {
+            position: absolute; top: 10px; right: 14px;
+            background: transparent; border: none; color: #8f78e6; font-size: 20px;
+            cursor: pointer; padding: 0; line-height: 1; pointer-events: auto;
+        }
+        .panel-close:active { color: #fff; transform: scale(1.1); }
 
-        /* Сетка выбора (3x3 пирамида) */
         .selector-grid {
             display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%;
         }
@@ -50,7 +56,6 @@
         .sel-item:active { background: #6f52c4; transform: scale(0.9); border-color: #6f52c4; }
         .sel-item.center-item { width: 50px; height: 50px; }
 
-        /* Строка построенного маршрута */
         .route-build-row {
             display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px;
             padding: 8px 12px; background: #100d1e; border-radius: 20px;
@@ -68,7 +73,6 @@
         .route-del:active { transform: scale(1.2); }
         .route-empty { font-size: 13px; color: #5a507a; }
 
-        /* Кнопки действий */
         .route-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; width: 100%; }
         .path-btn {
             background: #2a2348; border: 1px solid #3a2f5a; border-radius: 24px;
@@ -83,12 +87,36 @@
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
         .btn-icon { width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid #3a2f5a; font-size: 18px; }
         
-        #dropdown-menu { display: none; position: absolute; bottom: 110%; right: 0; background: #161127; border: 1px solid #3a2f5a; border-radius: 20px; padding: 12px; width: 200px; flex-direction: column; gap: 8px; z-index: 20; backdrop-filter: blur(10px); pointer-events: auto; }
+        #dropdown-menu {
+            display: none; position: absolute; bottom: 110%; right: 0;
+            background: #161127; border: 1px solid #3a2f5a; border-radius: 20px;
+            padding: 12px; width: 220px; flex-direction: column; gap: 8px; z-index: 20;
+            backdrop-filter: blur(10px); pointer-events: auto;
+        }
         #dropdown-menu.open { display: flex; }
-        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; border-radius: 12px; cursor: pointer; background: #2a2348; color: #b8a6ff; font-size: 13px; font-weight: 600; transition: 0.2s; }
+        .menu-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 10px; border-radius: 12px; cursor: pointer;
+            background: #2a2348; color: #b8a6ff; font-size: 13px; font-weight: 600; transition: 0.2s;
+        }
         .menu-item:active { background: #6f52c4; color: #fff; }
         .menu-item input[type="color"] { width: 30px; height: 30px; border: none; padding: 0; background: transparent; cursor: pointer; }
         
+        .slider-item {
+            flex-direction: column; align-items: stretch; gap: 4px; padding: 6px 10px;
+        }
+        .slider-item .slider-header {
+            display: flex; justify-content: space-between; width: 100%; font-size: 13px;
+        }
+        .slider-item input[type="range"] {
+            width: 100%; height: 4px; -webkit-appearance: none; background: #3a2f5a;
+            border-radius: 4px; outline: none;
+        }
+        .slider-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: #6f52c4; cursor: pointer;
+        }
+
         @media (max-width: 600px) { 
             #ui { bottom: 15px; padding: 8px; } 
             .btn-group { padding: 6px 12px; gap: 6px; } 
@@ -104,7 +132,9 @@
 <div id="canvas-container"></div>
 
 <div id="ui">
-    <div id="path-panel"></div>
+    <div id="path-panel">
+        <button class="panel-close" id="close-panel-btn">✖</button>
+    </div>
     <div id="balance-bar"><div id="balance-fill"></div></div>
     <div class="btn-group">
         <button class="btn" id="reset-btn">🔄 Сброс</button>
@@ -117,6 +147,20 @@
         </div>
         <div class="menu-item" id="toggle-energy" style="justify-content:center;">
             <span id="energy-status">🌀 Энергия: Вкл</span>
+        </div>
+        <div class="slider-item menu-item">
+            <div class="slider-header">
+                <span>⚡ Скорость</span>
+                <span id="speed-display">5</span>
+            </div>
+            <input type="range" id="speed-slider" min="1" max="10" value="5" step="1" />
+        </div>
+        <div class="slider-item menu-item">
+            <div class="slider-header">
+                <span>🔵 Размер шара</span>
+                <span id="size-display">0.25</span>
+            </div>
+            <input type="range" id="size-slider" min="0.1" max="0.8" value="0.25" step="0.05" />
         </div>
         <div class="menu-item" id="edit-path-btn" style="justify-content:center; background:transparent; border:1px solid #6f52c4; color:#b8a6ff;">
             <span>🛤️ Редактировать путь</span>
@@ -175,7 +219,7 @@
         pivotGroup.add(line);
     });
 
-    // ============= ГЕОМЕТРИЯ (ИДЕАЛЬНЫЕ КООРДИНАТЫ) =============
+    // ============= ГЕОМЕТРИЯ =============
     const baseNodes = {
         bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺
         bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
@@ -191,13 +235,17 @@
     let isCenterDragged = false;
     let draggedCenterPos = { x: 0, y: 0, z: 0 };
 
-    // ============= СОХРАНЕНИЕ =============
+    // ============= ДАННЫЕ И СОХРАНЕНИЕ =============
     const STORAGE_KEY = 'highmind_level7_3d';
     const PATH_KEY = 'highmind_level7_custom_path';
     let centerColor = '#ffcc00';
     let energyEnabled = true;
     let isEditingPath = false;
     let time = 0;
+
+    // Настройки шара
+    let energySpeedMultiplier = 5;
+    let energyParticleSize = 0.25;
 
     const defaultPathKeys = [
         'bottom_right', 'center', 'top_left', 'center', 'top_right', 'center', 'bottom_left', 'center', 'bottom_right'
@@ -211,13 +259,30 @@
     };
 
     function saveState() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(baseNodes));
+        const data = {
+            nodes: baseNodes,
+            energyEnabled: energyEnabled,
+            centerColor: centerColor,
+            speedMultiplier: energySpeedMultiplier,
+            particleSize: energyParticleSize
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         if (customPath) localStorage.setItem(PATH_KEY, JSON.stringify(customPath));
         else localStorage.removeItem(PATH_KEY);
     }
+
     function loadState() {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) { try { const data = JSON.parse(raw); Object.assign(baseNodes, data); } catch(e) {} }
+        if (raw) {
+            try {
+                const data = JSON.parse(raw);
+                if (data.nodes) Object.assign(baseNodes, data.nodes);
+                if (data.energyEnabled !== undefined) energyEnabled = data.energyEnabled;
+                if (data.centerColor) centerColor = data.centerColor;
+                if (data.speedMultiplier) energySpeedMultiplier = data.speedMultiplier;
+                if (data.particleSize) energyParticleSize = data.particleSize;
+            } catch(e) {}
+        }
         const pathRaw = localStorage.getItem(PATH_KEY);
         if (pathRaw) { try { customPath = JSON.parse(pathRaw); } catch(e) {} }
     }
@@ -263,14 +328,15 @@
     }
 
     // ============= ЭНЕРГИЯ =============
-    const energyParticleGeo = new THREE.SphereGeometry(0.25, 16, 16);
+    const energyParticleGeo = new THREE.SphereGeometry(1, 16, 16);
     const energyParticleMat = new THREE.MeshBasicMaterial({ color: 0xff4d4d, transparent: true, opacity: 0.9 });
     const energyParticle = new THREE.Mesh(energyParticleGeo, energyParticleMat);
     energyParticle.material.transparent = true;
+    energyParticle.scale.set(energyParticleSize, energyParticleSize, energyParticleSize);
     pivotGroup.add(energyParticle);
 
     let energyProgress = 0;
-    const energySpeed = 0.002;
+    const baseEnergySpeed = 0.002;
 
     function getRoutePoint(progress) {
         let pathKeys = customPath || defaultPathKeys;
@@ -387,7 +453,7 @@
     // ============= ПАНЕЛЬ МАРШРУТА (ПО ТВОЕЙ СХЕМЕ) =============
     function renderPathUI() {
         const panel = document.getElementById('path-panel');
-        panel.innerHTML = '';
+        panel.innerHTML = '<button class="panel-close" id="close-panel-btn">✖</button>';
         
         if (!isEditingPath && (!customPath || customPath.length === 0)) {
             panel.classList.remove('active');
@@ -395,7 +461,7 @@
         }
         panel.classList.add('active');
 
-        // 1. СЕТКА ВЫБОРА ТОЧЕК (3 строки)
+        // 1. СЕТКА ВЫБОРА
         const grid = document.createElement('div');
         grid.className = 'selector-grid';
 
@@ -435,7 +501,7 @@
 
         panel.appendChild(grid);
 
-        // 2. СТРОКА ПОСТРОЕННОГО МАРШРУТА
+        // 2. СТРОКА МАРШРУТА
         const routeRow = document.createElement('div');
         routeRow.className = 'route-build-row';
         if (customPath && customPath.length > 0) {
@@ -470,7 +536,7 @@
         }
         panel.appendChild(routeRow);
 
-        // 3. КНОПКИ ДЕЙСТВИЙ
+        // 3. КНОПКИ
         const actions = document.createElement('div');
         actions.className = 'route-actions';
         
@@ -507,6 +573,18 @@
         actions.appendChild(clearBtn);
 
         panel.appendChild(actions);
+
+        // Обработчик закрытия панели (крестик)
+        document.getElementById('close-panel-btn').addEventListener('click', () => {
+            if (isEditingPath) {
+                // Если в режиме редактирования, выходим из него
+                isEditingPath = false;
+                document.getElementById('edit-path-btn').style.borderColor = '#6f52c4';
+            }
+            // В любом случае скрываем панель
+            panel.classList.remove('active');
+            updateTempLines();
+        });
     }
 
     function addPointToPath(key) {
@@ -571,10 +649,14 @@
         centerSprite.position.copy(centerPos);
 
         if (energyEnabled) {
-            energyProgress += energySpeed;
+            const currentSpeed = baseEnergySpeed * energySpeedMultiplier;
+            energyProgress += currentSpeed;
             if (energyProgress >= 1.0) energyProgress = 0.0;
             const data = getRoutePoint(energyProgress);
-            if (data) { energyParticle.position.set(data.pos.x, data.pos.y, data.pos.z); energyParticle.material.color.setHex(data.color); }
+            if (data) { 
+                energyParticle.position.set(data.pos.x, data.pos.y, data.pos.z); 
+                energyParticle.material.color.setHex(data.color); 
+            }
         }
 
         if (isEditingPath) updateTempLines();
@@ -589,7 +671,7 @@
         centerSprite.material.opacity = balance > 95 ? 1.0 : 0.9;
     }
 
-    // ============= ИНТЕРАКТИВНОСТЬ (3D ПЕРЕТАСКИВАНИЕ) =============
+    // ============= ИНТЕРАКТИВНОСТЬ =============
     const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
     let isDragging = false, draggedKey = null, dragOffset = new THREE.Vector3(), intersectPlane = new THREE.Plane();
 
@@ -615,7 +697,6 @@
             const hitSprite = intersects[0].object;
             const found = draggableList.find(item => spriteMap[item.key] === hitSprite);
             if (found) {
-                // В режиме редактирования пути отключаем перетаскивание 3D
                 if (isEditingPath) return;
 
                 draggedKey = found.key; isDragging = true; controls.enabled = false; renderer.domElement.style.cursor = 'grabbing';
@@ -651,7 +732,7 @@
         }
     });
 
-    // ============= УПРАВЛЕНИЕ МЕНЮ =============
+    // ============= УПРАВЛЕНИЕ МЕНЮ И НАСТРОЙКАМИ =============
     document.getElementById('reset-btn').addEventListener('click', () => {
         Object.assign(baseNodes.bottom_center, { x: 0, y: -2.5, z: 1.2 });
         Object.assign(baseNodes.bottom_left, { x: -1.2, y: -2.5, z: -1.2 });
@@ -670,13 +751,34 @@
     document.getElementById('toggle-energy').addEventListener('click', () => {
         energyEnabled = !energyEnabled;
         document.getElementById('energy-status').textContent = energyEnabled ? '🌀 Энергия: Вкл' : '🌀 Энергия: Выкл';
-        dropdown.classList.remove('open');
+        saveState(); dropdown.classList.remove('open');
     });
 
     const colorPicker = document.getElementById('center-color-picker');
     colorPicker.value = centerColor;
     colorPicker.addEventListener('input', (e) => {
-        centerColor = e.target.value; updateCenterSpriteColor(centerColor);
+        centerColor = e.target.value; updateCenterSpriteColor(centerColor); saveState();
+    });
+
+    const speedSlider = document.getElementById('speed-slider');
+    const speedDisplay = document.getElementById('speed-display');
+    speedSlider.value = energySpeedMultiplier;
+    speedDisplay.textContent = energySpeedMultiplier;
+    speedSlider.addEventListener('input', (e) => {
+        energySpeedMultiplier = parseInt(e.target.value);
+        speedDisplay.textContent = energySpeedMultiplier;
+        saveState();
+    });
+
+    const sizeSlider = document.getElementById('size-slider');
+    const sizeDisplay = document.getElementById('size-display');
+    sizeSlider.value = energyParticleSize;
+    sizeDisplay.textContent = energyParticleSize.toFixed(2);
+    sizeSlider.addEventListener('input', (e) => {
+        energyParticleSize = parseFloat(e.target.value);
+        sizeDisplay.textContent = energyParticleSize.toFixed(2);
+        energyParticle.scale.set(energyParticleSize, energyParticleSize, energyParticleSize);
+        saveState();
     });
 
     const editPathBtn = document.getElementById('edit-path-btn');
@@ -718,7 +820,7 @@
     updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (панель выбора по схеме, удобные тапы) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (настройки размера, скорости и закрытие панели) загружено!');
 </script>
 </body>
 </html>
