@@ -55,7 +55,6 @@
 
     let w, h, cx, cy;
     
-    // Конфигурация 4 сил
     let forces = {
         up:    { x: 0, y: -150, label: 'Вверх', color: '#ff4d4d', type: 'ball' },
         down:  { x: 0, y: 150,  label: 'Вниз',  color: '#222222', type: '8ball' },
@@ -114,16 +113,28 @@
                 forces[key].y = Math.max(30, Math.min(h-30, forces[key].y));
             }
         }
-        // Инициализация центра (на случай, если не сохранён)
         updateCenterPosition();
     }
     window.addEventListener('resize', resize);
 
-    // ============= ФИЗИКА ДВИЖЕНИЯ ЦЕНТРА =============
+    // ============= ФИЗИКА ЦЕНТРА =============
     function updateCenterPosition() {
-        // Центр — это среднее арифметическое координат всех шаров
         centerBall.x = (forces.up.x + forces.down.x + forces.left.x + forces.right.x) / 4;
         centerBall.y = (forces.up.y + forces.down.y + forces.left.y + forces.right.y) / 4;
+    }
+
+    // ============= ВСПОМОГАТЕЛЬНАЯ ГЕОМЕТРИЯ (для внешних овалов) =============
+    function getOutwardControlPoint(p1, p2, center, strength) {
+        const mx = (p1.x + p2.x) / 2;
+        const my = (p1.y + p2.y) / 2;
+        const dx = mx - center.x;
+        const dy = my - center.y;
+        const len = Math.hypot(dx, dy);
+        if (len === 0) return { x: mx, y: my };
+        return { 
+            x: mx + (dx / len) * strength, 
+            y: my + (dy / len) * strength 
+        };
     }
 
     // ============= ОТРИСОВКА =============
@@ -163,7 +174,7 @@
 
         const size = Math.min(w, h) * 0.45;
 
-        // 1. Сетка
+        // 1. Сетка (квадрат, диагонали, оси)
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1;
         ctx.strokeRect(cx - size/2, cy - size/2, size, size);
         ctx.beginPath(); ctx.moveTo(cx - size/2, cy - size/2); ctx.lineTo(cx + size/2, cy + size/2); ctx.stroke();
@@ -172,51 +183,67 @@
         ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke(); ctx.setLineDash([]);
 
-        // 2. Два пересекающихся овала (Восьмёрка)
+        // 2. Два пересекающихся внешних овала (Полупрозрачные границы)
         const u = forces.up, d = forces.down, l = forces.left, r = forces.right;
         const midX = centerBall.x, midY = centerBall.y;
+        const center = { x: midX, y: midY };
+        const boundaryStrength = 55; // Насколько сильно овал выгибается наружу
 
-        // Левый овал: U -> L -> D
-        ctx.beginPath();
-        ctx.moveTo(u.x, u.y);
-        ctx.quadraticCurveTo(u.x - 30, (u.y + l.y)/2 - 30, l.x, l.y);
-        ctx.quadraticCurveTo((l.x + d.x)/2 - 30, l.y + 30, d.x, d.y);
-        ctx.quadraticCurveTo(u.x - 30, (u.y + d.y)/2 + 30, u.x, u.y);
-        ctx.closePath();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.lineWidth = 3;
-        ctx.shadowColor = 'rgba(255,255,255,0.3)';
-        ctx.shadowBlur = 15;
-        ctx.stroke();
+        // Левый овал: U -> L -> D (внешняя граница)
+        const cp1l = getOutwardControlPoint(u, l, center, boundaryStrength);
+        const cp2l = getOutwardControlPoint(l, d, center, boundaryStrength);
+        const cp3l = getOutwardControlPoint(d, u, center, boundaryStrength);
+
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(255,255,255,0.2)';
+        // Левый овал
+        ctx.beginPath(); ctx.moveTo(u.x, u.y);
+        ctx.quadraticCurveTo(cp1l.x, cp1l.y, l.x, l.y);
+        ctx.quadraticCurveTo(cp2l.x, cp2l.y, d.x, d.y);
+        ctx.quadraticCurveTo(cp3l.x, cp3l.y, u.x, u.y);
+        ctx.closePath(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Правый овал: U -> R -> D
-        ctx.beginPath();
-        ctx.moveTo(u.x, u.y);
-        ctx.quadraticCurveTo(u.x + 30, (u.y + r.y)/2 - 30, r.x, r.y);
-        ctx.quadraticCurveTo((r.x + d.x)/2 + 30, r.y + 30, d.x, d.y);
-        ctx.quadraticCurveTo(u.x + 30, (u.y + d.y)/2 + 30, u.x, u.y);
-        ctx.closePath();
-        ctx.stroke();
+        // Правый овал: U -> R -> D (внешняя граница)
+        const cp1r = getOutwardControlPoint(u, r, center, boundaryStrength);
+        const cp2r = getOutwardControlPoint(r, d, center, boundaryStrength);
+        const cp3r = getOutwardControlPoint(d, u, center, boundaryStrength);
 
-        // 3. Линии от сил к подвижному центру
+        ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(255,255,255,0.2)';
+        ctx.beginPath(); ctx.moveTo(u.x, u.y);
+        ctx.quadraticCurveTo(cp1r.x, cp1r.y, r.x, r.y);
+        ctx.quadraticCurveTo(cp2r.x, cp2r.y, d.x, d.y);
+        ctx.quadraticCurveTo(cp3r.x, cp3r.y, u.x, u.y);
+        ctx.closePath(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // 3. Связи через центр (линии от шаров к зелёному центру)
         for (let key in forces) {
             const f = forces[key];
             ctx.beginPath();
             ctx.moveTo(f.x, f.y);
             ctx.lineTo(midX, midY);
-            ctx.strokeStyle = f.color + '66';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = f.color + '44'; // ещё более прозрачные
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]); // пунктирные, чтобы не перегружать
             ctx.stroke();
+            ctx.setLineDash([]);
         }
 
-        // 4. Зелёный центр (подвижный)
+        // 4. Зелёный центр (подвижный, с эффектом запутанности)
+        // Сначала рисуем свечение на пересечении овалов
+        ctx.shadowBlur = 50; ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+        ctx.beginPath(); ctx.arc(midX, midY, centerBall.radius + 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Сам зелёный шар
         ctx.shadowBlur = 30; ctx.shadowColor = '#2ecc71';
         ctx.beginPath(); ctx.arc(midX, midY, centerBall.radius, 0, Math.PI * 2);
         ctx.fillStyle = '#2ecc71'; ctx.fill();
         ctx.shadowBlur = 0;
 
-        // 5. Четыре силы
+        // 5. Четыре силы (перетаскиваемые шары)
         for (let key in forces) {
             const f = forces[key];
             const radius = 40;
@@ -227,14 +254,13 @@
             ctx.fillText(f.label, f.x, f.y + radius + 8);
         }
 
-        // 6. Баланс (насколько зелёный шар близок к абсолютному центру экрана)
+        // 6. Баланс
         const dist = Math.hypot(midX - cx, midY - cy);
         const maxDist = Math.min(w, h) * 0.4;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
         balanceFill.style.width = balance + '%';
         balanceFill.style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
 
-        // Свечение, если идеальный баланс (>95%)
         if (balance > 95) {
             ctx.shadowBlur = 60; ctx.shadowColor = '#ffffff';
             ctx.beginPath(); ctx.arc(midX, midY, centerBall.radius+5, 0, Math.PI * 2);
@@ -307,7 +333,7 @@
 
     resize();
     loop();
-    console.log('🟣🦅 Уровень 7: Квадрат Сознания (подвижный центр, 2 овала) загружено!');
+    console.log('🟣🦅 Уровень 7: Квадрат Сознания (внешние границы, запутанный центр) загружено!');
 </script>
 </body>
 </html>
