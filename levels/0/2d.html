@@ -37,10 +37,6 @@
             cursor: pointer; pointer-events: auto; transition: 0.2s;
         }
         .btn:active { transform: scale(0.95); background: #6f52c4; color: #fff; }
-        .hint {
-            font-size: 13px; color: #8f78e6; text-align: center; opacity: 0.7;
-            padding: 0 10px; pointer-events: none;
-        }
     </style>
 </head>
 <body>
@@ -58,29 +54,29 @@
     const balanceFill = document.getElementById('balance-fill');
 
     let w, h, cx, cy;
-    // Четыре силы: вверх, вниз, влево, вправо
+    
+    // Конфигурация 4 сил (в точности как на скриншоте)
     let forces = {
-        up:    { x: 0, y: -150, emoji: '🎈', color: '#ff4d4d', label: 'Вверх' },
-        down:  { x: 0, y: 150,  emoji: '🎱', color: '#4d8bff', label: 'Вниз' },
-        left:  { x: -150, y: 0,  emoji: '🔵', color: '#4d8bff', label: 'Влево' },
-        right: { x: 150, y: 0,   emoji: '🔴', color: '#ff4d4d', label: 'Вправо' }
+        up:    { x: 0, y: -150, label: 'Вверх', color: '#ff4d4d', type: 'ball' },
+        down:  { x: 0, y: 150,  label: 'Вниз',  color: '#222222', type: '8ball' },
+        left:  { x: -150, y: 0,  label: 'Влево', color: '#4d8bff', type: 'ball' },
+        right: { x: 150, y: 0,   label: 'Вправо', color: '#ff4d4d', type: 'ball' }
     };
+    
     let isDragging = false;
     let draggedKey = null;
     let dragStart = { x: 0, y: 0 };
     let startPos = { x: 0, y: 0 };
 
     // Зелёный шар в центре (источник)
-    let centerBall = { x: 0, y: 0, radius: 25, color: '#2ecc71' };
+    let centerBall = { x: 0, y: 0, radius: 20, color: '#2ecc71' };
 
-    // Сохранение в localStorage
+    // ============= СОХРАНЕНИЕ =============
     function saveState() {
-        const data = {
-            up: { x: forces.up.x, y: forces.up.y },
-            down: { x: forces.down.x, y: forces.down.y },
-            left: { x: forces.left.x, y: forces.left.y },
-            right: { x: forces.right.x, y: forces.right.y }
-        };
+        const data = {};
+        for (let key in forces) {
+            data[key] = { x: forces[key].x, y: forces[key].y };
+        }
         localStorage.setItem('highmind_level7_2d', JSON.stringify(data));
     }
 
@@ -89,10 +85,12 @@
         if (!raw) return false;
         try {
             const data = JSON.parse(raw);
-            if (data.up) { forces.up.x = data.up.x; forces.up.y = data.up.y; }
-            if (data.down) { forces.down.x = data.down.x; forces.down.y = data.down.y; }
-            if (data.left) { forces.left.x = data.left.x; forces.left.y = data.left.y; }
-            if (data.right) { forces.right.x = data.right.x; forces.right.y = data.right.y; }
+            for (let key in data) {
+                if (forces[key]) {
+                    forces[key].x = data[key].x;
+                    forces[key].y = data[key].y;
+                }
+            }
             return true;
         } catch(e) { return false; }
     }
@@ -105,45 +103,91 @@
         cx = w / 2; cy = h / 2;
         centerBall.x = cx; centerBall.y = cy;
 
-        // Если координаты не загружены, ставим по умолчанию
         if (!loadState()) {
+            // Дефолтные позиции при первом запуске
             forces.up.x = cx; forces.up.y = cy - 150;
             forces.down.x = cx; forces.down.y = cy + 150;
             forces.left.x = cx - 150; forces.left.y = cy;
             forces.right.x = cx + 150; forces.right.y = cy;
             saveState();
         } else {
-            // Убедимся, что силы в пределах экрана
-            Object.keys(forces).forEach(key => {
-                forces[key].x = Math.max(20, Math.min(w-20, forces[key].x));
-                forces[key].y = Math.max(20, Math.min(h-20, forces[key].y));
-            });
+            // Зажим краёв
+            for (let key in forces) {
+                forces[key].x = Math.max(30, Math.min(w-30, forces[key].x));
+                forces[key].y = Math.max(30, Math.min(h-30, forces[key].y));
+            }
         }
     }
-
     window.addEventListener('resize', resize);
+
+    // ============= ОТРИСОВКА =============
+    function drawRoundedBall(x, y, radius, color) {
+        // Рисует объёмный шар с градиентом (как на скрине)
+        const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 5, x, y, radius);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.15, color);
+        grad.addColorStop(1, '#000000');
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    function draw8Ball(x, y, radius) {
+        // Бильярдный шар 8
+        const grad = ctx.createRadialGradient(x - radius*0.3, y - radius*0.3, 5, x, y, radius);
+        grad.addColorStop(0, '#444');
+        grad.addColorStop(0.5, '#111');
+        grad.addColorStop(1, '#000');
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#4d8bff';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Белый круг
+        const innerR = radius * 0.6;
+        ctx.beginPath();
+        ctx.arc(x, y, innerR, 0, Math.PI * 2);
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fill();
+
+        // Цифра 8
+        ctx.fillStyle = '#111';
+        ctx.font = `bold ${innerR * 1.3}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('8', x, y + 2);
+    }
 
     function draw() {
         ctx.clearRect(0, 0, w, h);
 
-        // 1. Рисуем квадрат (контур человека)
-        const size = Math.min(w, h) * 0.5;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(cx - size/2, cy - size/2, size, size);
+        const size = Math.min(w, h) * 0.45;
 
-        // 2. Диагонали квадрата
+        // 1. Сетка (квадрат и диагонали)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - size/2, cy - size/2, size, size);
+        
         ctx.beginPath();
         ctx.moveTo(cx - size/2, cy - size/2);
         ctx.lineTo(cx + size/2, cy + size/2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(cx + size/2, cy - size/2);
         ctx.lineTo(cx - size/2, cy + size/2);
         ctx.stroke();
 
-        // 3. Оси X и Y (пунктирные)
+        // Оси X и Y (пунктирные)
         ctx.setLineDash([5, 5]);
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
         ctx.lineWidth = 1;
@@ -151,8 +195,35 @@
         ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
         ctx.setLineDash([]);
 
-        // 4. Линии от сил к центру
-        Object.keys(forces).forEach(key => {
+        // 2. Внешний белый контур (как на твоём рисунке)
+        // Последовательность: Up -> Left -> Down -> Right -> Up
+        const u = forces.up, d = forces.down, l = forces.left, r = forces.right;
+        
+        ctx.beginPath();
+        ctx.moveTo(u.x, u.y);
+        
+        // Up -> Left (огибаем сверху)
+        ctx.quadraticCurveTo(u.x - 30, (u.y + l.y)/2 - 40, l.x, l.y);
+        
+        // Left -> Down
+        ctx.quadraticCurveTo((l.x + d.x)/2 - 40, l.y + 30, d.x, d.y);
+        
+        // Down -> Right
+        ctx.quadraticCurveTo(d.x + 30, (d.y + r.y)/2 + 40, r.x, r.y);
+        
+        // Right -> Up
+        ctx.quadraticCurveTo((r.x + u.x)/2 + 40, r.y - 30, u.x, u.y);
+        
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = 'rgba(255,255,255,0.3)';
+        ctx.shadowBlur = 15;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // 3. Линии от сил к центру
+        for (let key in forces) {
             const f = forces[key];
             ctx.beginPath();
             ctx.moveTo(f.x, f.y);
@@ -160,9 +231,9 @@
             ctx.strokeStyle = f.color + '66';
             ctx.lineWidth = 2;
             ctx.stroke();
-        });
+        }
 
-        // 5. Зелёный шар в центре (источник)
+        // 4. Зелёный центр
         ctx.shadowBlur = 30;
         ctx.shadowColor = '#2ecc71';
         ctx.beginPath();
@@ -171,49 +242,39 @@
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // 6. Силы (перетаскиваемые)
-        Object.keys(forces).forEach(key => {
+        // 5. Четыре силы (перетаскиваемые шары)
+        for (let key in forces) {
             const f = forces[key];
-            // Тень
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = f.color;
-            ctx.beginPath();
-            ctx.arc(f.x, f.y, 35, 0, Math.PI * 2);
-            ctx.fillStyle = f.color + '44';
-            ctx.fill();
-            ctx.strokeStyle = f.color;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            // Эмодзи
-            ctx.font = '40px system-ui';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(f.emoji, f.x, f.y - 4);
-            // Подпись
+            const radius = 40;
+            
+            if (f.type === '8ball') {
+                draw8Ball(f.x, f.y, radius);
+            } else {
+                drawRoundedBall(f.x, f.y, radius, f.color);
+            }
+
+            // Подпись снизу
             ctx.font = '14px system-ui';
             ctx.fillStyle = '#e0d6ff';
-            ctx.fillText(f.label, f.x, f.y + 45);
-        });
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(f.label, f.x, f.y + radius + 8);
+        }
 
-        // 7. Вычисляем баланс
-        // Суммарный вектор сил относительно центра
+        // 6. Баланс
         let sumX = 0, sumY = 0;
-        Object.keys(forces).forEach(key => {
+        for (let key in forces) {
             const f = forces[key];
-            const dx = f.x - cx;
-            const dy = f.y - cy;
-            sumX += dx;
-            sumY += dy;
-        });
-        // Нормализуем баланс в процентах (0-100), где 100 - идеальный баланс (сумма близка к нулю)
+            sumX += f.x - cx;
+            sumY += f.y - cy;
+        }
         const maxDist = Math.min(w, h) * 0.4;
         const dist = Math.sqrt(sumX*sumX + sumY*sumY);
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
+        
         balanceFill.style.width = balance + '%';
         balanceFill.style.backgroundColor = balance > 80 ? '#2ecc71' : balance > 50 ? '#ffcc00' : '#ff4d4d';
 
-        // Если баланс идеальный, центр загорается ярче
         if (balance > 95) {
             ctx.shadowBlur = 60;
             ctx.shadowColor = '#ffffff';
@@ -232,7 +293,7 @@
     }
 
     function hitTest(pos) {
-        const tolerance = 40;
+        const tolerance = 45;
         for (let key in forces) {
             const f = forces[key];
             if (Math.hypot(pos.x - f.x, pos.y - f.y) < tolerance) return key;
@@ -259,8 +320,8 @@
         const pos = getPointerPos(e);
         const dx = pos.x - dragStart.x;
         const dy = pos.y - dragStart.y;
-        forces[draggedKey].x = Math.max(20, Math.min(w-20, startPos.x + dx));
-        forces[draggedKey].y = Math.max(20, Math.min(h-20, startPos.y + dy));
+        forces[draggedKey].x = Math.max(30, Math.min(w-30, startPos.x + dx));
+        forces[draggedKey].y = Math.max(30, Math.min(h-30, startPos.y + dy));
         saveState();
         draw();
     });
@@ -289,7 +350,7 @@
 
     resize();
     loop();
-    console.log('🟣🦅 Уровень 7: Квадрат Сознания (2D) загружено!');
+    console.log('🟣🦅 Уровень 7: Квадрат Сознания (точная 2D-копия) загружено!');
 </script>
 </body>
 </html>
