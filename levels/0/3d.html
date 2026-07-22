@@ -60,7 +60,6 @@
 
     // ============= КУБ И ДИАГОНАЛИ =============
     const cubeSize = 5.5;
-    // Прозрачный куб
     const cubeGeom = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
     const cubeEdges = new THREE.EdgesGeometry(cubeGeom);
     const cubeMat = new THREE.LineBasicMaterial({ color: 0x444466, transparent: true, opacity: 0.2 });
@@ -68,7 +67,6 @@
     cubeWireframe.position.set(0, 0, 0);
     scene.add(cubeWireframe);
 
-    // 4 Диагонали куба (соединяющие противоположные вершины)
     const half = cubeSize / 2;
     const diagPoints = [
         [new THREE.Vector3(-half, -half, -half), new THREE.Vector3(half, half, half)],
@@ -76,7 +74,6 @@
         [new THREE.Vector3(half, -half, -half), new THREE.Vector3(-half, half, half)],
         [new THREE.Vector3(half, half, -half), new THREE.Vector3(-half, -half, half)]
     ];
-
     diagPoints.forEach(pair => {
         const geom = new THREE.BufferGeometry().setFromPoints(pair);
         const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
@@ -84,27 +81,36 @@
         scene.add(line);
     });
 
-    // ============= ДАННЫЕ И ФИЗИКА =============
+    // ============= ТРЕУГОЛЬНИКИ И ШАРЫ =============
     const STORAGE_KEY = 'highmind_level7_3d';
 
-    let forces = {
-        up:    { x: 0, y: 2.5, z: 0, emoji: '🎈', color: '#ff4d4d', label: 'Вверх' },
-        down:  { x: 0, y: -2.5, z: 0, emoji: '🎱', color: '#4d8bff', label: 'Вниз' },
-        left:  { x: -2.5, y: 0, z: 0, emoji: '🔵', color: '#4d8bff', label: 'Влево' },
-        right: { x: 2.5, y: 0, z: 0, emoji: '🔴', color: '#ff4d4d', label: 'Вправо' }
-    };
+    // 3 вершины нижнего треугольника (земля)
+    const lowerTriangle = [
+        { x: -1.5, y: -2.5, z: 0 },
+        { x: 1.5, y: -2.5, z: 0 },
+        { x: 0, y: -2.5, z: 1.5 }
+    ];
+    // 3 вершины верхнего треугольника (небо)
+    const upperTriangle = [
+        { x: -1.5, y: 2.5, z: 0 },
+        { x: 1.5, y: 2.5, z: 0 },
+        { x: 0, y: 2.5, z: 1.5 }
+    ];
+
+    // Шары: 🎱 (нижний) и 🎈 (верхний)
+    const ballDown = { x: 0, y: -1.0, z: 0, emoji: '🎱', color: '#4d8bff', label: 'Вниз' };
+    const ballUp = { x: 0, y: 1.0, z: 0, emoji: '🎈', color: '#ff4d4d', label: 'Вверх' };
 
     let centerPos = new THREE.Vector3(0, 0, 0);
-    let isDragging = false;
-    let draggedKey = null;
-    let dragOffset = new THREE.Vector3();
-    let intersectPlane = new THREE.Plane();
 
+    // ============= СОХРАНЕНИЕ =============
     function saveState() {
-        const data = {};
-        for (let key in forces) {
-            data[key] = { x: forces[key].x, y: forces[key].y, z: forces[key].z };
-        }
+        const data = {
+            lower: lowerTriangle.map(p => ({ x: p.x, y: p.y, z: p.z })),
+            upper: upperTriangle.map(p => ({ x: p.x, y: p.y, z: p.z })),
+            ballDown: { x: ballDown.x, y: ballDown.y, z: ballDown.z },
+            ballUp: { x: ballUp.x, y: ballUp.y, z: ballUp.z }
+        };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
 
@@ -113,12 +119,33 @@
         if (!raw) return false;
         try {
             const data = JSON.parse(raw);
-            for (let key in data) {
-                if (forces[key]) {
-                    forces[key].x = data[key].x;
-                    forces[key].y = data[key].y;
-                    forces[key].z = data[key].z;
-                }
+            if (data.lower) {
+                data.lower.forEach((p, i) => {
+                    if (i < lowerTriangle.length) {
+                        lowerTriangle[i].x = p.x;
+                        lowerTriangle[i].y = p.y;
+                        lowerTriangle[i].z = p.z;
+                    }
+                });
+            }
+            if (data.upper) {
+                data.upper.forEach((p, i) => {
+                    if (i < upperTriangle.length) {
+                        upperTriangle[i].x = p.x;
+                        upperTriangle[i].y = p.y;
+                        upperTriangle[i].z = p.z;
+                    }
+                });
+            }
+            if (data.ballDown) {
+                ballDown.x = data.ballDown.x;
+                ballDown.y = data.ballDown.y;
+                ballDown.z = data.ballDown.z;
+            }
+            if (data.ballUp) {
+                ballUp.x = data.ballUp.x;
+                ballUp.y = data.ballUp.y;
+                ballUp.z = data.ballUp.z;
             }
             return true;
         } catch(e) { return false; }
@@ -128,48 +155,83 @@
         saveState();
     }
 
-    // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ (ЭМОДЗИ И ПЕТЛИ) =============
-    const forceSprites = {};
-    let centerSprite;
-    let loopMeshes = [];
+    // ============= СОЗДАНИЕ 3D ОБЪЕКТОВ =============
+    // Спрайты для вершин треугольников (маленькие эмодзи)
+    function createPointSprite(emoji, color) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        ctx.font = '80px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.shadowColor = color; ctx.shadowBlur = 20;
+        ctx.fillText(emoji, 64, 64);
+        ctx.shadowBlur = 0;
+        return new THREE.CanvasTexture(canvas);
+    }
 
-    function createSpriteTexture(emoji, label, color) {
+    // Вершины треугольников – спрайты
+    const lowerSprites = [];
+    const upperSprites = [];
+    const triangleColor = '#88bbff';
+
+    lowerTriangle.forEach((p, i) => {
+        const tex = createPointSprite('🔺', triangleColor);
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(0.6, 0.6, 1);
+        sprite.position.set(p.x, p.y, p.z);
+        scene.add(sprite);
+        lowerSprites.push(sprite);
+    });
+
+    upperTriangle.forEach((p, i) => {
+        const tex = createPointSprite('🔻', triangleColor);
+        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+        const sprite = new THREE.Sprite(mat);
+        sprite.scale.set(0.6, 0.6, 1);
+        sprite.position.set(p.x, p.y, p.z);
+        scene.add(sprite);
+        upperSprites.push(sprite);
+    });
+
+    // Шары – крупные спрайты
+    function createBallSprite(emoji, color, label) {
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, 256, 256);
         ctx.font = '110px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 25;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.shadowColor = color; ctx.shadowBlur = 25;
         ctx.fillText(emoji, 128, 110);
         ctx.shadowBlur = 0;
         ctx.font = 'bold 24px sans-serif';
         ctx.fillStyle = '#e0d6ff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
         ctx.fillText(label, 128, 240);
         return new THREE.CanvasTexture(canvas);
     }
 
-    for (let key in forces) {
-        const f = forces[key];
-        const texture = createSpriteTexture(f.emoji, f.label, f.color);
-        const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
-        const sprite = new THREE.Sprite(material);
-        sprite.scale.set(1.6, 1.6, 1);
-        sprite.position.set(f.x, f.y, f.z);
-        scene.add(sprite);
-        forceSprites[key] = sprite;
-    }
+    const ballDownTex = createBallSprite(ballDown.emoji, ballDown.color, ballDown.label);
+    const ballDownMat = new THREE.SpriteMaterial({ map: ballDownTex, transparent: true });
+    const ballDownSprite = new THREE.Sprite(ballDownMat);
+    ballDownSprite.scale.set(1.6, 1.6, 1);
+    ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
+    scene.add(ballDownSprite);
 
-    // Зелёный центр (спрайт)
+    const ballUpTex = createBallSprite(ballUp.emoji, ballUp.color, ballUp.label);
+    const ballUpMat = new THREE.SpriteMaterial({ map: ballUpTex, transparent: true });
+    const ballUpSprite = new THREE.Sprite(ballUpMat);
+    ballUpSprite.scale.set(1.6, 1.6, 1);
+    ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z);
+    scene.add(ballUpSprite);
+
+    // Центральный зелёный шар
     function createCenterSprite() {
         const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
+        canvas.width = 256; canvas.height = 256;
         const ctx = canvas.getContext('2d');
         const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 100);
         grad.addColorStop(0, '#2ecc71');
@@ -181,78 +243,73 @@
         ctx.fillText('🟢', 128, 128);
         return new THREE.CanvasTexture(canvas);
     }
-    const centerMat = new THREE.SpriteMaterial({ map: createCenterSprite(), transparent: true, depthWrite: false });
-    centerSprite = new THREE.Sprite(centerMat);
+    const centerMat = new THREE.SpriteMaterial({ map: createCenterSprite(), transparent: true });
+    const centerSprite = new THREE.Sprite(centerMat);
     centerSprite.scale.set(0.8, 0.8, 1);
     centerSprite.position.copy(centerPos);
     scene.add(centerSprite);
 
-    // Петли (овалы в 3D)
-    function updateLoops() {
-        loopMeshes.forEach(m => scene.remove(m));
-        loopMeshes = [];
+    // ============= ЛИНИИ СВЯЗЕЙ =============
+    // 🎱 (нижний) соединён с верхним треугольником
+    // 🎈 (верхний) соединён с нижним треугольником
+    let lineMeshes = [];
 
-        const u = forces.up, d = forces.down, l = forces.left, r = forces.right;
-        const c = centerPos;
-        const maxDist = Math.max(
-            Math.hypot(u.x - c.x, u.y - c.y, u.z - c.z),
-            Math.hypot(d.x - c.x, d.y - c.y, d.z - c.z),
-            Math.hypot(l.x - c.x, l.y - c.y, l.z - c.z),
-            Math.hypot(r.x - c.x, r.y - c.y, r.z - c.z)
-        );
-        const loopWidth = Math.max(maxDist * 0.7, 0.8);
+    function updateLines() {
+        // Удаляем старые линии
+        lineMeshes.forEach(line => scene.remove(line));
+        lineMeshes = [];
 
-        const vPoints = [
-            new THREE.Vector3(u.x, u.y, u.z),
-            new THREE.Vector3(c.x - loopWidth, (u.y + d.y) / 2, c.z),
-            new THREE.Vector3(d.x, d.y, d.z),
-            new THREE.Vector3(c.x + loopWidth, (u.y + d.y) / 2, c.z)
-        ];
-        const vCurve = new THREE.CatmullRomCurve3(vPoints, true);
-        const vGeom = new THREE.TubeGeometry(vCurve, 64, 0.08, 8, true);
-        const vMat = new THREE.MeshStandardMaterial({
-            color: 0xffffff, emissive: 0x88bbff, emissiveIntensity: 0.2,
-            transparent: true, opacity: 0.35, side: THREE.DoubleSide
+        // Линии от 🎱 к каждой вершине верхнего треугольника
+        upperTriangle.forEach(p => {
+            const start = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
+            const end = new THREE.Vector3(p.x, p.y, p.z);
+            const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+            const mat = new THREE.LineBasicMaterial({ color: 0x4d8bff, transparent: true, opacity: 0.4 });
+            const line = new THREE.Line(geom, mat);
+            scene.add(line);
+            lineMeshes.push(line);
         });
-        const vMesh = new THREE.Mesh(vGeom, vMat);
-        scene.add(vMesh);
-        loopMeshes.push(vMesh);
 
-        const hPoints = [
-            new THREE.Vector3(l.x, l.y, l.z),
-            new THREE.Vector3((l.x + r.x) / 2, c.y + loopWidth, c.z),
-            new THREE.Vector3(r.x, r.y, r.z),
-            new THREE.Vector3((l.x + r.x) / 2, c.y - loopWidth, c.z)
-        ];
-        const hCurve = new THREE.CatmullRomCurve3(hPoints, true);
-        const hGeom = new THREE.TubeGeometry(hCurve, 64, 0.08, 8, true);
-        const hMat = new THREE.MeshStandardMaterial({
-            color: 0xffffff, emissive: 0x88bbff, emissiveIntensity: 0.2,
-            transparent: true, opacity: 0.35, side: THREE.DoubleSide
+        // Линии от 🎈 к каждой вершине нижнего треугольника
+        lowerTriangle.forEach(p => {
+            const start = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
+            const end = new THREE.Vector3(p.x, p.y, p.z);
+            const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+            const mat = new THREE.LineBasicMaterial({ color: 0xff4d4d, transparent: true, opacity: 0.4 });
+            const line = new THREE.Line(geom, mat);
+            scene.add(line);
+            lineMeshes.push(line);
         });
-        const hMesh = new THREE.Mesh(hGeom, hMat);
-        scene.add(hMesh);
-        loopMeshes.push(hMesh);
     }
 
     // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
     function updatePositions() {
-        for (let key in forces) {
-            const f = forces[key];
-            forceSprites[key].position.set(f.x, f.y, f.z);
-        }
+        // Обновляем позиции спрайтов вершин треугольников
+        lowerTriangle.forEach((p, i) => {
+            lowerSprites[i].position.set(p.x, p.y, p.z);
+        });
+        upperTriangle.forEach((p, i) => {
+            upperSprites[i].position.set(p.x, p.y, p.z);
+        });
+
+        // Обновляем шары
+        ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
+        ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z);
+
+        // Вычисляем центр как среднее всех 8 точек (3 нижних + 3 верхних + 2 шара)
         centerPos.set(0, 0, 0);
-        for (let key in forces) {
-            const f = forces[key];
-            centerPos.x += f.x;
-            centerPos.y += f.y;
-            centerPos.z += f.z;
-        }
-        centerPos.divideScalar(4);
+        lowerTriangle.forEach(p => { centerPos.x += p.x; centerPos.y += p.y; centerPos.z += p.z; });
+        upperTriangle.forEach(p => { centerPos.x += p.x; centerPos.y += p.y; centerPos.z += p.z; });
+        centerPos.x += ballDown.x + ballUp.x;
+        centerPos.y += ballDown.y + ballUp.y;
+        centerPos.z += ballDown.z + ballUp.z;
+        centerPos.divideScalar(8);
         centerSprite.position.copy(centerPos);
 
-        updateLoops();
+        // Обновляем линии
+        updateLines();
 
+        // Баланс: расстояние центра от начала координат
         const dist = centerPos.length();
         const maxDist = 3.5;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
@@ -268,9 +325,24 @@
         }
     }
 
-    // ============= ИНТЕРАКТИВНОСТЬ =============
+    // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ) =============
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    let isDragging = false;
+    let draggedKey = null; // строка: 'lower0', 'upper0', 'ballDown', 'ballUp'
+    let dragOffset = new THREE.Vector3();
+    let intersectPlane = new THREE.Plane();
+
+    // Создаём список всех перетаскиваемых спрайтов с их ключами
+    const draggableObjects = [];
+    lowerTriangle.forEach((p, i) => {
+        draggableObjects.push({ key: `lower${i}`, sprite: lowerSprites[i], data: p });
+    });
+    upperTriangle.forEach((p, i) => {
+        draggableObjects.push({ key: `upper${i}`, sprite: upperSprites[i], data: p });
+    });
+    draggableObjects.push({ key: 'ballDown', sprite: ballDownSprite, data: ballDown });
+    draggableObjects.push({ key: 'ballUp', sprite: ballUpSprite, data: ballUp });
 
     function getPointerNDC(e) {
         const rect = renderer.domElement.getBoundingClientRect();
@@ -281,22 +353,19 @@
     renderer.domElement.addEventListener('pointerdown', (e) => {
         getPointerNDC(e);
         raycaster.setFromCamera(pointer, camera);
-        const sprites = Object.values(forceSprites);
+
+        const sprites = draggableObjects.map(o => o.sprite);
         const intersects = raycaster.intersectObjects(sprites);
         if (intersects.length > 0) {
             const hitSprite = intersects[0].object;
-            for (let key in forceSprites) {
-                if (forceSprites[key] === hitSprite) {
-                    draggedKey = key;
-                    break;
-                }
-            }
-            if (draggedKey) {
+            const found = draggableObjects.find(o => o.sprite === hitSprite);
+            if (found) {
+                draggedKey = found.key;
                 isDragging = true;
                 controls.enabled = false;
                 renderer.domElement.style.cursor = 'grabbing';
                 const point = intersects[0].point;
-                dragOffset.copy(point).sub(forceSprites[draggedKey].position);
+                dragOffset.copy(point).sub(found.sprite.position);
                 const camDir = new THREE.Vector3();
                 camera.getWorldDirection(camDir);
                 intersectPlane.setFromNormalAndCoplanarPoint(camDir, point);
@@ -313,9 +382,30 @@
         if (intersectPoint) {
             const newPos = intersectPoint.clone().sub(dragOffset);
             const limit = 3.5;
-            forces[draggedKey].x = Math.max(-limit, Math.min(limit, newPos.x));
-            forces[draggedKey].y = Math.max(-limit, Math.min(limit, newPos.y));
-            forces[draggedKey].z = Math.max(-limit, Math.min(limit, newPos.z));
+            newPos.x = Math.max(-limit, Math.min(limit, newPos.x));
+            newPos.y = Math.max(-limit, Math.min(limit, newPos.y));
+            newPos.z = Math.max(-limit, Math.min(limit, newPos.z));
+
+            // Находим соответствующий объект данных
+            if (draggedKey.startsWith('lower')) {
+                const idx = parseInt(draggedKey.replace('lower', ''));
+                lowerTriangle[idx].x = newPos.x;
+                lowerTriangle[idx].y = newPos.y;
+                lowerTriangle[idx].z = newPos.z;
+            } else if (draggedKey.startsWith('upper')) {
+                const idx = parseInt(draggedKey.replace('upper', ''));
+                upperTriangle[idx].x = newPos.x;
+                upperTriangle[idx].y = newPos.y;
+                upperTriangle[idx].z = newPos.z;
+            } else if (draggedKey === 'ballDown') {
+                ballDown.x = newPos.x;
+                ballDown.y = newPos.y;
+                ballDown.z = newPos.z;
+            } else if (draggedKey === 'ballUp') {
+                ballUp.x = newPos.x;
+                ballUp.y = newPos.y;
+                ballUp.z = newPos.z;
+            }
             saveState();
             updatePositions();
         }
@@ -334,10 +424,14 @@
 
     // ============= СБРОС =============
     document.getElementById('reset-btn').addEventListener('click', () => {
-        forces.up = { x: 0, y: 2.5, z: 0, emoji: '🎈', color: '#ff4d4d', label: 'Вверх' };
-        forces.down = { x: 0, y: -2.5, z: 0, emoji: '🎱', color: '#4d8bff', label: 'Вниз' };
-        forces.left = { x: -2.5, y: 0, z: 0, emoji: '🔵', color: '#4d8bff', label: 'Влево' };
-        forces.right = { x: 2.5, y: 0, z: 0, emoji: '🔴', color: '#ff4d4d', label: 'Вправо' };
+        lowerTriangle[0] = { x: -1.5, y: -2.5, z: 0 };
+        lowerTriangle[1] = { x: 1.5, y: -2.5, z: 0 };
+        lowerTriangle[2] = { x: 0, y: -2.5, z: 1.5 };
+        upperTriangle[0] = { x: -1.5, y: 2.5, z: 0 };
+        upperTriangle[1] = { x: 1.5, y: 2.5, z: 0 };
+        upperTriangle[2] = { x: 0, y: 2.5, z: 1.5 };
+        ballDown.x = 0; ballDown.y = -1.0; ballDown.z = 0;
+        ballUp.x = 0; ballUp.y = 1.0; ballUp.z = 0;
         saveState();
         updatePositions();
     });
@@ -358,7 +452,7 @@
 
     updatePositions();
     animate();
-    console.log('🟣🦅 Уровень 7: Куб Сознания (Добавлен куб + 4 диагонали) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (треугольники и шары) загружено!');
 </script>
 </body>
 </html>
