@@ -94,20 +94,20 @@
         pivotGroup.add(line);
     });
 
-    // ============= ДАННЫЕ =============
+    // ============= ДАННЫЕ И СОХРАНЕНИЕ =============
     const STORAGE_KEY = 'highmind_level7_3d';
     let centerColor = '#ffcc00';
     let energyEnabled = true;
 
-    // Нижний треугольник 🔺 (на земле, спереди)
-    const botLeft  = { x: -1.2, y: -2.5, z: 1.2 }; // 🔵
-    const botRight = { x: 1.2, y: -2.5, z: 1.2 }; // 🔴
-    const botFront = { x: 0,   y: -2.5, z: 1.8 }; // 🟠 (центр треугольника)
+    // 🔺 НИЖНИЙ ТРЕУГОЛЬНИК (на земле, СЗАДИ) для тетраэдра 🎈
+    const botBackLeft  = { x: -1.2, y: -2.5, z: -1.2 }; // 🟦
+    const botBackRight = { x: 1.2, y: -2.5, z: -1.2 }; // 🟥
+    const botFront     = { x: 0,   y: -2.5, z: 1.2 };  // 🟠
 
-    // Верхний треугольник 🔻 (на высоте, сзади)
-    const topLeft  = { x: -1.2, y: 1.0, z: -1.2 }; // 🟦
-    const topRight = { x: 1.2, y: 1.0, z: -1.2 }; // 🟥
-    const topBack  = { x: 0,   y: 1.0, z: -1.8 }; // 🟣 (центр треугольника)
+    // 🔻 ВЕРХНИЙ ТРЕУГОЛЬНИК (наверху, СПЕРЕДИ) для тетраэдра 🎱
+    const topFrontLeft  = { x: -1.2, y: 1.0, z: 1.2 }; // 🔵
+    const topFrontRight = { x: 1.2, y: 1.0, z: 1.2 }; // 🔴
+    const topBack       = { x: 0,   y: 1.0, z: -1.2 }; // 🟣
 
     // Шары
     const ballDown = { x: 0, y: -1.0, z: 0, emoji: '🎱', color: '#4d8bff' };
@@ -116,7 +116,7 @@
     let centerPos = new THREE.Vector3(0, 0, 0);
 
     function saveState() {
-        const data = { topLeft, topRight, topBack, botLeft, botRight, botFront, ballDown, ballUp, centerColor, energyEnabled };
+        const data = { topFrontLeft, topFrontRight, topBack, botBackLeft, botBackRight, botFront, ballDown, ballUp, centerColor, energyEnabled };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
     function loadState() {
@@ -124,11 +124,11 @@
         if (!raw) return false;
         try {
             const data = JSON.parse(raw);
-            if (data.topLeft) Object.assign(topLeft, data.topLeft);
-            if (data.topRight) Object.assign(topRight, data.topRight);
+            if (data.topFrontLeft) Object.assign(topFrontLeft, data.topFrontLeft);
+            if (data.topFrontRight) Object.assign(topFrontRight, data.topFrontRight);
             if (data.topBack) Object.assign(topBack, data.topBack);
-            if (data.botLeft) Object.assign(botLeft, data.botLeft);
-            if (data.botRight) Object.assign(botRight, data.botRight);
+            if (data.botBackLeft) Object.assign(botBackLeft, data.botBackLeft);
+            if (data.botBackRight) Object.assign(botBackRight, data.botBackRight);
             if (data.botFront) Object.assign(botFront, data.botFront);
             if (data.ballDown) Object.assign(ballDown, data.ballDown);
             if (data.ballUp) Object.assign(ballUp, data.ballUp);
@@ -175,11 +175,11 @@
         pivotGroup.add(s);
         sprites[key] = s;
     };
-    createNode('botLeft', '🔵', '#4d8bff', botLeft);
-    createNode('botRight', '🔴', '#ff4d4d', botRight);
+    createNode('botBackLeft', '🟦', '#4d8bff', botBackLeft);
+    createNode('botBackRight', '🟥', '#ff4d4d', botBackRight);
     createNode('botFront', '🟠', '#e67e22', botFront);
-    createNode('topLeft', '🟦', '#4d8bff', topLeft);
-    createNode('topRight', '🟥', '#ff4d4d', topRight);
+    createNode('topFrontLeft', '🔵', '#4d8bff', topFrontLeft);
+    createNode('topFrontRight', '🔴', '#ff4d4d', topFrontRight);
     createNode('topBack', '🟣', '#9b59b6', topBack);
     const ballDownSprite = createBallSprite('🎱', '#4d8bff'); ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z); pivotGroup.add(ballDownSprite);
     const ballUpSprite   = createBallSprite('🎈', '#ff4d4d'); ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z); pivotGroup.add(ballUpSprite);
@@ -217,38 +217,45 @@
         dynamicMeshes.forEach(m => pivotGroup.remove(m));
         dynamicMeshes = [];
 
-        // 1. Тетраэдры
-        // 🎱 (низ) + 🔻 (верхний треугольник)
-        const apex1 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
-        const base1 = [new THREE.Vector3(topLeft.x, topLeft.y, topLeft.z), new THREE.Vector3(topRight.x, topRight.y, topRight.z), new THREE.Vector3(topBack.x, topBack.y, topBack.z)];
+        // === ТЕТРАЭДРЫ ===
+        // 1. Тетраэдр на земле: 🎈 + 🟦 + 🟥 + 🟠
+        const apex1 = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
+        const base1 = [
+            new THREE.Vector3(botBackLeft.x, botBackLeft.y, botBackLeft.z),
+            new THREE.Vector3(botBackRight.x, botBackRight.y, botBackRight.z),
+            new THREE.Vector3(botFront.x, botFront.y, botFront.z)
+        ];
         const t1 = buildTetra(apex1, base1, 0x4d8bff); pivotGroup.add(t1); dynamicMeshes.push(t1);
         const w1 = buildTetra(apex1, base1, 0x4d8bff); w1.material = new THREE.MeshBasicMaterial({ color: 0x4d8bff, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w1); dynamicMeshes.push(w1);
 
-        // 🎈 (верх) + 🔺 (нижний треугольник)
-        const apex2 = new THREE.Vector3(ballUp.x, ballUp.y, ballUp.z);
-        const base2 = [new THREE.Vector3(botLeft.x, botLeft.y, botLeft.z), new THREE.Vector3(botRight.x, botRight.y, botRight.z), new THREE.Vector3(botFront.x, botFront.y, botFront.z)];
+        // 2. Тетраэдр в воздухе: 🎱 + 🔵 + 🔴 + 🟣
+        const apex2 = new THREE.Vector3(ballDown.x, ballDown.y, ballDown.z);
+        const base2 = [
+            new THREE.Vector3(topFrontLeft.x, topFrontLeft.y, topFrontLeft.z),
+            new THREE.Vector3(topFrontRight.x, topFrontRight.y, topFrontRight.z),
+            new THREE.Vector3(topBack.x, topBack.y, topBack.z)
+        ];
         const t2 = buildTetra(apex2, base2, 0xff4d4d); pivotGroup.add(t2); dynamicMeshes.push(t2);
         const w2 = buildTetra(apex2, base2, 0xff4d4d); w2.material = new THREE.MeshBasicMaterial({ color: 0xff4d4d, wireframe: true, transparent: true, opacity: 0.3 }); pivotGroup.add(w2); dynamicMeshes.push(w2);
 
-        // 2. Сквозные линии через 🟡 (видимые, яркие)
+        // === СКВОЗНЫЕ ЛИНИИ ЧЕРЕЗ 🟡 ===
         const addLine = (p1, p2, color, opacity = 0.8) => {
             const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(p1.x, p1.y, p1.z), new THREE.Vector3(p2.x, p2.y, p2.z)]);
             const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
             const line = new THREE.Line(geom, mat); pivotGroup.add(line); dynamicMeshes.push(line);
         };
 
-        // 🔥 Линия 1: 🎱 -> 🟡 -> 🎈 (Золотая/цвет центра)
+        // 🔥 Вертикаль: 🎱 -> 🟡 -> 🎈
         const goldColor = new THREE.Color(centerColor);
-        addLine(ballDown, ballUp, goldColor, 0.8);
+        addLine(ballDown, ballUp, goldColor, 0.9);
 
-        // 🔵 Линия 2: 🟦 (верх-лев) -> 🟡 -> 🔴 (низ-прав) -> Синяя
-        addLine(topLeft, botRight, 0x4d8bff, 0.8);
+        // 🔵 Синяя линия: 🟦 (низ-зад-лев) -> 🟡 -> 🔴 (верх-пер-прав)
+        addLine(botBackLeft, topFrontRight, 0x4d8bff, 0.8);
 
-        // 🔴 Линия 3: 🟥 (верх-прав) -> 🟡 -> 🔵 (низ-лев) -> Красная
-        addLine(topRight, botLeft, 0xff4d4d, 0.8);
+        // 🔴 Красная линия: 🟥 (низ-зад-прав) -> 🟡 -> 🔵 (верх-пер-лев)
+        addLine(botBackRight, topFrontLeft, 0xff4d4d, 0.8);
 
-        // 🟡 Линия 4: 🔺 -> 🟡 -> 🔻 (Центр нижнего 🔺 к центру верхнего 🔻)
-        // Используем 🟠 (botFront) и 🟣 (topBack)
+        // 🟡 Связующая линия: 🔺 -> 🟡 -> 🔻 (🟠 -> 🟡 -> 🟣)
         addLine(botFront, topBack, 0xffcc00, 0.8);
 
         // Центр 🟡 всегда в 0,0,0
@@ -263,11 +270,11 @@
     }
 
     function updatePositions() {
-        sprites['botLeft'].position.set(botLeft.x, botLeft.y, botLeft.z);
-        sprites['botRight'].position.set(botRight.x, botRight.y, botRight.z);
+        sprites['botBackLeft'].position.set(botBackLeft.x, botBackLeft.y, botBackLeft.z);
+        sprites['botBackRight'].position.set(botBackRight.x, botBackRight.y, botBackRight.z);
         sprites['botFront'].position.set(botFront.x, botFront.y, botFront.z);
-        sprites['topLeft'].position.set(topLeft.x, topLeft.y, topLeft.z);
-        sprites['topRight'].position.set(topRight.x, topRight.y, topRight.z);
+        sprites['topFrontLeft'].position.set(topFrontLeft.x, topFrontLeft.y, topFrontLeft.z);
+        sprites['topFrontRight'].position.set(topFrontRight.x, topFrontRight.y, topFrontRight.z);
         sprites['topBack'].position.set(topBack.x, topBack.y, topBack.z);
         ballDownSprite.position.set(ballDown.x, ballDown.y, ballDown.z);
         ballUpSprite.position.set(ballUp.x, ballUp.y, ballUp.z);
@@ -281,11 +288,11 @@
     function getPointerNDC(e) { const rect = renderer.domElement.getBoundingClientRect(); pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1; }
 
     const draggableList = [
-        { key: 'topLeft', data: topLeft }, { key: 'topRight', data: topRight }, { key: 'topBack', data: topBack },
-        { key: 'botLeft', data: botLeft }, { key: 'botRight', data: botRight }, { key: 'botFront', data: botFront },
+        { key: 'topFrontLeft', data: topFrontLeft }, { key: 'topFrontRight', data: topFrontRight }, { key: 'topBack', data: topBack },
+        { key: 'botBackLeft', data: botBackLeft }, { key: 'botBackRight', data: botBackRight }, { key: 'botFront', data: botFront },
         { key: 'ballDown', data: ballDown }, { key: 'ballUp', data: ballUp }
     ];
-    const spriteMap = { 'topLeft': sprites.topLeft, 'topRight': sprites.topRight, 'topBack': sprites.topBack, 'botLeft': sprites.botLeft, 'botRight': sprites.botRight, 'botFront': sprites.botFront, 'ballDown': ballDownSprite, 'ballUp': ballUpSprite };
+    const spriteMap = { 'topFrontLeft': sprites.topFrontLeft, 'topFrontRight': sprites.topFrontRight, 'topBack': sprites.topBack, 'botBackLeft': sprites.botBackLeft, 'botBackRight': sprites.botBackRight, 'botFront': sprites.botFront, 'ballDown': ballDownSprite, 'ballUp': ballUpSprite };
 
     renderer.domElement.addEventListener('pointerdown', (e) => {
         getPointerNDC(e); raycaster.setFromCamera(pointer, camera);
@@ -322,9 +329,14 @@
 
     // ============= УПРАВЛЕНИЕ =============
     document.getElementById('reset-btn').addEventListener('click', () => {
-        Object.assign(botLeft, { x: -1.2, y: -2.5, z: 1.2 }); Object.assign(botRight, { x: 1.2, y: -2.5, z: 1.2 }); Object.assign(botFront, { x: 0, y: -2.5, z: 1.8 });
-        Object.assign(topLeft, { x: -1.2, y: 1.0, z: -1.2 }); Object.assign(topRight, { x: 1.2, y: 1.0, z: -1.2 }); Object.assign(topBack, { x: 0, y: 1.0, z: -1.8 });
-        Object.assign(ballDown, { x: 0, y: -1.0, z: 0 }); Object.assign(ballUp, { x: 0, y: 1.0, z: 0 });
+        Object.assign(botBackLeft, { x: -1.2, y: -2.5, z: -1.2 });
+        Object.assign(botBackRight, { x: 1.2, y: -2.5, z: -1.2 });
+        Object.assign(botFront, { x: 0, y: -2.5, z: 1.2 });
+        Object.assign(topFrontLeft, { x: -1.2, y: 1.0, z: 1.2 });
+        Object.assign(topFrontRight, { x: 1.2, y: 1.0, z: 1.2 });
+        Object.assign(topBack, { x: 0, y: 1.0, z: -1.2 });
+        Object.assign(ballDown, { x: 0, y: -1.0, z: 0 });
+        Object.assign(ballUp, { x: 0, y: 1.0, z: 0 });
         saveState(); updatePositions();
     });
 
@@ -363,7 +375,7 @@
 
     updatePositions();
     animate();
-    console.log('🟣🦅 Уровень 7: Куб Сознания (точная геометрия + все сквозные линии) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (исправленные тетраэдры, квадраты снизу сзади) загружено!');
 </script>
 </body>
 </html>
