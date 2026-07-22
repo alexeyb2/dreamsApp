@@ -100,7 +100,7 @@
     let energyEnabled = true;
     let time = 0;
 
-    // Базовые позиции (всего 7 точек, включая центр)
+    // Базовые позиции (всего 7 точек)
     const baseNodes = {
         bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺
         bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
@@ -161,7 +161,7 @@
     createNode('top_left', '🔵', '#4d8bff', currentNodes.top_left);
     createNode('top_right', '🔴', '#ff4d4d', currentNodes.top_right);
 
-    // Центр 🟡 (подвижный)
+    // Центр 🟡
     let centerSprite = createSprite('🟡', centerColor, 0.7);
     centerSprite.position.copy(centerPos); pivotGroup.add(centerSprite);
 
@@ -170,6 +170,36 @@
         centerSprite = createSprite('🟡', newColor, 0.7);
         centerSprite.position.copy(centerPos);
         pivotGroup.add(centerSprite);
+    }
+
+    // ============= ЭНЕРГЕТИЧЕСКАЯ ЧАСТИЦА (КРАСНЫЙ ШАР) =============
+    // Она будет двигаться по маршруту: 🟥 -> 🔵 -> 🔴 -> 🟦 -> 🟥
+    const energyParticleGeo = new THREE.SphereGeometry(0.25, 16, 16);
+    const energyParticleMat = new THREE.MeshBasicMaterial({ color: 0xff4d4d, transparent: true, opacity: 0.9 });
+    const energyParticle = new THREE.Mesh(energyParticleGeo, energyParticleMat);
+    energyParticle.material.transparent = true;
+    pivotGroup.add(energyParticle);
+
+    let energyProgress = 0; // 0 .. 1
+    const energySpeed = 0.002;
+
+    function getEnergyRoutePoint(progress) {
+        // Маршрут: 4 отрезка (0..0.25, 0.25..0.5, 0.5..0.75, 0.75..1)
+        const route = [
+            currentNodes.bottom_right, // 🟥
+            currentNodes.top_left,     // 🔵
+            currentNodes.top_right,    // 🔴
+            currentNodes.bottom_left   // 🟦
+        ];
+        const segment = Math.floor(progress * 4) % 4;
+        const t = (progress * 4) % 1;
+        const p1 = route[segment];
+        const p2 = route[(segment + 1) % 4];
+        return {
+            x: p1.x + (p2.x - p1.x) * t,
+            y: p1.y + (p2.y - p1.y) * t,
+            z: p1.z + (p2.z - p1.z) * t
+        };
     }
 
     // ============= ГЕОМЕТРИЯ ТЕТРАЭДРОВ И ЛИНИЙ =============
@@ -209,8 +239,7 @@
         dynamicMeshes.forEach(m => pivotGroup.remove(m));
         dynamicMeshes = [];
 
-        // === ТЕТРАЭДРЫ С ОБЩЕЙ ВЕРШИНОЙ 🟡 ===
-        // 1. Нижний тетраэдр: вершина 🟡 + основание 🔺, 🟦, 🟥
+        // === ТЕТРАЭДРЫ ===
         const apex1 = centerPos.clone();
         const base1 = [
             new THREE.Vector3(currentNodes.bottom_center.x, currentNodes.bottom_center.y, currentNodes.bottom_center.z),
@@ -220,7 +249,6 @@
         const tetra1 = buildTetra(apex1, base1, 0x4d8bff);
         tetra1.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
 
-        // 2. Верхний тетраэдр: вершина 🟡 + основание 🔻, 🔴, 🔵
         const apex2 = centerPos.clone();
         const base2 = [
             new THREE.Vector3(currentNodes.top_center.x, currentNodes.top_center.y, currentNodes.top_center.z),
@@ -230,7 +258,7 @@
         const tetra2 = buildTetra(apex2, base2, 0xff4d4d);
         tetra2.forEach(m => { pivotGroup.add(m); dynamicMeshes.push(m); });
 
-        // === ТОНКИЕ ЛИНИИ ЧЕРЕЗ ЦЕНТР 🟡 (радиус 0.06) ===
+        // === ТОНКИЕ ЛИНИИ ===
         const createThinLine = (start, end, color, opacity = 0.9) => {
             const dir = new THREE.Vector3().copy(end).sub(start);
             const length = dir.length();
@@ -251,17 +279,14 @@
             createThinLine(cPos, new THREE.Vector3(p2.x, p2.y, p2.z), color, opacity);
         };
 
-        // 🟥 (низ-пр) -> 🟡 -> 🔵 (верх-л) — красная линия
-        addThroughCenter(currentNodes.bottom_right, currentNodes.top_left, 0xff4d4d, 0.8);
-        // 🟦 (низ-л) -> 🟡 -> 🔴 (верх-пр) — синяя линия
-        addThroughCenter(currentNodes.bottom_left, currentNodes.top_right, 0x4d8bff, 0.8);
-        // 🔺 (низ-ц) -> 🟡 -> 🔻 (верх-ц) — золотая линия
         const goldColor = new THREE.Color(centerColor);
+        addThroughCenter(currentNodes.bottom_right, currentNodes.top_left, 0xff4d4d, 0.8);
+        addThroughCenter(currentNodes.bottom_left, currentNodes.top_right, 0x4d8bff, 0.8);
         addThroughCenter(currentNodes.bottom_center, currentNodes.top_center, goldColor, 0.8);
     }
 
     // ============= ОБНОВЛЕНИЕ ПОЗИЦИЙ =============
-    function updatePositions() {
+    function updatePositions(deltaTime) {
         // Копируем базовые позиции в текущие
         currentNodes.bottom_center.x = baseNodes.bottom_center.x;
         currentNodes.bottom_left.x = baseNodes.bottom_left.x;
@@ -277,7 +302,7 @@
         sprites['top_left'].position.set(currentNodes.top_left.x, currentNodes.top_left.y, currentNodes.top_left.z);
         sprites['top_right'].position.set(currentNodes.top_right.x, currentNodes.top_right.y, currentNodes.top_right.z);
 
-        // Центр 🟡: либо фиксированный вручную, либо среднее всех точек основания
+        // Центр
         if (!isCenterDragged) {
             const allPoints = [
                 currentNodes.bottom_center, currentNodes.bottom_left, currentNodes.bottom_right,
@@ -293,9 +318,17 @@
         }
         centerSprite.position.copy(centerPos);
 
+        // Энергетическая частица
+        if (energyEnabled) {
+            energyProgress += energySpeed;
+            if (energyProgress >= 1.0) energyProgress = 0.0;
+            const pos = getEnergyRoutePoint(energyProgress);
+            energyParticle.position.set(pos.x, pos.y, pos.z);
+        }
+
         updateStructure();
 
-        // Баланс: расстояние центра от (0,0,0)
+        // Баланс
         const dist = centerPos.length();
         const maxDist = 3.0;
         const balance = Math.max(0, 100 - (dist / maxDist) * 100);
@@ -311,7 +344,7 @@
         }
     }
 
-    // ============= ИНТЕРАКТИВНОСТЬ (ПЕРЕТАСКИВАНИЕ) =============
+    // ============= ИНТЕРАКТИВНОСТЬ =============
     const raycaster = new THREE.Raycaster(); const pointer = new THREE.Vector2();
     let isDragging = false, draggedKey = null, dragOffset = new THREE.Vector3(), intersectPlane = new THREE.Plane();
 
@@ -359,15 +392,11 @@
             const limit = 3.5;
             newPos.x = Math.max(-limit, Math.min(limit, newPos.x));
             
-            // ИСПРАВЛЕНИЕ: Ограничиваем движение ТОЛЬКО по горизонтальной поверхности!
             if (draggedKey === 'center') {
-                // Центр 🟡 можно двигать по Y
                 newPos.y = Math.max(-limit, Math.min(limit, newPos.y));
             } else if (draggedKey.startsWith('bottom_')) {
-                // Нижние точки строго на Y = -2.5
                 newPos.y = -2.5;
             } else if (draggedKey.startsWith('top_')) {
-                // Верхние точки строго на Y = 1.0
                 newPos.y = 1.0;
             }
             newPos.z = Math.max(-limit, Math.min(limit, newPos.z));
@@ -394,6 +423,7 @@
         Object.assign(baseNodes.top_right, { x: 1.2, y: 1.0, z: 1.2 });
         isCenterDragged = false;
         draggedCenterPos.x = 0; draggedCenterPos.y = 0; draggedCenterPos.z = 0;
+        energyProgress = 0;
         saveState();
     });
 
@@ -425,7 +455,7 @@
         time += delta;
         pivotGroup.rotation.y = Math.sin(time * 0.3) * 0.04;
 
-        updatePositions();
+        updatePositions(delta);
 
         controls.update();
         renderer.render(scene, camera);
@@ -435,10 +465,10 @@
         camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight);
     });
 
-    updatePositions();
+    updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (движение строго по плоскости) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (замкнутый цикл энергии) загружено!');
 </script>
 </body>
 </html>
