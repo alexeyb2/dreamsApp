@@ -218,15 +218,16 @@
         pivotGroup.add(line);
     });
 
-    // ============= ГЕОМЕТРИЯ =============
+    // ============= ИДЕАЛЬНАЯ ГЕОМЕТРИЯ (Квадраты и 🔻 спереди, 🔺 и шары сзади) =============
     const baseNodes = {
-        bottom_center: { x: 0,   y: -2.5, z: 1.2 }, // 🔺
-        bottom_left:   { x: -1.2, y: -2.5, z: -1.2 }, // 🟦
-        bottom_right:  { x: 1.2, y: -2.5, z: -1.2 }, // 🟥
-        top_center:    { x: 0,   y: 1.0, z: -1.2 },  // 🔻
-        top_left:      { x: -1.2, y: 1.0, z: 1.2 },  // 🔵
-        top_right:     { x: 1.2, y: 1.0, z: 1.2 },   // 🔴
-        center:        { x: 0,   y: 0,   z: 0 }       // 🟡
+        // Ближний слой (Z = 1.2): Квадраты и 🔻
+        bottom_center: { x: 0,   y: -2.5, z: -1.2 }, // 🔺 (ДАЛЕКО) -> Z = -1.2
+        bottom_left:   { x: -1.2, y: -2.5, z: 1.2 }, // 🟦 (БЛИЗКО)
+        bottom_right:  { x: 1.2, y: -2.5, z: 1.2 }, // 🟥 (БЛИЗКО)
+        top_center:    { x: 0,   y: 1.0, z: 1.2 },  // 🔻 (БЛИЗКО)
+        top_left:      { x: -1.2, y: 1.0, z: -1.2 }, // 🔵 (ДАЛЕКО) -> Z = -1.2
+        top_right:     { x: 1.2, y: 1.0, z: -1.2 }, // 🔴 (ДАЛЕКО) -> Z = -1.2
+        center:        { x: 0,   y: 0,   z: 0 }       // 🟡 (ЦЕНТР)
     };
 
     const currentNodes = JSON.parse(JSON.stringify(baseNodes));
@@ -245,15 +246,21 @@
     let energySpeedMultiplier = 5;
     let energyParticleSize = 0.25;
 
+    // НОВЫЙ ПУТЬ ПО УМОЛЧАНИЮ: 🔻 -> 🟡 -> 🔺
     const defaultPathKeys = [
-        'bottom_right', 'center', 'top_left', 'center', 'top_right', 'center', 'bottom_left', 'center', 'bottom_right'
+        'top_center', 'center', 'bottom_center'
     ];
     let customPath = null;
     let tempLineMeshes = [];
 
     const keyToEmoji = {
-        'center': '🟡', 'bottom_center': '🔺', 'bottom_left': '🟦', 'bottom_right': '🟥',
-        'top_center': '🔻', 'top_left': '🔵', 'top_right': '🔴'
+        'center': '🟡', 
+        'bottom_center': '🔺', 
+        'bottom_left': '🟦', 
+        'bottom_right': '🟥',
+        'top_center': '🔻', 
+        'top_left': '🔵', 
+        'top_right': '🔴'
     };
 
     function saveState() {
@@ -369,7 +376,7 @@
                 
                 let color = 0x4d8bff; // синий по умолчанию
                 if (isRed && !isBlue) color = 0xff4d4d; // красный
-                else if (isYellow && !isRed && !isBlue) color = new THREE.Color(centerColor).getHex(); // жёлтый/золотой
+                else if (isYellow && !isRed && !isBlue) color = new THREE.Color(centerColor).getHex(); // жёлтый
                 
                 return { pos, color };
             }
@@ -467,10 +474,10 @@
         const grid = document.createElement('div');
         grid.className = 'selector-grid';
 
-        // Верхняя строка: 🔴 🔺 🔵
+        // Верхняя строка: 🔵 🔺 🔴
         const row1 = document.createElement('div');
         row1.className = 'selector-row';
-        ['top_right', 'bottom_center', 'top_left'].forEach(key => {
+        ['top_left', 'bottom_center', 'top_right'].forEach(key => {
             const el = document.createElement('div');
             el.className = 'sel-item';
             el.textContent = keyToEmoji[key];
@@ -489,10 +496,10 @@
         rowC.appendChild(elC);
         grid.appendChild(rowC);
 
-        // Нижняя строка: 🟥 🔻 🟦
+        // Нижняя строка: 🟦 🔻 🟥
         const row2 = document.createElement('div');
         row2.className = 'selector-row';
-        ['bottom_right', 'top_center', 'bottom_left'].forEach(key => {
+        ['bottom_left', 'top_center', 'bottom_right'].forEach(key => {
             const el = document.createElement('div');
             el.className = 'sel-item';
             el.textContent = keyToEmoji[key];
@@ -731,12 +738,12 @@
 
     // ============= УПРАВЛЕНИЕ МЕНЮ =============
     document.getElementById('reset-btn').addEventListener('click', () => {
-        Object.assign(baseNodes.bottom_center, { x: 0, y: -2.5, z: 1.2 });
-        Object.assign(baseNodes.bottom_left, { x: -1.2, y: -2.5, z: -1.2 });
-        Object.assign(baseNodes.bottom_right, { x: 1.2, y: -2.5, z: -1.2 });
-        Object.assign(baseNodes.top_center, { x: 0, y: 1.0, z: -1.2 });
-        Object.assign(baseNodes.top_left, { x: -1.2, y: 1.0, z: 1.2 });
-        Object.assign(baseNodes.top_right, { x: 1.2, y: 1.0, z: 1.2 });
+        Object.assign(baseNodes.bottom_center, { x: 0,   y: -2.5, z: -1.2 });
+        Object.assign(baseNodes.bottom_left,   { x: -1.2, y: -2.5, z: 1.2 });
+        Object.assign(baseNodes.bottom_right,  { x: 1.2,  y: -2.5, z: 1.2 });
+        Object.assign(baseNodes.top_center,    { x: 0,   y: 1.0, z: 1.2 });
+        Object.assign(baseNodes.top_left,      { x: -1.2, y: 1.0, z: -1.2 });
+        Object.assign(baseNodes.top_right,     { x: 1.2,  y: 1.0, z: -1.2 });
         isCenterDragged = false; draggedCenterPos = { x: 0, y: 0, z: 0 };
         energyProgress = 0; saveState();
     });
@@ -782,7 +789,10 @@
     editPathBtn.addEventListener('click', () => {
         isEditingPath = !isEditingPath;
         if (isEditingPath) {
-            if (!customPath) customPath = [];
+            // ИСПРАВЛЕНИЕ: Загружаем дефолтный путь в customPath, чтобы он сразу появился!
+            if (!customPath) {
+                customPath = [...defaultPathKeys];
+            }
             editPathBtn.style.borderColor = '#ffcc00';
             renderPathUI();
             updateTempLines();
@@ -817,7 +827,7 @@
     updatePositions(0.016);
     animate(performance.now());
 
-    console.log('🟣🦅 Уровень 7: Куб Сознания (исправлены позиции 🔺 и 🔻, добавлен жёлтый цвет) загружено!');
+    console.log('🟣🦅 Уровень 7: Куб Сознания (финальное исправление Z-координат, панель закрыта) загружено!');
 </script>
 </body>
 </html>
