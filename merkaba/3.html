@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Меркаба • привязка к телу</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #0a0a1a; }
+        #info {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            color: #ccc;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 10;
+            border: 1px solid #333;
+            backdrop-filter: blur(4px);
+        }
+        #controls {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20,20,40,0.85);
+            backdrop-filter: blur(6px);
+            color: white;
+            padding: 18px 28px;
+            border-radius: 14px;
+            border: 1px solid #444;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px 30px;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            pointer-events: auto;
+            max-width: 90%;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+        }
+        #controls label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            color: #ddd;
+        }
+        #controls input[type="number"],
+        #controls input[type="range"] {
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 80px;
+            text-align: center;
+        }
+        #controls input[type="range"] {
+            width: 120px;
+            padding: 0;
+            height: 6px;
+            accent-color: #66aaff;
+            cursor: pointer;
+        }
+        #controls input[type="number"]:focus {
+            outline: 2px solid #66aaff;
+        }
+        #controls .checkbox-group {
+            display: flex;
+            gap: 16px;
+        }
+        #controls .checkbox-group label {
+            font-size: 14px;
+            gap: 4px;
+        }
+        #controls .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #66aaff;
+            cursor: pointer;
+        }
+        @media (max-width: 700px) {
+            #controls {
+                flex-direction: column;
+                gap: 12px;
+                padding: 15px 20px;
+                width: 92%;
+                bottom: 15px;
+            }
+            #controls label {
+                width: 100%;
+                justify-content: space-between;
+            }
+            #controls .checkbox-group {
+                width: 100%;
+                justify-content: space-around;
+            }
+        }
+        #coords {
+            position: absolute;
+            bottom: 110px;
+            left: 20px;
+            color: #aaa;
+            font-size: 13px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 14px;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 10;
+            font-family: monospace;
+            max-height: 240px;
+            overflow-y: auto;
+            white-space: pre;
+            line-height: 1.6;
+            border: 1px solid #333;
+            min-width: 200px;
+        }
+        @media (max-width: 600px) {
+            #coords { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="info">🟡 Меркаба • привязка к телу (рост)</div>
+    <div id="coords"></div>
+
+    <div id="controls">
+        <label>Рост (м) <input type="number" id="heightInput" value="1.75" step="0.01" min="0.5" max="2.5" /></label>
+        <label>h = <input type="number" id="hInput" value="1.732" step="0.01" min="0.1" max="3.0" /></label>
+        <label>l = <input type="number" id="lInput" value="1.414" step="0.01" min="0.1" max="2.5" /></label>
+        <label>смещение s (м) <input type="number" id="sInput" value="0.0" step="0.01" min="-1.0" max="1.0" /></label>
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="showDiag" checked /> диагонали</label>
+            <label><input type="checkbox" id="showLabels" checked /> подписи</label>
+            <label><input type="checkbox" id="showGrid" checked /> сетка</label>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // --- Инициализация ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 50);
+        camera.position.set(3.5, 2.0, 4.5);
+        camera.lookAt(0, 0.8, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.target.set(0, 0.8, 0);
+        controls.update();
+
+        // --- Свет ---
+        const ambient = new THREE.AmbientLight(0x404060);
+        scene.add(ambient);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(2, 3, 4);
+        scene.add(dirLight);
+        const backLight = new THREE.DirectionalLight(0x88aaff, 0.5);
+        backLight.position.set(-1, -1, -2);
+        scene.add(backLight);
+
+        // --- Группа для Меркабы ---
+        let merkabaGroup = new THREE.Group();
+        scene.add(merkabaGroup);
+
+        // --- Элементы управления ---
+        const heightInput = document.getElementById('heightInput');
+        const hInput = document.getElementById('hInput');
+        const lInput = document.getElementById('lInput');
+        const sInput = document.getElementById('sInput');
+        const showDiag = document.getElementById('showDiag');
+        const showLabels = document.getElementById('showLabels');
+        const showGrid = document.getElementById('showGrid');
+        const coordsDiv = document.getElementById('coords');
+
+        // --- Обновление координат ---
+        function updateCoords(pts) {
+            const scaleToCm = 100; // метры → сантиметры
+            let text = 'Координаты точек (см):\n';
+            for (const [key, vec] of Object.entries(pts)) {
+                text += `${key}: (${(vec.x * scaleToCm).toFixed(1)}, ${(vec.y * scaleToCm).toFixed(1)}, ${(vec.z * scaleToCm).toFixed(1)})\n`;
+            }
+            coordsDiv.textContent = text;
+        }
+
+        // --- Построение Меркабы ---
+        function buildMerkaba() {
+            const height = parseFloat(heightInput.value) || 1.75;
+            const h = parseFloat(hInput.value) || 1.732;
+            const l = parseFloat(lInput.value) || 1.414;
+            const s = parseFloat(sInput.value) || 0.0;
+
+            // Масштаб: расстояние от земли до макушки (верхняя вершина) = height
+            // В модели: нижнее основание на земле (y=0), верхняя вершина 🟣 на высоте height
+            // Расстояние от нижнего основания до 🟣 = h + d (но d мы не используем отдельно, 
+            // мы используем l и h, и расстояние от центра до основания вычисляется как l / √2? 
+            // В классической модели d = l / √2. Но чтобы сохранить гибкость, мы можем задать d = l / √2.
+            // Однако пользователь не хочет d, поэтому мы будем вычислять d из l: d = l / √2.
+            // Но это может не давать точного совпадения с предыдущей моделью. 
+            // Можно оставить d как параметр, но скрыть его, или просто использовать l для определения высоты основания.
+            // В классической Меркабе d = 1 при l = √2, поэтому примем d = l / √2.
+            const d = l / Math.sqrt(2);
+            const scale = height / (h + d);
+
+            const sqrt3 = Math.sqrt(3);
+            const halfL = l / 2;
+            const sqrt3halfL = sqrt3 * halfL;
+
+            // Координаты (y вверх, z вперёд-назад, x влево-вправо)
+            // Нижнее основание на y = s (смещение)
+            const pts = {
+                '🟦': new THREE.Vector3(-sqrt3halfL * scale, s,  halfL * scale),
+                '🟥': new THREE.Vector3( sqrt3halfL * scale, s,  halfL * scale),
+                '🟩': new THREE.Vector3( 0,                  s, -l * scale),
+                '🔴': new THREE.Vector3( sqrt3halfL * scale, s + d * scale * 2, -halfL * scale),
+                '🔵': new THREE.Vector3(-sqrt3halfL * scale, s + d * scale * 2, -halfL * scale),
+                '🟢': new THREE.Vector3( 0,                  s + d * scale * 2,  l * scale),
+                '🟣': new THREE.Vector3( 0,                  s + height,         0),
+                '🟪': new THREE.Vector3( 0,                  s - h * scale,      0)
+            };
+
+            // Цвета для точек
+            const colors = {
+                '🟦': 0x3399ff,
+                '🟥': 0xff5533,
+                '🟩': 0x66ff66,
+                '🔴': 0xff3333,
+                '🔵': 0x33ccff,
+                '🟢': 0x66ff99,
+                '🟣': 0xff66ff,
+                '🟪': 0x9966ff
+            };
+
+            // Очищаем группу
+            while (merkabaGroup.children.length) {
+                merkabaGroup.remove(merkabaGroup.children[0]);
+            }
+
+            const sphereGeom = new THREE.SphereGeometry(0.06 * scale, 20, 20);
+
+            // --- Вершины и подписи ---
+            const labelGroup = new THREE.Group();
+            for (const [key, vec] of Object.entries(pts)) {
+                const color = colors[key] || 0xffffff;
+                const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.2 });
+                const sphere = new THREE.Mesh(sphereGeom, mat);
+                sphere.position.copy(vec);
+                merkabaGroup.add(sphere);
+
+                // Подпись CSS2D
+                const div = document.createElement('div');
+                div.textContent = key;
+                div.style.color = '#fff';
+                div.style.fontSize = '14px';
+                div.style.fontWeight = 'bold';
+                div.style.textShadow = '1px 1px 3px rgba(0,0,0,0.9)';
+                div.style.background = 'rgba(0,0,0,0.6)';
+                div.style.padding = '2px 8px';
+                div.style.borderRadius = '12px';
+                div.style.border = '1px solid rgba(255,255,255,0.2)';
+                div.style.backdropFilter = 'blur(2px)';
+                const label = new CSS2DObject(div);
+                label.position.copy(vec.clone().add(new THREE.Vector3(0.12 * scale, 0.12 * scale, 0.12 * scale)));
+                labelGroup.add(label);
+            }
+            merkabaGroup.add(labelGroup);
+
+            // --- Вспомогательная функция добавления линии ---
+            function addLine(p1, p2, color, opacity = 0.6, dashed = false) {
+                const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+                let mat;
+                if (dashed) {
+                    mat = new THREE.LineDashedMaterial({ color, transparent: true, opacity, dashSize: 0.04 * scale, gapSize: 0.03 * scale });
+                } else {
+                    mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+                }
+                const line = new THREE.Line(geom, mat);
+                if (dashed) line.computeLineDistances();
+                return line;
+            }
+
+            // --- Рёбра тетраэдров ---
+            const edgeGroup = new THREE.Group();
+            // Верхний тетраэдр: вершина 🟣, основание 🟦🟥🟩
+            const topV = pts['🟣'];
+            const topBase = [pts['🟦'], pts['🟥'], pts['🟩']];
+            topBase.forEach(p => edgeGroup.add(addLine(topV, p, 0x66ccff, 0.8)));
+            edgeGroup.add(addLine(topBase[0], topBase[1], 0x66ccff, 0.4));
+            edgeGroup.add(addLine(topBase[1], topBase[2], 0x66ccff, 0.4));
+            edgeGroup.add(addLine(topBase[2], topBase[0], 0x66ccff, 0.4));
+
+            // Нижний тетраэдр: вершина 🟪, основание 🔴🔵🟢
+            const bottomV = pts['🟪'];
+            const bottomBase = [pts['🔴'], pts['🔵'], pts['🟢']];
+            bottomBase.forEach(p => edgeGroup.add(addLine(bottomV, p, 0xff8866, 0.8)));
+            edgeGroup.add(addLine(bottomBase[0], bottomBase[1], 0xff8866, 0.4));
+            edgeGroup.add(addLine(bottomBase[1], bottomBase[2], 0xff8866, 0.4));
+            edgeGroup.add(addLine(bottomBase[2], bottomBase[0], 0xff8866, 0.4));
+            merkabaGroup.add(edgeGroup);
+
+            // --- Диагонали (оси) ---
+            const diagGroup = new THREE.Group();
+            const diagonals = [
+                [pts['🟦'], pts['🔴']],
+                [pts['🟥'], pts['🔵']],
+                [pts['🟩'], pts['🟢']],
+                [pts['🟣'], pts['🟪']]
+            ];
+            diagonals.forEach(([p1, p2]) => {
+                diagGroup.add(addLine(p1, p2, 0xffdd44, 0.25));
+            });
+            merkabaGroup.add(diagGroup);
+
+            // --- Сфера радиуса (для визуализации) ---
+            let maxR = 0;
+            for (const vec of Object.values(pts)) {
+                const r = vec.length();
+                if (r > maxR) maxR = r;
+            }
+            const sphereWire = new THREE.Mesh(
+                new THREE.SphereGeometry(maxR, 32, 16),
+                new THREE.MeshBasicMaterial({ wireframe: true, color: 0x446688, transparent: true, opacity: 0.08 })
+            );
+            merkabaGroup.add(sphereWire);
+
+            // --- Сетка земли (уровень y = s) ---
+            const gridHelper = new THREE.GridHelper(3 * scale, 12, 0x445566, 0x223344);
+            gridHelper.position.y = s;
+            gridHelper.visible = showGrid.checked;
+            merkabaGroup.add(gridHelper);
+
+            // --- Сохраняем ссылки для управления видимостью ---
+            merkabaGroup.userData.diagGroup = diagGroup;
+            merkabaGroup.userData.labelGroup = labelGroup;
+            merkabaGroup.userData.gridHelper = gridHelper;
+
+            // Применяем состояние чекбоксов
+            updateVisibility();
+
+            // Обновляем координаты на экране
+            updateCoords(pts);
+        }
+
+        function updateVisibility() {
+            const showDiagChecked = showDiag.checked;
+            const showLabelsChecked = showLabels.checked;
+            const showGridChecked = showGrid.checked;
+            if (merkabaGroup.userData.diagGroup) {
+                merkabaGroup.userData.diagGroup.visible = showDiagChecked;
+            }
+            if (merkabaGroup.userData.labelGroup) {
+                merkabaGroup.userData.labelGroup.visible = showLabelsChecked;
+            }
+            if (merkabaGroup.userData.gridHelper) {
+                merkabaGroup.userData.gridHelper.visible = showGridChecked;
+            }
+        }
+
+        // --- Обработчики событий ---
+        function rebuild() {
+            buildMerkaba();
+        }
+
+        heightInput.addEventListener('input', rebuild);
+        hInput.addEventListener('input', rebuild);
+        lInput.addEventListener('input', rebuild);
+        sInput.addEventListener('input', rebuild);
+        showDiag.addEventListener('change', updateVisibility);
+        showLabels.addEventListener('change', updateVisibility);
+        showGrid.addEventListener('change', updateVisibility);
+
+        // --- Построить по умолчанию ---
+        buildMerkaba();
+
+        // --- Анимация ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+        animate();
+
+        // --- Адаптация размера ---
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+            labelRenderer.setSize(w, h);
+        });
+
+        // --- Вспомогательные оси ---
+        const axesHelper = new THREE.AxesHelper(1.5);
+        axesHelper.material.transparent = true;
+        axesHelper.material.opacity = 0.2;
+        scene.add(axesHelper);
+
+        console.log('Меркаба с привязкой к росту и смещением готова.');
+    </script>
+</body>
+</html>
