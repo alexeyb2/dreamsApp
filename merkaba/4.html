@@ -137,6 +137,13 @@
         canvas {
             display: block;
         }
+        /* Стилизация нижнего слайдера при включённой связи */
+        .linked-slider {
+            opacity: 0.5;
+        }
+        .linked-label {
+            color: #a88;
+        }
         @media (max-width: 600px) {
             #controls {
                 padding: 10px;
@@ -188,18 +195,18 @@
             </div>
             <div class="slider-row">
                 <label>🔻 Высота:</label>
-                <input type="range" id="topHeight" min="0.5" max="4" step="0.05" value="2">
-                <span class="value" id="topHeightValue">2.0</span>
+                <input type="range" id="topHeight" min="0.5" max="4" step="0.05" value="2.2">
+                <span class="value" id="topHeightValue">2.20</span>
             </div>
             <div class="slider-row">
                 <label>🔺 Высота:</label>
-                <input type="range" id="bottomHeight" min="0.5" max="4" step="0.05" value="2">
-                <span class="value" id="bottomHeightValue">2.0</span>
+                <input type="range" id="bottomHeight" min="0.5" max="4" step="0.05" value="1.8">
+                <span class="value" id="bottomHeightValue">1.80</span>
             </div>
             <div class="slider-row">
                 <label>📏 Радиус:</label>
-                <input type="range" id="radius" min="0.3" max="3" step="0.05" value="1.8">
-                <span class="value" id="radiusValue">1.8</span>
+                <input type="range" id="radius" min="0.3" max="3" step="0.05" value="1.5">
+                <span class="value" id="radiusValue">1.5</span>
             </div>
         </div>
     </div>
@@ -211,7 +218,7 @@
         // === Три.js сцена ===
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 100);
-        camera.position.set(4, 2.8, 5); // камера ближе — тетраэдры крупнее
+        camera.position.set(4, 2.8, 5);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -252,6 +259,12 @@
 
         // === Математика (класс MerkabaMath) ===
         const math = new MerkabaMath();
+        // Настройки по умолчанию (немного раздвигаем, чтобы избежать пересечения)
+        math.topHeight = 2.2;
+        math.bottomHeight = 1.8;
+        math.radius = 1.5;
+        math.topTilt = 0.3;
+        math.bottomTilt = 0.3;
 
         // === Утилиты ===
         function createArrow(from, to, color) {
@@ -296,7 +309,6 @@
 
         // === Обновление тетраэдров ===
         function updateTetrahedrons() {
-            // Очистка групп
             while (bottomGroup.children.length) bottomGroup.remove(bottomGroup.children[0]);
             while (topGroup.children.length) topGroup.remove(topGroup.children[0]);
 
@@ -417,13 +429,24 @@
         const advancedDiv = document.getElementById('advanced');
         const exportBtn = document.getElementById('exportBtn');
 
+        // Функция визуального отклика связи
+        function updateLinkUI() {
+            if (math.linkRotation) {
+                bottomAngleInput.classList.add('linked-slider');
+                bottomAngleInput.parentElement.classList.add('linked-label');
+            } else {
+                bottomAngleInput.classList.remove('linked-slider');
+                bottomAngleInput.parentElement.classList.remove('linked-label');
+            }
+        }
+
         function updateUI() {
             topAngleValue.textContent = Math.round(math.topAngle) + '°';
             bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
             topTiltValue.textContent = math.topTilt.toFixed(2);
             bottomTiltValue.textContent = math.bottomTilt.toFixed(2);
-            topHeightValue.textContent = math.topHeight.toFixed(1);
-            bottomHeightValue.textContent = math.bottomHeight.toFixed(1);
+            topHeightValue.textContent = math.topHeight.toFixed(2);
+            bottomHeightValue.textContent = math.bottomHeight.toFixed(2);
             radiusValue.textContent = math.radius.toFixed(1);
 
             topAngleInput.value = math.topAngle;
@@ -434,34 +457,50 @@
             bottomHeightInput.value = math.bottomHeight;
             radiusInput.value = math.radius;
             linkCheckbox.checked = math.linkRotation;
+
+            updateLinkUI();
         }
 
+        // Обработчик верхнего угла
         topAngleInput.addEventListener('input', function() {
             math.topAngle = parseFloat(this.value);
             if (math.linkRotation) {
                 math.bottomAngle = (math.topAngle + 180) % 360;
+                // Обновляем нижний ползунок сразу
                 bottomAngleInput.value = math.bottomAngle;
+                bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
             }
             updateUI();
             updateTetrahedrons();
         });
 
+        // Обработчик нижнего угла
         bottomAngleInput.addEventListener('input', function() {
+            // Если связь была включена – снимаем её (односторонняя связь)
+            if (math.linkRotation) {
+                math.linkRotation = false;
+                linkCheckbox.checked = false;
+                // Визуально обновляем
+                updateLinkUI();
+            }
             math.bottomAngle = parseFloat(this.value);
             updateUI();
             updateTetrahedrons();
         });
 
+        // Обработчик чекбокса связи
         linkCheckbox.addEventListener('change', function() {
             math.linkRotation = this.checked;
-            if (this.checked) {
+            if (math.linkRotation) {
                 math.bottomAngle = (math.topAngle + 180) % 360;
                 bottomAngleInput.value = math.bottomAngle;
                 bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
             }
+            updateUI();
             updateTetrahedrons();
         });
 
+        // Дополнительные параметры
         topTiltInput.addEventListener('input', function() {
             math.topTilt = parseFloat(this.value);
             updateUI();
@@ -488,10 +527,12 @@
             updateTetrahedrons();
         });
 
+        // Кнопка настроек
         gearBtn.addEventListener('click', function() {
             advancedDiv.classList.toggle('visible');
         });
 
+        // Экспорт
         exportBtn.addEventListener('click', function() {
             const data = math.getJSON();
             const str = JSON.stringify(data, null, 2);
