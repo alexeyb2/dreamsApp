@@ -63,7 +63,6 @@
             display: inline-block;
             margin-left: 4px;
             filter: drop-shadow(0 0 3px rgba(255,255,255,0.5));
-            transition: transform 0.1s;
         }
         .tri-indicator {
             width: 16px;
@@ -390,7 +389,8 @@
         // === Сцена ===
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 100);
-        camera.position.set(4, 2.8, 5);
+        // Помещаем камеру со стороны -Z, чтобы она смотрела в направлении +Z (вперёд)
+        camera.position.set(4, 2.8, -5);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -423,13 +423,13 @@
         grid.position.y = -0.01;
         scene.add(grid);
 
-        // Маркер "вперёд" (+Z)
+        // Маркер "вперёд" (+Z) — теперь он указывает в ту же сторону, куда смотрит камера
         const forwardMarker = new THREE.Group();
         const markerCone = new THREE.Mesh(
             new THREE.ConeGeometry(0.12, 0.5, 8),
             new THREE.MeshPhongMaterial({ color: 0xffaa00, emissive: 0x442200 })
         );
-        markerCone.rotation.x = Math.PI / 2;
+        markerCone.rotation.x = Math.PI / 2; // остриё в +Z
         markerCone.position.set(0, 0, 1.8);
         forwardMarker.add(markerCone);
         const markerLineGeo = new THREE.BufferGeometry().setFromPoints([
