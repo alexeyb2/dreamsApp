@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Меркаба — Два Тетраэдра (Перед = -Z)</title>
+    <title>Меркаба — Два Тетраэдра (Связь + смещение)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -100,6 +100,12 @@
             color: #bbb;
             font-size: 12px;
             cursor: pointer;
+        }
+        .offset-info {
+            font-size: 11px;
+            color: #aaa;
+            text-align: center;
+            margin-top: 2px;
         }
         #advanced {
             display: none;
@@ -219,6 +225,7 @@
             <input type="checkbox" id="linkCheckbox">
             <label for="linkCheckbox">🔗 Связь (+180°)</label>
         </div>
+        <div class="offset-info" id="offsetDisplay">Смещение: 180°</div>
         <div id="advanced">
             <div class="slider-row">
                 <label>🔻 Наклон:</label>
@@ -255,13 +262,18 @@
                 <input type="range" id="radius" min="0.3" max="3" step="0.05" value="1.5">
                 <span class="value" id="radiusValue">1.50</span>
             </div>
+            <div class="slider-row">
+                <label>📐 Смещение:</label>
+                <input type="range" id="offsetSlider" min="0" max="360" step="1" value="180">
+                <span class="value" id="offsetSliderValue">180°</span>
+            </div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
-    <!-- Класс MerkabaMath с обновлённой системой координат (перед = -Z) -->
+    <!-- Класс MerkabaMath (с добавленным offset) -->
     <script>
         class MerkabaMath {
             constructor() {
@@ -275,17 +287,14 @@
                 this.topY = 2.0;           // Y координата основания верхнего
                 this.radius = 1.5;
                 this.linkRotation = false;
+                this.offset = 180;          // смещение (верхний минус нижний)
             }
 
             _toRad(deg) { return deg * Math.PI / 180; }
 
-            // Возвращает все восемь точек с координатами в новой системе (перед = -Z)
             getPoints() {
                 const bottom = this.getBottomTetrahedron();
                 const top = this.getTopTetrahedron();
-                // index0 -> впереди (z < 0) → 🟩 для низа, 🟢 для верха
-                // index1 -> справа (x > 0, z > 0) → 🟥 / 🔴
-                // index2 -> слева (x < 0, z > 0) → 🟦 / 🔵
                 return {
                     '👁️': bottom.apex,
                     '🟩': bottom.baseVerts[0],
@@ -306,7 +315,6 @@
                 const R = this.radius;
                 const rad = this._toRad(angle);
 
-                // Вершина смещена в направлении -Z: z = -tilt*cos(angle), x = tilt*sin(angle)
                 const apex = {
                     x: tilt * Math.sin(rad),
                     y: apexY,
@@ -315,7 +323,6 @@
 
                 const baseCenter = { x: 0, y: baseY, z: 0 };
 
-                // Основание: x = R*sin(angle+i*120), z = -R*cos(angle+i*120)
                 const baseVerts = [];
                 for (let i = 0; i < 3; i++) {
                     const a = rad + i * (2 * Math.PI / 3);
@@ -332,7 +339,7 @@
                 const angle = this.topAngle;
                 const tilt = this.topTilt;
                 const baseY = this.topY;
-                const apexY = baseY - this.topHeight; // вершина ниже основания
+                const apexY = baseY - this.topHeight;
                 const R = this.radius;
                 const rad = this._toRad(angle);
 
@@ -358,7 +365,6 @@
 
             static directionFromAngle(angle) {
                 angle = ((angle % 360) + 360) % 360;
-                // 0° = вперёд (-Z), 90° = вправо (+X), 180° = назад (+Z), 270° = влево (-X)
                 const dirs = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
                 const idx = Math.round(angle / 45) % 8;
                 return dirs[idx];
@@ -383,6 +389,7 @@
                     },
                     "radius": this.radius,
                     "linkRotation": this.linkRotation,
+                    "offset": this.offset,
                     "points": points
                 };
             }
@@ -394,7 +401,6 @@
         // === Сцена ===
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 100);
-        // Камера стоит на +Z и смотрит в -Z (стандартная ориентация)
         camera.position.set(4, 2.8, 5);
         camera.lookAt(0, 0, 0);
 
@@ -403,7 +409,6 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // Контроллер
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.15;
@@ -423,7 +428,6 @@
         light3.position.set(0, 3, 0);
         scene.add(light3);
 
-        // Сетка
         const grid = new THREE.GridHelper(8, 12, 0x444466, 0x333355);
         grid.position.y = -0.01;
         scene.add(grid);
@@ -434,7 +438,7 @@
             new THREE.ConeGeometry(0.12, 0.5, 8),
             new THREE.MeshPhongMaterial({ color: 0xffaa00, emissive: 0x442200 })
         );
-        markerCone.rotation.x = Math.PI / 2; // остриё в -Z
+        markerCone.rotation.x = Math.PI / 2;
         markerCone.position.set(0, 0, -1.8);
         forwardMarker.add(markerCone);
         const markerLineGeo = new THREE.BufferGeometry().setFromPoints([
@@ -444,7 +448,6 @@
         const markerLine = new THREE.Line(markerLineGeo,
             new THREE.LineBasicMaterial({ color: 0xffaa00, linewidth: 1 }));
         forwardMarker.add(markerLine);
-        // Подпись "F"
         const canvasLabel = document.createElement('canvas');
         canvasLabel.width = 64;
         canvasLabel.height = 64;
@@ -462,7 +465,6 @@
         forwardMarker.add(spriteLabel);
         scene.add(forwardMarker);
 
-        // === Группы тетраэдров ===
         const bottomGroup = new THREE.Group();
         const topGroup = new THREE.Group();
         scene.add(bottomGroup);
@@ -470,7 +472,6 @@
 
         const math = new MerkabaMath();
 
-        // === Утилиты ===
         function createArrow(from, to, color) {
             const group = new THREE.Group();
             const dir = new THREE.Vector3().subVectors(to, from);
@@ -511,7 +512,6 @@
             return sprite;
         }
 
-        // === Обновление тетраэдров ===
         function updateTetrahedrons() {
             while (bottomGroup.children.length) bottomGroup.remove(bottomGroup.children[0]);
             while (topGroup.children.length) topGroup.remove(topGroup.children[0]);
@@ -547,10 +547,8 @@
             }));
             bottomGroup.add(bFace);
 
-            // Стрелка от основания к вершине
             bottomGroup.add(createArrow(bottom.baseCenter, bottom.apex, 0xffaa33));
 
-            // Подписи (правильные цвета: 🟩 впереди, 🟥 справа, 🟦 слева)
             const bLabels = [
                 { text: '👁️', pos: bottom.apex, color: '#ffffff' },
                 { text: '🟩', pos: bottom.baseVerts[0], color: '#44ff44' },
@@ -630,6 +628,7 @@
         const topTri = document.getElementById('topTri');
         const bottomTri = document.getElementById('bottomTri');
         const linkCheckbox = document.getElementById('linkCheckbox');
+        const offsetDisplay = document.getElementById('offsetDisplay');
         const topTiltInput = document.getElementById('topTilt');
         const bottomTiltInput = document.getElementById('bottomTilt');
         const topHeightInput = document.getElementById('topHeight');
@@ -637,6 +636,8 @@
         const topYInput = document.getElementById('topY');
         const bottomYInput = document.getElementById('bottomY');
         const radiusInput = document.getElementById('radius');
+        const offsetSlider = document.getElementById('offsetSlider');
+        const offsetSliderValue = document.getElementById('offsetSliderValue');
         const gearBtn = document.getElementById('gearBtn');
         const advancedDiv = document.getElementById('advanced');
         const exportBtn = document.getElementById('exportBtn');
@@ -651,12 +652,17 @@
             }
         }
 
+        function updateOffsetUI() {
+            offsetDisplay.textContent = `Смещение: ${Math.round(math.offset)}°`;
+            offsetSlider.value = math.offset;
+            offsetSliderValue.textContent = Math.round(math.offset) + '°';
+        }
+
         function updateUI() {
             topAngleValue.textContent = Math.round(math.topAngle) + '°';
             bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
             topDirection.textContent = MerkabaMath.directionFromAngle(math.topAngle);
             bottomDirection.textContent = MerkabaMath.directionFromAngle(math.bottomAngle);
-            // Поворот треугольника: 0° -> вверх, 90° -> вправо
             topTri.style.transform = `rotate(${math.topAngle}deg)`;
             bottomTri.style.transform = `rotate(${math.bottomAngle}deg)`;
 
@@ -679,6 +685,7 @@
             radiusInput.value = math.radius;
             linkCheckbox.checked = math.linkRotation;
 
+            updateOffsetUI();
             updateLinkUI();
         }
 
@@ -686,22 +693,30 @@
         topAngleInput.addEventListener('input', function() {
             math.topAngle = parseFloat(this.value);
             if (math.linkRotation) {
-                math.bottomAngle = (math.topAngle + 180) % 360;
+                // нижний = верхний - offset
+                math.bottomAngle = (math.topAngle - math.offset + 360) % 360;
                 bottomAngleInput.value = math.bottomAngle;
                 bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
                 bottomDirection.textContent = MerkabaMath.directionFromAngle(math.bottomAngle);
+                bottomTri.style.transform = `rotate(${math.bottomAngle}deg)`;
+            } else {
+                // обновляем offset
+                math.offset = (math.topAngle - math.bottomAngle + 360) % 360;
             }
             updateUI();
             updateTetrahedrons();
         });
 
         bottomAngleInput.addEventListener('input', function() {
+            math.bottomAngle = parseFloat(this.value);
             if (math.linkRotation) {
+                // при ручном движении нижнего — отключаем связь
                 math.linkRotation = false;
                 linkCheckbox.checked = false;
                 updateLinkUI();
             }
-            math.bottomAngle = parseFloat(this.value);
+            // всегда обновляем offset
+            math.offset = (math.topAngle - math.bottomAngle + 360) % 360;
             updateUI();
             updateTetrahedrons();
         });
@@ -709,7 +724,8 @@
         linkCheckbox.addEventListener('change', function() {
             math.linkRotation = this.checked;
             if (math.linkRotation) {
-                math.bottomAngle = (math.topAngle + 180) % 360;
+                // при включении связи подстраиваем нижний под сохранённый offset
+                math.bottomAngle = (math.topAngle - math.offset + 360) % 360;
                 bottomAngleInput.value = math.bottomAngle;
                 bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
                 bottomDirection.textContent = MerkabaMath.directionFromAngle(math.bottomAngle);
@@ -755,6 +771,19 @@
             updateTetrahedrons();
         });
 
+        offsetSlider.addEventListener('input', function() {
+            math.offset = parseFloat(this.value);
+            if (math.linkRotation) {
+                math.bottomAngle = (math.topAngle - math.offset + 360) % 360;
+                bottomAngleInput.value = math.bottomAngle;
+                bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
+                bottomDirection.textContent = MerkabaMath.directionFromAngle(math.bottomAngle);
+                bottomTri.style.transform = `rotate(${math.bottomAngle}deg)`;
+            }
+            updateUI();
+            updateTetrahedrons();
+        });
+
         gearBtn.addEventListener('click', function() {
             advancedDiv.classList.toggle('visible');
         });
@@ -794,21 +823,19 @@
             setTimeout(() => document.body.removeChild(toast), 2500);
         }
 
-        // === Анимация ===
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
             renderer.render(scene, camera);
         }
 
-        // === Resize ===
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // === Инициализация ===
+        // Инициализация
         updateTetrahedrons();
         updateUI();
         animate();
