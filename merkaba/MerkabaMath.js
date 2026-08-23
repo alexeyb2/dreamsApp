@@ -1,43 +1,59 @@
 export class MerkabaMath {
-    /**
-     * @param {object} bottomVertex - вершина нижнего тетраэдра {x,y,z}
-     * @param {object} bottomBase - центр основания нижнего {x,y,z}
-     * @param {object} topVertex - вершина верхнего {x,y,z}
-     * @param {object} topBase - центр основания верхнего {x,y,z}
-     * @param {number} radius - радиус основания
-     */
-    constructor(bottomVertex, bottomBase, topVertex, topBase, radius) {
-        this.bottomVertex = bottomVertex;
-        this.bottomBase = bottomBase;
-        this.topVertex = topVertex;
-        this.topBase = topBase;
+    constructor(bottomVertex, bottomBase, topVertex, topBase, radius, bottomAngle, bottomTilt, topAngle, topTilt) {
+        this.bottomVertex = bottomVertex; // {x,y,z} – вершина нижнего
+        this.topVertex = topVertex;       // {x,y,z} – вершина верхнего
+        this.bottomBase = bottomBase;     // {x,y,z} – центр основания нижнего (будет пересчитан)
+        this.topBase = topBase;           // {x,y,z} – центр основания верхнего (будет пересчитан)
         this.radius = radius;
+        this.bottomAngle = bottomAngle;   // градусы
+        this.bottomTilt = bottomTilt;     // 0..1
+        this.topAngle = topAngle;
+        this.topTilt = topTilt;
     }
 
-    getPoints() {
+    _computeBase(vertex, angleDeg, tilt) {
         const r = this.radius;
         const sqrt3 = Math.sqrt(3);
         const half = r / 2;
+        const angleRad = angleDeg * Math.PI / 180;
 
-        const b = this.bottomBase;
-        const bottomPts = {
-            '🟦': { x: b.x - sqrt3 * half, y: b.y, z: b.z + half },
-            '🟥': { x: b.x + sqrt3 * half, y: b.y, z: b.z + half },
-            '🟩': { x: b.x, y: b.y, z: b.z - r }
-        };
+        // Смещение центра основания относительно вершины (наклон)
+        const offsetX = Math.cos(angleRad) * tilt;
+        const offsetZ = Math.sin(angleRad) * tilt;
+        const cx = vertex.x + offsetX;
+        const cz = vertex.z + offsetZ;
 
-        const t = this.topBase;
-        const topPts = {
-            '🔴': { x: t.x + sqrt3 * half, y: t.y, z: t.z - half },
-            '🔵': { x: t.x - sqrt3 * half, y: t.y, z: t.z - half },
-            '🟢': { x: t.x, y: t.y, z: t.z + r }
-        };
+        // Точки равностороннего треугольника без поворота
+        const basePts = [
+            { x: -sqrt3 * half, z: half },
+            { x: sqrt3 * half, z: half },
+            { x: 0, z: -r }
+        ];
+
+        // Поворот треугольника вокруг вертикали (Y) на angle
+        const cosA = Math.cos(angleRad);
+        const sinA = Math.sin(angleRad);
+
+        return basePts.map(p => {
+            const x = p.x * cosA - p.z * sinA;
+            const z = p.x * sinA + p.z * cosA;
+            return { x: cx + x, z: cz + z };
+        });
+    }
+
+    getPoints() {
+        const bottomBasePts = this._computeBase(this.bottomVertex, this.bottomAngle, this.bottomTilt);
+        const topBasePts = this._computeBase(this.topVertex, this.topAngle, this.topTilt);
 
         return {
             '👁️': this.bottomVertex,
             '🟪': this.topVertex,
-            ...bottomPts,
-            ...topPts
+            '🟦': bottomBasePts[0],
+            '🟥': bottomBasePts[1],
+            '🟩': bottomBasePts[2],
+            '🔴': topBasePts[0],
+            '🔵': topBasePts[1],
+            '🟢': topBasePts[2]
         };
     }
 }
