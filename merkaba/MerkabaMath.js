@@ -1,59 +1,167 @@
-export class MerkabaMath {
-    constructor(bottomVertex, bottomBase, topVertex, topBase, radius, bottomAngle, bottomTilt, topAngle, topTilt) {
-        this.bottomVertex = bottomVertex; // {x,y,z} – вершина нижнего
-        this.topVertex = topVertex;       // {x,y,z} – вершина верхнего
-        this.bottomBase = bottomBase;     // {x,y,z} – центр основания нижнего (будет пересчитан)
-        this.topBase = topBase;           // {x,y,z} – центр основания верхнего (будет пересчитан)
-        this.radius = radius;
-        this.bottomAngle = bottomAngle;   // градусы
-        this.bottomTilt = bottomTilt;     // 0..1
-        this.topAngle = topAngle;
-        this.topTilt = topTilt;
+// MerkabaMath.js
+// Класс для расчёта координат точек двух тетраэдров (Меркаба)
+
+class MerkabaMath {
+    constructor() {
+        // Углы (градусы)
+        this.topAngle = 0;          // верхний тетраэдр (🔻)
+        this.bottomAngle = 0;       // нижний тетраэдр (🔺)
+
+        // Наклон (смещение вершины относительно центра основания по X/Z)
+        this.topTilt = 0.3;
+        this.bottomTilt = 0.3;
+
+        // Высоты вершин
+        this.topHeight = 1.8;       // вершина верхнего тетраэдра
+        this.bottomHeight = 1.3;    // вершина нижнего тетраэдра
+
+        // Смещения основания (по вертикали)
+        this.topBaseOffset = 0.6;   // основание верхнего выше вершины
+        this.bottomBaseOffset = 0.6; // основание нижнего ниже вершины
+
+        // Радиус описанной окружности основания
+        this.radius = 1.5;
+
+        // Связь вращения (нижний = верхний + 180°)
+        this.linkRotation = false;
     }
 
-    _computeBase(vertex, angleDeg, tilt) {
-        const r = this.radius;
-        const sqrt3 = Math.sqrt(3);
-        const half = r / 2;
-        const angleRad = angleDeg * Math.PI / 180;
-
-        // Смещение центра основания относительно вершины (наклон)
-        const offsetX = Math.cos(angleRad) * tilt;
-        const offsetZ = Math.sin(angleRad) * tilt;
-        const cx = vertex.x + offsetX;
-        const cz = vertex.z + offsetZ;
-
-        // Точки равностороннего треугольника без поворота
-        const basePts = [
-            { x: -sqrt3 * half, z: half },
-            { x: sqrt3 * half, z: half },
-            { x: 0, z: -r }
-        ];
-
-        // Поворот треугольника вокруг вертикали (Y) на angle
-        const cosA = Math.cos(angleRad);
-        const sinA = Math.sin(angleRad);
-
-        return basePts.map(p => {
-            const x = p.x * cosA - p.z * sinA;
-            const z = p.x * sinA + p.z * cosA;
-            return { x: cx + x, z: cz + z };
-        });
+    // Преобразование градусов в радианы
+    _toRad(deg) {
+        return deg * Math.PI / 180;
     }
 
+    // Получение всех точек (для экспорта JSON и визуализации)
     getPoints() {
-        const bottomBasePts = this._computeBase(this.bottomVertex, this.bottomAngle, this.bottomTilt);
-        const topBasePts = this._computeBase(this.topVertex, this.topAngle, this.topTilt);
+        const bottom = this.getBottomTetrahedron();
+        const top = this.getTopTetrahedron();
 
         return {
-            '👁️': this.bottomVertex,
-            '🟪': this.topVertex,
-            '🟦': bottomBasePts[0],
-            '🟥': bottomBasePts[1],
-            '🟩': bottomBasePts[2],
-            '🔴': topBasePts[0],
-            '🔵': topBasePts[1],
-            '🟢': topBasePts[2]
+            '👁️': bottom.apex,
+            '🟦': bottom.baseVerts[0],
+            '🟥': bottom.baseVerts[1],
+            '🟩': bottom.baseVerts[2],
+            '🟪': top.apex,
+            '🔴': top.baseVerts[0],
+            '🔵': top.baseVerts[1],
+            '🟢': top.baseVerts[2]
+        };
+    }
+
+    // Нижний тетраэдр (🔺)
+    // Вершина (👁️) на высоте bottomHeight,
+    // основание (🟦🟥🟩) на высоте bottomHeight - bottomBaseOffset (ниже вершины)
+    getBottomTetrahedron() {
+        const angle = this.bottomAngle;
+        const tilt = this.bottomTilt;
+        const height = this.bottomHeight;
+        const baseY = height - this.bottomBaseOffset;
+        const R = this.radius;
+        const rad = this._toRad(angle);
+
+        // Вершина (смещена относительно центра основания)
+        const apex = {
+            x: tilt * Math.cos(rad),
+            y: height,
+            z: tilt * Math.sin(rad)
+        };
+
+        // Центр основания (X=0, Z=0, Y=baseY)
+        const baseCenter = {
+            x: 0,
+            y: baseY,
+            z: 0
+        };
+
+        // Вершины основания (равносторонний треугольник, повернут на угол)
+        const baseVerts = [];
+        for (let i = 0; i < 3; i++) {
+            const a = rad + i * (2 * Math.PI / 3);
+            baseVerts.push({
+                x: R * Math.cos(a),
+                y: baseY,
+                z: R * Math.sin(a)
+            });
+        }
+
+        return { apex, baseVerts, baseCenter };
+    }
+
+    // Верхний тетраэдр (🔻)
+    // Вершина (🟪) на высоте topHeight,
+    // основание (🔴🔵🟢) на высоте topHeight + topBaseOffset (выше вершины)
+    getTopTetrahedron() {
+        const angle = this.topAngle;
+        const tilt = this.topTilt;
+        const height = this.topHeight;
+        const baseY = height + this.topBaseOffset;
+        const R = this.radius;
+        const rad = this._toRad(angle);
+
+        // Вершина
+        const apex = {
+            x: tilt * Math.cos(rad),
+            y: height,
+            z: tilt * Math.sin(rad)
+        };
+
+        // Центр основания
+        const baseCenter = {
+            x: 0,
+            y: baseY,
+            z: 0
+        };
+
+        // Вершины основания
+        const baseVerts = [];
+        for (let i = 0; i < 3; i++) {
+            const a = rad + i * (2 * Math.PI / 3);
+            baseVerts.push({
+                x: R * Math.cos(a),
+                y: baseY,
+                z: R * Math.sin(a)
+            });
+        }
+
+        return { apex, baseVerts, baseCenter };
+    }
+
+    // Определение направления по углу (0° = ⬆️, 90° = ➡️, 180° = ⬇️, 270° = ⬅️)
+    static directionFromAngle(angle) {
+        angle = ((angle % 360) + 360) % 360;
+        const dirs = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
+        const idx = Math.round(angle / 45) % 8;
+        return dirs[idx];
+    }
+
+    // Экспорт JSON (как в задании)
+    getJSON() {
+        const points = this.getPoints();
+        return {
+            "top": {
+                "angle": this.topAngle,
+                "tilt": this.topTilt,
+                "height": this.topHeight,
+                "direction": MerkabaMath.directionFromAngle(this.topAngle)
+            },
+            "bottom": {
+                "angle": this.bottomAngle,
+                "tilt": this.bottomTilt,
+                "height": this.bottomHeight,
+                "direction": MerkabaMath.directionFromAngle(this.bottomAngle)
+            },
+            "radius": this.radius,
+            "linkRotation": this.linkRotation,
+            "points": {
+                "👁️": points['👁️'],
+                "🟪": points['🟪'],
+                "🟦": points['🟦'],
+                "🟥": points['🟥'],
+                "🟩": points['🟩'],
+                "🔴": points['🔴'],
+                "🔵": points['🔵'],
+                "🟢": points['🟢']
+            }
         };
     }
 }
