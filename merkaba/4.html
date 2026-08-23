@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Меркаба — Два Тетраэдра</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Меркаба — Мобильная версия</title>
     <style>
         * {
             box-sizing: border-box;
@@ -14,151 +15,165 @@
             background: radial-gradient(ellipse at center, #1a1a3e, #0d0d1a);
             overflow: hidden;
             color: #fff;
+            touch-action: none;
         }
         #controls {
             position: fixed;
-            bottom: 20px;
+            bottom: 12px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(18, 18, 36, .88);
-            padding: 18px 22px;
-            border-radius: 16px;
+            background: rgba(18, 18, 36, .92);
+            padding: 12px 14px;
+            border-radius: 14px;
             z-index: 100;
-            min-width: 380px;
+            width: min(92vw, 420px);
             border: 1px solid rgba(255, 255, 255, .15);
             backdrop-filter: blur(12px);
-            box-shadow: 0 8px 40px rgba(0, 0, 0, .5);
+            box-shadow: 0 6px 30px rgba(0, 0, 0, .5);
+            font-size: 12px;
         }
         .slider-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin: 6px 0;
+            gap: 8px;
+            margin: 4px 0;
         }
         .slider-row label {
             color: #aaa;
-            font-size: 13px;
-            min-width: 72px;
+            font-size: 12px;
+            min-width: 60px;
             white-space: nowrap;
         }
         .slider-row input[type=range] {
             flex: 1;
             accent-color: #6c5ce7;
+            height: 18px;
         }
         .slider-row .value {
             color: #fff;
-            font-size: 14px;
-            min-width: 48px;
+            font-size: 13px;
+            min-width: 40px;
             text-align: right;
             font-variant-numeric: tabular-nums;
         }
         .checkbox-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin: 12px 0 4px;
-            padding: 8px;
+            gap: 8px;
+            margin: 8px 0 4px;
+            padding: 6px;
             background: rgba(255, 255, 255, .05);
             border-radius: 8px;
         }
         .checkbox-row input[type=checkbox] {
             accent-color: #6c5ce7;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
         }
         .checkbox-row label {
             color: #bbb;
-            font-size: 13px;
+            font-size: 12px;
             cursor: pointer;
         }
         #advanced {
             display: none;
             border-top: 1px solid rgba(255, 255, 255, .15);
-            padding-top: 12px;
-            margin-top: 12px;
+            padding-top: 8px;
+            margin-top: 8px;
         }
         #advanced.visible {
             display: block;
         }
-        #gearBtn {
+        #gearBtn, #exportBtn {
             position: fixed;
-            top: 20px;
-            left: 20px;
+            top: 10px;
             background: rgba(18, 18, 36, .8);
             border: 1px solid rgba(255, 255, 255, .3);
             color: #fff;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 16px;
             z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             backdrop-filter: blur(8px);
-            transition: all .3s;
+            transition: background 0.3s;
         }
-        #gearBtn:hover {
-            background: rgba(108, 92, 231, .4);
-            border-color: #6c5ce7;
+        #gearBtn {
+            left: 10px;
         }
         #exportBtn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+            right: 10px;
             background: linear-gradient(135deg, #6c5ce7, #a855f7);
-            color: #fff;
             border: none;
-            padding: 10px 22px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 14px;
-            z-index: 200;
-            box-shadow: 0 4px 20px rgba(108, 92, 231, .4);
-            transition: all .3s;
-            letter-spacing: .5px;
+            border-radius: 10px;
+            width: auto;
+            padding: 8px 14px;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 16px rgba(108, 92, 231, .4);
         }
-        #exportBtn:hover {
-            transform: translateY(-2px) scale(1.03);
-            box-shadow: 0 6px 25px rgba(108, 92, 231, .6);
+        #gearBtn:hover, #exportBtn:hover {
+            background: rgba(108, 92, 231, .5);
         }
         #info {
             position: fixed;
-            top: 70px;
-            right: 20px;
+            top: 50px;
+            right: 10px;
             background: rgba(18, 18, 36, .7);
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 10px;
             color: #888;
             z-index: 100;
             border: 1px solid rgba(255, 255, 255, .1);
             backdrop-filter: blur(4px);
             pointer-events: none;
+            text-align: center;
         }
         canvas {
             display: block;
+        }
+        @media (max-width: 600px) {
+            #controls {
+                padding: 10px;
+                font-size: 11px;
+            }
+            .slider-row {
+                gap: 6px;
+            }
+            .slider-row label {
+                min-width: 55px;
+            }
+            .checkbox-row {
+                padding: 4px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <button id="exportBtn">📋 Экспорт JSON</button>
+    <button id="exportBtn">📋 JSON</button>
     <button id="gearBtn">⚙️</button>
-    <div id="info">🖱️ ЛКМ — вращение · ПКМ — панорама · Колесо — зум</div>
+    <div id="info">🖱️ / 👆 — вращение, панорама, зум</div>
 
     <div id="controls">
         <div class="slider-row">
-            <label>🔻 Верхний угол:</label>
+            <label>🔻 Верх:</label>
             <input type="range" id="topAngle" min="0" max="360" value="0" step="1">
             <span class="value" id="topAngleValue">0°</span>
         </div>
         <div class="slider-row">
-            <label>🔺 Нижний угол:</label>
+            <label>🔺 Низ:</label>
             <input type="range" id="bottomAngle" min="0" max="360" value="0" step="1">
             <span class="value" id="bottomAngleValue">0°</span>
         </div>
         <div class="checkbox-row">
             <input type="checkbox" id="linkCheckbox">
-            <label for="linkCheckbox">🔗 Связь (нижний = верхний + 180°)</label>
+            <label for="linkCheckbox">🔗 Связь (+180°)</label>
         </div>
         <div id="advanced">
             <div class="slider-row">
@@ -183,23 +198,20 @@
             </div>
             <div class="slider-row">
                 <label>📏 Радиус:</label>
-                <input type="range" id="radius" min="0.3" max="3" step="0.05" value="1.5">
-                <span class="value" id="radiusValue">1.5</span>
+                <input type="range" id="radius" min="0.3" max="3" step="0.05" value="1.8">
+                <span class="value" id="radiusValue">1.8</span>
             </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js">
-    </script>
-    <script src="MerkabaMath.js">
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="MerkabaMath.js"></script>
     <script>
-        // === Three.js Setup ===
+        // === Три.js сцена ===
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 100);
-        camera.position.set(5, 3.5, 6);
+        camera.position.set(4, 2.8, 5); // камера ближе — тетраэдры крупнее
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -207,15 +219,15 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // Orbit Controls
+        // Орбитальный контроллер (поддержка touch)
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.15;
-        controls.minDistance = 2;
-        controls.maxDistance = 20;
+        controls.minDistance = 1.5;
+        controls.maxDistance = 15;
         controls.target.set(0, 0, 0);
 
-        // Lighting
+        // Свет
         scene.add(new THREE.AmbientLight(0x8888cc, 0.8));
         const light1 = new THREE.DirectionalLight(0xffffff, 0.9);
         light1.position.set(5, 8, 6);
@@ -227,56 +239,41 @@
         light3.position.set(0, 3, 0);
         scene.add(light3);
 
-        // Grid
+        // Сетка
         const grid = new THREE.GridHelper(8, 12, 0x444466, 0x333355);
         grid.position.y = -0.01;
         scene.add(grid);
 
-        // === Groups ===
+        // === Группы тетраэдров ===
         const bottomGroup = new THREE.Group();
         const topGroup = new THREE.Group();
         scene.add(bottomGroup);
         scene.add(topGroup);
 
-        // === Math ===
+        // === Математика (класс MerkabaMath) ===
         const math = new MerkabaMath();
 
-        // === Helper: create arrow (cone) from A to B ===
+        // === Утилиты ===
         function createArrow(from, to, color) {
             const group = new THREE.Group();
             const dir = new THREE.Vector3().subVectors(to, from);
             const len = dir.length();
             if (len < 0.01) return group;
-
-            // Cone
             const coneGeo = new THREE.ConeGeometry(0.05, len * 0.8, 8);
-            const coneMat = new THREE.MeshPhongMaterial({
-                color: color,
-                transparent: true,
-                opacity: 0.75,
-                emissive: color,
-                emissiveIntensity: 0.3
-            });
+            const coneMat = new THREE.MeshPhongMaterial({ color, transparent: true, opacity: 0.75, emissive: color, emissiveIntensity: 0.3 });
             const cone = new THREE.Mesh(coneGeo, coneMat);
             const mid = new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5);
             cone.position.copy(mid);
-
             const dirNorm = dir.clone().normalize();
-            const quat = new THREE.Quaternion().setFromUnitVectors(
-                new THREE.Vector3(0, 1, 0), dirNorm
-            );
+            const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dirNorm);
             cone.quaternion.copy(quat);
             group.add(cone);
-
-            // Thin line along axis
             const lineGeo = new THREE.BufferGeometry().setFromPoints([from, to]);
-            const lineMat = new THREE.LineBasicMaterial({ color: color, linewidth: 1 });
+            const lineMat = new THREE.LineBasicMaterial({ color, linewidth: 1 });
             group.add(new THREE.Line(lineGeo, lineMat));
-
             return group;
         }
 
-        // === Helper: create sprite label ===
         function createLabel(text, color) {
             const canvas = document.createElement('canvas');
             canvas.width = 128;
@@ -293,21 +290,20 @@
             const texture = new THREE.CanvasTexture(canvas);
             const mat = new THREE.SpriteMaterial({ map: texture, depthTest: true, sizeAttenuation: true });
             const sprite = new THREE.Sprite(mat);
-            sprite.scale.set(0.6, 0.6, 0.6);
+            sprite.scale.set(0.55, 0.55, 0.55);
             return sprite;
         }
 
-        // === Build tetrahedrons ===
+        // === Обновление тетраэдров ===
         function updateTetrahedrons() {
-            // Clear groups
+            // Очистка групп
             while (bottomGroup.children.length) bottomGroup.remove(bottomGroup.children[0]);
             while (topGroup.children.length) topGroup.remove(topGroup.children[0]);
 
             const bottom = math.getBottomTetrahedron();
             const top = math.getTopTetrahedron();
 
-            // Bottom Tetrahedron
-            // Edges
+            // Нижний
             const bEdgePts = [
                 bottom.apex, bottom.baseVerts[0],
                 bottom.apex, bottom.baseVerts[1],
@@ -316,14 +312,12 @@
                 bottom.baseVerts[1], bottom.baseVerts[2],
                 bottom.baseVerts[2], bottom.baseVerts[0]
             ];
-            const bEdgeGeo = new THREE.BufferGeometry().setFromPoints(bEdgePts);
-            const bLine = new THREE.LineSegments(bEdgeGeo, new THREE.LineBasicMaterial({
-                color: 0x44aaff,
-                linewidth: 2
-            }));
+            const bLine = new THREE.LineSegments(
+                new THREE.BufferGeometry().setFromPoints(bEdgePts),
+                new THREE.LineBasicMaterial({ color: 0x44aaff, linewidth: 2 })
+            );
             bottomGroup.add(bLine);
 
-            // Base face
             const bFaceGeo = new THREE.BufferGeometry();
             bFaceGeo.setAttribute('position', new THREE.Float32BufferAttribute([
                 bottom.baseVerts[0].x, bottom.baseVerts[0].y, bottom.baseVerts[0].z,
@@ -333,19 +327,12 @@
             bFaceGeo.setIndex([0, 1, 2]);
             bFaceGeo.computeVertexNormals();
             const bFace = new THREE.Mesh(bFaceGeo, new THREE.MeshBasicMaterial({
-                color: 0x44aaff,
-                transparent: true,
-                opacity: 0.25,
-                side: THREE.DoubleSide,
-                depthWrite: false
+                color: 0x44aaff, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false
             }));
             bottomGroup.add(bFace);
 
-            // Arrow
-            const bArrow = createArrow(bottom.apex, bottom.baseCenter, 0xffaa33);
-            bottomGroup.add(bArrow);
+            bottomGroup.add(createArrow(bottom.apex, bottom.baseCenter, 0xffaa33));
 
-            // Labels
             const bLabels = [
                 { text: '👁️', pos: bottom.apex, color: '#ffffff' },
                 { text: '🟦', pos: bottom.baseVerts[0], color: '#4488ff' },
@@ -358,8 +345,6 @@
                 s.position.y += 0.35;
                 bottomGroup.add(s);
             }
-
-            // Apex sphere
             const bApexSphere = new THREE.Mesh(
                 new THREE.SphereGeometry(0.04, 12, 12),
                 new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.5 })
@@ -367,8 +352,7 @@
             bApexSphere.position.copy(bottom.apex);
             bottomGroup.add(bApexSphere);
 
-            // Top Tetrahedron
-            // Edges
+            // Верхний
             const tEdgePts = [
                 top.apex, top.baseVerts[0],
                 top.apex, top.baseVerts[1],
@@ -377,14 +361,12 @@
                 top.baseVerts[1], top.baseVerts[2],
                 top.baseVerts[2], top.baseVerts[0]
             ];
-            const tEdgeGeo = new THREE.BufferGeometry().setFromPoints(tEdgePts);
-            const tLine = new THREE.LineSegments(tEdgeGeo, new THREE.LineBasicMaterial({
-                color: 0xff44aa,
-                linewidth: 2
-            }));
+            const tLine = new THREE.LineSegments(
+                new THREE.BufferGeometry().setFromPoints(tEdgePts),
+                new THREE.LineBasicMaterial({ color: 0xff44aa, linewidth: 2 })
+            );
             topGroup.add(tLine);
 
-            // Base face
             const tFaceGeo = new THREE.BufferGeometry();
             tFaceGeo.setAttribute('position', new THREE.Float32BufferAttribute([
                 top.baseVerts[0].x, top.baseVerts[0].y, top.baseVerts[0].z,
@@ -394,19 +376,12 @@
             tFaceGeo.setIndex([0, 1, 2]);
             tFaceGeo.computeVertexNormals();
             const tFace = new THREE.Mesh(tFaceGeo, new THREE.MeshBasicMaterial({
-                color: 0xff44aa,
-                transparent: true,
-                opacity: 0.25,
-                side: THREE.DoubleSide,
-                depthWrite: false
+                color: 0xff44aa, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false
             }));
             topGroup.add(tFace);
 
-            // Arrow
-            const tArrow = createArrow(top.apex, top.baseCenter, 0x00ffaa);
-            topGroup.add(tArrow);
+            topGroup.add(createArrow(top.apex, top.baseCenter, 0x00ffaa));
 
-            // Labels
             const tLabels = [
                 { text: '🟪', pos: top.apex, color: '#cc88ff' },
                 { text: '🔴', pos: top.baseVerts[0], color: '#ff2222' },
@@ -419,8 +394,6 @@
                 s.position.y += 0.35;
                 topGroup.add(s);
             }
-
-            // Apex sphere
             const tApexSphere = new THREE.Mesh(
                 new THREE.SphereGeometry(0.04, 12, 12),
                 new THREE.MeshPhongMaterial({ color: 0xcc88ff, emissive: 0xcc88ff, emissiveIntensity: 0.5 })
@@ -429,7 +402,7 @@
             topGroup.add(tApexSphere);
         }
 
-        // === UI Bindings ===
+        // === Связывание UI ===
         const topAngleInput = document.getElementById('topAngle');
         const bottomAngleInput = document.getElementById('bottomAngle');
         const topAngleValue = document.getElementById('topAngleValue');
@@ -463,7 +436,6 @@
             linkCheckbox.checked = math.linkRotation;
         }
 
-        // Top angle
         topAngleInput.addEventListener('input', function() {
             math.topAngle = parseFloat(this.value);
             if (math.linkRotation) {
@@ -474,15 +446,12 @@
             updateTetrahedrons();
         });
 
-        // Bottom angle
         bottomAngleInput.addEventListener('input', function() {
             math.bottomAngle = parseFloat(this.value);
-            // Even if linked, bottom does NOT change top (bottom is anchor)
             updateUI();
             updateTetrahedrons();
         });
 
-        // Link
         linkCheckbox.addEventListener('change', function() {
             math.linkRotation = this.checked;
             if (this.checked) {
@@ -493,7 +462,6 @@
             updateTetrahedrons();
         });
 
-        // Advanced params
         topTiltInput.addEventListener('input', function() {
             math.topTilt = parseFloat(this.value);
             updateUI();
@@ -520,21 +488,15 @@
             updateTetrahedrons();
         });
 
-        // Gear
         gearBtn.addEventListener('click', function() {
             advancedDiv.classList.toggle('visible');
         });
 
-        // Export
         exportBtn.addEventListener('click', function() {
             const data = math.getJSON();
             const str = JSON.stringify(data, null, 2);
             if (navigator.clipboard) {
-                navigator.clipboard.writeText(str).then(() => {
-                    showToast('✅ JSON скопирован в буфер обмена!');
-                }).catch(() => {
-                    fallbackCopy(str);
-                });
+                navigator.clipboard.writeText(str).then(() => showToast('✅ JSON скопирован!'));
             } else {
                 fallbackCopy(str);
             }
@@ -551,7 +513,7 @@
                 document.execCommand('copy');
                 showToast('✅ JSON скопирован!');
             } catch (e) {
-                showToast('❌ Не удалось скопировать');
+                showToast('❌ Ошибка копирования');
             }
             document.body.removeChild(ta);
         }
@@ -559,16 +521,13 @@
         function showToast(msg) {
             const toast = document.createElement('div');
             toast.textContent = msg;
-            toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);' +
-                'background:rgba(30,30,60,.9);color:#fff;padding:12px 24px;border-radius:12px;' +
-                'font-size:14px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4);' +
-                'transition:opacity .3s;pointer-events:none;backdrop-filter:blur(8px);';
+            toast.style.cssText = 'position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(30,30,60,.9);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .3s;pointer-events:none;backdrop-filter:blur(8px);';
             document.body.appendChild(toast);
             setTimeout(() => { toast.style.opacity = '0'; }, 2000);
             setTimeout(() => document.body.removeChild(toast), 2500);
         }
 
-        // === Animation ===
+        // === Анимация ===
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
@@ -582,7 +541,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // === Initial ===
+        // === Инициализация ===
         updateTetrahedrons();
         updateUI();
         animate();
