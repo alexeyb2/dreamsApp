@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Меркаба — Два Тетраэдра (сохранение состояния)</title>
+    <title>Идеальная Меркаба</title>
     <style>
         * {
             box-sizing: border-box;
@@ -116,6 +116,25 @@
         #advanced.visible {
             display: block;
         }
+        #resetBtn {
+            position: fixed;
+            top: 60px;
+            right: 10px;
+            background: rgba(255, 80, 80, .8);
+            border: none;
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 200;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(255,0,0,0.3);
+            transition: all 0.3s;
+        }
+        #resetBtn:hover {
+            background: rgba(255, 100, 100, 1);
+        }
         #gearBtn, #exportBtn {
             position: fixed;
             top: 10px;
@@ -204,6 +223,7 @@
 
     <button id="exportBtn">📋 JSON</button>
     <button id="gearBtn">⚙️</button>
+    <button id="resetBtn">↺ Сброс в идеал</button>
     <div id="info">🖱️ / 👆 — вращение, панорама, зум</div>
 
     <div id="controls">
@@ -225,7 +245,7 @@
             <input type="checkbox" id="linkCheckbox">
             <label for="linkCheckbox">🔗 Связь (смещение)</label>
         </div>
-        <div class="offset-info" id="offsetDisplay">Смещение: 180°</div>
+        <div class="offset-info" id="offsetDisplay">Угол между основаниями: 60°</div>
         <div id="advanced">
             <div class="slider-row">
                 <label>🔻 Наклон:</label>
@@ -273,31 +293,26 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
-    <!-- Класс MerkabaMath (с добавленным offset и новыми значениями по умолчанию) -->
+    <!-- Класс MerkabaMath -->
     <script>
         class MerkabaMath {
             constructor() {
-                // Углы
                 this.topAngle = 0;
                 this.bottomAngle = 0;
-                // Наклоны
                 this.topTilt = 0.3;
                 this.bottomTilt = 0.3;
-                // Высоты (расстояния от основания до вершины)
-                this.topHeight = 1.5;    // вершина верхнего ниже основания
-                this.bottomHeight = 1.5; // вершина нижнего выше основания
-                // Y-координаты оснований
-                this.topY = 2.0;         // основание верхнего
-                this.bottomY = 1.0;      // основание нижнего
+                this.topHeight = 1.5;
+                this.bottomHeight = 1.5;
+                this.bottomY = 1.0;
+                this.topY = 2.0;
                 this.radius = 1.5;
-                // Связь вращения
                 this.linkRotation = false;
-                this.offset = 180;       // смещение (верхний минус нижний)
+                this.offset = 180;
+                this.idealBaseRotation = 60; // фиксированный поворот верхнего основания
             }
 
             _toRad(deg) { return deg * Math.PI / 180; }
 
-            // Возвращает все восемь точек
             getPoints() {
                 const bottom = this.getBottomTetrahedron();
                 const top = this.getTopTetrahedron();
@@ -313,6 +328,7 @@
                 };
             }
 
+            // Нижний: перед = +Z (z положительный)
             getBottomTetrahedron() {
                 const angle = this.bottomAngle;
                 const tilt = this.bottomTilt;
@@ -324,7 +340,7 @@
                 const apex = {
                     x: tilt * Math.sin(rad),
                     y: apexY,
-                    z: -tilt * Math.cos(rad)
+                    z: tilt * Math.cos(rad) // +Z вперёд
                 };
 
                 const baseCenter = { x: 0, y: baseY, z: 0 };
@@ -335,35 +351,39 @@
                     baseVerts.push({
                         x: R * Math.sin(a),
                         y: baseY,
-                        z: -R * Math.cos(a)
+                        z: R * Math.cos(a) // +Z вперёд
                     });
                 }
                 return { apex, baseVerts, baseCenter };
             }
 
+            // Верхний: перед = +Z, основание повернуто на 60° относительно нижнего
             getTopTetrahedron() {
                 const angle = this.topAngle;
                 const tilt = this.topTilt;
                 const baseY = this.topY;
                 const apexY = baseY - this.topHeight;
                 const R = this.radius;
+                // Для наклона вершины используем этот угол
                 const rad = this._toRad(angle);
+                // Для основания добавляем 60° (fixed)
+                const radBase = this._toRad(angle + this.idealBaseRotation);
 
                 const apex = {
                     x: tilt * Math.sin(rad),
                     y: apexY,
-                    z: -tilt * Math.cos(rad)
+                    z: tilt * Math.cos(rad)
                 };
 
                 const baseCenter = { x: 0, y: baseY, z: 0 };
 
                 const baseVerts = [];
                 for (let i = 0; i < 3; i++) {
-                    const a = rad + i * (2 * Math.PI / 3);
+                    const a = radBase + i * (2 * Math.PI / 3);
                     baseVerts.push({
                         x: R * Math.sin(a),
                         y: baseY,
-                        z: -R * Math.cos(a)
+                        z: R * Math.cos(a)
                     });
                 }
                 return { apex, baseVerts, baseCenter };
@@ -374,6 +394,11 @@
                 const dirs = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
                 const idx = Math.round(angle / 45) % 8;
                 return dirs[idx];
+            }
+
+            // Угол между основаниями (идеал = 60)
+            getAngleBetweenBases() {
+                return (this.topAngle + this.idealBaseRotation - this.bottomAngle + 360) % 360;
             }
 
             getJSON() {
@@ -396,6 +421,7 @@
                     "radius": this.radius,
                     "linkRotation": this.linkRotation,
                     "offset": this.offset,
+                    "angleBetweenBases": this.getAngleBetweenBases(),
                     "points": points
                 };
             }
@@ -406,8 +432,9 @@
     <script>
         // === Сцена ===
         const scene = new THREE.Scene();
+        // Камера на -Z, смотрит на +Z (перед = +Z)
         const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 100);
-        camera.position.set(4, 2.8, 5);
+        camera.position.set(-4, 2.8, -5);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -440,25 +467,22 @@
         grid.position.y = -0.01;
         scene.add(grid);
 
-        // Маркер "вперёд" (-Z) — теперь указывает вперёд (куда смотрит камера)
+        // Маркер "вперёд" (+Z) — теперь стрелка идёт к камере
         const forwardMarker = new THREE.Group();
-        // Конус, направленный в -Z
         const markerCone = new THREE.Mesh(
             new THREE.ConeGeometry(0.12, 0.5, 8),
             new THREE.MeshPhongMaterial({ color: 0xffaa00, emissive: 0x442200 })
         );
-        markerCone.rotation.x = -Math.PI / 2; // остриё в -Z
-        markerCone.position.set(0, 0, -1.8);
+        markerCone.rotation.x = -Math.PI / 2; // остриё в +Z
+        markerCone.position.set(0, 0, 1.8);
         forwardMarker.add(markerCone);
-        // Линия вдоль -Z
         const markerLineGeo = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(0, 0, 0),
-            new THREE.Vector3(0, 0, -2.5)
+            new THREE.Vector3(0, 0, 2.5)
         ]);
         const markerLine = new THREE.Line(markerLineGeo,
             new THREE.LineBasicMaterial({ color: 0xffaa00, linewidth: 1 }));
         forwardMarker.add(markerLine);
-        // Подпись "F"
         const canvasLabel = document.createElement('canvas');
         canvasLabel.width = 64;
         canvasLabel.height = 64;
@@ -472,17 +496,16 @@
         const spriteMat = new THREE.SpriteMaterial({ map: textureLabel });
         const spriteLabel = new THREE.Sprite(spriteMat);
         spriteLabel.scale.set(0.5, 0.5, 0.5);
-        spriteLabel.position.set(0, 0.3, -2.1);
+        spriteLabel.position.set(0, 0.3, 2.1);
         forwardMarker.add(spriteLabel);
         scene.add(forwardMarker);
 
-        // Группы тетраэдров
+        // Группы
         const bottomGroup = new THREE.Group();
         const topGroup = new THREE.Group();
         scene.add(bottomGroup);
         scene.add(topGroup);
 
-        // Экземпляр математики
         const math = new MerkabaMath();
 
         // === Утилиты ===
@@ -506,7 +529,7 @@
             return sprite;
         }
 
-        // === Обновление тетраэдров ===
+        // === Обновление модели ===
         function updateTetrahedrons() {
             while (bottomGroup.children.length) bottomGroup.remove(bottomGroup.children[0]);
             while (topGroup.children.length) topGroup.remove(topGroup.children[0]);
@@ -514,7 +537,7 @@
             const bottom = math.getBottomTetrahedron();
             const top = math.getTopTetrahedron();
 
-            // Нижний тетраэдр
+            // Нижний
             const bEdgePts = [
                 bottom.apex, bottom.baseVerts[0],
                 bottom.apex, bottom.baseVerts[1],
@@ -542,7 +565,6 @@
             }));
             bottomGroup.add(bFace);
 
-            // Подписи
             const bLabels = [
                 { text: '👁️', pos: bottom.apex, color: '#ffffff' },
                 { text: '🟩', pos: bottom.baseVerts[0], color: '#44ff44' },
@@ -556,7 +578,7 @@
                 bottomGroup.add(s);
             }
 
-            // Верхний тетраэдр
+            // Верхний
             const tEdgePts = [
                 top.apex, top.baseVerts[0],
                 top.apex, top.baseVerts[1],
@@ -601,7 +623,6 @@
         // === Сохранение и загрузка состояния ===
         function saveState() {
             const state = {
-                // Математика
                 topAngle: math.topAngle,
                 bottomAngle: math.bottomAngle,
                 topTilt: math.topTilt,
@@ -613,7 +634,6 @@
                 radius: math.radius,
                 linkRotation: math.linkRotation,
                 offset: math.offset,
-                // Камера
                 cameraPos: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
                 cameraTarget: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
             };
@@ -625,7 +645,6 @@
             if (saved) {
                 try {
                     const state = JSON.parse(saved);
-                    // Применяем к математике
                     if (state.topAngle !== undefined) math.topAngle = state.topAngle;
                     if (state.bottomAngle !== undefined) math.bottomAngle = state.bottomAngle;
                     if (state.topTilt !== undefined) math.topTilt = state.topTilt;
@@ -637,17 +656,10 @@
                     if (state.radius !== undefined) math.radius = state.radius;
                     if (state.linkRotation !== undefined) math.linkRotation = state.linkRotation;
                     if (state.offset !== undefined) math.offset = state.offset;
-                    // Камера
-                    if (state.cameraPos) {
-                        camera.position.set(state.cameraPos.x, state.cameraPos.y, state.cameraPos.z);
-                    }
-                    if (state.cameraTarget) {
-                        controls.target.set(state.cameraTarget.x, state.cameraTarget.y, state.cameraTarget.z);
-                    }
+                    if (state.cameraPos) camera.position.set(state.cameraPos.x, state.cameraPos.y, state.cameraPos.z);
+                    if (state.cameraTarget) controls.target.set(state.cameraTarget.x, state.cameraTarget.y, state.cameraTarget.z);
                     controls.update();
-                } catch (e) {
-                    console.warn('Не удалось загрузить состояние', e);
-                }
+                } catch (e) { console.warn('Load error', e); }
             }
         }
 
@@ -674,6 +686,7 @@
         const gearBtn = document.getElementById('gearBtn');
         const advancedDiv = document.getElementById('advanced');
         const exportBtn = document.getElementById('exportBtn');
+        const resetBtn = document.getElementById('resetBtn');
 
         // === Функции обновления UI ===
         function updateLinkUI() {
@@ -687,7 +700,8 @@
         }
 
         function updateOffsetUI() {
-            offsetDisplay.textContent = `Смещение: ${Math.round(math.offset)}°`;
+            const angleBetween = math.getAngleBetweenBases();
+            offsetDisplay.textContent = `Угол между основаниями: ${Math.round(angleBetween)}°`;
             offsetSlider.value = math.offset;
             offsetSliderValue.textContent = Math.round(math.offset) + '°';
         }
@@ -743,7 +757,6 @@
         bottomAngleInput.addEventListener('input', function() {
             math.bottomAngle = parseFloat(this.value);
             if (math.linkRotation) {
-                // Если связь включена, при ручном движении нижнего — снимаем связь
                 math.linkRotation = false;
                 linkCheckbox.checked = false;
                 updateLinkUI();
@@ -768,7 +781,7 @@
             saveState();
         });
 
-        // Обработчики дополнительных параметров
+        // Дополнительные параметры
         topTiltInput.addEventListener('input', function() {
             math.topTilt = parseFloat(this.value);
             updateUI();
@@ -811,7 +824,6 @@
             updateTetrahedrons();
             saveState();
         });
-
         offsetSlider.addEventListener('input', function() {
             math.offset = parseFloat(this.value);
             if (math.linkRotation) {
@@ -828,6 +840,28 @@
 
         gearBtn.addEventListener('click', function() {
             advancedDiv.classList.toggle('visible');
+        });
+
+        resetBtn.addEventListener('click', function() {
+            // Сброс в идеал: углы 0, наклоны 0, высоты стандартные
+            math.topAngle = 0;
+            math.bottomAngle = 0;
+            math.topTilt = 0;
+            math.bottomTilt = 0;
+            math.topHeight = 1.5;
+            math.bottomHeight = 1.5;
+            math.topY = 2.0;
+            math.bottomY = 1.0;
+            math.radius = 1.5;
+            math.linkRotation = false;
+            math.offset = 180;
+            // Камера на стандартную позицию
+            camera.position.set(-4, 2.8, -5);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            updateUI();
+            updateTetrahedrons();
+            saveState();
         });
 
         exportBtn.addEventListener('click', function() {
@@ -880,10 +914,10 @@
         });
 
         // === Инициализация ===
-        loadState();          // Загружаем сохранённое состояние
-        updateTetrahedrons(); // Строим модель
-        updateUI();           // Обновляем панель
-        animate();            // Запускаем рендер
+        loadState();
+        updateTetrahedrons();
+        updateUI();
+        animate();
     </script>
 </body>
 </html>
