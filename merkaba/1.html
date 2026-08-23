@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Меркаба • Основания + Тело</title>
+    <title>Меркаба • Управляемые тетраэдры</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #0a0a1a; }
         #controls {
@@ -25,12 +25,23 @@
             background: rgba(0,0,0,0.7); padding: 8px 14px; border-radius: 8px;
             pointer-events: none; z-index: 10; font-family: monospace; max-height: 240px;
             overflow-y: auto; white-space: pre; line-height: 1.6; border: 1px solid #333;
-            min-width: 200px; transition: opacity 0.3s;
+            min-width: 220px; transition: opacity 0.3s;
         }
         @media (max-width: 600px) { #coords { display: none; } }
+        #toggleBtn {
+            position: fixed; top: 10px; right: 10px; z-index: 20;
+            background: #333; color: #fff; border: 1px solid #555;
+            padding: 8px 12px; border-radius: 8px; cursor: pointer;
+            font-size: 18px; user-select: none;
+        }
+        #toggleBtn:hover { background: #444; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
+    <!-- Кнопка скрытия/показа панели -->
+    <div id="toggleBtn" title="Скрыть/показать управление">⚙️</div>
+
     <div id="controls">
         <div class="row">
             <label>📏 Рост <input type="range" id="heightSlider" min="100" max="220" value="180" step="1" /><span class="value" id="valHeight">180</span></label>
@@ -43,16 +54,16 @@
             <label>⭕ Радиус <input type="range" id="radius" min="20" max="120" value="80" step="1" /><span class="value" id="valRadius">80</span></label>
             <label><input type="checkbox" id="autoRadius" checked /> авто</label>
         </div>
-        <!-- НОВЫЕ СЛАЙДЕРЫ ДЛЯ УГЛОВ -->
         <div class="row">
             <label>🔻 Угол верха <input type="range" id="topAngle" min="0" max="360" value="0" step="1" /><span class="value" id="valTopAngle">0</span></label>
             <label>🔺 Угол низа <input type="range" id="bottomAngle" min="0" max="360" value="180" step="1" /><span class="value" id="valBottomAngle">180</span></label>
             <label><input type="checkbox" id="linkRotation" checked /> связь</label>
         </div>
         <div class="row">
-            <label>📐 Наклон <input type="range" id="mag" min="0" max="100" value="30" step="1" /><span class="value" id="valMag">30</span></label>
+            <label>📐 Наклон <input type="range" id="mag" min="0" max="100" value="40" step="1" /><span class="value" id="valMag">40</span></label>
         </div>
     </div>
+
     <div id="coords"></div>
 
     <script type="importmap">
@@ -201,11 +212,12 @@
         const autoRadius = document.getElementById('autoRadius');
         const coordsDiv = document.getElementById('coords');
 
-        // Новые элементы
         const topAngle = document.getElementById('topAngle');
         const bottomAngle = document.getElementById('bottomAngle');
         const linkRotation = document.getElementById('linkRotation');
         const mag = document.getElementById('mag');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const controlsPanel = document.getElementById('controls');
 
         // ---------- ФУНКЦИЯ ОТРИСОВКИ ТЕЛА ----------
         function updateBody() {
@@ -242,6 +254,13 @@
             }
         }
 
+        // ---------- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ НАПРАВЛЕНИЙ ----------
+        function getDirectionName(deg) {
+            const dirs = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
+            const index = Math.round(deg / 45) % 8;
+            return dirs[index];
+        }
+
         // ---------- ПЕРЕСТРОЙКА МЕРКАБЫ ----------
         function rebuild() {
             const ex = parseFloat(eyeX.value) / 100;
@@ -266,39 +285,31 @@
                 document.getElementById('valRadius').textContent = radius.value;
             }
 
-            // ----- Чтение углов и связь -----
+            // Читаем углы (без принудительного изменения нижнего)
             let topAngleDeg = parseFloat(topAngle.value);
             let bottomAngleDeg = parseFloat(bottomAngle.value);
 
-            // Если связь включена, то при изменении верхнего угла нижний становится противоположным
-            // Но важно: мы будем обновлять нижний только если верхний меняется (обработчик input)
-            // Здесь просто вычисляем на основе текущих значений, но с учётом связи:
-            if (linkRotation.checked) {
-                // Принудительно устанавливаем нижний = верхний + 180
-                bottomAngleDeg = (topAngleDeg + 180) % 360;
-                bottomAngle.value = bottomAngleDeg;
-            }
+            // Если связь включена, то при изменении верхнего нижний должен быть противоположным.
+            // Но здесь мы не трогаем нижний, так как это делается в обработчике topAngle.
+            // Для расчёта используем текущие значения.
 
-            // Величина смещения (доля от h)
-            const magValue = parseFloat(mag.value) / 100 * h; // mag слайдер от 0 до 100 (проценты от h)
+            // Величина смещения (процент от h)
+            const magValue = parseFloat(mag.value) / 100 * h;
             document.getElementById('valMag').textContent = mag.value;
 
-            // Перевод в радианы
             const topRad = topAngleDeg * Math.PI / 180;
             const bottomRad = bottomAngleDeg * Math.PI / 180;
 
-            // Смещение для верхнего тетраэдра (вершина смещается в направлении угла)
-            // Угол 0 = вниз (к нам, отрицательное Z), 90 = вправо (X+), 180 = вперёд (от нас, +Z), 270 = влево (X-)
+            // Смещение для верхнего тетраэдра (вершина смещается)
             const topShift = {
                 x: Math.sin(topRad) * magValue,
-                z: -Math.cos(topRad) * magValue   // минус, чтобы 0° давал -Z (к нам)
+                z: Math.cos(topRad) * magValue
             };
 
-            // Смещение для нижнего тетраэдра (основание смещается в направлении угла)
-            // Угол 0 = вниз (к нам, -Z), 180 = вперёд (от нас, +Z)
+            // Смещение для нижнего тетраэдра (основание смещается)
             const bottomShift = {
                 x: Math.sin(bottomRad) * magValue,
-                z: -Math.cos(bottomRad) * magValue
+                z: Math.cos(bottomRad) * magValue
             };
 
             // Создаём Меркабу с новыми смещениями
@@ -311,6 +322,9 @@
             for (const [key, v] of Object.entries(points)) {
                 text += `${key}: (${(v.x*100).toFixed(1)}, ${(v.y*100).toFixed(1)}, ${(v.z*100).toFixed(1)})\n`;
             }
+            // Добавляем направления
+            text += `\n🔻 направление: ${getDirectionName(topAngleDeg)}\n`;
+            text += `🔺 направление: ${getDirectionName(bottomAngleDeg)}\n`;
             coordsDiv.textContent = text;
         }
 
@@ -319,11 +333,10 @@
             el.addEventListener('input', () => { updateBody(); rebuild(); });
         });
 
-        // Слушатели для углов
         topAngle.addEventListener('input', () => {
             document.getElementById('valTopAngle').textContent = topAngle.value;
             if (linkRotation.checked) {
-                // Устанавливаем нижний как противоположный
+                // Двигаем нижний противоположно
                 bottomAngle.value = (parseFloat(topAngle.value) + 180) % 360;
                 document.getElementById('valBottomAngle').textContent = bottomAngle.value;
             }
@@ -338,11 +351,16 @@
 
         linkRotation.addEventListener('change', () => {
             if (linkRotation.checked) {
-                // При включении связи сразу синхронизируем
+                // При включении связи синхронизируем нижний с верхним
                 bottomAngle.value = (parseFloat(topAngle.value) + 180) % 360;
                 document.getElementById('valBottomAngle').textContent = bottomAngle.value;
             }
             rebuild();
+        });
+
+        // Кнопка скрытия панели
+        toggleBtn.addEventListener('click', () => {
+            controlsPanel.classList.toggle('hidden');
         });
 
         updateBody();
