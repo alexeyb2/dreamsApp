@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Меркаба • Смещённые тетраэдры</title>
+    <title>Меркаба • Управляемые тетраэдры</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #0a0a1a; }
         #controls {
@@ -40,20 +40,21 @@
     <button id="toggleBtn" title="Скрыть/показать панель">⚙️</button>
 
     <div id="controls">
+        <!-- Верхний тетраэдр (🔻) -->
         <div class="row">
-            <label>🔻 Угол X <input type="range" id="topX" min="-100" max="100" value="0" step="1" /><span class="value" id="valTopX">0</span></label>
-            <label>🔻 Угол Z <input type="range" id="topZ" min="-100" max="100" value="0" step="1" /><span class="value" id="valTopZ">0</span></label>
+            <label>🔻 Угол <input type="range" id="topAngle" min="0" max="360" value="0" step="1" /><span class="value" id="valTopAngle">0</span></label>
+            <label>🔻 Наклон <input type="range" id="topTilt" min="0" max="100" value="20" step="1" /><span class="value" id="valTopTilt">20</span></label>
             <label>🔻 Высота <input type="range" id="topY" min="150" max="250" value="180" step="1" /><span class="value" id="valTopY">180</span></label>
         </div>
+        <!-- Нижний тетраэдр (🔺) -->
         <div class="row">
-            <label>🔺 Угол X <input type="range" id="bottomX" min="-100" max="100" value="0" step="1" /><span class="value" id="valBottomX">0</span></label>
-            <label>🔺 Угол Z <input type="range" id="bottomZ" min="-100" max="100" value="0" step="1" /><span class="value" id="valBottomZ">0</span></label>
+            <label>🔺 Угол <input type="range" id="bottomAngle" min="0" max="360" value="180" step="1" /><span class="value" id="valBottomAngle">180</span></label>
+            <label>🔺 Наклон <input type="range" id="bottomTilt" min="0" max="100" value="20" step="1" /><span class="value" id="valBottomTilt">20</span></label>
             <label>🔺 Высота <input type="range" id="bottomY" min="50" max="150" value="130" step="1" /><span class="value" id="valBottomY">130</span></label>
         </div>
         <div class="row">
-            <label>⭕ Радиус <input type="range" id="radius" min="20" max="120" value="80" step="1" /><span class="value" id="valRadius">80</span></label>
+            <label>⭕ Радиус <input type="range" id="radius" min="10" max="120" value="35" step="1" /><span class="value" id="valRadius">35</span></label>
             <label><input type="checkbox" id="linkRotation" checked /> связь</label>
-            <label><input type="checkbox" id="autoRadius" checked /> авто радиус</label>
         </div>
     </div>
     <div id="coords"></div>
@@ -102,7 +103,7 @@
         // ГРУППЫ
         let mainGroup = new THREE.Group();
         scene.add(mainGroup);
-        let bodyGroup = new THREE.Group();
+        let bodyGroup = new THREE.Group(); // для тела (опционально)
         scene.add(bodyGroup);
 
         // ВИЗУАЛИЗАТОР
@@ -195,93 +196,103 @@
         const visualizer = new MerkabaVisual();
 
         // УПРАВЛЕНИЕ
-        const topX = document.getElementById('topX');
-        const topZ = document.getElementById('topZ');
+        const topAngle = document.getElementById('topAngle');
+        const topTilt = document.getElementById('topTilt');
         const topY = document.getElementById('topY');
-        const bottomX = document.getElementById('bottomX');
-        const bottomZ = document.getElementById('bottomZ');
+        const bottomAngle = document.getElementById('bottomAngle');
+        const bottomTilt = document.getElementById('bottomTilt');
         const bottomY = document.getElementById('bottomY');
         const radiusInput = document.getElementById('radius');
         const linkRotation = document.getElementById('linkRotation');
-        const autoRadius = document.getElementById('autoRadius');
         const coordsDiv = document.getElementById('coords');
+
+        // Функция для получения направления (стрелка) по углу
+        function getDirection(deg) {
+            const dirs = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
+            return dirs[Math.round(deg / 45) % 8];
+        }
 
         // ЭКСПОРТ JSON
         function exportJSON() {
             const data = {
                 top: {
-                    x: parseFloat(topX.value),
-                    y: parseFloat(topY.value),
-                    z: parseFloat(topZ.value)
+                    angle: parseFloat(topAngle.value),
+                    tilt: parseFloat(topTilt.value),
+                    height: parseFloat(topY.value)
                 },
                 bottom: {
-                    x: parseFloat(bottomX.value),
-                    y: parseFloat(bottomY.value),
-                    z: parseFloat(bottomZ.value)
+                    angle: parseFloat(bottomAngle.value),
+                    tilt: parseFloat(bottomTilt.value),
+                    height: parseFloat(bottomY.value)
                 },
                 radius: parseFloat(radiusInput.value),
-                linkRotation: linkRotation.checked,
-                autoRadius: autoRadius.checked
+                linkRotation: linkRotation.checked
             };
             navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => alert('JSON скопирован!'));
         }
 
         // ПЕРЕСТРОЙКА
         function rebuild() {
-            // Читаем значения (в сантиметрах, переводим в метры)
-            const tx = parseFloat(topX.value) / 100;
-            const ty = parseFloat(topY.value) / 100;
-            const tz = parseFloat(topZ.value) / 100;
-            const bx = parseFloat(bottomX.value) / 100;
-            const by = parseFloat(bottomY.value) / 100;
-            const bz = parseFloat(bottomZ.value) / 100;
+            // Читаем параметры
+            let aTop = parseFloat(topAngle.value);
+            let tiltTop = parseFloat(topTilt.value) / 100; // 0..1
+            let yTop = parseFloat(topY.value) / 100;
+            let aBottom = parseFloat(bottomAngle.value);
+            let tiltBottom = parseFloat(bottomTilt.value) / 100;
+            let yBottom = parseFloat(bottomY.value) / 100;
+            let r = parseFloat(radiusInput.value) / 100;
 
-            // Если связь включена, зеркалим нижний относительно верхнего
+            // Если связь включена, нижний угол = верхний + 180
             if (linkRotation.checked) {
-                bottomX.value = -tx * 100;
-                bottomZ.value = -tz * 100;
-                bottomY.value = 130; // фиксированная высота нижнего
-                document.getElementById('valBottomX').textContent = bottomX.value;
-                document.getElementById('valBottomZ').textContent = bottomZ.value;
-                document.getElementById('valBottomY').textContent = bottomY.value;
+                aBottom = (aTop + 180) % 360;
+                bottomAngle.value = aBottom;
+                document.getElementById('valBottomAngle').textContent = aBottom;
             }
 
-            // Радиус (авто или вручную)
-            let radiusVal = parseFloat(radiusInput.value) / 100;
-            if (autoRadius.checked) {
-                radiusVal = Math.sqrt((tx - bx)**2 + (tz - bz)**2) * 0.6;
-                if (radiusVal < 0.2) radiusVal = 0.2;
-                radiusInput.value = (radiusVal * 100).toFixed(0);
-                document.getElementById('valRadius').textContent = radiusInput.value;
-            }
+            // Вычисляем смещения оснований относительно вершин
+            const shiftX = (angle, tilt) => Math.sin(angle * Math.PI / 180) * tilt * 0.5;
+            const shiftZ = (angle, tilt) => Math.cos(angle * Math.PI / 180) * tilt * 0.5;
 
-            // Создаём Меркабу
-            const math = new MerkabaMath(
-                { x: bx, y: by, z: bz },
-                { x: bx - tx, z: bz - tz },
-                { x: tx - bx, z: tz - bz },
-                radiusVal
-            );
+            // Вершины (мы задаём их Y, а X/Z = 0 для простоты, но можно добавить слайдеры)
+            // Для наглядности пусть вершины будут в центре (0, y, 0)
+            const bottomVertex = { x: 0, y: yBottom, z: 0 };
+            const topVertex = { x: 0, y: yTop, z: 0 };
+
+            // Центры оснований (смещены относительно вершин)
+            const bottomBase = {
+                x: bottomVertex.x - shiftX(aBottom, tiltBottom),
+                y: bottomVertex.y - 0.6, // фиксированная высота основания
+                z: bottomVertex.z - shiftZ(aBottom, tiltBottom)
+            };
+
+            const topBase = {
+                x: topVertex.x + shiftX(aTop, tiltTop),
+                y: topVertex.y + 0.6,
+                z: topVertex.z + shiftZ(aTop, tiltTop)
+            };
+
+            // Создаём модель
+            const math = new MerkabaMath(bottomVertex, bottomBase, topVertex, topBase, r);
             const points = math.getPoints();
 
             visualizer.render(points, { showDiag: true, showLabels: true });
 
             // Вывод координат
-            let text = 'Координаты (см):\n';
+            let text = 'Координаты (м):\n';
             for (const [key, v] of Object.entries(points)) {
-                text += `${key}: (${(v.x*100).toFixed(1)}, ${(v.y*100).toFixed(1)}, ${(v.z*100).toFixed(1)})\n`;
+                text += `${key}: (${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)})\n`;
             }
             coordsDiv.textContent = text;
         }
 
         // Слушатели
-        [topX, topZ, topY, bottomX, bottomZ, bottomY, radiusInput, linkRotation, autoRadius].forEach(el => {
+        [topAngle, topTilt, topY, bottomAngle, bottomTilt, bottomY, radiusInput, linkRotation].forEach(el => {
             el.addEventListener('input', () => {
-                document.getElementById('valTopX').textContent = topX.value;
-                document.getElementById('valTopZ').textContent = topZ.value;
+                document.getElementById('valTopAngle').textContent = topAngle.value;
+                document.getElementById('valTopTilt').textContent = topTilt.value;
                 document.getElementById('valTopY').textContent = topY.value;
-                document.getElementById('valBottomX').textContent = bottomX.value;
-                document.getElementById('valBottomZ').textContent = bottomZ.value;
+                document.getElementById('valBottomAngle').textContent = bottomAngle.value;
+                document.getElementById('valBottomTilt').textContent = bottomTilt.value;
                 document.getElementById('valBottomY').textContent = bottomY.value;
                 document.getElementById('valRadius').textContent = radiusInput.value;
                 rebuild();
@@ -294,6 +305,7 @@
             document.getElementById('controls').classList.toggle('hidden');
         });
 
+        // Инициализация
         rebuild();
 
         // Анимация
