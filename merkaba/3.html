@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Меркаба • Вращение</title>
+    <title>Меркаба • Вращение с направлением</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #0a0a1a; }
         #controls {
@@ -17,10 +17,7 @@
         label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #ddd; }
         input[type="range"] { width: 120px; accent-color: #66aaff; cursor: pointer; }
         .value { min-width: 35px; text-align: center; font-weight: bold; color: #fff; }
-        #advanced {
-            display: none; margin-top: 10px; padding-top: 10px;
-            border-top: 1px solid #444;
-        }
+        #advanced { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #444; }
         #coords {
             position: absolute; bottom: 140px; left: 10px; color: #aaa; font-size: 12px;
             background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 8px;
@@ -57,11 +54,11 @@
         <!-- Дополнительные настройки (скрыты) -->
         <div id="advanced">
             <div class="row">
-                <label>🔻 Наклон <input type="range" id="topTilt" min="0" max="100" value="20" step="1" /><span class="value" id="valTopTilt">20</span></label>
+                <label>🔻 Наклон <input type="range" id="topTilt" min="0" max="100" value="50" step="1" /><span class="value" id="valTopTilt">50</span></label>
                 <label>🔻 Высота <input type="range" id="topY" min="150" max="250" value="180" step="1" /><span class="value" id="valTopY">180</span></label>
             </div>
             <div class="row">
-                <label>🔺 Наклон <input type="range" id="bottomTilt" min="0" max="100" value="20" step="1" /><span class="value" id="valBottomTilt">20</span></label>
+                <label>🔺 Наклон <input type="range" id="bottomTilt" min="0" max="100" value="50" step="1" /><span class="value" id="valBottomTilt">50</span></label>
                 <label>🔺 Высота <input type="range" id="bottomY" min="50" max="150" value="130" step="1" /><span class="value" id="valBottomY">130</span></label>
             </div>
             <div class="row">
@@ -116,8 +113,6 @@
         // ГРУППЫ
         let mainGroup = new THREE.Group();
         scene.add(mainGroup);
-        let bodyGroup = new THREE.Group(); // для тела (опционально)
-        scene.add(bodyGroup);
 
         // ВИЗУАЛИЗАТОР
         class MerkabaVisual {
@@ -179,6 +174,7 @@
                     return new THREE.Line(g, m);
                 };
 
+                // Рёбра тетраэдров
                 const topV = vecPts['👁️'];
                 const topBase = [vecPts['🟦'], vecPts['🟥'], vecPts['🟩']];
                 topBase.forEach(p => this.group.add(addLine(topV, p, 0x66ccff, 0.8)));
@@ -193,6 +189,7 @@
                 this.group.add(addLine(bottomBase[1], bottomBase[2], 0xff8866, 0.9));
                 this.group.add(addLine(bottomBase[2], bottomBase[0], 0xff8866, 0.9));
 
+                // Диагонали (пунктирные)
                 if (options.showDiag) {
                     const diag = [
                         [vecPts['🟦'], vecPts['🔴']],
@@ -201,6 +198,34 @@
                         [vecPts['👁️'], vecPts['🟪']]
                     ];
                     diag.forEach(([p1, p2]) => this.group.add(addLine(p1, p2, 0xffdd44, 0.3)));
+                }
+
+                // СТРЕЛКИ направления (от вершины к центру основания)
+                if (options.showArrows) {
+                    const arrowGeom = new THREE.ConeGeometry(0.03, 0.12, 8);
+                    const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+                    // Для верхнего (основание-центр)
+                    const topCenter = new THREE.Vector3(
+                        (topBase[0].x + topBase[1].x + topBase[2].x) / 3,
+                        (topBase[0].y + topBase[1].y + topBase[2].y) / 3,
+                        (topBase[0].z + topBase[1].z + topBase[2].z) / 3
+                    );
+                    const topArrow = new THREE.Mesh(arrowGeom, arrowMat);
+                    topArrow.position.copy(topCenter);
+                    topArrow.lookAt(topV);
+                    this.group.add(topArrow);
+
+                    // Для нижнего
+                    const bottomCenter = new THREE.Vector3(
+                        (bottomBase[0].x + bottomBase[1].x + bottomBase[2].x) / 3,
+                        (bottomBase[0].y + bottomBase[1].y + bottomBase[2].y) / 3,
+                        (bottomBase[0].z + bottomBase[1].z + bottomBase[2].z) / 3
+                    );
+                    const bottomArrow = new THREE.Mesh(arrowGeom, arrowMat);
+                    bottomArrow.position.copy(bottomCenter);
+                    bottomArrow.lookAt(bottomV);
+                    this.group.add(bottomArrow);
                 }
             }
         }
@@ -217,38 +242,39 @@
         const radiusInput = document.getElementById('radius');
         const coordsDiv = document.getElementById('coords');
 
-        // Функция для получения направления (стрелка) по углу
+        // Функция получения направления (для экспорта)
         function getDirection(deg) {
             const dirs = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
             return dirs[Math.round(deg / 45) % 8];
         }
 
-        // ЭКСПОРТ JSON (включая координаты точек)
+        // ЭКСПОРТ JSON
         function exportJSON() {
-            // Вычисляем текущие параметры
             const params = getParams();
             const data = {
                 top: {
                     angle: parseFloat(topAngle.value),
                     tilt: parseFloat(topTilt.value),
-                    height: parseFloat(topY.value)
+                    height: parseFloat(topY.value),
+                    direction: getDirection(parseFloat(topAngle.value))
                 },
                 bottom: {
                     angle: parseFloat(bottomAngle.value),
                     tilt: parseFloat(bottomTilt.value),
-                    height: parseFloat(bottomY.value)
+                    height: parseFloat(bottomY.value),
+                    direction: getDirection(parseFloat(bottomAngle.value))
                 },
                 radius: parseFloat(radiusInput.value),
                 linkRotation: linkRotation.checked,
-                points: params.points // добавляем координаты всех точек
+                points: params.points
             };
             navigator.clipboard.writeText(JSON.stringify(data, null, 2)).then(() => alert('JSON скопирован!'));
         }
 
-        // Параметры для построения
+        // ПАРАМЕТРЫ ДЛЯ ПОСТРОЕНИЯ
         function getParams() {
             let aTop = parseFloat(topAngle.value);
-            let tiltTop = parseFloat(topTilt.value) / 100;
+            let tiltTop = parseFloat(topTilt.value) / 100; // 0..1
             let yTop = parseFloat(topY.value) / 100;
             let aBottom = parseFloat(bottomAngle.value);
             let tiltBottom = parseFloat(bottomTilt.value) / 100;
@@ -261,25 +287,14 @@
                 document.getElementById('valBottomAngle').textContent = aBottom;
             }
 
-            const shiftX = (angle, tilt) => Math.sin(angle * Math.PI / 180) * tilt * 0.5;
-            const shiftZ = (angle, tilt) => Math.cos(angle * Math.PI / 180) * tilt * 0.5;
-
             const bottomVertex = { x: 0, y: yBottom, z: 0 };
             const topVertex = { x: 0, y: yTop, z: 0 };
 
-            const bottomBase = {
-                x: bottomVertex.x - shiftX(aBottom, tiltBottom),
-                y: bottomVertex.y - 0.6,
-                z: bottomVertex.z - shiftZ(aBottom, tiltBottom)
-            };
-
-            const topBase = {
-                x: topVertex.x + shiftX(aTop, tiltTop),
-                y: topVertex.y + 0.6,
-                z: topVertex.z + shiftZ(aTop, tiltTop)
-            };
-
-            const math = new MerkabaMath(bottomVertex, bottomBase, topVertex, topBase, r);
+            // Вычисляем координаты точек через MerkabaMath
+            const math = new MerkabaMath(
+                bottomVertex, null, topVertex, null, r,
+                aBottom, tiltBottom, aTop, tiltTop
+            );
             const points = math.getPoints();
 
             return { points, aTop, tiltTop, yTop, aBottom, tiltBottom, yBottom, r };
@@ -290,7 +305,7 @@
             const params = getParams();
             const points = params.points;
 
-            visualizer.render(points, { showDiag: true, showLabels: true });
+            visualizer.render(points, { showDiag: true, showLabels: true, showArrows: true });
 
             let text = 'Координаты (м):\n';
             for (const [key, v] of Object.entries(points)) {
