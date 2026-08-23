@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Меркаба • Основания + Тело</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; background: #0a0a1a; }
+        #controls {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            background: rgba(20,20,40,0.85); backdrop-filter: blur(6px);
+            color: white; padding: 18px 28px; border-radius: 14px;
+            border: 1px solid #444; display: flex; flex-wrap: wrap;
+            gap: 18px 30px; justify-content: center; align-items: center;
+            z-index: 10; pointer-events: auto; max-width: 95%;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+        }
+        #controls label { display: flex; align-items: center; gap: 8px; font-size: 15px; color: #ddd; }
+        #controls input[type="range"] { width: 100px; background: #222; accent-color: #66aaff; cursor: pointer; }
+        #controls .value { min-width: 40px; text-align: center; font-weight: bold; color: #fff; }
+        .row { display: flex; flex-wrap: wrap; gap: 10px; }
+        @media (max-width: 700px) { #controls { flex-direction: column; gap: 10px; padding: 15px; bottom: 10px; } }
+        #coords {
+            position: absolute; bottom: 110px; left: 20px; color: #aaa; font-size: 13px;
+            background: rgba(0,0,0,0.7); padding: 8px 14px; border-radius: 8px;
+            pointer-events: none; z-index: 10; font-family: monospace; max-height: 240px;
+            overflow-y: auto; white-space: pre; line-height: 1.6; border: 1px solid #333;
+            min-width: 200px; transition: opacity 0.3s;
+        }
+        @media (max-width: 600px) { #coords { display: none; } }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="row">
+            <label>📏 Рост <input type="range" id="heightSlider" min="100" max="220" value="180" step="1" /><span class="value" id="valHeight">180</span></label>
+            <label>👁️ X <input type="range" id="eyeX" min="-100" max="100" value="0" step="1" /><span class="value" id="valX">0</span></label>
+            <label>👁️ Y <input type="range" id="eyeY" min="0" max="220" value="175" step="1" /><span class="value" id="valY">175</span></label>
+            <label>👁️ Z <input type="range" id="eyeZ" min="-100" max="100" value="0" step="1" /><span class="value" id="valZ">0</span></label>
+        </div>
+        <div class="row">
+            <label>📐 Основание Y <input type="range" id="baseY" min="0" max="220" value="130" step="1" /><span class="value" id="valBase">130</span></label>
+            <label>⭕ Радиус <input type="range" id="radius" min="20" max="120" value="80" step="1" /><span class="value" id="valRadius">80</span></label>
+            <label><input type="checkbox" id="autoRadius" checked /> авто</label>
+        </div>
+        <!-- НОВЫЕ СЛАЙДЕРЫ ДЛЯ УГЛОВ -->
+        <div class="row">
+            <label>🔻 Угол верха <input type="range" id="topAngle" min="0" max="360" value="0" step="1" /><span class="value" id="valTopAngle">0</span></label>
+            <label>🔺 Угол низа <input type="range" id="bottomAngle" min="0" max="360" value="180" step="1" /><span class="value" id="valBottomAngle">180</span></label>
+            <label><input type="checkbox" id="linkRotation" checked /> связь</label>
+        </div>
+        <div class="row">
+            <label>📐 Наклон <input type="range" id="mag" min="0" max="100" value="30" step="1" /><span class="value" id="valMag">30</span></label>
+        </div>
+    </div>
+    <div id="coords"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import { MerkabaMath } from './MerkabaMath.js';
+
+        // ---------- СЦЕНА ----------
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 50);
+        camera.position.set(5, 2.5, 5);
+        camera.lookAt(0, 0.9, 0);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 0.9, 0);
+
+        scene.add(new THREE.AmbientLight(0x404060));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(2, 3, 4);
+        scene.add(dirLight);
+
+        // ---------- ГРУППЫ ----------
+        let mainGroup = new THREE.Group();
+        scene.add(mainGroup);
+        let bodyGroup = new THREE.Group();
+        scene.add(bodyGroup);
+
+        // ---------- ВИЗУАЛИЗАТОР МЕРКАБЫ ----------
+        class MerkabaVisual {
+            constructor() { this.group = mainGroup; }
+            render(pointsData, options) {
+                while(this.group.children.length > 0) {
+                    const child = this.group.children[0];
+                    if (child.isMesh) { child.geometry.dispose(); child.material.dispose(); }
+                    this.group.remove(child);
+                }
+                labelRenderer.domElement.innerHTML = '';
+
+                const vecPts = {};
+                for (const [key, coord] of Object.entries(pointsData)) {
+                    vecPts[key] = new THREE.Vector3(coord.x, coord.y, coord.z);
+                }
+                const colors = { '🟦': 0x3399ff, '🟥': 0xff5533, '🟩': 0x66ff66, '🔴': 0xff3333, '🔵': 0x33ccff, '🟢': 0x66ff99, '👁️': 0xff66ff, '🟪': 0x9966ff };
+
+                const createTriangle = (p1, p2, p3, color, op) => {
+                    const g = new THREE.BufferGeometry();
+                    const v = new Float32Array([p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, p3.x, p3.y, p3.z]);
+                    g.setAttribute('position', new THREE.BufferAttribute(v, 3));
+                    g.setIndex([0, 1, 2]);
+                    g.computeVertexNormals();
+                    const m = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: op });
+                    return new THREE.Mesh(g, m);
+                };
+
+                // Нижнее основание (🟦🟥🟩)
+                this.group.add(createTriangle(vecPts['🟦'], vecPts['🟥'], vecPts['🟩'], 0x66aaff, 0.25));
+                // Верхнее основание (🔴🔵🟢)
+                this.group.add(createTriangle(vecPts['🔴'], vecPts['🔵'], vecPts['🟢'], 0xff8866, 0.25));
+
+                const sphereGeom = new THREE.SphereGeometry(0.04, 16, 16);
+                for (const [key, vec] of Object.entries(vecPts)) {
+                    const mat = new THREE.MeshStandardMaterial({ color: colors[key], emissive: colors[key], emissiveIntensity: 0.2 });
+                    const sphere = new THREE.Mesh(sphereGeom, mat);
+                    sphere.position.copy(vec);
+                    this.group.add(sphere);
+
+                    if (options.showLabels) {
+                        const div = document.createElement('div');
+                        div.textContent = key;
+                        div.style.color = '#fff';
+                        div.style.fontSize = '14px';
+                        div.style.fontWeight = 'bold';
+                        div.style.textShadow = '1px 1px 3px rgba(0,0,0,0.9)';
+                        div.style.background = 'rgba(0,0,0,0.6)';
+                        div.style.padding = '2px 8px';
+                        div.style.borderRadius = '12px';
+                        div.style.border = '1px solid rgba(255,255,255,0.2)';
+                        const label = new CSS2DObject(div);
+                        label.position.copy(vec.clone().add(new THREE.Vector3(0.08, 0.08, 0.08)));
+                        this.group.add(label);
+                    }
+                }
+
+                const addLine = (p1, p2, color, op) => {
+                    const g = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+                    const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity: op });
+                    return new THREE.Line(g, m);
+                };
+
+                const topV = vecPts['👁️'];
+                const topBase = [vecPts['🟦'], vecPts['🟥'], vecPts['🟩']];
+                topBase.forEach(p => this.group.add(addLine(topV, p, 0x66ccff, 0.8)));
+                this.group.add(addLine(topBase[0], topBase[1], 0x66ccff, 0.9));
+                this.group.add(addLine(topBase[1], topBase[2], 0x66ccff, 0.9));
+                this.group.add(addLine(topBase[2], topBase[0], 0x66ccff, 0.9));
+
+                const bottomV = vecPts['🟪'];
+                const bottomBase = [vecPts['🔴'], vecPts['🔵'], vecPts['🟢']];
+                bottomBase.forEach(p => this.group.add(addLine(bottomV, p, 0xff8866, 0.8)));
+                this.group.add(addLine(bottomBase[0], bottomBase[1], 0xff8866, 0.9));
+                this.group.add(addLine(bottomBase[1], bottomBase[2], 0xff8866, 0.9));
+                this.group.add(addLine(bottomBase[2], bottomBase[0], 0xff8866, 0.9));
+
+                if (options.showDiag) {
+                    const diag = [
+                        [vecPts['🟦'], vecPts['🔴']],
+                        [vecPts['🟥'], vecPts['🔵']],
+                        [vecPts['🟩'], vecPts['🟢']],
+                        [vecPts['👁️'], vecPts['🟪']]
+                    ];
+                    diag.forEach(([p1, p2]) => this.group.add(addLine(p1, p2, 0xffdd44, 0.3)));
+                }
+            }
+        }
+        const visualizer = new MerkabaVisual();
+
+        // ---------- УПРАВЛЕНИЕ ----------
+        const heightSlider = document.getElementById('heightSlider');
+        const eyeX = document.getElementById('eyeX');
+        const eyeY = document.getElementById('eyeY');
+        const eyeZ = document.getElementById('eyeZ');
+        const baseY = document.getElementById('baseY');
+        const radius = document.getElementById('radius');
+        const autoRadius = document.getElementById('autoRadius');
+        const coordsDiv = document.getElementById('coords');
+
+        // Новые элементы
+        const topAngle = document.getElementById('topAngle');
+        const bottomAngle = document.getElementById('bottomAngle');
+        const linkRotation = document.getElementById('linkRotation');
+        const mag = document.getElementById('mag');
+
+        // ---------- ФУНКЦИЯ ОТРИСОВКИ ТЕЛА ----------
+        function updateBody() {
+            while(bodyGroup.children.length > 0) {
+                const child = bodyGroup.children[0];
+                bodyGroup.remove(child);
+            }
+            const heightCm = parseFloat(heightSlider.value);
+            document.getElementById('valHeight').textContent = heightCm;
+            const h = heightCm / 100;
+            const levels = [
+                { name: 'стопы', y: 0 },
+                { name: 'колени', y: 0.25 * h },
+                { name: 'таз', y: 0.5 * h },
+                { name: 'плечи', y: 0.75 * h },
+                { name: 'макушка', y: h }
+            ];
+            for (const level of levels) {
+                const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-1.2, level.y, 0), new THREE.Vector3(1.2, level.y, 0)]);
+                const mat = new THREE.LineBasicMaterial({ color: 0x44aa88, transparent: true, opacity: 0.3 });
+                const line = new THREE.Line(geo, mat);
+                bodyGroup.add(line);
+
+                const div = document.createElement('div');
+                div.textContent = level.name;
+                div.style.color = '#666';
+                div.style.fontSize = '10px';
+                div.style.background = 'rgba(0,0,0,0.5)';
+                div.style.padding = '2px 6px';
+                div.style.borderRadius = '4px';
+                const label = new CSS2DObject(div);
+                label.position.set(-1.35, level.y, 0);
+                bodyGroup.add(label);
+            }
+        }
+
+        // ---------- ПЕРЕСТРОЙКА МЕРКАБЫ ----------
+        function rebuild() {
+            const ex = parseFloat(eyeX.value) / 100;
+            const ey = parseFloat(eyeY.value) / 100;
+            const ez = parseFloat(eyeZ.value) / 100;
+            const by = parseFloat(baseY.value) / 100;
+            let r = parseFloat(radius.value) / 100;
+
+            document.getElementById('valX').textContent = eyeX.value;
+            document.getElementById('valY').textContent = eyeY.value;
+            document.getElementById('valZ').textContent = eyeZ.value;
+            document.getElementById('valBase').textContent = baseY.value;
+            document.getElementById('valRadius').textContent = radius.value;
+
+            const h = ey - by;
+            if (h <= 0) { baseY.value = parseFloat(eyeY.value) - 10; rebuild(); return; }
+
+            if (autoRadius.checked) {
+                const l = h * Math.sqrt(2) / (Math.sqrt(3) + 1);
+                r = l;
+                radius.value = (l * 100).toFixed(1);
+                document.getElementById('valRadius').textContent = radius.value;
+            }
+
+            // ----- Чтение углов и связь -----
+            let topAngleDeg = parseFloat(topAngle.value);
+            let bottomAngleDeg = parseFloat(bottomAngle.value);
+
+            // Если связь включена, то при изменении верхнего угла нижний становится противоположным
+            // Но важно: мы будем обновлять нижний только если верхний меняется (обработчик input)
+            // Здесь просто вычисляем на основе текущих значений, но с учётом связи:
+            if (linkRotation.checked) {
+                // Принудительно устанавливаем нижний = верхний + 180
+                bottomAngleDeg = (topAngleDeg + 180) % 360;
+                bottomAngle.value = bottomAngleDeg;
+            }
+
+            // Величина смещения (доля от h)
+            const magValue = parseFloat(mag.value) / 100 * h; // mag слайдер от 0 до 100 (проценты от h)
+            document.getElementById('valMag').textContent = mag.value;
+
+            // Перевод в радианы
+            const topRad = topAngleDeg * Math.PI / 180;
+            const bottomRad = bottomAngleDeg * Math.PI / 180;
+
+            // Смещение для верхнего тетраэдра (вершина смещается в направлении угла)
+            // Угол 0 = вниз (к нам, отрицательное Z), 90 = вправо (X+), 180 = вперёд (от нас, +Z), 270 = влево (X-)
+            const topShift = {
+                x: Math.sin(topRad) * magValue,
+                z: -Math.cos(topRad) * magValue   // минус, чтобы 0° давал -Z (к нам)
+            };
+
+            // Смещение для нижнего тетраэдра (основание смещается в направлении угла)
+            // Угол 0 = вниз (к нам, -Z), 180 = вперёд (от нас, +Z)
+            const bottomShift = {
+                x: Math.sin(bottomRad) * magValue,
+                z: -Math.cos(bottomRad) * magValue
+            };
+
+            // Создаём Меркабу с новыми смещениями
+            const math = new MerkabaMath(h, r, { x: ex, y: ey, z: ez }, bottomShift, topShift);
+            const points = math.getPoints();
+
+            visualizer.render(points, { showDiag: true, showLabels: true });
+
+            let text = 'Координаты (см) в 3D:\n';
+            for (const [key, v] of Object.entries(points)) {
+                text += `${key}: (${(v.x*100).toFixed(1)}, ${(v.y*100).toFixed(1)}, ${(v.z*100).toFixed(1)})\n`;
+            }
+            coordsDiv.textContent = text;
+        }
+
+        // ---------- СЛУШАТЕЛИ ----------
+        [heightSlider, eyeX, eyeY, eyeZ, baseY, radius, autoRadius, mag].forEach(el => {
+            el.addEventListener('input', () => { updateBody(); rebuild(); });
+        });
+
+        // Слушатели для углов
+        topAngle.addEventListener('input', () => {
+            document.getElementById('valTopAngle').textContent = topAngle.value;
+            if (linkRotation.checked) {
+                // Устанавливаем нижний как противоположный
+                bottomAngle.value = (parseFloat(topAngle.value) + 180) % 360;
+                document.getElementById('valBottomAngle').textContent = bottomAngle.value;
+            }
+            rebuild();
+        });
+
+        bottomAngle.addEventListener('input', () => {
+            document.getElementById('valBottomAngle').textContent = bottomAngle.value;
+            // Нижний двигается сам, верхний не трогаем
+            rebuild();
+        });
+
+        linkRotation.addEventListener('change', () => {
+            if (linkRotation.checked) {
+                // При включении связи сразу синхронизируем
+                bottomAngle.value = (parseFloat(topAngle.value) + 180) % 360;
+                document.getElementById('valBottomAngle').textContent = bottomAngle.value;
+            }
+            rebuild();
+        });
+
+        updateBody();
+        rebuild();
+
+        // Анимация
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
