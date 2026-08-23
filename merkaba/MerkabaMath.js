@@ -1,52 +1,47 @@
 export class MerkabaMath {
-    /**
-     * @param {number} h - высота между вершиной нижнего и его основанием (по Y)
-     * @param {number} l - радиус описанной окружности основания
-     * @param {object} origin - точка 👁️ (вершина нижнего тетраэдра) {x,y,z}
-     * @param {object} bottomShift - смещение основания нижнего от вершины {x,z}
-     * @param {object} topShift - смещение вершины верхнего от его основания {x,z}
-     */
-    constructor(h, l, origin = {x:0,y:0,z:0}, bottomShift = {x:0,z:0}, topShift = {x:0,z:0}) {
-        this.h = h;
-        this.l = l;
-        this.origin = origin;
-        this.bottomShift = bottomShift;
-        this.topShift = topShift;
+    constructor(origin, bottomShift, topShift, baseRadius) {
+        this.origin = origin;       // центральная точка (👁️), вершина нижнего
+        this.bottomShift = bottomShift; // смещение основания нижнего (🔺)
+        this.topShift = topShift;       // смещение вершины верхнего (🔻)
+        this.baseRadius = baseRadius;   // радиус основания
     }
 
     getPoints() {
-        const d = this.l / Math.sqrt(2);
-        const sqrt3 = Math.sqrt(3);
-        const halfL = this.l / 2;
-        const sqrt3halfL = sqrt3 * halfL;
         const { x, y, z } = this.origin;
+        const r = this.baseRadius;
+        const d = r / Math.sqrt(2);
+        const sqrt3 = Math.sqrt(3);
+        const half = r / 2;
 
-        // ---------- НИЖНИЙ ТЕТРАЭДР (🔺) ----------
-        // Вершина (👁️) остаётся в origin, основание сдвигается на -bottomShift (т.е. направление взгляда нижнего - это вектор от вершины к основанию)
+        // Нижний тетраэдр (🔺): вершина в origin, основание смещено
         const bx = x - this.bottomShift.x;
         const bz = z - this.bottomShift.z;
-        const bottomBaseY = y - this.h;
+        const bottomY = y - 0.8; // фиксированная высота основания (можно настроить)
 
-        // ---------- ВЕРХНИЙ ТЕТРАЭДР (🔻) ----------
-        // Основание (🔴🔵🟢) строится вокруг origin (без смещения), вершина (🟪) сдвигается на +topShift
-        const topBaseY = y - this.h + 2 * d;
+        // Верхний тетраэдр (🔻): вершина смещена, основание вокруг origin
         const tx = x + this.topShift.x;
         const tz = z + this.topShift.z;
-        const topVertexY = y - 2 * this.h + 2 * d;
+        const topY = y + 0.8; // высота вершины верхнего
+
+        // Точки нижнего основания (🔺)
+        const bottomBase = {
+            '🟦': { x: bx - sqrt3 * half, y: bottomY, z: bz + half },
+            '🟥': { x: bx + sqrt3 * half, y: bottomY, z: bz + half },
+            '🟩': { x: bx,               y: bottomY, z: bz - r }
+        };
+
+        // Точки верхнего основания (🔻)
+        const topBase = {
+            '🔴': { x: tx + sqrt3 * half, y: topY, z: tz - half },
+            '🔵': { x: tx - sqrt3 * half, y: topY, z: tz - half },
+            '🟢': { x: tx,               y: topY, z: tz + r }
+        };
 
         return {
-            // вершина нижнего
-            '👁️': { x, y, z },
-            // основание нижнего
-            '🟦': { x: bx - sqrt3halfL, y: bottomBaseY, z: bz + halfL },
-            '🟥': { x: bx + sqrt3halfL, y: bottomBaseY, z: bz + halfL },
-            '🟩': { x: bx,             y: bottomBaseY, z: bz - this.l },
-            // основание верхнего
-            '🔴': { x: x + sqrt3halfL, y: topBaseY, z: z - halfL },
-            '🔵': { x: x - sqrt3halfL, y: topBaseY, z: z - halfL },
-            '🟢': { x: x,             y: topBaseY, z: z + this.l },
-            // вершина верхнего
-            '🟪': { x: tx, y: topVertexY, z: tz }
+            '👁️': origin,           // вершина нижнего
+            '🟪': { x: tx, y: topY, z: tz }, // вершина верхнего
+            ...bottomBase,
+            ...topBase
         };
     }
 }
