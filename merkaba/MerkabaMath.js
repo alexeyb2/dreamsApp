@@ -1,5 +1,6 @@
 // MerkabaMath.js
-// Класс для расчёта координат точек двух тетраэдров (Меркаба)
+// Класс для расчёта координат двух тетраэдров (Меркаба)
+// Соответствует требованиям: порядок высот, оси, формулы смещения и основания.
 
 class MerkabaMath {
     constructor() {
@@ -7,17 +8,17 @@ class MerkabaMath {
         this.topAngle = 0;          // верхний тетраэдр (🔻)
         this.bottomAngle = 0;       // нижний тетраэдр (🔺)
 
-        // Наклон (смещение вершины относительно центра основания по X/Z)
+        // Наклон (смещение вершины относительно центра основания)
         this.topTilt = 0.3;
         this.bottomTilt = 0.3;
 
         // Высоты вершин
-        this.topHeight = 1.8;       // вершина верхнего тетраэдра
-        this.bottomHeight = 1.3;    // вершина нижнего тетраэдра
+        this.topHeight = 0.5;       // вершина верхнего (🟪) – самая низкая
+        this.bottomHeight = 2.8;    // вершина нижнего (👁️) – самая высокая
 
-        // Смещения основания (по вертикали)
-        this.topBaseOffset = 0.6;   // основание верхнего выше вершины
-        this.bottomBaseOffset = 0.6; // основание нижнего ниже вершины
+        // Смещения основания по вертикали
+        this.topBaseOffset = 1.9;   // основание верхнего выше вершины на 1.9 → y = 0.5 + 1.9 = 2.4
+        this.bottomBaseOffset = 0.6; // основание нижнего ниже вершины на 0.6 → y = 2.8 - 0.6 = 2.2
 
         // Радиус описанной окружности основания
         this.radius = 1.5;
@@ -31,7 +32,7 @@ class MerkabaMath {
         return deg * Math.PI / 180;
     }
 
-    // Получение всех точек (для экспорта JSON и визуализации)
+    // Получение всех точек (для экспорта и визуализации)
     getPoints() {
         const bottom = this.getBottomTetrahedron();
         const top = this.getTopTetrahedron();
@@ -48,9 +49,8 @@ class MerkabaMath {
         };
     }
 
-    // Нижний тетраэдр (🔺)
-    // Вершина (👁️) на высоте bottomHeight,
-    // основание (🟦🟥🟩) на высоте bottomHeight - bottomBaseOffset (ниже вершины)
+    // Нижний тетраэдр (🔺): вершина (👁️) на высоте bottomHeight,
+    // основание на высоте bottomHeight - bottomBaseOffset (ниже вершины)
     getBottomTetrahedron() {
         const angle = this.bottomAngle;
         const tilt = this.bottomTilt;
@@ -59,37 +59,38 @@ class MerkabaMath {
         const R = this.radius;
         const rad = this._toRad(angle);
 
-        // Вершина (смещена относительно центра основания)
+        // Смещение вершины относительно центра основания:
+        // x = tilt * sin(angle), z = tilt * cos(angle)
         const apex = {
-            x: tilt * Math.cos(rad),
+            x: tilt * Math.sin(rad),
             y: height,
-            z: tilt * Math.sin(rad)
+            z: tilt * Math.cos(rad)
         };
 
-        // Центр основания (X=0, Z=0, Y=baseY)
+        // Центр основания (в точке (0, baseY, 0))
         const baseCenter = {
             x: 0,
             y: baseY,
             z: 0
         };
 
-        // Вершины основания (равносторонний треугольник, повернут на угол)
+        // Вершины основания – равносторонний треугольник:
+        // x = R * sin(angle + i*120°), z = R * cos(angle + i*120°)
         const baseVerts = [];
         for (let i = 0; i < 3; i++) {
             const a = rad + i * (2 * Math.PI / 3);
             baseVerts.push({
-                x: R * Math.cos(a),
+                x: R * Math.sin(a),
                 y: baseY,
-                z: R * Math.sin(a)
+                z: R * Math.cos(a)
             });
         }
 
         return { apex, baseVerts, baseCenter };
     }
 
-    // Верхний тетраэдр (🔻)
-    // Вершина (🟪) на высоте topHeight,
-    // основание (🔴🔵🟢) на высоте topHeight + topBaseOffset (выше вершины)
+    // Верхний тетраэдр (🔻): вершина (🟪) на высоте topHeight,
+    // основание на высоте topHeight + topBaseOffset (выше вершины)
     getTopTetrahedron() {
         const angle = this.topAngle;
         const tilt = this.topTilt;
@@ -98,11 +99,11 @@ class MerkabaMath {
         const R = this.radius;
         const rad = this._toRad(angle);
 
-        // Вершина
+        // Вершина (смещение по формулам sin/cos)
         const apex = {
-            x: tilt * Math.cos(rad),
+            x: tilt * Math.sin(rad),
             y: height,
-            z: tilt * Math.sin(rad)
+            z: tilt * Math.cos(rad)
         };
 
         // Центр основания
@@ -117,9 +118,9 @@ class MerkabaMath {
         for (let i = 0; i < 3; i++) {
             const a = rad + i * (2 * Math.PI / 3);
             baseVerts.push({
-                x: R * Math.cos(a),
+                x: R * Math.sin(a),
                 y: baseY,
-                z: R * Math.sin(a)
+                z: R * Math.cos(a)
             });
         }
 
@@ -134,7 +135,7 @@ class MerkabaMath {
         return dirs[idx];
     }
 
-    // Экспорт JSON (как в задании)
+    // Экспорт JSON (все точки и параметры)
     getJSON() {
         const points = this.getPoints();
         return {
