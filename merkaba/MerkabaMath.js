@@ -1,14 +1,10 @@
-// MerkabaMath.js
 export class MerkabaMath {
-    /**
-     * @param {number} h - Расстояние от 👁️ до основания (по вертикали Y) в метрах.
-     * @param {number} l - Радиус описанной окружности основания в метрах.
-     * @param {object} origin - Координаты точки 👁️ в пространстве {x, y, z} в метрах.
-     */
-    constructor(h, l, origin = {x: 0, y: 0, z: 0}) {
+    constructor(h, l, origin = {x:0, y:0, z:0}, bottomShift = {x:0, z:0}, topShift = {x:0, z:0}) {
         this.h = h;
         this.l = l;
-        this.origin = origin; // Точка, за которую мы держим Меркабу (👁️)
+        this.origin = origin;
+        this.bottomShift = bottomShift;
+        this.topShift = topShift;
     }
 
     getPoints() {
@@ -18,19 +14,31 @@ export class MerkabaMath {
         const sqrt3halfL = sqrt3 * halfL;
         const { x, y, z } = this.origin;
 
-        // Возвращаем JSON с абсолютными координатами в пространстве
+        // НИЖНИЙ ТЕТРАЭДР
+        // Вершина (👁️) остаётся в origin, основание сдвигается на -bottomShift
+        const bx = x - this.bottomShift.x;
+        const bz = z - this.bottomShift.z;
+        const bottomBaseY = y - this.h;
+
+        // ВЕРХНИЙ ТЕТРАЭДР
+        // Основание (🔴🔵🟢) остаётся симметричным вокруг origin (немного выше)
+        const topBaseY = y - this.h + 2*d;
+        // Вершина (🟪) сдвигается на +topShift
+        const tx = x + this.topShift.x;
+        const tz = z + this.topShift.z;
+        const topVertexY = y - 2*this.h + 2*d;
+
         return {
-            '🟦': { x: x - sqrt3halfL, y: y - this.h, z: z + halfL },
-            '🟥': { x: x + sqrt3halfL, y: y - this.h, z: z + halfL },
-            '🟩': { x: x,             y: y - this.h, z: z - this.l },
-            
-            '🔴': { x: x + sqrt3halfL, y: y - this.h + 2*d, z: z - halfL },
-            '🔵': { x: x - sqrt3halfL, y: y - this.h + 2*d, z: z - halfL },
-            '🟢': { x: x,             y: y - this.h + 2*d, z: z + this.l },
-            
-            '👁️': { x: x, y: y, z: z },
-            // Математически выверенная формула для нижней вершины
-            '🟪': { x: x, y: y - 2*this.h + 2*d, z: z }
+            '👁️': { x, y, z },
+            '🟦': { x: bx - sqrt3halfL, y: bottomBaseY, z: bz + halfL },
+            '🟥': { x: bx + sqrt3halfL, y: bottomBaseY, z: bz + halfL },
+            '🟩': { x: bx,             y: bottomBaseY, z: bz - this.l },
+
+            '🔴': { x: x + sqrt3halfL, y: topBaseY, z: z - halfL },
+            '🔵': { x: x - sqrt3halfL, y: topBaseY, z: z - halfL },
+            '🟢': { x: x,             y: topBaseY, z: z + this.l },
+
+            '🟪': { x: tx, y: topVertexY, z: tz }
         };
     }
 }
