@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Меркаба — Два Тетраэдра (Исправлено)</title>
+    <title>Меркаба — Два Тетраэдра (Перед = -Z)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -261,7 +261,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
-    <!-- Встроенный класс MerkabaMath (исправленный) -->
+    <!-- Класс MerkabaMath с обновлённой системой координат (перед = -Z) -->
     <script>
         class MerkabaMath {
             constructor() {
@@ -279,11 +279,13 @@
 
             _toRad(deg) { return deg * Math.PI / 180; }
 
+            // Возвращает все восемь точек с координатами в новой системе (перед = -Z)
             getPoints() {
                 const bottom = this.getBottomTetrahedron();
                 const top = this.getTopTetrahedron();
-                // Правильное сопоставление: index0 -> впереди (🟩 для низа, 🟢 для верха)
-                // index1 -> справа (🟥 / 🔴), index2 -> слева (🟦 / 🔵)
+                // index0 -> впереди (z < 0) → 🟩 для низа, 🟢 для верха
+                // index1 -> справа (x > 0, z > 0) → 🟥 / 🔴
+                // index2 -> слева (x < 0, z > 0) → 🟦 / 🔵
                 return {
                     '👁️': bottom.apex,
                     '🟩': bottom.baseVerts[0],
@@ -304,21 +306,23 @@
                 const R = this.radius;
                 const rad = this._toRad(angle);
 
+                // Вершина смещена в направлении -Z: z = -tilt*cos(angle), x = tilt*sin(angle)
                 const apex = {
                     x: tilt * Math.sin(rad),
                     y: apexY,
-                    z: tilt * Math.cos(rad)
+                    z: -tilt * Math.cos(rad)
                 };
 
                 const baseCenter = { x: 0, y: baseY, z: 0 };
 
+                // Основание: x = R*sin(angle+i*120), z = -R*cos(angle+i*120)
                 const baseVerts = [];
                 for (let i = 0; i < 3; i++) {
                     const a = rad + i * (2 * Math.PI / 3);
                     baseVerts.push({
                         x: R * Math.sin(a),
                         y: baseY,
-                        z: R * Math.cos(a)
+                        z: -R * Math.cos(a)
                     });
                 }
                 return { apex, baseVerts, baseCenter };
@@ -335,7 +339,7 @@
                 const apex = {
                     x: tilt * Math.sin(rad),
                     y: apexY,
-                    z: tilt * Math.cos(rad)
+                    z: -tilt * Math.cos(rad)
                 };
 
                 const baseCenter = { x: 0, y: baseY, z: 0 };
@@ -346,7 +350,7 @@
                     baseVerts.push({
                         x: R * Math.sin(a),
                         y: baseY,
-                        z: R * Math.cos(a)
+                        z: -R * Math.cos(a)
                     });
                 }
                 return { apex, baseVerts, baseCenter };
@@ -354,6 +358,7 @@
 
             static directionFromAngle(angle) {
                 angle = ((angle % 360) + 360) % 360;
+                // 0° = вперёд (-Z), 90° = вправо (+X), 180° = назад (+Z), 270° = влево (-X)
                 const dirs = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
                 const idx = Math.round(angle / 45) % 8;
                 return dirs[idx];
@@ -389,8 +394,8 @@
         // === Сцена ===
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 100);
-        // Помещаем камеру со стороны -Z, чтобы она смотрела в направлении +Z (вперёд)
-        camera.position.set(4, 2.8, -5);
+        // Камера стоит на +Z и смотрит в -Z (стандартная ориентация)
+        camera.position.set(4, 2.8, 5);
         camera.lookAt(0, 0, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -423,22 +428,23 @@
         grid.position.y = -0.01;
         scene.add(grid);
 
-        // Маркер "вперёд" (+Z) — теперь он указывает в ту же сторону, куда смотрит камера
+        // Маркер "вперёд" (-Z) — теперь указывает туда, куда смотрит камера
         const forwardMarker = new THREE.Group();
         const markerCone = new THREE.Mesh(
             new THREE.ConeGeometry(0.12, 0.5, 8),
             new THREE.MeshPhongMaterial({ color: 0xffaa00, emissive: 0x442200 })
         );
-        markerCone.rotation.x = Math.PI / 2; // остриё в +Z
-        markerCone.position.set(0, 0, 1.8);
+        markerCone.rotation.x = Math.PI / 2; // остриё в -Z
+        markerCone.position.set(0, 0, -1.8);
         forwardMarker.add(markerCone);
         const markerLineGeo = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(0, 0, 0),
-            new THREE.Vector3(0, 0, 2.5)
+            new THREE.Vector3(0, 0, -2.5)
         ]);
         const markerLine = new THREE.Line(markerLineGeo,
             new THREE.LineBasicMaterial({ color: 0xffaa00, linewidth: 1 }));
         forwardMarker.add(markerLine);
+        // Подпись "F"
         const canvasLabel = document.createElement('canvas');
         canvasLabel.width = 64;
         canvasLabel.height = 64;
@@ -452,7 +458,7 @@
         const spriteMat = new THREE.SpriteMaterial({ map: textureLabel });
         const spriteLabel = new THREE.Sprite(spriteMat);
         spriteLabel.scale.set(0.5, 0.5, 0.5);
-        spriteLabel.position.set(0, 0.3, 2.1);
+        spriteLabel.position.set(0, 0.3, -2.1);
         forwardMarker.add(spriteLabel);
         scene.add(forwardMarker);
 
