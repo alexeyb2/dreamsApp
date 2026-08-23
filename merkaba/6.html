@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Идеальная Меркаба</title>
+    <title>Меркаба — Инструменты баланса</title>
     <style>
         * {
             box-sizing: border-box;
@@ -116,7 +116,7 @@
         #advanced.visible {
             display: block;
         }
-        #resetBtn {
+        #resetBtn, #topViewBtn {
             position: fixed;
             top: 60px;
             right: 10px;
@@ -134,6 +134,13 @@
         }
         #resetBtn:hover {
             background: rgba(255, 100, 100, 1);
+        }
+        #topViewBtn {
+            background: rgba(100, 180, 255, .8);
+            box-shadow: 0 4px 12px rgba(0,150,255,0.3);
+        }
+        #topViewBtn:hover {
+            background: rgba(100, 200, 255, 1);
         }
         #gearBtn, #exportBtn {
             position: fixed;
@@ -224,6 +231,7 @@
     <button id="exportBtn">📋 JSON</button>
     <button id="gearBtn">⚙️</button>
     <button id="resetBtn">↺ Сброс в идеал</button>
+    <button id="topViewBtn">👁️ Вид сверху</button>
     <div id="info">🖱️ / 👆 — вращение, панорама, зум</div>
 
     <div id="controls">
@@ -292,8 +300,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    
-    <!-- Класс MerkabaMath -->
+
+    <!-- Класс MerkabaMath (встроенный) -->
     <script>
         class MerkabaMath {
             constructor() {
@@ -308,7 +316,7 @@
                 this.radius = 1.5;
                 this.linkRotation = false;
                 this.offset = 180;
-                this.idealBaseRotation = 60; // фиксированный поворот верхнего основания
+                this.idealBaseRotation = 60;
             }
 
             _toRad(deg) { return deg * Math.PI / 180; }
@@ -328,7 +336,6 @@
                 };
             }
 
-            // Нижний: перед = +Z (z положительный)
             getBottomTetrahedron() {
                 const angle = this.bottomAngle;
                 const tilt = this.bottomTilt;
@@ -340,7 +347,7 @@
                 const apex = {
                     x: tilt * Math.sin(rad),
                     y: apexY,
-                    z: tilt * Math.cos(rad) // +Z вперёд
+                    z: tilt * Math.cos(rad)
                 };
 
                 const baseCenter = { x: 0, y: baseY, z: 0 };
@@ -351,22 +358,19 @@
                     baseVerts.push({
                         x: R * Math.sin(a),
                         y: baseY,
-                        z: R * Math.cos(a) // +Z вперёд
+                        z: R * Math.cos(a)
                     });
                 }
                 return { apex, baseVerts, baseCenter };
             }
 
-            // Верхний: перед = +Z, основание повернуто на 60° относительно нижнего
             getTopTetrahedron() {
                 const angle = this.topAngle;
                 const tilt = this.topTilt;
                 const baseY = this.topY;
                 const apexY = baseY - this.topHeight;
                 const R = this.radius;
-                // Для наклона вершины используем этот угол
                 const rad = this._toRad(angle);
-                // Для основания добавляем 60° (fixed)
                 const radBase = this._toRad(angle + this.idealBaseRotation);
 
                 const apex = {
@@ -396,7 +400,6 @@
                 return dirs[idx];
             }
 
-            // Угол между основаниями (идеал = 60)
             getAngleBetweenBases() {
                 return (this.topAngle + this.idealBaseRotation - this.bottomAngle + 360) % 360;
             }
@@ -432,18 +435,24 @@
     <script>
         // === Сцена ===
         const scene = new THREE.Scene();
-        // Камера на -Z, смотрит на +Z (перед = +Z)
-        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 100);
-        camera.position.set(-4, 2.8, -5);
-        camera.lookAt(0, 0, 0);
+        const cameraPersp = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 100);
+        cameraPersp.position.set(-4, 2.8, -5);
+        cameraPersp.lookAt(0, 0, 0);
+
+        const cameraOrtho = new THREE.OrthographicCamera(-4, 4, 4, -4, 0.1, 50);
+        cameraOrtho.position.set(0, 10, 0);
+        cameraOrtho.lookAt(0, 0, 0);
+        cameraOrtho.up.set(0, 0, -1); // чтобы ось +Z смотрела вверх на экране
+
+        let activeCamera = cameraPersp;
+        let isTopView = false;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // Орбитальный контроллер
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        const controls = new THREE.OrbitControls(cameraPersp, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.15;
         controls.minDistance = 1.5;
@@ -467,13 +476,13 @@
         grid.position.y = -0.01;
         scene.add(grid);
 
-        // Маркер "вперёд" (+Z) — теперь стрелка идёт к камере
+        // Маркер "вперёд" (+Z)
         const forwardMarker = new THREE.Group();
         const markerCone = new THREE.Mesh(
             new THREE.ConeGeometry(0.12, 0.5, 8),
             new THREE.MeshPhongMaterial({ color: 0xffaa00, emissive: 0x442200 })
         );
-        markerCone.rotation.x = -Math.PI / 2; // остриё в +Z
+        markerCone.rotation.x = -Math.PI / 2;
         markerCone.position.set(0, 0, 1.8);
         forwardMarker.add(markerCone);
         const markerLineGeo = new THREE.BufferGeometry().setFromPoints([
@@ -500,11 +509,21 @@
         forwardMarker.add(spriteLabel);
         scene.add(forwardMarker);
 
+        // Идеальный центр
+        const centerSphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15, 16, 16),
+            new THREE.MeshBasicMaterial({ color: 0xffdd44, transparent: true, opacity: 0.8 })
+        );
+        centerSphere.position.set(0, 1.5, 0);
+        scene.add(centerSphere);
+
         // Группы
         const bottomGroup = new THREE.Group();
         const topGroup = new THREE.Group();
+        const diagonalGroup = new THREE.Group();
         scene.add(bottomGroup);
         scene.add(topGroup);
+        scene.add(diagonalGroup);
 
         const math = new MerkabaMath();
 
@@ -533,6 +552,7 @@
         function updateTetrahedrons() {
             while (bottomGroup.children.length) bottomGroup.remove(bottomGroup.children[0]);
             while (topGroup.children.length) topGroup.remove(topGroup.children[0]);
+            while (diagonalGroup.children.length) diagonalGroup.remove(diagonalGroup.children[0]);
 
             const bottom = math.getBottomTetrahedron();
             const top = math.getTopTetrahedron();
@@ -618,6 +638,26 @@
                 s.position.y += 0.35;
                 topGroup.add(s);
             }
+
+            // Желтые диагонали
+            const diagPairs = [
+                [bottom.baseVerts[2], top.baseVerts[2]], // 🟦 → 🔵
+                [bottom.baseVerts[1], top.baseVerts[1]], // 🟥 → 🔴
+                [bottom.baseVerts[0], top.baseVerts[0]], // 🟩 → 🟢
+                [bottom.apex, top.apex] // 👁️ → 🟪
+            ];
+            for (const [p1, p2] of diagPairs) {
+                const lineGeo = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(p1.x, p1.y, p1.z),
+                    new THREE.Vector3(p2.x, p2.y, p2.z)
+                ]);
+                const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({
+                    color: 0xffdd44,
+                    transparent: true,
+                    opacity: 0.6
+                }));
+                diagonalGroup.add(line);
+            }
         }
 
         // === Сохранение и загрузка состояния ===
@@ -634,8 +674,9 @@
                 radius: math.radius,
                 linkRotation: math.linkRotation,
                 offset: math.offset,
-                cameraPos: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
-                cameraTarget: { x: controls.target.x, y: controls.target.y, z: controls.target.z }
+                cameraPos: { x: cameraPersp.position.x, y: cameraPersp.position.y, z: cameraPersp.position.z },
+                cameraTarget: { x: controls.target.x, y: controls.target.y, z: controls.target.z },
+                isTopView: isTopView
             };
             localStorage.setItem('merkabaState', JSON.stringify(state));
         }
@@ -656,10 +697,36 @@
                     if (state.radius !== undefined) math.radius = state.radius;
                     if (state.linkRotation !== undefined) math.linkRotation = state.linkRotation;
                     if (state.offset !== undefined) math.offset = state.offset;
-                    if (state.cameraPos) camera.position.set(state.cameraPos.x, state.cameraPos.y, state.cameraPos.z);
+                    if (state.cameraPos) cameraPersp.position.set(state.cameraPos.x, state.cameraPos.y, state.cameraPos.z);
                     if (state.cameraTarget) controls.target.set(state.cameraTarget.x, state.cameraTarget.y, state.cameraTarget.z);
+                    if (state.isTopView) {
+                        setTopView(true);
+                    } else {
+                        setTopView(false);
+                    }
                     controls.update();
                 } catch (e) { console.warn('Load error', e); }
+            }
+        }
+
+        // === Переключение вида ===
+        function setTopView(enabled) {
+            isTopView = enabled;
+            if (enabled) {
+                activeCamera = cameraOrtho;
+                // Обновляем размер ортокамеры под текущий экран
+                const aspect = window.innerWidth / window.innerHeight;
+                const size = 4;
+                cameraOrtho.left = -size * aspect;
+                cameraOrtho.right = size * aspect;
+                cameraOrtho.top = size;
+                cameraOrtho.bottom = -size;
+                cameraOrtho.updateProjectionMatrix();
+                // Отключаем контроллер для ортокамеры (нет вращения)
+                controls.enabled = false;
+            } else {
+                activeCamera = cameraPersp;
+                controls.enabled = true;
             }
         }
 
@@ -687,8 +754,8 @@
         const advancedDiv = document.getElementById('advanced');
         const exportBtn = document.getElementById('exportBtn');
         const resetBtn = document.getElementById('resetBtn');
+        const topViewBtn = document.getElementById('topViewBtn');
 
-        // === Функции обновления UI ===
         function updateLinkUI() {
             if (math.linkRotation) {
                 bottomAngleInput.classList.add('linked-slider');
@@ -781,7 +848,6 @@
             saveState();
         });
 
-        // Дополнительные параметры
         topTiltInput.addEventListener('input', function() {
             math.topTilt = parseFloat(this.value);
             updateUI();
@@ -843,7 +909,6 @@
         });
 
         resetBtn.addEventListener('click', function() {
-            // Сброс в идеал: углы 0, наклоны 0, высоты стандартные
             math.topAngle = 0;
             math.bottomAngle = 0;
             math.topTilt = 0;
@@ -855,12 +920,18 @@
             math.radius = 1.5;
             math.linkRotation = false;
             math.offset = 180;
-            // Камера на стандартную позицию
-            camera.position.set(-4, 2.8, -5);
+            setTopView(false);
+            cameraPersp.position.set(-4, 2.8, -5);
             controls.target.set(0, 0, 0);
             controls.update();
             updateUI();
             updateTetrahedrons();
+            saveState();
+        });
+
+        topViewBtn.addEventListener('click', function() {
+            setTopView(!isTopView);
+            topViewBtn.textContent = isTopView ? '👁️ Обычный вид' : '👁️ Вид сверху';
             saveState();
         });
 
@@ -902,14 +973,23 @@
         // === Анимация ===
         function animate() {
             requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
+            if (controls.enabled) controls.update();
+            renderer.render(scene, activeCamera);
         }
 
         // === Resize ===
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+            cameraPersp.aspect = window.innerWidth / window.innerHeight;
+            cameraPersp.updateProjectionMatrix();
+            if (isTopView) {
+                const aspect = window.innerWidth / window.innerHeight;
+                const size = 4;
+                cameraOrtho.left = -size * aspect;
+                cameraOrtho.right = size * aspect;
+                cameraOrtho.top = size;
+                cameraOrtho.bottom = -size;
+                cameraOrtho.updateProjectionMatrix();
+            }
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
@@ -917,6 +997,7 @@
         loadState();
         updateTetrahedrons();
         updateUI();
+        topViewBtn.textContent = isTopView ? '👁️ Обычный вид' : '👁️ Вид сверху';
         animate();
     </script>
 </body>
