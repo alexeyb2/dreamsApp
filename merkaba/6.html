@@ -54,9 +54,9 @@
     <div id="controls">
         <div class="slider-row">
             <label>🔻 Верх:</label>
-            <input type="range" id="topAngle" min="0" max="360" value="0" step="1">
-            <span class="value" id="topAngleValue">0°</span>
-            <span class="direction-arrow" id="topDirection">⬆️</span>
+            <input type="range" id="topAngle" min="0" max="360" value="180" step="1">
+            <span class="value" id="topAngleValue">180°</span>
+            <span class="direction-arrow" id="topDirection">⬇️</span>
             <div class="tri-indicator" id="topTri" style="color:#ff44aa;"></div>
         </div>
         <div class="slider-row">
@@ -74,13 +74,13 @@
         <div id="advanced">
             <div class="slider-row">
                 <label>🔻 Наклон:</label>
-                <input type="range" id="topTilt" min="0" max="1.5" step="0.01" value="0.3">
-                <span class="value" id="topTiltValue">0.30</span>
+                <input type="range" id="topTilt" min="0" max="1.5" step="0.01" value="0">
+                <span class="value" id="topTiltValue">0.00</span>
             </div>
             <div class="slider-row">
                 <label>🔺 Наклон:</label>
-                <input type="range" id="bottomTilt" min="0" max="1.5" step="0.01" value="0.3">
-                <span class="value" id="bottomTiltValue">0.30</span>
+                <input type="range" id="bottomTilt" min="0" max="1.5" step="0.01" value="0">
+                <span class="value" id="bottomTiltValue">0.00</span>
             </div>
             <div class="slider-row">
                 <label>🔻 Высота:</label>
@@ -121,10 +121,11 @@
     <script>
         class MerkabaMath {
             constructor() {
-                this.topAngle = 0;
+                // Исправленные начальные углы: верхний — 180° (вниз), нижний — 0° (вверх)
+                this.topAngle = 180;
                 this.bottomAngle = 0;
-                this.topTilt = 0.3;
-                this.bottomTilt = 0.3;
+                this.topTilt = 0;
+                this.bottomTilt = 0;
                 this.topHeight = 1.5;
                 this.bottomHeight = 1.5;
                 this.bottomY = 1.0;
@@ -160,7 +161,6 @@
                 const R = this.radius;
                 const rad = this._toRad(angle);
 
-                // ВАЖНО: z = -tilt*cos(angle), z = -R*cos(...) → перед = -Z
                 const apex = {
                     x: tilt * Math.sin(rad),
                     y: apexY,
@@ -672,9 +672,17 @@
 
         gearBtn.addEventListener('click', function() { advancedDiv.classList.toggle('visible'); });
         resetBtn.addEventListener('click', function() {
-            math.topAngle = 0; math.bottomAngle = 0; math.topTilt = 0; math.bottomTilt = 0;
-            math.topHeight = 1.5; math.bottomHeight = 1.5; math.topY = 2.0; math.bottomY = 1.0;
-            math.radius = 1.5; math.linkRotation = false; math.offset = 180;
+            math.topAngle = 180;
+            math.bottomAngle = 0;
+            math.topTilt = 0;
+            math.bottomTilt = 0;
+            math.topHeight = 1.5;
+            math.bottomHeight = 1.5;
+            math.topY = 2.0;
+            math.bottomY = 1.0;
+            math.radius = 1.5;
+            math.linkRotation = false;
+            math.offset = 180;
             setTopView(false);
             cameraPersp.position.set(4, 2.8, 5);
             controls.target.set(0, 0, 0);
