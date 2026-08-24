@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Меркаба — Идеальная конфигурация</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: radial-gradient(ellipse at center, #1a1a3e, #0d0d1a); overflow: hidden; color: #fff; touch-action: none; }
+        #controls { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(18,18,36,.92); padding: 12px 14px; border-radius: 14px; z-index: 100; width: min(92vw, 420px); border: 1px solid rgba(255,255,255,.15); backdrop-filter: blur(12px); box-shadow: 0 6px 30px rgba(0,0,0,.5); font-size: 12px; }
+        .slider-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+        .slider-row label { color: #aaa; font-size: 12px; min-width: 60px; }
+        .slider-row input[type=range] { flex: 1; accent-color: #6c5ce7; height: 18px; }
+        .slider-row .value { color: #fff; font-size: 13px; min-width: 30px; text-align: right; }
+        .direction-arrow { font-size: 16px; width: 24px; text-align: center; }
+        .tri-indicator { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; margin-left: 6px; }
+        .tri-indicator::before { content: ''; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid currentColor; display: block; transform-origin: center; }
+        .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; padding: 6px; background: rgba(255,255,255,.05); border-radius: 8px; }
+        .checkbox-row input[type=checkbox] { accent-color: #6c5ce7; width: 16px; height: 16px; }
+        .checkbox-row label { color: #bbb; font-size: 12px; cursor: pointer; }
+        .offset-info { font-size: 11px; color: #aaa; text-align: center; margin-top: 2px; }
+        #advanced { display: none; border-top: 1px solid rgba(255,255,255,.15); padding-top: 8px; margin-top: 8px; }
+        #advanced.visible { display: block; }
+        #resetBtn, #topViewBtn { position: fixed; top: 60px; right: 10px; background: rgba(255,80,80,.8); border: none; color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; z-index: 200; backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(255,0,0,.3); transition: all .3s; }
+        #resetBtn:hover { background: rgba(255,100,100,1); }
+        #topViewBtn { background: rgba(100,180,255,.8); box-shadow: 0 4px 12px rgba(0,150,255,.3); }
+        #topViewBtn:hover { background: rgba(100,200,255,1); }
+        #gearBtn, #exportBtn { position: fixed; top: 10px; background: rgba(18,18,36,.8); border: 1px solid rgba(255,255,255,.3); color: #fff; border-radius: 50%; width: 38px; height: 38px; cursor: pointer; font-size: 16px; z-index: 200; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); transition: background .3s; }
+        #gearBtn { left: 10px; }
+        #exportBtn { right: 10px; background: linear-gradient(135deg, #6c5ce7, #a855f7); border: none; border-radius: 10px; width: auto; padding: 8px 14px; font-size: 13px; letter-spacing: .3px; box-shadow: 0 4px 16px rgba(108,92,231,.4); }
+        #gearBtn:hover, #exportBtn:hover { background: rgba(108,92,231,.5); }
+        #info { position: fixed; top: 50px; right: 10px; background: rgba(18,18,36,.7); padding: 5px 10px; border-radius: 8px; font-size: 10px; color: #888; z-index: 100; border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(4px); pointer-events: none; text-align: center; }
+        canvas { display: block; }
+        .linked-slider { opacity: .5; }
+        .linked-label { color: #a88; }
+        @media (max-width: 600px) {
+            #controls { padding: 10px; font-size: 11px; }
+            .slider-row { gap: 6px; }
+            .slider-row label { min-width: 55px; }
+            .checkbox-row { padding: 4px; }
+            .direction-arrow { font-size: 14px; width: 20px; }
+            .tri-indicator { width: 14px; height: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <button id="exportBtn">📋 JSON</button>
+    <button id="gearBtn">⚙️</button>
+    <button id="resetBtn">↺ Сброс в идеал</button>
+    <button id="topViewBtn">👁️ Вид сверху</button>
+    <div id="info">🖱️ / 👆 — вращение, панорама, зум</div>
+
+    <div id="controls">
+        <div class="slider-row">
+            <label>🔻 Верх:</label>
+            <input type="range" id="topAngle" min="0" max="360" value="120" step="1">
+            <span class="value" id="topAngleValue">120°</span>
+            <span class="direction-arrow" id="topDirection">⬇️</span>
+            <div class="tri-indicator" id="topTri" style="color:#ff44aa;"></div>
+        </div>
+        <div class="slider-row">
+            <label>🔺 Низ:</label>
+            <input type="range" id="bottomAngle" min="0" max="360" value="0" step="1">
+            <span class="value" id="bottomAngleValue">0°</span>
+            <span class="direction-arrow" id="bottomDirection">⬆️</span>
+            <div class="tri-indicator" id="bottomTri" style="color:#44aaff;"></div>
+        </div>
+        <div class="checkbox-row">
+            <input type="checkbox" id="linkCheckbox">
+            <label for="linkCheckbox">🔗 Связь (смещение)</label>
+        </div>
+        <div class="offset-info" id="offsetDisplay">Угол между основаниями: 180°</div>
+        <div id="advanced">
+            <div class="slider-row">
+                <label>🔻 Наклон:</label>
+                <input type="range" id="topTilt" min="0" max="1.5" step="0.01" value="0">
+                <span class="value" id="topTiltValue">0.00</span>
+            </div>
+            <div class="slider-row">
+                <label>🔺 Наклон:</label>
+                <input type="range" id="bottomTilt" min="0" max="1.5" step="0.01" value="0">
+                <span class="value" id="bottomTiltValue">0.00</span>
+            </div>
+            <div class="slider-row">
+                <label>🔻 Высота:</label>
+                <input type="range" id="topHeight" min="0.1" max="3" step="0.05" value="1.5">
+                <span class="value" id="topHeightValue">1.50</span>
+            </div>
+            <div class="slider-row">
+                <label>🔺 Высота:</label>
+                <input type="range" id="bottomHeight" min="0.1" max="3" step="0.05" value="1.5">
+                <span class="value" id="bottomHeightValue">1.50</span>
+            </div>
+            <div class="slider-row">
+                <label>🔻 Y осн.:</label>
+                <input type="range" id="topY" min="-2" max="5" step="0.05" value="2.0">
+                <span class="value" id="topYValue">2.00</span>
+            </div>
+            <div class="slider-row">
+                <label>🔺 Y осн.:</label>
+                <input type="range" id="bottomY" min="-2" max="5" step="0.05" value="1.0">
+                <span class="value" id="bottomYValue">1.00</span>
+            </div>
+            <div class="slider-row">
+                <label>📏 Радиус:</label>
+                <input type="range" id="radius" min="0.3" max="3" step="0.05" value="1.5">
+                <span class="value" id="radiusValue">1.50</span>
+            </div>
+            <div class="slider-row">
+                <label>📐 Смещение:</label>
+                <input type="range" id="offsetSlider" min="0" max="360" step="1" value="120">
+                <span class="value" id="offsetSliderValue">120°</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- MerkabaMath с исправленной логикой направлений -->
+    <script>
+        class MerkabaMath {
+            constructor() {
+                // Идеальные углы
+                this.topAngle = 120;
+                this.bottomAngle = 0;
+                this.topTilt = 0;
+                this.bottomTilt = 0;
+                this.topHeight = 1.5;
+                this.bottomHeight = 1.5;
+                this.bottomY = 1.0;
+                this.topY = 2.0;
+                this.radius = 1.5;
+                this.linkRotation = false;
+                this.offset = 120;  // разница углов (top - bottom) для связи
+                this.idealBaseRotation = 60;
+            }
+
+            _toRad(deg) { return deg * Math.PI / 180; }
+
+            // Направление по вертикальной ориентации (вверх/вниз)
+            static getVerticalDirection(apexY, baseY) {
+                return apexY > baseY ? '⬆️' : '⬇️';
+            }
+
+            getPoints() {
+                const bottom = this.getBottomTetrahedron();
+                const top = this.getTopTetrahedron();
+                return {
+                    '👁️': bottom.apex,
+                    '🟩': bottom.baseVerts[0],
+                    '🟥': bottom.baseVerts[1],
+                    '🟦': bottom.baseVerts[2],
+                    '🟪': top.apex,
+                    '🟢': top.baseVerts[0],
+                    '🔴': top.baseVerts[1],
+                    '🔵': top.baseVerts[2]
+                };
+            }
+
+            getBottomTetrahedron() {
+                const angle = this.bottomAngle;
+                const tilt = this.bottomTilt;
+                const baseY = this.bottomY;
+                const apexY = baseY + this.bottomHeight;
+                const R = this.radius;
+                const rad = this._toRad(angle);
+
+                const apex = {
+                    x: tilt * Math.sin(rad),
+                    y: apexY,
+                    z: -tilt * Math.cos(rad)
+                };
+
+                const baseCenter = { x: 0, y: baseY, z: 0 };
+
+                const baseVerts = [];
+                for (let i = 0; i < 3; i++) {
+                    const a = rad + i * (2 * Math.PI / 3);
+                    baseVerts.push({
+                        x: R * Math.sin(a),
+                        y: baseY,
+                        z: -R * Math.cos(a)
+                    });
+                }
+                return { apex, baseVerts, baseCenter };
+            }
+
+            getTopTetrahedron() {
+                const angle = this.topAngle;
+                const tilt = this.topTilt;
+                const baseY = this.topY;
+                const apexY = baseY - this.topHeight; // вершина ниже основания
+                const R = this.radius;
+                const rad = this._toRad(angle);
+                const radBase = this._toRad(angle + this.idealBaseRotation);
+
+                const apex = {
+                    x: tilt * Math.sin(rad),
+                    y: apexY,
+                    z: -tilt * Math.cos(rad)
+                };
+
+                const baseCenter = { x: 0, y: baseY, z: 0 };
+
+                const baseVerts = [];
+                for (let i = 0; i < 3; i++) {
+                    const a = radBase + i * (2 * Math.PI / 3);
+                    baseVerts.push({
+                        x: R * Math.sin(a),
+                        y: baseY,
+                        z: -R * Math.cos(a)
+                    });
+                }
+                return { apex, baseVerts, baseCenter };
+            }
+
+            static directionFromAngle(angle) {
+                // Оставляем для совместимости, но не используем для отображения
+                angle = ((angle % 360) + 360) % 360;
+                const dirs = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
+                const idx = Math.round(angle / 45) % 8;
+                return dirs[idx];
+            }
+
+            getJSON() {
+                const bottom = this.getBottomTetrahedron();
+                const top = this.getTopTetrahedron();
+                const points = this.getPoints();
+                return {
+                    "top": {
+                        "angle": this.topAngle,
+                        "tilt": this.topTilt,
+                        "height": this.topHeight,
+                        "y": this.topY,
+                        "direction": MerkabaMath.getVerticalDirection(top.apex.y, top.baseCenter.y) // всегда ⬇️
+                    },
+                    "bottom": {
+                        "angle": this.bottomAngle,
+                        "tilt": this.bottomTilt,
+                        "height": this.bottomHeight,
+                        "y": this.bottomY,
+                        "direction": MerkabaMath.getVerticalDirection(bottom.apex.y, bottom.baseCenter.y) // всегда ⬆️
+                    },
+                    "radius": this.radius,
+                    "linkRotation": this.linkRotation,
+                    "offset": this.offset,
+                    "angleBetweenBases": (this.topAngle + this.idealBaseRotation - this.bottomAngle + 360) % 360,
+                    "points": points
+                };
+            }
+        }
+    </script>
+
+    <!-- Основной скрипт -->
+    <script>
+        // === Сцена ===
+        const scene = new THREE.Scene();
+        const cameraPersp = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.01, 100);
+        cameraPersp.position.set(4, 2.8, 5);  // камера на +Z, смотрит в -Z → перед = -Z
+        cameraPersp.lookAt(0, 0, 0);
+
+        const cameraOrtho = new THREE.OrthographicCamera(-4, 4, 4, -4, 0.1, 50);
+        cameraOrtho.position.set(0, 10, 0);
+        cameraOrtho.lookAt(0, 0, 0);
+        cameraOrtho.up.set(0, 0, -1);
+
+        let activeCamera = cameraPersp;
+        let isTopView = false;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(cameraPersp, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.15;
+        controls.minDistance = 1.5;
+        controls.maxDistance = 15;
+        controls.target.set(0, 0, 0);
+
+        // Свет
+        scene.add(new THREE.AmbientLight(0x8888cc, 0.8));
+        const light1 = new THREE.DirectionalLight(0xffffff, 0.9);
+        light1.position.set(5, 8, 6);
+        scene.add(light1);
+        const light2 = new THREE.DirectionalLight(0x4488ff, 0.35);
+        light2.position.set(-4, -2, -3);
+        scene.add(light2);
+        const light3 = new THREE.PointLight(0xff8844, 0.5, 15);
+        light3.position.set(0, 3, 0);
+        scene.add(light3);
+
+        // Сетка
+        const grid = new THREE.GridHelper(8, 12, 0x444466, 0x333355);
+        grid.position.y = -0.01;
+        scene.add(grid);
+
+        // Маркер "вперёд" -Z
+        const forwardMarker = new THREE.Group();
+        const markerCone = new THREE.Mesh(
+            new THREE.ConeGeometry(0.12, 0.5, 8),
+            new THREE.MeshPhongMaterial({ color: 0xffaa00, emissive: 0x442200 })
+        );
+        markerCone.rotation.x = Math.PI / 2;
+        markerCone.position.set(0, 0, -1.8);
+        forwardMarker.add(markerCone);
+        const markerLineGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, -2.5)
+        ]);
+        const markerLine = new THREE.Line(markerLineGeo,
+            new THREE.LineBasicMaterial({ color: 0xffaa00, linewidth: 1 }));
+        forwardMarker.add(markerLine);
+        const canvasLabel = document.createElement('canvas');
+        canvasLabel.width = 64;
+        canvasLabel.height = 64;
+        const ctxLabel = canvasLabel.getContext('2d');
+        ctxLabel.fillStyle = '#ffaa00';
+        ctxLabel.font = 'bold 40px sans-serif';
+        ctxLabel.textAlign = 'center';
+        ctxLabel.textBaseline = 'middle';
+        ctxLabel.fillText('F', 32, 32);
+        const textureLabel = new THREE.CanvasTexture(canvasLabel);
+        const spriteMat = new THREE.SpriteMaterial({ map: textureLabel });
+        const spriteLabel = new THREE.Sprite(spriteMat);
+        spriteLabel.scale.set(0.5, 0.5, 0.5);
+        spriteLabel.position.set(0, 0.3, -2.1);
+        forwardMarker.add(spriteLabel);
+        scene.add(forwardMarker);
+
+        // Идеальный центр
+        const centerSphere = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15, 16, 16),
+            new THREE.MeshBasicMaterial({ color: 0xffdd44, transparent: true, opacity: 0.8 })
+        );
+        centerSphere.position.set(0, 1.5, 0);
+        scene.add(centerSphere);
+
+        // Группы
+        const bottomGroup = new THREE.Group();
+        const topGroup = new THREE.Group();
+        const diagonalGroup = new THREE.Group();
+        scene.add(bottomGroup);
+        scene.add(topGroup);
+        scene.add(diagonalGroup);
+
+        const math = new MerkabaMath();
+
+        // === Утилиты ===
+        function createLabel(text, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 128, 128);
+            ctx.fillStyle = color || '#fff';
+            ctx.font = 'bold 52px "Segoe UI", Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 8;
+            ctx.fillText(text, 64, 64);
+            const texture = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.SpriteMaterial({ map: texture, depthTest: true, sizeAttenuation: true });
+            const sprite = new THREE.Sprite(mat);
+            sprite.scale.set(0.55, 0.55, 0.55);
+            return sprite;
+        }
+
+        function updateTetrahedrons() {
+            while (bottomGroup.children.length) bottomGroup.remove(bottomGroup.children[0]);
+            while (topGroup.children.length) topGroup.remove(topGroup.children[0]);
+            while (diagonalGroup.children.length) diagonalGroup.remove(diagonalGroup.children[0]);
+
+            const bottom = math.getBottomTetrahedron();
+            const top = math.getTopTetrahedron();
+
+            // Нижний
+            const bEdgePts = [
+                bottom.apex, bottom.baseVerts[0],
+                bottom.apex, bottom.baseVerts[1],
+                bottom.apex, bottom.baseVerts[2],
+                bottom.baseVerts[0], bottom.baseVerts[1],
+                bottom.baseVerts[1], bottom.baseVerts[2],
+                bottom.baseVerts[2], bottom.baseVerts[0]
+            ];
+            const bLine = new THREE.LineSegments(
+                new THREE.BufferGeometry().setFromPoints(bEdgePts),
+                new THREE.LineBasicMaterial({ color: 0x44aaff, linewidth: 2 })
+            );
+            bottomGroup.add(bLine);
+
+            const bFaceGeo = new THREE.BufferGeometry();
+            bFaceGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+                bottom.baseVerts[0].x, bottom.baseVerts[0].y, bottom.baseVerts[0].z,
+                bottom.baseVerts[1].x, bottom.baseVerts[1].y, bottom.baseVerts[1].z,
+                bottom.baseVerts[2].x, bottom.baseVerts[2].y, bottom.baseVerts[2].z
+            ], 3));
+            bFaceGeo.setIndex([0, 1, 2]);
+            bFaceGeo.computeVertexNormals();
+            const bFace = new THREE.Mesh(bFaceGeo, new THREE.MeshBasicMaterial({
+                color: 0x44aaff, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false
+            }));
+            bottomGroup.add(bFace);
+
+            const bLabels = [
+                { text: '👁️', pos: bottom.apex, color: '#ffffff' },
+                { text: '🟩', pos: bottom.baseVerts[0], color: '#44ff44' },
+                { text: '🟥', pos: bottom.baseVerts[1], color: '#ff4444' },
+                { text: '🟦', pos: bottom.baseVerts[2], color: '#4488ff' }
+            ];
+            for (const lb of bLabels) {
+                const s = createLabel(lb.text, lb.color);
+                s.position.copy(lb.pos);
+                s.position.y += 0.35;
+                bottomGroup.add(s);
+            }
+
+            // Верхний
+            const tEdgePts = [
+                top.apex, top.baseVerts[0],
+                top.apex, top.baseVerts[1],
+                top.apex, top.baseVerts[2],
+                top.baseVerts[0], top.baseVerts[1],
+                top.baseVerts[1], top.baseVerts[2],
+                top.baseVerts[2], top.baseVerts[0]
+            ];
+            const tLine = new THREE.LineSegments(
+                new THREE.BufferGeometry().setFromPoints(tEdgePts),
+                new THREE.LineBasicMaterial({ color: 0xff44aa, linewidth: 2 })
+            );
+            topGroup.add(tLine);
+
+            const tFaceGeo = new THREE.BufferGeometry();
+            tFaceGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+                top.baseVerts[0].x, top.baseVerts[0].y, top.baseVerts[0].z,
+                top.baseVerts[1].x, top.baseVerts[1].y, top.baseVerts[1].z,
+                top.baseVerts[2].x, top.baseVerts[2].y, top.baseVerts[2].z
+            ], 3));
+            tFaceGeo.setIndex([0, 1, 2]);
+            tFaceGeo.computeVertexNormals();
+            const tFace = new THREE.Mesh(tFaceGeo, new THREE.MeshBasicMaterial({
+                color: 0xff44aa, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false
+            }));
+            topGroup.add(tFace);
+
+            const tLabels = [
+                { text: '🟪', pos: top.apex, color: '#cc88ff' },
+                { text: '🟢', pos: top.baseVerts[0], color: '#22ff22' },
+                { text: '🔴', pos: top.baseVerts[1], color: '#ff2222' },
+                { text: '🔵', pos: top.baseVerts[2], color: '#2222ff' }
+            ];
+            for (const lb of tLabels) {
+                const s = createLabel(lb.text, lb.color);
+                s.position.copy(lb.pos);
+                s.position.y += 0.35;
+                topGroup.add(s);
+            }
+
+            // Диагонали (жёлтые)
+            const diagPairs = [
+                [bottom.baseVerts[2], top.baseVerts[2]], // 🟦 → 🔵
+                [bottom.baseVerts[1], top.baseVerts[1]], // 🟥 → 🔴
+                [bottom.baseVerts[0], top.baseVerts[0]], // 🟩 → 🟢
+                [bottom.apex, top.apex] // 👁️ → 🟪
+            ];
+            for (const [p1, p2] of diagPairs) {
+                const lineGeo = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(p1.x, p1.y, p1.z),
+                    new THREE.Vector3(p2.x, p2.y, p2.z)
+                ]);
+                const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({
+                    color: 0xffdd44,
+                    transparent: true,
+                    opacity: 0.6
+                }));
+                diagonalGroup.add(line);
+            }
+        }
+
+        // === Сохранение ===
+        function saveState() {
+            const state = {
+                topAngle: math.topAngle,
+                bottomAngle: math.bottomAngle,
+                topTilt: math.topTilt,
+                bottomTilt: math.bottomTilt,
+                topHeight: math.topHeight,
+                bottomHeight: math.bottomHeight,
+                topY: math.topY,
+                bottomY: math.bottomY,
+                radius: math.radius,
+                linkRotation: math.linkRotation,
+                offset: math.offset,
+                cameraPos: { x: cameraPersp.position.x, y: cameraPersp.position.y, z: cameraPersp.position.z },
+                cameraTarget: { x: controls.target.x, y: controls.target.y, z: controls.target.z },
+                isTopView: isTopView
+            };
+            localStorage.setItem('merkabaState', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('merkabaState');
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    if (state.topAngle !== undefined) math.topAngle = state.topAngle;
+                    if (state.bottomAngle !== undefined) math.bottomAngle = state.bottomAngle;
+                    if (state.topTilt !== undefined) math.topTilt = state.topTilt;
+                    if (state.bottomTilt !== undefined) math.bottomTilt = state.bottomTilt;
+                    if (state.topHeight !== undefined) math.topHeight = state.topHeight;
+                    if (state.bottomHeight !== undefined) math.bottomHeight = state.bottomHeight;
+                    if (state.topY !== undefined) math.topY = state.topY;
+                    if (state.bottomY !== undefined) math.bottomY = state.bottomY;
+                    if (state.radius !== undefined) math.radius = state.radius;
+                    if (state.linkRotation !== undefined) math.linkRotation = state.linkRotation;
+                    if (state.offset !== undefined) math.offset = state.offset;
+                    if (state.cameraPos) cameraPersp.position.set(state.cameraPos.x, state.cameraPos.y, state.cameraPos.z);
+                    if (state.cameraTarget) controls.target.set(state.cameraTarget.x, state.cameraTarget.y, state.cameraTarget.z);
+                    if (state.isTopView) setTopView(true);
+                    else setTopView(false);
+                    controls.update();
+                } catch (e) { console.warn('Load error', e); }
+            }
+        }
+
+        function setTopView(enabled) {
+            isTopView = enabled;
+            if (enabled) {
+                activeCamera = cameraOrtho;
+                const aspect = window.innerWidth / window.innerHeight;
+                const size = 4;
+                cameraOrtho.left = -size * aspect;
+                cameraOrtho.right = size * aspect;
+                cameraOrtho.top = size;
+                cameraOrtho.bottom = -size;
+                cameraOrtho.updateProjectionMatrix();
+                controls.enabled = false;
+            } else {
+                activeCamera = cameraPersp;
+                controls.enabled = true;
+            }
+        }
+
+        // UI элементы
+        const topAngleInput = document.getElementById('topAngle');
+        const bottomAngleInput = document.getElementById('bottomAngle');
+        const topAngleValue = document.getElementById('topAngleValue');
+        const bottomAngleValue = document.getElementById('bottomAngleValue');
+        const topDirection = document.getElementById('topDirection');
+        const bottomDirection = document.getElementById('bottomDirection');
+        const topTri = document.getElementById('topTri');
+        const bottomTri = document.getElementById('bottomTri');
+        const linkCheckbox = document.getElementById('linkCheckbox');
+        const offsetDisplay = document.getElementById('offsetDisplay');
+        const topTiltInput = document.getElementById('topTilt');
+        const bottomTiltInput = document.getElementById('bottomTilt');
+        const topHeightInput = document.getElementById('topHeight');
+        const bottomHeightInput = document.getElementById('bottomHeight');
+        const topYInput = document.getElementById('topY');
+        const bottomYInput = document.getElementById('bottomY');
+        const radiusInput = document.getElementById('radius');
+        const offsetSlider = document.getElementById('offsetSlider');
+        const offsetSliderValue = document.getElementById('offsetSliderValue');
+        const gearBtn = document.getElementById('gearBtn');
+        const advancedDiv = document.getElementById('advanced');
+        const exportBtn = document.getElementById('exportBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const topViewBtn = document.getElementById('topViewBtn');
+
+        function updateLinkUI() {
+            if (math.linkRotation) {
+                bottomAngleInput.classList.add('linked-slider');
+                bottomAngleInput.parentElement.classList.add('linked-label');
+            } else {
+                bottomAngleInput.classList.remove('linked-slider');
+                bottomAngleInput.parentElement.classList.remove('linked-label');
+            }
+        }
+
+        function updateOffsetUI() {
+            const angleBetween = (math.topAngle + math.idealBaseRotation - math.bottomAngle + 360) % 360;
+            offsetDisplay.textContent = `Угол между основаниями: ${Math.round(angleBetween)}°`;
+            offsetSlider.value = math.offset;
+            offsetSliderValue.textContent = Math.round(math.offset) + '°';
+        }
+
+        function updateUI() {
+            topAngleValue.textContent = Math.round(math.topAngle) + '°';
+            bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
+
+            // Направления по вертикальной ориентации (не по углу)
+            topDirection.textContent = '⬇️';
+            bottomDirection.textContent = '⬆️';
+
+            topTri.style.transform = `rotate(${math.topAngle}deg)`;
+            bottomTri.style.transform = `rotate(${math.bottomAngle}deg)`;
+
+            topTiltValue.textContent = math.topTilt.toFixed(2);
+            bottomTiltValue.textContent = math.bottomTilt.toFixed(2);
+            topHeightValue.textContent = math.topHeight.toFixed(2);
+            bottomHeightValue.textContent = math.bottomHeight.toFixed(2);
+            topYValue.textContent = math.topY.toFixed(2);
+            bottomYValue.textContent = math.bottomY.toFixed(2);
+            radiusValue.textContent = math.radius.toFixed(1);
+
+            topAngleInput.value = math.topAngle;
+            bottomAngleInput.value = math.bottomAngle;
+            topTiltInput.value = math.topTilt;
+            bottomTiltInput.value = math.bottomTilt;
+            topHeightInput.value = math.topHeight;
+            bottomHeightInput.value = math.bottomHeight;
+            topYInput.value = math.topY;
+            bottomYInput.value = math.bottomY;
+            radiusInput.value = math.radius;
+            linkCheckbox.checked = math.linkRotation;
+
+            updateOffsetUI();
+            updateLinkUI();
+        }
+
+        // Обработчики
+        topAngleInput.addEventListener('input', function() {
+            math.topAngle = parseFloat(this.value);
+            if (math.linkRotation) {
+                math.bottomAngle = (math.topAngle - math.offset + 360) % 360;
+                bottomAngleInput.value = math.bottomAngle;
+                bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
+            } else {
+                math.offset = (math.topAngle - math.bottomAngle + 360) % 360;
+            }
+            updateUI(); updateTetrahedrons(); saveState();
+        });
+
+        bottomAngleInput.addEventListener('input', function() {
+            math.bottomAngle = parseFloat(this.value);
+            if (math.linkRotation) {
+                math.linkRotation = false;
+                linkCheckbox.checked = false;
+                updateLinkUI();
+            }
+            math.offset = (math.topAngle - math.bottomAngle + 360) % 360;
+            updateUI(); updateTetrahedrons(); saveState();
+        });
+
+        linkCheckbox.addEventListener('change', function() {
+            math.linkRotation = this.checked;
+            if (math.linkRotation) {
+                math.bottomAngle = (math.topAngle - math.offset + 360) % 360;
+                bottomAngleInput.value = math.bottomAngle;
+                bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
+            }
+            updateUI(); updateTetrahedrons(); saveState();
+        });
+
+        // Дополнительные слайдеры
+        topTiltInput.addEventListener('input', function() { math.topTilt = parseFloat(this.value); updateUI(); updateTetrahedrons(); saveState(); });
+        bottomTiltInput.addEventListener('input', function() { math.bottomTilt = parseFloat(this.value); updateUI(); updateTetrahedrons(); saveState(); });
+        topHeightInput.addEventListener('input', function() { math.topHeight = parseFloat(this.value); updateUI(); updateTetrahedrons(); saveState(); });
+        bottomHeightInput.addEventListener('input', function() { math.bottomHeight = parseFloat(this.value); updateUI(); updateTetrahedrons(); saveState(); });
+        topYInput.addEventListener('input', function() { math.topY = parseFloat(this.value); updateUI(); updateTetrahedrons(); saveState(); });
+        bottomYInput.addEventListener('input', function() { math.bottomY = parseFloat(this.value); updateUI(); updateTetrahedrons(); saveState(); });
+        radiusInput.addEventListener('input', function() { math.radius = parseFloat(this.value); updateUI(); updateTetrahedrons(); saveState(); });
+        offsetSlider.addEventListener('input', function() {
+            math.offset = parseFloat(this.value);
+            if (math.linkRotation) {
+                math.bottomAngle = (math.topAngle - math.offset + 360) % 360;
+                bottomAngleInput.value = math.bottomAngle;
+                bottomAngleValue.textContent = Math.round(math.bottomAngle) + '°';
+            }
+            updateUI(); updateTetrahedrons(); saveState();
+        });
+
+        gearBtn.addEventListener('click', function() { advancedDiv.classList.toggle('visible'); });
+        resetBtn.addEventListener('click', function() {
+            math.topAngle = 120;
+            math.bottomAngle = 0;
+            math.topTilt = 0;
+            math.bottomTilt = 0;
+            math.topHeight = 1.5;
+            math.bottomHeight = 1.5;
+            math.topY = 2.0;
+            math.bottomY = 1.0;
+            math.radius = 1.5;
+            math.linkRotation = false;
+            math.offset = 120;
+            setTopView(false);
+            cameraPersp.position.set(4, 2.8, 5);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            updateUI(); updateTetrahedrons(); saveState();
+        });
+        topViewBtn.addEventListener('click', function() {
+            setTopView(!isTopView);
+            topViewBtn.textContent = isTopView ? '👁️ Обычный вид' : '👁️ Вид сверху';
+            saveState();
+        });
+
+        exportBtn.addEventListener('click', function() {
+            const data = math.getJSON();
+            const str = JSON.stringify(data, null, 2);
+            if (navigator.clipboard) navigator.clipboard.writeText(str).then(() => showToast('✅ JSON скопирован!'));
+            else fallbackCopy(str);
+        });
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); showToast('✅ JSON скопирован!'); }
+            catch (e) { showToast('❌ Ошибка копирования'); }
+            document.body.removeChild(ta);
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.textContent = msg;
+            toast.style.cssText = 'position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(30,30,60,.9);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .3s;pointer-events:none;backdrop-filter:blur(8px);';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.style.opacity = '0', 2000);
+            setTimeout(() => document.body.removeChild(toast), 2500);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls.enabled) controls.update();
+            renderer.render(scene, activeCamera);
+        }
+
+        window.addEventListener('resize', () => {
+            cameraPersp.aspect = window.innerWidth / window.innerHeight;
+            cameraPersp.updateProjectionMatrix();
+            if (isTopView) {
+                const aspect = window.innerWidth / window.innerHeight;
+                const size = 4;
+                cameraOrtho.left = -size * aspect;
+                cameraOrtho.right = size * aspect;
+                cameraOrtho.top = size;
+                cameraOrtho.bottom = -size;
+                cameraOrtho.updateProjectionMatrix();
+            }
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Инициализация
+        loadState();
+        updateTetrahedrons();
+        updateUI();
+        topViewBtn.textContent = isTopView ? '👁️ Обычный вид' : '👁️ Вид сверху';
+        animate();
+    </script>
+</body>
+</html>
