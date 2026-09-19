@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0d1117"/>
+<title>Пирамида Сознания</title>
+<style>
+:root{
+  --bg:#0d1117;
+  --panel:#161b22;
+  --border:#232b36;
+  --text:#e6edf3;
+  --muted:#8b949e;
+  --c:#54a0ff;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(120% 90% at 50% -10%, #16202e 0%, #0d1117 55%) fixed;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  min-height:100vh;
+}
+.app{max-width:520px;margin:0 auto;padding:14px 14px 36px;}
+
+/* ---------- header ---------- */
+.hdr{text-align:center;margin:4px 0 10px;}
+.hdr h1{
+  font-size:17px;margin:0;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  background:linear-gradient(90deg,#54a0ff,#ff7675,#fdcb6e);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hdr .sub{margin:3px 0 0;font-size:11px;color:var(--muted);letter-spacing:.04em;}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:8px;margin-bottom:8px;}
+.tab{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:9px 4px;border-radius:12px;
+  background:var(--panel);border:1px solid var(--border);
+  color:var(--muted);font-size:12.5px;font-weight:700;font-family:inherit;
+  cursor:pointer;transition:all .3s ease;
+}
+.tab .ico{font-size:15px;line-height:1;}
+.tab.active{
+  color:#fff;border-color:var(--c);
+  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+  box-shadow:0 0 0 1px var(--c) inset, 0 8px 24px -14px var(--c);
+}
+.tab:active{transform:scale(.97);}
+
+/* ---------- pyramid ---------- */
+.stage{margin:0 -4px;}
+#pyramid{display:block;width:100%;height:auto;touch-action:pan-y;user-select:none;}
+#pyramid .face{transition:fill-opacity .35s ease, stroke-opacity .35s ease, stroke-width .35s ease;}
+#pyramid text{font-family:inherit;pointer-events:none;user-select:none;}
+@keyframes mkpulse{0%,100%{opacity:1}50%{opacity:.12}}
+.pulse-marker{animation:mkpulse .55s ease-in-out 3;}
+.hint{text-align:center;font-size:10.5px;color:#5b6675;margin:0 0 4px;letter-spacing:.03em;}
+
+/* ---------- panels ---------- */
+.panel{
+  background:linear-gradient(180deg,#161b22,#11151b);
+  border:1px solid var(--border);
+  border-radius:16px;padding:13px 15px;margin-top:10px;
+  box-shadow:0 10px 34px -26px #000;
+}
+
+/* ---------- level slider ---------- */
+.level-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
+#levelName{font-weight:700;font-size:15px;}
+#levelValue{font-variant-numeric:tabular-nums;color:var(--c);font-weight:800;font-size:15px;transition:color .3s;}
+
+#slider{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;--pct:0%;margin:0;}
+#slider::-webkit-slider-runnable-track{
+  height:6px;border-radius:99px;
+  background:linear-gradient(to right,var(--c) var(--pct), #232b36 var(--pct));
+}
+#slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#fff;border:3px solid var(--c);margin-top:-7px;
+  box-shadow:0 0 14px -2px var(--c);transition:transform .2s;
+}
+#slider:active::-webkit-slider-thumb{transform:scale(1.18);}
+#slider::-moz-range-track{height:6px;border-radius:99px;background:#232b36;}
+#slider::-moz-range-progress{height:6px;border-radius:99px;background:var(--c);}
+#slider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--c);}
+
+.ticks{display:flex;justify-content:space-between;padding:0 6px;margin-top:-2px;}
+.tick{
+  width:11px;height:11px;border-radius:50%;padding:0;
+  border:1.5px solid #3a4655;background:transparent;cursor:pointer;
+  transition:all .25s ease;appearance:none;-webkit-appearance:none;
+}
+.tick.on{background:var(--c);border-color:var(--c);box-shadow:0 0 10px -1px var(--c);transform:scale(1.3);}
+.level-desc{font-size:12.5px;color:var(--muted);margin-top:8px;text-align:center;}
+
+/* ---------- balance ---------- */
+.bal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;}
+.bal-title{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:800;}
+.locate{
+  font-family:inherit;font-size:11.5px;font-weight:700;
+  background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);
+  padding:5px 11px;border-radius:99px;cursor:pointer;transition:.25s;white-space:nowrap;
+}
+.locate:active{transform:scale(.95);background:rgba(255,255,255,.12);}
+.bal-body{display:flex;gap:16px;align-items:center;}
+.bal-avg{text-align:center;min-width:80px;}
+.bal-avg .big{
+  font-size:30px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;
+  background:linear-gradient(180deg,#fff,#93a7bb);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  transition:.3s;
+}
+.bal-avg .cap{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px;}
+.bal-side{flex:1;min-width:0;}
+.spread-line{font-size:11.5px;color:var(--muted);margin-bottom:8px;}
+.spread-line b{font-variant-numeric:tabular-nums;color:var(--text);}
+#balHint{font-weight:700;}
+.mini-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.mini-row:last-child{margin-bottom:0;}
+.mini-ico{font-size:12px;width:16px;text-align:center;line-height:1;}
+.mini-bar{flex:1;height:5px;border-radius:99px;background:#232b36;overflow:hidden;}
+.mini-bar i{display:block;height:100%;border-radius:99px;transition:width .45s cubic-bezier(.4,0,.2,1);}
+.mini-val{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;width:32px;text-align:right;}
+
+/* ---------- info card ---------- */
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:800;padding:4px 11px;border-radius:99px;
+  color:var(--c);border:1px solid var(--c);background:rgba(255,255,255,.03);
+  transition:.3s;
+}
+.lvl-tag{font-size:11.5px;color:var(--muted);font-weight:600;}
+.lv-desc{font-size:12.5px;color:var(--muted);margin:0 0 13px;}
+.block{margin-bottom:13px;}
+.block:last-child{margin-bottom:0;}
+.bt{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:6px;}
+.bb{font-size:14px;line-height:1.5;}
+.bb.should{color:#cfdcea;font-style:italic;}
+.bb.step{color:#ffe08a;font-weight:600;}
+ul.blocks{margin:0;padding-left:18px;list-style:none;}
+ul.blocks li{position:relative;margin-bottom:4px;color:#ffb0b0;}
+ul.blocks li::before{content:"•";position:absolute;left:-14px;color:#ff7675;}
+.muted{color:var(--muted);}
+.fade-in{animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hdr">
+    <h1>Пирамида Сознания</h1>
+    <p class="sub">Мысль · Чувство · Действие → Абсолют</p>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <div class="stage">
+    <svg id="pyramid" viewBox="0 0 400 330" preserveAspectRatio="xMidYMid meet" aria-label="Тетраэдр сознания"></svg>
+  </div>
+  <p class="hint">Тяни — вращение · Тапни грань — выбрать поток</p>
+
+  <section class="panel">
+    <div class="level-head">
+      <span id="levelName">Материя</span>
+      <span id="levelValue">0.00</span>
+    </div>
+    <input id="slider" type="range" min="0" max="4" step="1" value="0" aria-label="Уровень"/>
+    <div class="ticks" id="ticks"></div>
+    <div class="level-desc" id="levelDesc">Тело. Инстинкт. Выживание.</div>
+  </section>
+
+  <section class="panel">
+    <div class="bal-head">
+      <span class="bal-title">Индикатор баланса</span>
+      <button class="locate" id="locateBtn" type="button">📍 Где я сейчас?</button>
+    </div>
+    <div class="bal-body">
+      <div class="bal-avg">
+        <div class="big" id="balAvg">0.00</div>
+        <div class="cap">вибрация</div>
+      </div>
+      <div class="bal-side">
+        <div class="spread-line">разброс <b id="balSpread">0.00</b> · <span id="balHint">ровно</span></div>
+        <div class="mini" id="miniBars"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="info"></section>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   ДАННЫЕ МОДЕЛИ  —  правь только здесь
+   ===================================================================== */
+const PYRAMID_DATA = {
+  streams: [
+    { id:'thought', name:'Мысль',    color:'#54a0ff', icon:'🧠' },
+    { id:'feeling', name:'Чувство',  color:'#ff7675', icon:'❤️' },
+    { id:'action',  name:'Действие', color:'#fdcb6e', icon:'⚔️' }
+  ],
+  levels: [
+    { id:0, value:0.00, name:'Материя',    desc:'Тело. Инстинкт. Выживание.' },
+    { id:1, value:0.25, name:'Наблюдение', desc:'Замечаю. Дышу. Пауза.' },
+    { id:2, value:0.50, name:'Выбор',      desc:'Система. Логика. Структура.' },
+    { id:3, value:0.75, name:'Творчество', desc:'Поток. Инсайт. Созидание.' },
+    { id:4, value:1.00, name:'Абсолют',    desc:'Тишина. Единство. Бог.' }
+  ],
+  content: {
+    thought: {
+      0:{ should:'«Один шаг сейчас»',
+          blocks:['«Надо всё сразу»','«Это не сработает»','«Я неудачник»'],
+          step_up:'Спроси: «Что я чувствую прямо сейчас?»' },
+      1:{ should:'«Я вижу, почему я делаю этот шаг»',
+          blocks:['«Я уже всё понял»','«Я застрял»'],
+          step_up:'Найди связь между двумя действиями' },
+      2:{ should:'«Я строю систему»',
+          blocks:['«Это скучно»','«А вдруг не сработает»'],
+          step_up:'Сформулируй правило' },
+      3:{ should:'«Я творю из потока»',
+          blocks:['«Это гениально, я особенный»'],
+          step_up:'Отпусти результат' },
+      4:{ should:'Тишина. Знание без слов', blocks:[], step_up:'' }
+    },
+    feeling: {
+      0:{ should:'Тело. Ощущение',
+          blocks:['Паника','Ожидание'],
+          step_up:'Подыши в тело' },
+      1:{ should:'Интерес. Любопытство',
+          blocks:['«Мне страшно»','«Не хочу»'],
+          step_up:'Наблюдай страх' },
+      2:{ should:'Спокойствие. Доверие',
+          blocks:['«Надо контролировать»'],
+          step_up:'Позволь течь' },
+      3:{ should:'Любовь. Благодарность',
+          blocks:['«Я лучше других»'],
+          step_up:'Отдай другому' },
+      4:{ should:'Вибрация. Единство', blocks:[], step_up:'' }
+    },
+    action: {
+      0:{ should:'Маленький шаг',
+          blocks:['Ждать','Планировать'],
+          step_up:'Сделай 1 действие' },
+      1:{ should:'Выбор. Пауза',
+          blocks:['Автоматизм','«Надо»'],
+          step_up:'Выбери осознанно' },
+      2:{ should:'Система. Алгоритм',
+          blocks:['«Хаос»','«Бросаю»'],
+          step_up:'Запиши правило' },
+      3:{ should:'Творчество. Поток',
+          blocks:['«Идеально»','«Всё сразу»'],
+          step_up:'Действуй без делателя' },
+      4:{ should:'Воля Бога', blocks:[], step_up:'' }
+    }
+  }
+};
+
+/* =====================================================================
+   СОСТОЯНИЕ
+   ===================================================================== */
+const STORAGE_KEY = 'pyramid-of-consciousness-v1';
+
+const state = {
+  active: 'thought',
+  levels: { thought:0, feeling:0, action:0 }   // индексы 0..4
+};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(s && s.levels){
+      PYRAMID_DATA.streams.forEach(st=>{
+        let v = Math.round(Number(s.levels[st.id]));
+        if(!isNaN(v) && v >= 0 && v <= 4) state.levels[st.id] = v;
+      });
+    }
+    if(s && s.active && PYRAMID_DATA.streams.some(x=>x.id===s.active)){
+      state.active = s.active;
+    }
+  }catch(e){ /* ignore */ }
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+/* =====================================================================
+   ГЕОМЕТРИЯ ТЕТРАЭДРА
+   ===================================================================== */
+const NS = 'http://www.w3.org/2000/svg';
+
+const APEX = { x:0, y:1.55, z:0 };
+const BASE = [
+  { x: 0.000, y:0, z: 1.000 },   // 0 — «передняя» вершина основания
+  { x:-0.866, y:0, z:-0.500 },   // 1
+  { x: 0.866, y:0, z:-0.500 }    // 2
+];
+/* Каждая грань поднимается от своего ребра основания.
+   Порядок совпадает с порядком потоков: Мысль, Чувство, Действие */
+const FACE_EDGES = [ [1,2], [2,0], [0,1] ];
+
+const CX = 200, CY = 232, SCALE = 106, TILT = 0.35;
+
+function project(p, ang){
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const x  =  p.x*ca + p.z*sa;
+  const z  = -p.x*sa + p.z*ca;
+  const ct = Math.cos(TILT), st = Math.sin(TILT);
+  const y  = p.y*ct - z*st;
+  const zz = p.y*st + z*ct;
+  return { x: CX + x*SCALE, y: CY - y*SCALE, z: zz };
+}
+function lerp3(a,b,t){
+  return { x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t, z:a.z+(b.z-a.z)*t };
+}
+function mid3(a,b){
+  return { x:(a.x+b.x)/2, y:(a.y+b.y)/2, z:(a.z+b.z)/2 };
+}
+
+/* =====================================================================
+   SVG СЦЕНА
+   ===================================================================== */
+const svg = document.getElementById('pyramid');
+let facesLayer, apexLayer, faceNodes = [], apexEls = {};
+
+function svgEl(tag, attrs){
+  const e = document.createElementNS(NS, tag);
+  if(attrs) for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function initSVG(){
+  svg.innerHTML = '';
+  facesLayer = svgEl('g');
+  apexLayer  = svgEl('g');
+  svg.appendChild(facesLayer);
+  svg.appendChild(apexLayer);
+
+  faceNodes = PYRAMID_DATA.streams.map((s,i)=>{
+    const g = svgEl('g', { 'data-stream': s.id });
+
+    const poly = svgEl('polygon', { 'class':'face', 'stroke-linejoin':'round' });
+    g.appendChild(poly);
+
+    const lines = [];
+    for(let k=1; k<=3; k++){
+      const ln = svgEl('line', {
+        stroke: s.color, 'stroke-width': 1,
+        'stroke-dasharray':'3 4', 'stroke-opacity': .45,
+        'stroke-linecap':'round'
+      });
+      ln.style.display = 'none';
+      g.appendChild(ln);
+      lines.push(ln);
+    }
+
+    const marker = svgEl('circle', {
+      r:5, fill:s.color, stroke:'#0d1117', 'stroke-width':2
+    });
+    g.appendChild(marker);
+
+    const label = svgEl('text', {
+      'text-anchor':'middle', 'dominant-baseline':'middle',
+      'font-size':12.5, 'font-weight':700, fill:s.color
+    });
+    label.textContent = s.icon + ' ' + s.name;
+    g.appendChild(label);
+
+    g.style.cursor = 'pointer';
+    g.addEventListener('click', ()=>{
+      if(Date.now() - dragEndTime < 300) return;   // это был свайп, не тап
+      setStream(s.id);
+    });
+
+    facesLayer.appendChild(g);
+    return { g, poly, lines, marker, label, stream:s, idx:i };
+  });
+
+  /* Вершина */
+  const apexGlow = svgEl('circle', { r:12, fill:'#ffffff', 'fill-opacity':.10 });
+  const apexDot  = svgEl('circle', { r:5,  fill:'#ffffff', 'fill-opacity':.95 });
+  const apexText = svgEl('text', {
+    'text-anchor':'middle', 'font-size':10.5, 'font-weight':800,
+    fill:'#c9d7e4', 'letter-spacing':'0.14em'
+  });
+  apexText.textContent = 'АБСОЛЮТ';
+  apexLayer.appendChild(apexGlow);
+  apexLayer.appendChild(apexDot);
+  apexLayer.appendChild(apexText);
+  apexEls = { apexGlow, apexDot, apexText };
+}
+
+/* =====================================================================
+   ОТРИСОВКА КАДРА
+   ===================================================================== */
+let angle = 0.7;
+let lastTs = 0;
+let lastInteraction = 0;
+let dragEndTime = 0;
+
+function updateScene(){
+  const items = faceNodes.map(fn=>{
+    const [b0,b1] = FACE_EDGES[fn.idx];
+    const pa = project(APEX, angle);
+    const p0 = project(BASE[b0], angle);
+    const p1 = project(BASE[b1], angle);
+    const cross = (p0.x-pa.x)*(p1.y-pa.y) - (p1.x-pa.x)*(p0.y-pa.y);
+    return {
+      fn, b0, b1, pa, p0, p1,
+      front: cross > 0,
+      depth: (pa.z + p0.z + p1.z)/3
+    };
+  });
+
+  /* дальние грани — первыми */
+  items.sort((a,b)=> a.depth - b.depth);
+  items.forEach(it => facesLayer.appendChild(it.fn.g));
+
+  items.forEach(it=>{
+    const { fn, pa, p0, p1, front } = it;
+    const s = fn.stream;
+    const isActive = (s.id === state.active);
+    const v = state.levels[s.id] / 4;
+
+    /* --- грань --- */
+    fn.poly.setAttribute('points',
+      pa.x.toFixed(1)+','+pa.y.toFixed(1)+' '+
+      p0.x.toFixed(1)+','+p0.y.toFixed(1)+' '+
+      p1.x.toFixed(1)+','+p1.y.toFixed(1));
+
+    fn.poly.style.fill          = s.color;
+    fn.poly.style.fillOpacity   = isActive ? (front ? .30 : .13) : (front ? .085 : .04);
+    fn.poly.style.stroke        = s.color;
+    fn.poly.style.strokeOpacity = isActive ? .95 : (front ? .50 : .20);
+    fn.poly.style.strokeWidth   = isActive ? 2.2 : 1.2;
+
+    /* --- линии уровней (только на активной грани) --- */
+    fn.lines.forEach((ln,k)=>{
+      if(!isActive){ ln.style.display = 'none'; return; }
+      const lv = (k+1)/4;
+      const a = project(lerp3(BASE[it.b0], APEX, lv), angle);
+      const b = project(lerp3(BASE[it.b1], APEX, lv), angle);
+      ln.style.display = '';
+      ln.setAttribute('x1', a.x.toFixed(1));
+      ln.setAttribute('y1', a.y.toFixed(1));
+      ln.setAttribute('x2', b.x.toFixed(1));
+      ln.setAttribute('y2', b.y.toFixed(1));
+      ln.style.opacity = front ? .55 : .18;
+    });
+
+    /* --- маркер «где я» --- */
+    const baseMid = mid3(BASE[it.b0], BASE[it.b1]);
+    const mp = project(lerp3(baseMid, APEX, v), angle);
+    fn.marker.setAttribute('cx', mp.x.toFixed(1));
+    fn.marker.setAttribute('cy', mp.y.toFixed(1));
+    fn.marker.setAttribute('r', isActive ? 7 : 4.5);
+    fn.marker.style.stroke = isActive ? '#ffffff' : '#0d1117';
+    fn.marker.style.opacity = front ? (isActive ? 1 : .75) : .30;
+
+    /* --- подпись потока --- */
+    const lp = project(lerp3(baseMid, APEX, 0.16), angle);
+    fn.label.setAttribute('x', lp.x.toFixed(1));
+    fn.label.setAttribute('y', lp.y.toFixed(1));
+    fn.label.style.opacity = front ? (isActive ? 1 : .60) : .20;
+  });
+
+  /* --- вершина --- */
+  const ap = project(APEX, angle);
+  apexEls.apexGlow.setAttribute('cx', ap.x);
+  apexEls.apexGlow.setAttribute('cy', ap.y);
+  apexEls.apexDot.setAttribute('cx', ap.x);
+  apexEls.apexDot.setAttribute('cy', ap.y);
+  apexEls.apexText.setAttribute('x', ap.x);
+  apexEls.apexText.setAttribute('y', ap.y - 21);
+}
+
+function frame(ts){
+  if(!lastTs) lastTs = ts;
+  const dt = Math.min(64, ts - lastTs);
+  lastTs = ts;
+
+  /* мягкое авто-вращение, пауза после касания */
+  if(Date.now() - lastInteraction > 2200){
+    angle += dt * 0.00013;
+  }
+  updateScene();
+  requestAnimationFrame(frame);
+}
+
+/* =====================================================================
+   УПРАВЛЕНИЕ ЖЕСТАМИ
+   ===================================================================== */
+let dragging = false, dragX = 0, dragAngle = 0, movedPx = 0;
+
+svg.addEventListener('pointerdown', e=>{
+  dragging = true;
+  movedPx = 0;
+  dragX = e.clientX;
+  dragAngle = angle;
+  lastInteraction = Date.now();
+});
+window.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dx = e.clientX - dragX;
+  movedPx = Math.max(movedPx, Math.abs(dx));
+  angle = dragAngle + dx * 0.011;
+  lastInteraction = Date.now();
+});
+function endDrag(){
+  if(!dragging) return;
+  dragging = false;
+  lastInteraction = Date.now();
+  if(movedPx > 6) dragEndTime = Date.now();
+}
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+const tabsEl      = document.getElementById('tabs');
+const sliderEl    = document.getElementById('slider');
+const ticksEl     = document.getElementById('ticks');
+const levelNameEl = document.getElementById('levelName');
+const levelValEl  = document.getElementById('levelValue');
+const levelDescEl = document.getElementById('levelDesc');
+const infoEl      = document.getElementById('info');
+const balAvgEl    = document.getElementById('balAvg');
+const balSpreadEl = document.getElementById('balSpread');
+const balHintEl   = document.getElementById('balHint');
+const miniBarsEl  = document.getElementById('miniBars');
+const locateBtn   = document.getElementById('locateBtn');
+
+function streamById(id){ return PYRAMID_DATA.streams.find(s=>s.id===id); }
+
+/* ---------- табы ---------- */
+function renderTabs(){
+  tabsEl.innerHTML = '';
+  PYRAMID_DATA.streams.forEach(s=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tab' + (s.id === state.active ? ' active' : '');
+    b.style.setProperty('--c', s.color);
+    b.innerHTML = '<span class="ico">'+s.icon+'</span><span>'+s.name+'</span>';
+    b.addEventListener('click', ()=> setStream(s.id));
+    tabsEl.appendChild(b);
+  });
+}
+
+/* ---------- слайдер ---------- */
+function syncSlider(){
+  const s   = streamById(state.active);
+  const idx = state.levels[state.active];
+  const lv  = PYRAMID_DATA.levels[idx];
+
+  sliderEl.value = idx;
+  sliderEl.style.setProperty('--pct', (idx/4*100) + '%');
+  levelNameEl.textContent = lv.name;
+  levelValEl.textContent  = lv.value.toFixed(2);
+  levelDescEl.textContent = lv.desc;
+  document.documentElement.style.setProperty('--c', s.color);
+
+  Array.from(ticksEl.children).forEach((t,i)=>{
+    t.classList.toggle('on', i === idx);
+  });
+}
+
+function renderTicks(){
+  ticksEl.innerHTML = '';
+  PYRAMID_DATA.levels.forEach((lv,i)=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tick' + (i === state.levels[state.active] ? ' on' : '');
+    b.title = lv.name;
+    b.setAttribute('aria-label', lv.name + ' — ' + lv.value.toFixed(2));
+    b.addEventListener('click', ()=> setLevel(i));
+    ticksEl.appendChild(b);
+  });
+}
+
+/* ---------- карточка уровня ---------- */
+function renderInfo(){
+  const s   = streamById(state.active);
+  const idx = state.levels[state.active];
+  const lv  = PYRAMID_DATA.levels[idx];
+  const c   = PYRAMID_DATA.content[state.active][idx];
+
+  const blocksHtml = (c.blocks && c.blocks.length)
+    ? '<ul class="blocks">' + c.blocks.map(b=>'<li>'+b+'</li>').join('') + '</ul>'
+    : '<div class="muted">—</div>';
+
+  const stepHtml = c.step_up ? c.step_up : '<span class="muted">—</span>';
+
+  infoEl.innerHTML =
+    '<div class="card-head">' +
+      '<span class="chip" style="--c:'+s.color+'">'+s.icon+' '+s.name+'</span>' +
+      '<span class="lvl-tag">Уровень '+idx+' · '+lv.name+'</span>' +
+    '</div>' +
+    '<p class="lv-desc">'+lv.desc+'</p>' +
+    '<div class="block"><div class="bt">📘 Должно быть</div>' +
+      '<div class="bb should">'+c.should+'</div></div>' +
+    '<div class="block"><div class="bt">🚫 Блоки</div>' +
+      '<div class="bb">'+blocksHtml+'</div></div>' +
+    '<div class="block"><div class="bt">⬆️ Шаг наверх</div>' +
+      '<div class="bb step">'+stepHtml+'</div></div>';
+
+  infoEl.classList.remove('fade-in');
+  void infoEl.offsetWidth;
+  infoEl.classList.add('fade-in');
+}
+
+/* ---------- баланс ---------- */
+function renderBalance(){
+  const vals = PYRAMID_DATA.streams.map(s => state.levels[s.id] / 4);
+  const avg    = (vals[0] + vals[1] + vals[2]) / 3;
+  const spread = Math.max.apply(null, vals) - Math.min.apply(null, vals);
+
+  const hue   = 130 * (1 - Math.min(1, spread));
+  const color = 'hsl(' + hue.toFixed(0) + ',72%,55%)';
+
+  balAvgEl.textContent = avg.toFixed(2);
+  balSpreadEl.textContent = spread.toFixed(2);
+  balSpreadEl.style.color = color;
+  balHintEl.style.color = color;
+
+  let hint;
+  if(spread < 0.17)      hint = 'ровно';
+  else if(spread < 0.34) hint = 'лёгкий перекос';
+  else if(spread < 0.60) hint = 'заметный перекос';
+  else                   hint = 'сильный перекос';
+  balHintEl.textContent = hint;
+
+  miniBarsEl.innerHTML = PYRAMID_DATA.streams.map(s=>{
+    const v = state.levels[s.id] / 4;
+    return '<div class="mini-row">' +
+      '<span class="mini-ico">'+s.icon+'</span>' +
+      '<span class="mini-bar"><i style="width:'+(v*100).toFixed(0)+'%;background:'+s.color+'"></i></span>' +
+      '<span class="mini-val">'+v.toFixed(2)+'</span>' +
+    '</div>';
+  }).join('');
+}
+
+/* =====================================================================
+   ДЕЙСТВИЯ
+   ===================================================================== */
+function setStream(id){
+  if(state.active === id) return;
+  state.active = id;
+  saveState();
+  renderTabs();
+  renderTicks();
+  syncSlider();
+  renderInfo();
+}
+
+function setLevel(i){
+  i = Math.max(0, Math.min(4, i));
+  if(state.levels[state.active] === i) return;
+  state.levels[state.active] = i;
+  saveState();
+  syncSlider();
+  renderInfo();
+  renderBalance();
+}
+
+sliderEl.addEventListener('input', e=> setLevel(parseInt(e.target.value, 10)));
+
+locateBtn.addEventListener('click', ()=>{
+  faceNodes.forEach(fn=>{
+    fn.marker.classList.remove('pulse-marker');
+    void fn.marker.getBoundingClientRect();
+    fn.marker.classList.add('pulse-marker');
+    setTimeout(()=> fn.marker.classList.remove('pulse-marker'), 1800);
+  });
+  document.querySelector('.stage').scrollIntoView({ behavior:'smooth', block:'center' });
+});
+
+/* =====================================================================
+   СТАРТ
+   ===================================================================== */
+loadState();
+initSVG();
+renderTabs();
+renderTicks();
+syncSlider();
+renderInfo();
+renderBalance();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
