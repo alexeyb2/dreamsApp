@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0d1117"/>
+<title>Пирамида Сознания · Встречное движение</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel2:#11151b; --border:#232b36;
+  --text:#e6edf3; --muted:#8b949e;
+  --thought:#54a0ff; --feeling:#ff7675; --action:#fdcb6e;
+  --gold:#ffd166; --green:#4ade80; --yellow:#fbbf24; --red:#ef4444;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{
+  margin:0;padding:0;
+  background:radial-gradient(120% 90% at 50% -10%,#16202e 0%,#0d1117 55%) fixed;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15px;line-height:1.4;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  min-height:100vh;
+}
+.app{max-width:480px;margin:0 auto;padding:10px 12px 34px;}
+
+.hdr{text-align:center;margin-bottom:4px;}
+.hdr h1{
+  font-size:14px;margin:0;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  background:linear-gradient(90deg,#54a0ff,#ffd166,#ff7675);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hdr .sub{margin:2px 0 0;font-size:10px;color:var(--muted);letter-spacing:.08em;}
+
+/* ---------- pyramid ---------- */
+.pyramid-wrap{position:relative;margin:0 -10px;}
+#pyramid{display:block;width:100%;max-height:44vh;}
+
+.status-badge{
+  position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+  padding:4px 12px;border-radius:99px;
+  background:rgba(74,222,128,.12);color:var(--green);
+  border:1px solid rgba(74,222,128,.42);
+  transition:opacity .35s, background .35s, color .35s, border-color .35s;
+  pointer-events:none;opacity:0;
+}
+.status-badge.on{opacity:1;}
+.status-badge.locked{
+  background:rgba(239,68,68,.1);color:var(--red);
+  border-color:rgba(239,68,68,.42);
+}
+.status-badge.hint{
+  background:rgba(251,191,36,.1);color:var(--yellow);
+  border-color:rgba(251,191,36,.42);
+}
+
+/* ---------- balance ---------- */
+.balance-panel{
+  background:linear-gradient(180deg,#161b22,#11151b);
+  border:1px solid var(--border);border-radius:14px;
+  padding:11px 14px;margin-top:8px;
+}
+.bal-row{display:flex;align-items:center;gap:12px;}
+.bal-avg{text-align:center;min-width:64px;}
+.bal-avg .big{
+  font-size:24px;font-weight:800;line-height:1;
+  font-variant-numeric:tabular-nums;
+  background:linear-gradient(180deg,#fff,#93a7bb);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.bal-avg .cap{
+  font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-top:3px;
+}
+.bal-spread{flex:1;min-width:0;}
+.spread-line{font-size:11.5px;color:var(--muted);}
+.spread-line b{color:var(--text);font-variant-numeric:tabular-nums;}
+.spread-hint{font-size:13px;font-weight:800;margin-top:3px;letter-spacing:.02em;}
+.bal-lock{
+  font-size:22px;line-height:1;
+  transition:transform .3s, filter .3s;
+  filter:grayscale(.6) opacity(.55);
+}
+.bal-lock.unlocked{filter:none;}
+
+.drag-hint{
+  font-size:11.5px;color:var(--muted);
+  margin-top:0;padding-top:0;max-height:0;overflow:hidden;
+  transition:max-height .3s ease, margin-top .3s ease, padding-top .3s ease;
+}
+.drag-hint.on{max-height:40px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}
+.drag-hint b{font-weight:700;}
+
+/* ---------- sliders ---------- */
+.sliders-panel{
+  background:linear-gradient(180deg,#161b22,#11151b);
+  border:1px solid var(--border);border-radius:14px;
+  padding:12px 14px 8px;margin-top:8px;
+}
+.slider-row{margin-bottom:10px;}
+.slider-row:last-child{margin-bottom:2px;}
+.slider-head{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:2px;font-size:12px;
+}
+.slider-name{
+  display:flex;align-items:center;gap:6px;font-weight:700;
+  color:var(--text);
+}
+.slider-name .ico{font-size:14px;line-height:1;}
+.slider-val{
+  font-variant-numeric:tabular-nums;font-weight:800;font-size:13px;
+}
+.slider-lev{
+  font-size:9.5px;color:var(--muted);letter-spacing:.06em;
+  text-transform:uppercase;margin-left:6px;font-weight:600;
+}
+.slider-input{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:22px;background:transparent;
+  --pct:50%;--col:#54a0ff;
+  margin:0;padding:0;
+}
+.slider-input::-webkit-slider-runnable-track{
+  height:4px;border-radius:99px;
+  background:linear-gradient(to right,var(--col) var(--pct), #232b36 var(--pct));
+}
+.slider-input::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;border:3px solid var(--col);
+  margin-top:-7px;
+  box-shadow:0 0 10px -1px var(--col);
+  transition:transform .15s;
+}
+.slider-input:active::-webkit-slider-thumb{transform:scale(1.15);}
+.slider-input::-moz-range-track{
+  height:4px;border-radius:99px;background:#232b36;
+}
+.slider-input::-moz-range-progress{
+  height:4px;border-radius:99px;background:var(--col);
+}
+.slider-input::-moz-range-thumb{
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;border:3px solid var(--col);
+}
+
+/* ---------- info ---------- */
+.info-panel{margin-top:10px;}
+.info-tabs{display:flex;gap:6px;margin-bottom:8px;}
+.info-tab{
+  flex:1;padding:8px 4px;border-radius:11px;
+  background:var(--panel);border:1px solid var(--border);
+  color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .25s;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  white-space:nowrap;
+}
+.info-tab.active{
+  color:#fff;border-color:var(--c,#54a0ff);
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  box-shadow:0 0 0 1px var(--c) inset;
+}
+.info-tab:active{transform:scale(.97);}
+.info-tab .drag-dot{
+  width:5px;height:5px;border-radius:50%;background:var(--red);
+  box-shadow:0 0 6px var(--red);
+}
+
+.info-card{
+  background:linear-gradient(180deg,#161b22,#11151b);
+  border:1px solid var(--border);border-radius:14px;
+  padding:14px;
+}
+.card-level{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);
+}
+.card-level-name{font-size:14px;font-weight:800;}
+.card-level-num{
+  font-size:10.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:700;
+}
+.card-block{margin-bottom:12px;}
+.card-block:last-child{margin-bottom:0;}
+.card-label{
+  font-size:10px;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:5px;
+}
+.card-content{font-size:13.5px;line-height:1.5;}
+.card-content.should{color:#cfdcea;font-style:italic;}
+.card-content.step{color:var(--gold);font-weight:600;}
+.card-blocks{list-style:none;padding:0;margin:0;}
+.card-blocks li{
+  color:#ffb0b0;padding-left:16px;position:relative;margin-bottom:3px;font-size:13.5px;
+}
+.card-blocks li::before{
+  content:"•";position:absolute;left:3px;color:var(--feeling);
+  font-weight:800;
+}
+.card-content.muted{color:var(--muted);font-style:italic;}
+
+@keyframes pulseRing{
+  0%{r:6;opacity:1;}
+  100%{r:34;opacity:0;}
+}
+.pulse-ring{animation:pulseRing 1.6s ease-out infinite;}
+@keyframes pulseDot{
+  0%,100%{opacity:1;transform:scale(1);}
+  50%{opacity:.5;transform:scale(1.4);}
+}
+.pulse-dot{
+  animation:pulseDot 1.6s ease-in-out infinite;
+  transform-origin:center;transform-box:fill-box;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hdr">
+    <h1>Пирамида Сознания</h1>
+    <p class="sub">встречное движение · три вектора · диагностика перекоса</p>
+  </header>
+
+  <div class="pyramid-wrap">
+    <svg id="pyramid" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid meet" aria-label="Пирамида"></svg>
+    <div class="status-badge" id="statusBadge"></div>
+  </div>
+
+  <section class="balance-panel">
+    <div class="bal-row">
+      <div class="bal-avg">
+        <div class="big" id="avgVal">0.50</div>
+        <div class="cap">среднее</div>
+      </div>
+      <div class="bal-spread">
+        <div class="spread-line">Разброс <b id="spreadVal">0.00</b></div>
+        <div class="spread-hint" id="spreadHint">Ровно</div>
+      </div>
+      <div class="bal-lock unlocked" id="lockIcon">🔓</div>
+    </div>
+    <div class="drag-hint" id="dragHint"></div>
+  </section>
+
+  <section class="sliders-panel" id="slidersPanel"></section>
+
+  <section class="info-panel">
+    <nav class="info-tabs" id="infoTabs"></nav>
+    <div class="info-card" id="infoCard"></div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   ДАННЫЕ
+   ===================================================================== */
+const PYRAMID_DATA = {
+  streams: [
+    { id:'thought', name:'Мысль',    color:'#54a0ff', icon:'🧠' },
+    { id:'feeling', name:'Чувство',  color:'#ff7675', icon:'❤️' },
+    { id:'action',  name:'Действие', color:'#fdcb6e', icon:'⚔️' }
+  ],
+  levels: [
+    { id:0, name:'Материя',    desc:'Тело. Инстинкт. Выживание.' },
+    { id:1, name:'Наблюдение', desc:'Замечаю. Дышу. Пауза.' },
+    { id:2, name:'Выбор',      desc:'Система. Логика. Структура.' },
+    { id:3, name:'Творчество', desc:'Поток. Инсайт. Созидание.' },
+    { id:4, name:'Абсолют',    desc:'Тишина. Единство. Бог.' }
+  ],
+  content: {
+    thought: {
+      0:{ should:'«Один шаг сейчас»',
+          blocks:['«Надо всё сразу»','«Это не сработает»','«Я неудачник»'],
+          step_up:'Спроси: «Что я чувствую прямо сейчас?»' },
+      1:{ should:'«Я вижу, почему я делаю этот шаг»',
+          blocks:['«Я уже всё понял»','«Я застрял»'],
+          step_up:'Найди связь между двумя действиями' },
+      2:{ should:'«Я строю систему»',
+          blocks:['«Это скучно»','«А вдруг не сработает»'],
+          step_up:'Сформулируй правило' },
+      3:{ should:'«Я творю из потока»',
+          blocks:['«Это гениально, я особенный»'],
+          step_up:'Отпусти результат' },
+      4:{ should:'Тишина. Знание без слов', blocks:[], step_up:'' }
+    },
+    feeling: {
+      0:{ should:'Тело. Ощущение',
+          blocks:['Паника','Ожидание'],
+          step_up:'Подыши в тело' },
+      1:{ should:'Интерес. Любопытство',
+          blocks:['«Мне страшно»','«Не хочу»'],
+          step_up:'Наблюдай страх' },
+      2:{ should:'Спокойствие. Доверие',
+          blocks:['«Надо контролировать»'],
+          step_up:'Позволь течь' },
+      3:{ should:'Любовь. Благодарность',
+          blocks:['«Я лучше других»'],
+          step_up:'Отдай другому' },
+      4:{ should:'Вибрация. Единство', blocks:[], step_up:'' }
+    },
+    action: {
+      0:{ should:'Маленький шаг',
+          blocks:['Ждать','Планировать'],
+          step_up:'Сделай 1 действие' },
+      1:{ should:'Выбор. Пауза',
+          blocks:['Автоматизм','«Надо»'],
+          step_up:'Выбери осознанно' },
+      2:{ should:'Система. Алгоритм',
+          blocks:['«Хаос»','«Бросаю»'],
+          step_up:'Запиши правило' },
+      3:{ should:'Творчество. Поток',
+          blocks:['«Идеально»','«Всё сразу»'],
+          step_up:'Действуй без делателя' },
+      4:{ should:'Воля Бога', blocks:[], step_up:'' }
+    }
+  }
+};
+
+const STORE_KEY = 'pyramid-counter-v2';
+
+/* =====================================================================
+   СОСТОЯНИЕ
+   ===================================================================== */
+const state = {
+  absLevel: 0.5,     // 0..1 — куда Абсолют готов опуститься
+  streams: {
+    thought: 0.5,
+    feeling: 0.5,
+    action: 0.5
+  },
+  infoTab: 'thought'
+};
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(!d || typeof d !== 'object') return;
+    const clamp = v => Math.max(0, Math.min(1, Number(v)));
+    if(typeof d.absLevel === 'number') state.absLevel = clamp(d.absLevel);
+    if(d.streams && typeof d.streams === 'object'){
+      PYRAMID_DATA.streams.forEach(s=>{
+        if(typeof d.streams[s.id] === 'number') state.streams[s.id] = clamp(d.streams[s.id]);
+      });
+    }
+    if(typeof d.infoTab === 'string' && PYRAMID_DATA.streams.some(s=>s.id===d.infoTab)){
+      state.infoTab = d.infoTab;
+    }
+  }catch(e){ /* ignore */ }
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      absLevel: state.absLevel,
+      streams: state.streams,
+      infoTab: state.infoTab
+    }));
+  }catch(e){}
+}
+
+/* =====================================================================
+   ГЕОМЕТРИЯ
+   ===================================================================== */
+const CX       = 200;
+const Y_TOP    = 40;    // вершина Абсолюта
+const Y_BOTTOM = 460;   // вершина пользователя
+const SPAN     = Y_BOTTOM - Y_TOP;  // 420
+
+/* Смещения базовых вершин на плоскости (лёгкий 3D-разворот) */
+const VERTEX_OFFSETS = [
+  { dx:   0, dy:  32 },   // Мысль    — фронт
+  { dx: -95, dy: -22 },   // Чувство  — назад-влево
+  { dx:  95, dy: -22 }    // Действие — назад-вправо
+];
+
+const levelToY = L => Y_BOTTOM - SPAN * L;
+
+function valueToLevel(v){
+  const l = Math.floor(v * 5);
+  return Math.max(0, Math.min(4, l));
+}
+
+/* =====================================================================
+   АНИМАЦИЯ (плавные переходы)
+   ===================================================================== */
+const anim = {
+  absLevel: state.absLevel,
+  thought:  state.streams.thought,
+  feeling:  state.streams.feeling,
+  action:   state.streams.action
+};
+const SMOOTH = 0.18;
+
+function stepAnim(){
+  anim.absLevel += (state.absLevel - anim.absLevel) * SMOOTH;
+  anim.thought  += (state.streams.thought  - anim.thought)  * SMOOTH;
+  anim.feeling  += (state.streams.feeling  - anim.feeling)  * SMOOTH;
+  anim.action   += (state.streams.action   - anim.action)   * SMOOTH;
+}
+
+/* =====================================================================
+   SVG
+   ===================================================================== */
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('pyramid');
+
+const SVG_HTML = `
+  <defs>
+    <filter id="glowF" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <radialGradient id="meetGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd166" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#ffd166" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#ffd166" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- горизонтальный уровень-ориентир -->
+  <line id="refLine" x1="30" y1="0" x2="370" y2="0"
+        stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="2 7"/>
+
+  <!-- пульс встречи -->
+  <g id="meetingGroup" opacity="0">
+    <circle id="meetingRing" cx="200" cy="250" r="10" fill="none"
+            stroke="#ffd166" stroke-width="1.5" opacity="0"/>
+    <circle id="meetingDot" cx="200" cy="250" r="5"
+            fill="url(#meetGrad)" opacity="0"/>
+  </g>
+
+  <!-- ВЕРХНЯЯ ПИРАМИДА (АБСОЛЮТ) -->
+  <g id="upperGroup">
+    <polygon id="upperBase" fill="rgba(255,209,102,0.045)"
+             stroke="rgba(255,209,102,0.38)" stroke-width="1"/>
+    <line id="upperE0" stroke="rgba(255,209,102,0.55)" stroke-width="1.5"/>
+    <line id="upperE1" stroke="rgba(255,209,102,0.55)" stroke-width="1.5"/>
+    <line id="upperE2" stroke="rgba(255,209,102,0.55)" stroke-width="1.5"/>
+    <circle id="upperApex" cx="200" cy="40" r="5" fill="#ffd166" filter="url(#glowF)"/>
+    <text x="200" y="24" text-anchor="middle" font-size="9" font-weight="800"
+          fill="#ffd166" fill-opacity="0.75" letter-spacing="3">АБСОЛЮТ</text>
+  </g>
+
+  <!-- НИЖНЯЯ ПИРАМИДА (ПОЛЬЗОВАТЕЛЬ) -->
+  <g id="lowerGroup">
+    <polygon id="lowerBase" fill="rgba(255,255,255,0.035)"
+             stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
+    <line id="lowerE0" stroke="#54a0ff" stroke-width="2.2" opacity="0.9"/>
+    <line id="lowerE1" stroke="#ff7675" stroke-width="2.2" opacity="0.9"/>
+    <line id="lowerE2" stroke="#fdcb6e" stroke-width="2.2" opacity="0.9"/>
+    <circle id="lowerV0" r="4" fill="#54a0ff" filter="url(#glowF)"/>
+    <circle id="lowerV1" r="4" fill="#ff7675" filter="url(#glowF)"/>
+    <circle id="lowerV2" r="4" fill="#fdcb6e" filter="url(#glowF)"/>
+    <circle id="lowerApex" cx="200" cy="460" r="4.5" fill="#ffffff" filter="url(#glowF)"/>
+  </g>
+`;
+
+svg.innerHTML = SVG_HTML;
+
+const refs = {
+  refLine:     svg.querySelector('#refLine'),
+  meeting:     svg.querySelector('#meetingGroup'),
+  meetingRing: svg.querySelector('#meetingRing'),
+  meetingDot:  svg.querySelector('#meetingDot'),
+
+  upperBase:  svg.querySelector('#upperBase'),
+  upperE:    [svg.querySelector('#upperE0'), svg.querySelector('#upperE1'), svg.querySelector('#upperE2')],
+  upperApex:  svg.querySelector('#upperApex'),
+
+  lowerBase:  svg.querySelector('#lowerBase'),
+  lowerE:    [svg.querySelector('#lowerE0'), svg.querySelector('#lowerE1'), svg.querySelector('#lowerE2')],
+  lowerV:    [svg.querySelector('#lowerV0'), svg.querySelector('#lowerV1'), svg.querySelector('#lowerV2')],
+  lowerApex:  svg.querySelector('#lowerApex')
+};
+
+/* =====================================================================
+   РАСЧЁТ
+   ===================================================================== */
+function derive(){
+  const s = anim;  // используем анимированные значения
+  const minUser = Math.min(s.thought, s.feeling, s.action);
+  const maxUser = Math.max(s.thought, s.feeling, s.action);
+  const avg     = (s.thought + s.feeling + s.action) / 3;
+  const spread  = maxUser - minUser;
+  const effAbs  = Math.max(s.absLevel, minUser);
+
+  // встреча: базы совпадают и нет перекоса
+  const meeting = spread < 0.06 && Math.abs(effAbs - minUser) < 0.02;
+
+  // какой поток тянет вниз
+  let lowestId = 'thought';
+  let lowestVal = s.thought;
+  if(s.feeling < lowestVal){ lowestVal = s.feeling; lowestId = 'feeling'; }
+  if(s.action  < lowestVal){ lowestVal = s.action;  lowestId = 'action'; }
+
+  return { minUser, maxUser, avg, spread, effAbs, meeting, lowestId, lowestVal };
+}
+
+/* =====================================================================
+   РЕНДЕР SVG
+   ===================================================================== */
+function renderSVG(){
+  const d = derive();
+
+  // Базы
+  const yUpperBase = levelToY(d.effAbs);
+
+  const upperPoints = VERTEX_OFFSETS.map(o =>
+    (CX + o.dx) + ',' + (yUpperBase + o.dy)
+  ).join(' ');
+  refs.upperBase.setAttribute('points', upperPoints);
+
+  // Рёбра верхней пирамиды
+  VERTEX_OFFSETS.forEach((o, i) => {
+    const x = CX + o.dx;
+    const y = yUpperBase + o.dy;
+    refs.upperE[i].setAttribute('x1', CX);
+    refs.upperE[i].setAttribute('y1', Y_TOP);
+    refs.upperE[i].setAttribute('x2', x);
+    refs.upperE[i].setAttribute('y2', y);
+  });
+  refs.upperApex.setAttribute('cx', CX);
+  refs.upperApex.setAttribute('cy', Y_TOP);
+
+  // Верхняя база — насколько близко к вершине
+  // Прозрачность растёт при спуске
+  const upperOpacity = Math.min(1, d.effAbs * 1.4 + 0.1);
+  refs.upperBase.setAttribute('fill-opacity', (0.05 * upperOpacity).toFixed(3));
+
+  // Нижняя пирамида
+  const streamVals = [anim.thought, anim.feeling, anim.action];
+  const lowerY = streamVals.map(levelToY);
+
+  const lowerPoints = VERTEX_OFFSETS.map((o, i) =>
+    (CX + o.dx) + ',' + (lowerY[i] + o.dy)
+  ).join(' ');
+  refs.lowerBase.setAttribute('points', lowerPoints);
+
+  VERTEX_OFFSETS.forEach((o, i) => {
+    const x = CX + o.dx;
+    const y = lowerY[i] + o.dy;
+    refs.lowerE[i].setAttribute('x1', CX);
+    refs.lowerE[i].setAttribute('y1', Y_BOTTOM);
+    refs.lowerE[i].setAttribute('x2', x);
+    refs.lowerE[i].setAttribute('y2', y);
+
+    refs.lowerV[i].setAttribute('cx', x);
+    refs.lowerV[i].setAttribute('cy', y);
+  });
+  refs.lowerApex.setAttribute('cx', CX);
+  refs.lowerApex.setAttribute('cy', Y_BOTTOM);
+
+  // Подсветка «отстающего» потока — уменьшаем непрозрачность у остальных
+  const lowestIdx = ['thought','feeling','action'].indexOf(d.lowestId);
+  const spreadBig = d.spread > 0.12;
+  refs.lowerE.forEach((el, i) => {
+    el.setAttribute('stroke-width', (spreadBig && i === lowestIdx) ? 3 : 2.2);
+    el.setAttribute('opacity', spreadBig ? (i === lowestIdx ? 1 : 0.55) : 0.9);
+  });
+
+  // Ориентир — уровень среднего
+  const yRef = levelToY(d.avg);
+  refs.refLine.setAttribute('y1', yRef.toFixed(1));
+  refs.refLine.setAttribute('y2', yRef.toFixed(1));
+
+  // Встреча
+  if(d.meeting){
+    const cx = CX;
+    const cy = levelToY(d.minUser) - 10/3;   // центроид треугольной базы
+    refs.meeting.setAttribute('opacity', '1');
+    refs.meetingRing.setAttribute('cx', cx.toFixed(1));
+    refs.meetingRing.setAttribute('cy', cy.toFixed(1));
+    refs.meetingDot.setAttribute('cx', cx.toFixed(1));
+    refs.meetingDot.setAttribute('cy', cy.toFixed(1));
+    refs.meetingRing.classList.add('pulse-ring');
+    refs.meetingDot.classList.add('pulse-dot');
+  } else {
+    refs.meeting.setAttribute('opacity', '0');
+    refs.meetingRing.classList.remove('pulse-ring');
+    refs.meetingDot.classList.remove('pulse-dot');
+  }
+}
+
+/* =====================================================================
+   UI — БАЛАНС
+   ===================================================================== */
+const avgValEl    = document.getElementById('avgVal');
+const spreadValEl = document.getElementById('spreadVal');
+const spreadHintEl= document.getElementById('spreadHint');
+const lockIconEl  = document.getElementById('lockIcon');
+const dragHintEl  = document.getElementById('dragHint');
+const statusBadge = document.getElementById('statusBadge');
+
+function spreadColor(spread){
+  const t = Math.min(1, spread / 0.5);
+  const hue = 130 * (1 - t);
+  return 'hsl(' + hue.toFixed(0) + ',72%,58%)';
+}
+
+function renderBalance(){
+  const d = derive();
+
+  avgValEl.textContent = d.avg.toFixed(2);
+  spreadValEl.textContent = d.spread.toFixed(2);
+  spreadValEl.style.color = spreadColor(d.spread);
+
+  let hint, hintColor;
+  if(d.spread < 0.15){ hint = 'Ровно';            hintColor = 'var(--green)'; }
+  else if(d.spread < 0.35){ hint = 'Лёгкий перекос';  hintColor = 'var(--yellow)'; }
+  else { hint = 'Сильный перекос'; hintColor = 'var(--red)'; }
+
+  spreadHintEl.textContent = hint;
+  spreadHintEl.style.color = hintColor;
+
+  // Замок: разблокирован, когда нет перекоса
+  const locked = d.spread >= 0.15;
+  lockIconEl.classList.toggle('unlocked', !locked);
+  lockIconEl.textContent = locked ? '🔒' : '🔓';
+
+  // Тянущий вниз вектор
+  if(d.spread >= 0.15){
+    const s = PYRAMID_DATA.streams.find(x => x.id === d.lowestId);
+    dragHintEl.classList.add('on');
+    dragHintEl.innerHTML =
+      'Догони: <b style="color:' + s.color + '">' + s.icon + ' ' + s.name +
+      '</b> · ' + d.lowestVal.toFixed(2) +
+      ' <span style="color:#5b6675">· самый низкий вектор держит потолок</span>';
+  } else {
+    dragHintEl.classList.remove('on');
+    dragHintEl.innerHTML = '';
+  }
+
+  // Верхний бейдж
+  if(d.meeting){
+    statusBadge.classList.add('on');
+    statusBadge.classList.remove('locked','hint');
+    statusBadge.textContent = '✦ Встреча · ' + d.minUser.toFixed(2) + ' ✦';
+  } else if(locked){
+    statusBadge.classList.add('on','locked');
+    statusBadge.classList.remove('hint');
+    statusBadge.textContent = '🔒 Замок · Абсолют не опускается';
+  } else if(d.effAbs > d.minUser + 0.02){
+    statusBadge.classList.add('on','hint');
+    statusBadge.classList.remove('locked');
+    statusBadge.textContent = 'Абсолют выше · опускай слайдер';
+  } else {
+    statusBadge.classList.remove('on');
+  }
+}
+
+/* =====================================================================
+   UI — СЛАЙДЕРЫ
+   ===================================================================== */
+const slidersPanel = document.getElementById('slidersPanel');
+
+function buildSliders(){
+  let html = '';
+
+  // Абсолют
+  html += '<div class="slider-row" data-slider="abs">';
+  html += '<div class="slider-head">';
+  html += '<span class="slider-name"><span class="ico">✨</span>Уровень Абсолюта</span>';
+  html += '<span class="slider-val" id="valAbs" style="color:var(--gold)">0.50</span>';
+  html += '</div>';
+  html += '<input type="range" class="slider-input" id="slAbs" min="0" max="1" step="0.01" value="0.5" style="--col:var(--gold)"/>';
+  html += '</div>';
+
+  // Три потока
+  PYRAMID_DATA.streams.forEach(s => {
+    html += '<div class="slider-row" data-slider="' + s.id + '">';
+    html += '<div class="slider-head">';
+    html += '<span class="slider-name"><span class="ico">' + s.icon + '</span>' + s.name + '</span>';
+    html += '<span><span class="slider-val" id="val_' + s.id + '" style="color:' + s.color + '">0.50</span>';
+    html += '<span class="slider-lev" id="lev_' + s.id + '">Выбор</span></span>';
+    html += '</div>';
+    html += '<input type="range" class="slider-input" id="sl_' + s.id + '" min="0" max="1" step="0.01" value="0.5" style="--col:' + s.color + '"/>';
+    html += '</div>';
+  });
+
+  slidersPanel.innerHTML = html;
+
+  // Обработчики
+  document.getElementById('slAbs').addEventListener('input', e=>{
+    state.absLevel = parseFloat(e.target.value);
+    saveState();
+    updateSliderLabels();
+    renderBalance();
+  });
+
+  PYRAMID_DATA.streams.forEach(s => {
+    document.getElementById('sl_' + s.id).addEventListener('input', e=>{
+      state.streams[s.id] = parseFloat(e.target.value);
+      saveState();
+      updateSliderLabels();
+      renderBalance();
+      renderInfoCard();
+      renderInfoTabs();
+    });
+  });
+
+  // Начальные значения
+  document.getElementById('slAbs').value = state.absLevel;
+  PYRAMID_DATA.streams.forEach(s => {
+    document.getElementById('sl_' + s.id).value = state.streams[s.id];
+  });
+
+  updateSliderLabels();
+}
+
+function updateSliderLabels(){
+  // Абсолют
+  const absEl = document.getElementById('slAbs');
+  absEl.style.setProperty('--pct', (state.absLevel * 100) + '%');
+  document.getElementById('valAbs').textContent = state.absLevel.toFixed(2);
+
+  // Потоки
+  PYRAMID_DATA.streams.forEach(s => {
+    const v = state.streams[s.id];
+    const lvl = valueToLevel(v);
+    const el = document.getElementById('sl_' + s.id);
+    el.style.setProperty('--pct', (v * 100) + '%');
+    document.getElementById('val_' + s.id).textContent = v.toFixed(2);
+    document.getElementById('lev_' + s.id).textContent = PYRAMID_DATA.levels[lvl].name;
+  });
+}
+
+/* =====================================================================
+   UI — ИНФО-КАРТОЧКА
+   ===================================================================== */
+const infoTabsEl = document.getElementById('infoTabs');
+const infoCardEl = document.getElementById('infoCard');
+
+function renderInfoTabs(){
+  const d = derive();
+  const lowestIdx = ['thought','feeling','action'].indexOf(d.lowestId);
+
+  infoTabsEl.innerHTML = '';
+  PYRAMID_DATA.streams.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'info-tab' + (s.id === state.infoTab ? ' active' : '');
+    btn.style.setProperty('--c', s.color);
+
+    const isDrag = (d.spread >= 0.15 && i === lowestIdx);
+    btn.innerHTML = s.icon + ' ' + s.name +
+      (isDrag ? '<span class="drag-dot"></span>' : '');
+
+    btn.addEventListener('click', () => {
+      state.infoTab = s.id;
+      saveState();
+      renderInfoTabs();
+      renderInfoCard();
+    });
+    infoTabsEl.appendChild(btn);
+  });
+}
+
+function renderInfoCard(){
+  const s = PYRAMID_DATA.streams.find(x => x.id === state.infoTab);
+  const v = state.streams[state.infoTab];
+  const lvlIdx = valueToLevel(v);
+  const lvl = PYRAMID_DATA.levels[lvlIdx];
+  const c = PYRAMID_DATA.content[state.infoTab][lvlIdx];
+
+  const blocksHtml = (c.blocks && c.blocks.length)
+    ? '<ul class="card-blocks">' + c.blocks.map(b => '<li>' + b + '</li>').join('') + '</ul>'
+    : '<div class="card-content muted">—</div>';
+
+  const stepHtml = c.step_up
+    ? '<div class="card-content step">' + c.step_up + '</div>'
+    : '<div class="card-content muted">—</div>';
+
+  infoCardEl.innerHTML =
+    '<div class="card-level">' +
+      '<span class="card-level-name" style="color:' + s.color + '">' +
+        s.icon + ' ' + s.name +
+      '</span>' +
+      '<span class="card-level-num">' +
+        'Уровень ' + lvlIdx + ' · ' + lvl.name + ' · ' + v.toFixed(2) +
+      '</span>' +
+    '</div>' +
+    '<div class="card-block">' +
+      '<div class="card-label">📘 Что делать</div>' +
+      '<div class="card-content should">' + c.should + '</div>' +
+    '</div>' +
+    '<div class="card-block">' +
+      '<div class="card-label">🚫 Что мешает</div>' +
+      blocksHtml +
+    '</div>' +
+    '<div class="card-block">' +
+      '<div class="card-label">⬆️ Шаг наверх</div>' +
+      stepHtml +
+    '</div>';
+}
+
+/* =====================================================================
+   ГЛАВНЫЙ ЦИКЛ
+   ===================================================================== */
+let lastSpreadRender = -1;
+
+function tick(){
+  stepAnim();
+  renderSVG();
+
+  // Обновляем баланс не каждый кадр — только при заметном изменении
+  const d = derive();
+  const snap = Math.round(d.spread * 50) + Math.round(d.avg * 50) * 100;
+  if(snap !== lastSpreadRender){
+    lastSpreadRender = snap;
+    renderBalance();
+  }
+
+  requestAnimationFrame(tick);
+}
+
+/* =====================================================================
+   СТАРТ
+   ===================================================================== */
+loadState();
+buildSliders();
+renderInfoTabs();
+renderInfoCard();
+renderBalance();
+renderSVG();
+requestAnimationFrame(tick);
+
+})();
+</script>
+</body>
+</html>
