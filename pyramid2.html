@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0d1117"/>
+<title>Пирамида Сознания · сборка из данных</title>
+<style>
+:root{
+  --bg:#0d1117;
+  --panel:#161b22;
+  --panel2:#11151b;
+  --border:#232b36;
+  --text:#e6edf3;
+  --muted:#8b949e;
+  --c:#54a0ff;
+  --danger:#ff7675;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:radial-gradient(120% 90% at 50% -10%, #16202e 0%, #0d1117 55%) fixed;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  overflow:hidden;
+}
+
+.app{
+  height:100dvh;
+  display:flex;flex-direction:column;
+  max-width:560px;margin:0 auto;
+  padding:8px 12px 10px;
+}
+
+/* ---------- header ---------- */
+.hdr{flex:0 0 auto;text-align:center;padding:2px 0 4px;}
+.hdr h1{
+  font-size:14px;margin:0;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  background:linear-gradient(90deg,#54a0ff,#ff7675,#fdcb6e);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hdr .sub{margin:2px 0 0;font-size:10.5px;color:var(--muted);letter-spacing:.04em;}
+
+/* ---------- pyramid ---------- */
+.pyramid-wrap{
+  flex:0 0 auto;display:flex;justify-content:center;align-items:center;
+  position:relative;
+}
+#pyramid{
+  display:block;width:100%;max-height:40vh;
+  touch-action:pan-y;user-select:none;
+}
+#pyramid text{font-family:inherit;pointer-events:none;user-select:none;}
+
+.mode-badge{
+  position:absolute;top:2px;left:50%;transform:translateX(-50%);
+  font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 10px;border-radius:99px;
+  background:rgba(84,160,255,.14);color:#8ec5ff;border:1px solid rgba(84,160,255,.4);
+  pointer-events:none;opacity:0;transition:opacity .25s;
+}
+.mode-badge.on{opacity:1;}
+
+@keyframes mkpulse{0%,100%{opacity:1}50%{opacity:.15}}
+.pulse-marker{animation:mkpulse .6s ease-in-out 3;}
+
+/* ---------- bottom ---------- */
+.bottom{
+  flex:1 1 auto;min-height:0;
+  display:flex;flex-direction:column;
+  margin-top:6px;
+}
+
+.sel-card{
+  flex:0 0 auto;
+  background:linear-gradient(180deg,#18202b,#12171e);
+  border:1px solid var(--border);border-left-width:3px;
+  border-radius:12px;padding:9px 12px;margin-bottom:8px;
+  display:flex;gap:10px;align-items:flex-start;
+  animation:fadeIn .25s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+.sel-card .txt{flex:1;min-width:0;font-size:13.5px;word-break:break-word;}
+.sel-card .meta{font-size:10.5px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:2px;font-weight:700;}
+
+.btabs{
+  flex:0 0 auto;display:flex;gap:6px;margin-bottom:8px;
+}
+.btab{
+  flex:1;padding:8px 4px;border-radius:11px;
+  background:var(--panel);border:1px solid var(--border);
+  color:var(--muted);font-size:12px;font-weight:700;font-family:inherit;
+  cursor:pointer;transition:all .25s ease;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  white-space:nowrap;
+}
+.btab.active{
+  color:#fff;border-color:#3d4a5c;
+  background:linear-gradient(180deg,#1d2530,#161b22);
+  box-shadow:0 0 0 1px #3d4a5c inset;
+}
+.btab:active{transform:scale(.97);}
+.btab .cnt{
+  font-size:10px;background:rgba(255,255,255,.09);
+  padding:1px 6px;border-radius:99px;font-weight:800;
+}
+
+.bbody{
+  flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  background:linear-gradient(180deg,#161b22,#11151b);
+  border:1px solid var(--border);border-radius:14px;
+  padding:12px 13px;
+  -webkit-overflow-scrolling:touch;
+}
+.bbody::-webkit-scrollbar{width:4px;}
+.bbody::-webkit-scrollbar-thumb{background:#2c3644;border-radius:99px;}
+
+/* ---------- lists ---------- */
+.grp{margin-bottom:14px;}
+.grp:last-child{margin-bottom:0;}
+.grp-head{
+  display:flex;align-items:center;gap:6px;
+  font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);font-weight:800;margin-bottom:7px;
+}
+.grp-head .dot{width:7px;height:7px;border-radius:50%;}
+
+.nrow{
+  display:flex;align-items:flex-start;gap:9px;
+  padding:8px 9px;border-radius:10px;
+  background:rgba(255,255,255,.028);
+  border:1px solid rgba(255,255,255,.045);
+  margin-bottom:6px;cursor:pointer;
+  transition:background .2s,border-color .2s;
+}
+.nrow:active{background:rgba(255,255,255,.07);}
+.nrow.sel{border-color:var(--c);background:rgba(255,255,255,.06);}
+.nrow .lvl{
+  flex:0 0 auto;font-size:9.5px;font-weight:800;
+  padding:2px 7px;border-radius:99px;
+  background:rgba(255,255,255,.07);color:var(--muted);
+  letter-spacing:.03em;margin-top:1px;
+}
+.nrow .body{flex:1;min-width:0;font-size:13px;word-break:break-word;}
+.nrow .del{
+  flex:0 0 auto;width:24px;height:24px;border-radius:8px;
+  background:transparent;border:1px solid transparent;color:#5b6675;
+  font-size:15px;line-height:1;cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;
+  transition:.2s;
+}
+.nrow .del:hover{color:var(--danger);border-color:rgba(255,118,117,.35);}
+.nrow .del:active{background:rgba(255,118,117,.15);}
+
+.empty{
+  text-align:center;color:var(--muted);font-size:13px;
+  padding:22px 10px;line-height:1.6;
+}
+.empty .big{font-size:26px;display:block;margin-bottom:8px;opacity:.55;}
+
+/* ---------- forms ---------- */
+.f-label{
+  font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);font-weight:800;margin:0 0 7px;
+}
+.f-label:not(:first-child){margin-top:15px;}
+
+.pills{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{
+  flex:1 1 0;min-width:0;
+  padding:8px 4px;border-radius:10px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:700;
+  cursor:pointer;transition:all .2s ease;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.pill .em{font-size:14px;line-height:1;}
+.pill:active{transform:scale(.96);}
+.pill.on{
+  color:#fff;border-color:var(--pc,#54a0ff);
+  background:color-mix(in srgb, var(--pc,#54a0ff) 14%, transparent);
+  box-shadow:0 0 0 1px var(--pc,#54a0ff) inset;
+}
+
+.pills.lvl .pill{font-size:10.5px;padding:7px 2px;}
+
+textarea.f-input{
+  width:100%;min-height:64px;resize:vertical;
+  background:rgba(0,0,0,.28);color:var(--text);
+  border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;font-family:inherit;font-size:14px;line-height:1.45;
+  outline:none;transition:border-color .2s;
+}
+textarea.f-input:focus{border-color:var(--c);}
+textarea.f-input::placeholder{color:#4c5765;}
+
+.btn{
+  width:100%;padding:12px;border-radius:11px;border:1px solid transparent;
+  font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;
+  transition:all .2s ease;letter-spacing:.02em;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.btn:active{transform:scale(.98);}
+.btn-primary{
+  background:linear-gradient(180deg,#2f7fd4,#2668b0);color:#fff;
+  box-shadow:0 8px 22px -12px #54a0ff;
+}
+.btn-primary:disabled{opacity:.38;box-shadow:none;cursor:default;transform:none;}
+.btn-ghost{
+  background:rgba(255,255,255,.045);color:var(--text);
+  border-color:var(--border);
+}
+.btn-ghost.on{
+  background:rgba(84,160,255,.16);color:#a9d1ff;
+  border-color:rgba(84,160,255,.5);
+}
+.btn-danger{
+  background:rgba(255,118,117,.09);color:#ffb0b0;
+  border-color:rgba(255,118,117,.28);
+  font-size:12.5px;padding:9px;
+}
+
+.hint-box{
+  font-size:12px;color:var(--muted);line-height:1.55;
+  background:rgba(255,255,255,.028);
+  border:1px dashed rgba(255,255,255,.1);
+  border-radius:10px;padding:10px 12px;margin-bottom:10px;
+}
+.hint-box b{color:#a9c4dd;}
+
+.linkrow{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:10px;
+  background:rgba(255,255,255,.028);
+  border:1px solid rgba(255,255,255,.045);
+  margin-bottom:6px;font-size:12.5px;
+}
+.linkrow .chain{flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.linkrow .chip{
+  font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;
+}
+.linkrow .arrow{color:#4c5765;font-size:11px;}
+
+.tab-sep{height:1px;background:var(--border);margin:14px 0;border:0;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hdr">
+    <h1>Пирамида Сознания</h1>
+    <p class="sub">строим из своих мыслей · чувств · действий</p>
+  </header>
+
+  <div class="pyramid-wrap">
+    <svg id="pyramid" viewBox="0 0 400 340" preserveAspectRatio="xMidYMid meet"
+         aria-label="Тетраэдр сознания"></svg>
+    <div class="mode-badge" id="modeBadge">Режим связей</div>
+  </div>
+
+  <div class="bottom">
+    <div id="selCard"></div>
+
+    <nav class="btabs" id="btabs">
+      <button class="btab" data-tab="nodes">🗂 Потоки <span class="cnt" id="cntNodes">0</span></button>
+      <button class="btab" data-tab="add">➕ Добавить</button>
+      <button class="btab" data-tab="links">🔗 Связи <span class="cnt" id="cntLinks">0</span></button>
+    </nav>
+
+    <div class="bbody" id="bbody"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   1. МОДЕЛЬ — потоки и уровни (правится здесь)
+   ===================================================================== */
+const STREAMS = [
+  { id:'thought', name:'Мысль',    color:'#54a0ff', icon:'🧠' },
+  { id:'feeling', name:'Чувство',  color:'#ff7675', icon:'❤️' },
+  { id:'action',  name:'Действие', color:'#fdcb6e', icon:'⚔️' }
+];
+
+const LEVELS = [
+  { id:0, value:0.00, name:'Материя',    desc:'Тело. Инстинкт. Выживание.' },
+  { id:1, value:0.25, name:'Наблюдение', desc:'Замечаю. Дышу. Пауза.' },
+  { id:2, value:0.50, name:'Выбор',      desc:'Система. Логика. Структура.' },
+  { id:3, value:0.75, name:'Творчество', desc:'Поток. Инсайт. Созидание.' },
+  { id:4, value:1.00, name:'Абсолют',    desc:'Тишина. Единство. Бог.' }
+];
+
+const STORE_KEY = 'pyramid-build-v2';
+
+/* =====================================================================
+   2. СОСТОЯНИЕ
+   ===================================================================== */
+const state = {
+  nodes: [],      // {id, stream, level, text, ts}
+  links: [],      // {id, a, b, ts}
+  tab: 'nodes',
+  selected: null,
+  linkMode: false,
+  linkFirst: null,
+  formStream: 'thought',
+  formLevel: 0,
+  formText: ''
+};
+
+let version = 0;           // растёт при любом изменении данных
+let lastVersion = -1;
+
+function commit(){
+  version++;
+  save();
+  renderChrome();
+  renderPanel();
+}
+
+/* =====================================================================
+   3. ХРАНИЛИЩЕ
+   ===================================================================== */
+function save(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      nodes: state.nodes,
+      links: state.links,
+      tab: state.tab,
+      formStream: state.formStream,
+      formLevel: state.formLevel
+    }));
+  }catch(e){ /* quota / private mode */ }
+}
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(!d || typeof d !== 'object') return;
+
+    const validStreams = new Set(STREAMS.map(s => s.id));
+    if(Array.isArray(d.nodes)){
+      state.nodes = d.nodes.filter(n =>
+        n && typeof n.id === 'string' &&
+        validStreams.has(n.stream) &&
+        Number.isInteger(n.level) && n.level >= 0 && n.level <= 4 &&
+        typeof n.text === 'string'
+      ).map(n => ({
+        id: n.id, stream: n.stream, level: n.level,
+        text: n.text.slice(0, 500),
+        ts: Number(n.ts) || Date.now()
+      }));
+    }
+    if(Array.isArray(d.links)){
+      const ids = new Set(state.nodes.map(n => n.id));
+      const seen = new Set();
+      state.links = d.links.filter(l =>
+        l && typeof l.id === 'string' &&
+        ids.has(l.a) && ids.has(l.b) && l.a !== l.b
+      ).filter(l => {
+        const key = l.a < l.b ? l.a + '|' + l.b : l.b + '|' + l.a;
+        if(seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).map(l => ({ id:l.id, a:l.a, b:l.b, ts:Number(l.ts) || Date.now() }));
+    }
+    if(d.tab === 'nodes' || d.tab === 'add' || d.tab === 'links') state.tab = d.tab;
+    if(validStreams.has(d.formStream)) state.formStream = d.formStream;
+    if(Number.isInteger(d.formLevel) && d.formLevel >= 0 && d.formLevel <= 4){
+      state.formLevel = d.formLevel;
+    }
+  }catch(e){ /* ignore */ }
+}
+
+/* =====================================================================
+   4. ГЕОМЕТРИЯ
+   ===================================================================== */
+const NS = 'http://www.w3.org/2000/svg';
+
+const APEX = { x:0, y:1.55, z:0 };
+const BASE = [
+  { x: 0.000, y:0, z: 1.000 },
+  { x:-0.866, y:0, z:-0.500 },
+  { x: 0.866, y:0, z:-0.500 }
+];
+/* Порядок граней совпадает с порядком STREAMS */
+const FACE_EDGES = [ [1,2], [2,0], [0,1] ];
+
+const CX = 200, CY = 238, SCALE = 104, TILT = 0.34;
+
+function project(p, ang){
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const x  =  p.x*ca + p.z*sa;
+  const z  = -p.x*sa + p.z*ca;
+  const ct = Math.cos(TILT), st = Math.sin(TILT);
+  const y  =  p.y*ct - z*st;
+  const zz =  p.y*st + z*ct;
+  return { x: CX + x*SCALE, y: CY - y*SCALE, z: zz };
+}
+function lerp3(a,b,t){
+  return { x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t, z:a.z+(b.z-a.z)*t };
+}
+
+function hexToRgb(h){
+  h = h.replace('#','');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function blendHex(a,b,t){
+  const A = hexToRgb(a), B = hexToRgb(b);
+  return 'rgb(' +
+    Math.round(A[0]+(B[0]-A[0])*t) + ',' +
+    Math.round(A[1]+(B[1]-A[1])*t) + ',' +
+    Math.round(A[2]+(B[2]-A[2])*t) + ')';
+}
+
+/* =====================================================================
+   5. ПОЗИЦИИ УЗЛОВ НА ГРАНЯХ
+   ===================================================================== */
+let layout = {};   // id -> {faceIdx, t, u}
+
+function computeLayout(){
+  const out = {};
+  STREAMS.forEach((s, fi) => {
+    for(let lvl = 0; lvl <= 4; lvl++){
+      const group = state.nodes
+        .filter(n => n.stream === s.id && n.level === lvl)
+        .sort((a,b) => a.ts - b.ts);
+      const N = group.length;
+      group.forEach((n, i) => {
+        let u;
+        if(N === 1)       u = 0.5;
+        else if(N === 2)  u = i === 0 ? 0.32 : 0.68;
+        else              u = 0.13 + 0.74 * (i / (N - 1));
+        out[n.id] = { faceIdx: fi, t: lvl / 4, u };
+      });
+    }
+  });
+  layout = out;
+}
+
+function nodePoint3D(lay){
+  const [b0, b1] = FACE_EDGES[lay.faceIdx];
+  const A = lerp3(BASE[b0], APEX, lay.t);
+  const B = lerp3(BASE[b1], APEX, lay.t);
+  return lerp3(A, B, lay.u);
+}
+
+/* =====================================================================
+   6. SVG СЦЕНА
+   ===================================================================== */
+const svg = document.getElementById('pyramid');
+let facesLayer, linksLayer, nodesLayer, apexLayer;
+let faceNodes = [];            // {g, poly, lines[], stream, idx}
+let nodeEls  = new Map();      // id -> {g, glow, dot, hit, label}
+let linkEls  = new Map();      // id -> {path}
+let apexEls  = {};
+
+function el(tag, attrs){
+  const e = document.createElementNS(NS, tag);
+  if(attrs) for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function initSVG(){
+  svg.innerHTML = '';
+
+  facesLayer = el('g');
+  linksLayer = el('g');
+  nodesLayer = el('g');
+  apexLayer  = el('g');
+  svg.appendChild(facesLayer);
+  svg.appendChild(linksLayer);
+  svg.appendChild(nodesLayer);
+  svg.appendChild(apexLayer);
+
+  /* --- идеальные грани (прозрачный каркас) --- */
+  faceNodes = STREAMS.map((s, i) => {
+    const g = el('g');
+
+    const poly = el('polygon', {
+      'stroke-linejoin':'round',
+      fill: s.color, 'fill-opacity': .045,
+      stroke: s.color, 'stroke-opacity': .38, 'stroke-width': 1.2
+    });
+    g.appendChild(poly);
+
+    const lines = [];
+    for(let k = 1; k <= 3; k++){
+      const ln = el('line', {
+        stroke: s.color, 'stroke-width': .8,
+        'stroke-opacity': .16, 'stroke-dasharray':'2 5',
+        'stroke-linecap':'round'
+      });
+      g.appendChild(ln);
+      lines.push(ln);
+    }
+
+    const label = el('text', {
+      'text-anchor':'middle', 'font-size':11, 'font-weight':800,
+      fill: s.color, 'fill-opacity': .55
+    });
+    label.textContent = s.icon + ' ' + s.name;
+    g.appendChild(label);
+
+    facesLayer.appendChild(g);
+    return { g, poly, lines, label, stream: s, idx: i };
+  });
+
+  /* --- вершина --- */
+  const apexGlow = el('circle', { r:14, fill:'#ffffff', 'fill-opacity':.07 });
+  const apexRing = el('circle', { r:6, fill:'none', stroke:'#ffffff', 'stroke-opacity':.35, 'stroke-width':1 });
+  const apexDot  = el('circle', { r:3,  fill:'#ffffff', 'fill-opacity':.95 });
+  const apexText = el('text', {
+    'text-anchor':'middle', 'font-size':9.5, 'font-weight':800,
+    fill:'#c9d7e4', 'fill-opacity':.7, 'letter-spacing':'0.16em'
+  });
+  apexText.textContent = 'АБСОЛЮТ';
+
+  apexLayer.appendChild(apexGlow);
+  apexLayer.appendChild(apexRing);
+  apexLayer.appendChild(apexDot);
+  apexLayer.appendChild(apexText);
+  apexEls = { apexGlow, apexRing, apexDot, apexText };
+}
+
+/* ---------- синхронизация DOM с данными ---------- */
+function syncElements(){
+  /* узлы */
+  const wanted = new Set(state.nodes.map(n => n.id));
+  nodeEls.forEach((e, id) => {
+    if(!wanted.has(id)){ e.g.remove(); nodeEls.delete(id); }
+  });
+  state.nodes.forEach(n => {
+    if(nodeEls.has(n.id)) return;
+    const s = STREAMS.find(x => x.id === n.stream);
+
+    const g = el('g', { style:'cursor:pointer' });
+
+    const glow = el('circle', { r:13, fill:s.color, 'fill-opacity':.14 });
+    const dot  = el('circle', { r:4.5, fill:s.color, stroke:'#0d1117', 'stroke-width':1.6 });
+    const hit  = el('circle', { r:16, fill:'transparent' });
+    const label = el('text', {
+      'text-anchor':'middle', 'font-size':11, 'font-weight':700,
+      fill:'#e6edf3', 'paint-order':'stroke',
+      stroke:'#0d1117', 'stroke-width':3.4,
+      'stroke-linejoin':'round'
+    });
+    label.style.display = 'none';
+
+    g.appendChild(glow);
+    g.appendChild(dot);
+    g.appendChild(hit);
+    g.appendChild(label);
+
+    hit.addEventListener('click', ev => {
+      ev.stopPropagation();
+      if(Date.now() - dragEndTime < 320) return;
+      onNodeTap(n.id);
+    });
+
+    nodesLayer.appendChild(g);
+    nodeEls.set(n.id, { g, glow, dot, hit, label, node:n });
+  });
+
+  /* связи */
+  const wantedLinks = new Set(state.links.map(l => l.id));
+  linkEls.forEach((e, id) => {
+    if(!wantedLinks.has(id)){ e.path.remove(); linkEls.delete(id); }
+  });
+  state.links.forEach(l => {
+    if(linkEls.has(l.id)) return;
+    const path = el('path', {
+      fill:'none', 'stroke-width':1.7,
+      'stroke-linecap':'round', 'stroke-opacity':.55
+    });
+    linksLayer.appendChild(path);
+    linkEls.set(l.id, { path, link:l });
+  });
+
+  computeLayout();
+}
+
+/* =====================================================================
+   7. КАДР
+   ===================================================================== */
+let angle = 0.75;
+let lastTs = 0;
+let lastInteraction = Date.now();
+let dragEndTime = 0;
+
+function updateScene(){
+  if(version !== lastVersion){
+    lastVersion = version;
+    syncElements();
+  }
+
+  /* --- грани --- */
+  const pa = project(APEX, angle);
+
+  const faces = faceNodes.map(fn => {
+    const [b0, b1] = FACE_EDGES[fn.idx];
+    const p0 = project(BASE[b0], angle);
+    const p1 = project(BASE[b1], angle);
+    const cross = (p0.x - pa.x) * (p1.y - pa.y) - (p1.x - pa.x) * (p0.y - pa.y);
+    return {
+      fn, b0, b1, p0, p1,
+      front: cross > 0,
+      depth: (pa.z + p0.z + p1.z) / 3
+    };
+  }).sort((a,b) => a.depth - b.depth);
+
+  faces.forEach(f => {
+    facesLayer.appendChild(f.fn.g);
+    const { fn, p0, p1, front } = f;
+
+    fn.poly.setAttribute('points',
+      pa.x.toFixed(1)+','+pa.y.toFixed(1)+' '+
+      p0.x.toFixed(1)+','+p0.y.toFixed(1)+' '+
+      p1.x.toFixed(1)+','+p1.y.toFixed(1));
+
+    fn.poly.setAttribute('fill-opacity', front ? .055 : .022);
+    fn.poly.setAttribute('stroke-opacity', front ? .42 : .16);
+
+    /* линии уровней */
+    fn.lines.forEach((ln, k) => {
+      const t = (k + 1) / 4;
+      const A = project(lerp3(BASE[f.b0], APEX, t), angle);
+      const B = project(lerp3(BASE[f.b1], APEX, t), angle);
+      ln.setAttribute('x1', A.x.toFixed(1));
+      ln.setAttribute('y1', A.y.toFixed(1));
+      ln.setAttribute('x2', B.x.toFixed(1));
+      ln.setAttribute('y2', B.y.toFixed(1));
+      ln.setAttribute('stroke-opacity', front ? .18 : .06);
+    });
+
+    /* подпись потока — в нижней трети грани */
+    const midBase = lerp3(BASE[f.b0], BASE[f.b1], 0.5);
+    const lp = project(lerp3(midBase, APEX, 0.12), angle);
+    fn.label.setAttribute('x', lp.x.toFixed(1));
+    fn.label.setAttribute('y', lp.y.toFixed(1));
+    fn.label.setAttribute('fill-opacity', front ? .62 : .16);
+  });
+
+  /* --- позиции узлов в 3D + проекция --- */
+  const projected = {};
+  state.nodes.forEach(n => {
+    const lay = layout[n.id];
+    if(!lay) return;
+    const p3 = nodePoint3D(lay);
+    const p2 = project(p3, angle);
+    const front = faces.find(f => f.fn.idx === lay.faceIdx).front;
+    projected[n.id] = { p2, front, depth: p2.z };
+  });
+
+  /* --- связи --- */
+  state.links.forEach(l => {
+    const A = projected[l.a], B = projected[l.b];
+    const e = linkEls.get(l.id);
+    if(!e) return;
+    if(!A || !B){ e.path.setAttribute('d',''); return; }
+
+    const a3 = nodePoint3D(layout[l.a]);
+    const b3 = nodePoint3D(layout[l.b]);
+    const mid3 = { x:(a3.x+b3.x)/2, y:(a3.y+b3.y)/2, z:(a3.z+b3.z)/2 };
+    const ctrl3 = {
+      x: mid3.x * 0.62,
+      y: mid3.y,
+      z: mid3.z * 0.62
+    };
+    const C = project(ctrl3, angle);
+
+    e.path.setAttribute('d',
+      'M' + A.p2.x.toFixed(1) + ' ' + A.p2.y.toFixed(1) +
+      ' Q' + C.x.toFixed(1) + ' ' + C.y.toFixed(1) +
+      ' ' + B.p2.x.toFixed(1) + ' ' + B.p2.y.toFixed(1));
+
+    const sa = STREAMS.find(s => s.id === l.a ? false : false); // placeholder
+    const nodeA = state.nodes.find(n => n.id === l.a);
+    const nodeB = state.nodes.find(n => n.id === l.b);
+    const colA = STREAMS.find(s => s.id === nodeA.stream).color;
+    const colB = STREAMS.find(s => s.id === nodeB.stream).color;
+    e.path.setAttribute('stroke', blendHex(colA, colB, 0.5));
+
+    const front = A.front || B.front;
+    const isSel = state.selected === l.a || state.selected === l.b;
+    e.path.setAttribute('stroke-opacity', isSel ? .95 : (front ? .55 : .22));
+    e.path.setAttribute('stroke-width', isSel ? 2.4 : 1.6);
+  });
+
+  /* --- узлы --- */
+  const order = state.nodes.slice().sort((a,b) => {
+    const A = projected[a.id], B = projected[b.id];
+    return (A ? A.depth : 0) - (B ? B.depth : 0);
+  });
+  order.forEach(n => {
+    const e = nodeEls.get(n.id);
+    const P = projected[n.id];
+    if(!e || !P) return;
+    nodesLayer.appendChild(e.g);
+
+    const isSel   = state.selected === n.id;
+    const isFirst = state.linkFirst === n.id;
+
+    e.glow.setAttribute('cx', P.p2.x.toFixed(1));
+    e.glow.setAttribute('cy', P.p2.y.toFixed(1));
+    e.glow.setAttribute('r', isSel || isFirst ? 17 : 12);
+    e.glow.setAttribute('fill-opacity', P.front ? (isSel ? .30 : .14) : .05);
+
+    e.dot.setAttribute('cx', P.p2.x.toFixed(1));
+    e.dot.setAttribute('cy', P.p2.y.toFixed(1));
+    e.dot.setAttribute('r', isSel || isFirst ? 6.5 : 4.5);
+    e.dot.setAttribute('stroke', isSel || isFirst ? '#ffffff' : '#0d1117');
+    e.dot.setAttribute('stroke-width', isSel || isFirst ? 2.2 : 1.6);
+    e.dot.setAttribute('opacity', P.front ? 1 : .38);
+
+    e.hit.setAttribute('cx', P.p2.x.toFixed(1));
+    e.hit.setAttribute('cy', P.p2.y.toFixed(1));
+
+    if(isSel && n.text){
+      const short = n.text.length > 26 ? n.text.slice(0, 24) + '…' : n.text;
+      e.label.textContent = short;
+      e.label.setAttribute('x', P.p2.x.toFixed(1));
+      e.label.setAttribute('y', (P.p2.y - 15).toFixed(1));
+      e.label.style.display = '';
+    } else {
+      e.label.style.display = 'none';
+    }
+  });
+
+  /* --- вершина --- */
+  apexEls.apexGlow.setAttribute('cx', pa.x);
+  apexEls.apexGlow.setAttribute('cy', pa.y);
+  apexEls.apexRing.setAttribute('cx', pa.x);
+  apexEls.apexRing.setAttribute('cy', pa.y);
+  apexEls.apexDot.setAttribute('cx', pa.x);
+  apexEls.apexDot.setAttribute('cy', pa.y);
+  apexEls.apexText.setAttribute('x', pa.x);
+  apexEls.apexText.setAttribute('y', pa.y - 19);
+}
+
+function frame(ts){
+  if(!lastTs) lastTs = ts;
+  const dt = Math.min(64, ts - lastTs);
+  lastTs = ts;
+
+  if(!dragging && Date.now() - lastInteraction > 2800){
+    angle += dt * 0.00011;
+  }
+  updateScene();
+  requestAnimationFrame(frame);
+}
+
+/* =====================================================================
+   8. ЖЕСТЫ
+   ===================================================================== */
+let dragging = false, dragX = 0, dragAngle = 0, movedPx = 0;
+
+svg.addEventListener('pointerdown', e => {
+  dragging = true;
+  movedPx = 0;
+  dragX = e.clientX;
+  dragAngle = angle;
+  lastInteraction = Date.now();
+});
+window.addEventListener('pointermove', e => {
+  if(!dragging) return;
+  const dx = e.clientX - dragX;
+  movedPx = Math.max(movedPx, Math.abs(dx));
+  angle = dragAngle + dx * 0.011;
+  lastInteraction = Date.now();
+});
+function endDrag(){
+  if(!dragging) return;
+  dragging = false;
+  lastInteraction = Date.now();
+  if(movedPx > 7) dragEndTime = Date.now();
+}
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+
+/* =====================================================================
+   9. ДЕЙСТВИЯ С ДАННЫМИ
+   ===================================================================== */
+function uid(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function addNode(stream, level, text){
+  const n = {
+    id: uid(),
+    stream, level,
+    text: text.trim().slice(0, 500),
+    ts: Date.now()
+  };
+  if(!n.text) return null;
+  state.nodes.push(n);
+  state.selected = n.id;
+  commit();
+  return n;
+}
+
+function deleteNode(id){
+  state.nodes = state.nodes.filter(n => n.id !== id);
+  state.links = state.links.filter(l => l.a !== id && l.b !== id);
+  if(state.selected === id) state.selected = null;
+  if(state.linkFirst === id) state.linkFirst = null;
+  commit();
+}
+
+function addLink(a, b){
+  if(!a || !b || a === b) return false;
+  const exists = state.links.some(l =>
+    (l.a === a && l.b === b) || (l.a === b && l.b === a));
+  if(exists) return false;
+  const nodeA = state.nodes.find(n => n.id === a);
+  const nodeB = state.nodes.find(n => n.id === b);
+  if(!nodeA || !nodeB) return false;
+  state.links.push({ id: uid(), a, b, ts: Date.now() });
+  commit();
+  return true;
+}
+
+function deleteLink(id){
+  state.links = state.links.filter(l => l.id !== id);
+  commit();
+}
+
+function clearAll(){
+  if(!confirm('Удалить все узлы и связи?')) return;
+  state.nodes = [];
+  state.links = [];
+  state.selected = null;
+  state.linkFirst = null;
+  commit();
+}
+
+/* ---------- тап по узлу ---------- */
+function onNodeTap(id){
+  if(state.linkMode){
+    if(!state.linkFirst){
+      state.linkFirst = id;
+    } else if(state.linkFirst === id){
+      state.linkFirst = null;
+    } else {
+      const ok = addLink(state.linkFirst, id);
+      state.linkFirst = null;
+      if(!ok) flashBadge('Уже связано');
+    }
+    renderChrome();
+    renderPanel();
+    return;
+  }
+  state.selected = (state.selected === id) ? null : id;
+  renderChrome();
+  renderPanel();
+}
+
+/* =====================================================================
+   10. БАЛАНС
+   ===================================================================== */
+function calcBalance(){
+  const vals = STREAMS.map(s => {
+    const arr = state.nodes.filter(n => n.stream === s.id);
+    if(!arr.length) return 0;
+    return arr.reduce((a, n) => a + n.level, 0) / arr.length / 4;
+  });
+  const avg = (vals[0] + vals[1] + vals[2]) / 3;
+  const spread = Math.max.apply(null, vals) - Math.min.apply(null, vals);
+  return { vals, avg, spread };
+}
+
+function balanceHint(spread){
+  if(spread < 0.17) return 'ровно';
+  if(spread < 0.34) return 'лёгкий перекос';
+  if(spread < 0.60) return 'заметный перекос';
+  return 'сильный перекос';
+}
+
+/* =====================================================================
+   11. UI
+   ===================================================================== */
+const btabsEl   = document.getElementById('btabs');
+const bbodyEl   = document.getElementById('bbody');
+const selCardEl = document.getElementById('selCard');
+const cntNodesEl= document.getElementById('cntNodes');
+const cntLinksEl= document.getElementById('cntLinks');
+const modeBadge = document.getElementById('modeBadge');
+
+function renderChrome(){
+  /* табы */
+  Array.from(btabsEl.children).forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === state.tab);
+  });
+  cntNodesEl.textContent = state.nodes.length;
+  cntLinksEl.textContent = state.links.length;
+
+  /* бейдж режима связей */
+  modeBadge.classList.toggle('on', state.linkMode);
+
+  /* карточка выбранного узла */
+  const n = state.nodes.find(x => x.id === state.selected);
+  if(n){
+    const s = STREAMS.find(x => x.id === n.stream);
+    const lv = LEVELS[n.level];
+    selCardEl.innerHTML =
+      '<div class="sel-card" style="border-left-color:'+s.color+'">' +
+        '<div class="txt">' +
+          '<div class="meta" style="color:'+s.color+'">' +
+            s.icon + ' ' + s.name + ' · ' + lv.name +
+          '</div>' +
+          escapeHtml(n.text) +
+        '</div>' +
+        '<button class="del" data-del-sel="'+n.id+'" title="Удалить">✕</button>' +
+      '</div>';
+    const btn = selCardEl.querySelector('[data-del-sel]');
+    if(btn) btn.addEventListener('click', () => deleteNode(n.id));
+  } else {
+    selCardEl.innerHTML = '';
+  }
+}
+
+function escapeHtml(s){
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function flashBadge(text){
+  const old = modeBadge.textContent;
+  modeBadge.textContent = text;
+  modeBadge.classList.add('on');
+  setTimeout(() => {
+    modeBadge.textContent = old;
+    modeBadge.classList.toggle('on', state.linkMode);
+  }, 1100);
+}
+
+/* ---------- панель ---------- */
+function renderPanel(){
+  if(state.tab === 'nodes')      bbodyEl.innerHTML = panelNodes();
+  else if(state.tab === 'add')   bbodyEl.innerHTML = panelAdd();
+  else                           bbodyEl.innerHTML = panelLinks();
+  bindPanel();
+}
+
+/* ---------- список узлов ---------- */
+function panelNodes(){
+  if(!state.nodes.length){
+    return '<div class="empty">' +
+      '<span class="big">◇</span>' +
+      'Пока пусто. Нажми <b>➕ Добавить</b>, чтобы поставить первую точку — мысль, чувство или действие.' +
+    '</div>';
+  }
+
+  let html = '';
+  STREAMS.forEach(s => {
+    const arr = state.nodes
+      .filter(n => n.stream === s.id)
+      .sort((a,b) => a.level - b.level || a.ts - b.ts);
+
+    html += '<div class="grp">' +
+      '<div class="grp-head"><span class="dot" style="background:'+s.color+'"></span>' +
+      s.icon + ' ' + s.name +
+      ' <span style="color:#4c5765">· ' + arr.length + '</span></div>';
+
+    if(!arr.length){
+      html += '<div style="font-size:12px;color:#4c5765;padding:2px 4px 6px">— нет точек —</div>';
+    } else {
+      arr.forEach(n => {
+        const lv = LEVELS[n.level];
+        html += '<div class="nrow' + (state.selected === n.id ? ' sel' : '') +
+                '" data-sel="'+n.id+'">' +
+          '<span class="lvl">' + n.level + ' · ' + lv.name + '</span>' +
+          '<span class="body">' + escapeHtml(n.text) + '</span>' +
+          '<button class="del" data-del="'+n.id+'" title="Удалить">✕</button>' +
+        '</div>';
+      });
+    }
+    html += '</div>';
+  });
+
+  html += '<hr class="tab-sep"/>' +
+    '<button class="btn btn-danger" data-clear="1">Очистить всё</button>';
+
+  return html;
+}
+
+/* ---------- форма добавления ---------- */
+function panelAdd(){
+  let h = '';
+
+  h += '<div class="f-label">Поток</div><div class="pills" data-group="stream">';
+  STREAMS.forEach(s => {
+    h += '<button class="pill' + (state.formStream === s.id ? ' on' : '') +
+         '" data-stream="'+s.id+'" style="--pc:'+s.color+'">' +
+         '<span class="em">'+s.icon+'</span><span>'+s.name+'</span></button>';
+  });
+  h += '</div>';
+
+  h += '<div class="f-label">Уровень</div><div class="pills lvl" data-group="level">';
+  LEVELS.forEach(l => {
+    h += '<button class="pill' + (state.formLevel === l.id ? ' on' : '') +
+         '" data-level="'+l.id+'" style="--pc:var(--c)">' +
+         '<span>' + l.id + '</span><span>' + l.name + '</span></button>';
+  });
+  h += '</div>';
+
+  const lvDesc = LEVELS[state.formLevel].desc;
+  h += '<div style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">' +
+       lvDesc + '</div>';
+
+  h += '<div class="f-label">Текст</div>' +
+    '<textarea class="f-input" id="fText" maxlength="500" ' +
+    'placeholder="Что это за ' + streamWord(state.formStream) + '?"></textarea>';
+
+  h += '<div style="height:12px"></div>' +
+    '<button class="btn btn-primary" id="fSave" disabled>➕ Добавить точку</button>';
+
+  return h;
+}
+
+function streamWord(id){
+  if(id === 'thought') return 'мысль';
+  if(id === 'feeling') return 'чувство';
+  return 'действие';
+}
+
+/* ---------- связи ---------- */
+function panelLinks(){
+  let h = '';
+
+  h += '<div class="hint-box">' +
+    '🔗 <b>Режим связей.</b> Включи его и тапай по двум точкам на пирамиде — ' +
+    'связь появится автоматически. Мысль ↔ Чувство ↔ Действие.' +
+  '</div>';
+
+  h += '<button class="btn ' + (state.linkMode ? 'btn-primary' : 'btn-ghost on') +
+       '" id="linkToggle">' +
+       (state.linkMode ? '✓ Режим связей включён' : '🔗 Включить режим связей') +
+       '</button>';
+
+  if(state.linkFirst){
+    const n = state.nodes.find(x => x.id === state.linkFirst);
+    if(n){
+      const s = STREAMS.find(x => x.id === n.stream);
+      h += '<div style="margin-top:10px;font-size:12.5px;color:'+s.color+'">' +
+        'Выбрано: <b>' + escapeHtml(n.text.slice(0,40)) + '</b> — тапни вторую точку.' +
+        '</div>';
+    }
+  }
+
+  h += '<hr class="tab-sep"/>';
+
+  if(!state.links.length){
+    h += '<div class="empty" style="padding:14px 6px">' +
+      '<span class="big">⇄</span>Связей пока нет.</div>';
+    return h;
+  }
+
+  h += '<div class="f-label">Существующие связи · ' + state.links.length + '</div>';
+
+  const sorted = state.links.slice().sort((a,b) => b.ts - a.ts);
+  sorted.forEach(l => {
+    const A = state.nodes.find(n => n.id === l.a);
+    const B = state.nodes.find(n => n.id === l.b);
+    if(!A || !B) return;
+    const SA = STREAMS.find(s => s.id === A.stream);
+    const SB = STREAMS.find(s => s.id === B.stream);
+
+    h += '<div class="linkrow">' +
+      '<div class="chain">' +
+        '<span class="chip" style="color:'+SA.color+';background:'+SA.color+'1f;border:1px solid '+SA.color+'55">' +
+          SA.icon + ' ' + escapeHtml(A.text.slice(0,18)) + '</span>' +
+        '<span class="arrow">↔</span>' +
+        '<span class="chip" style="color:'+SB.color+';background:'+SB.color+'1f;border:1px solid '+SB.color+'55">' +
+          SB.icon + ' ' + escapeHtml(B.text.slice(0,18)) + '</span>' +
+      '</div>' +
+      '<button class="del" data-del-link="'+l.id+'" title="Удалить связь">✕</button>' +
+    '</div>';
+  });
+
+  return h;
+}
+
+/* ---------- привязка событий панели ---------- */
+function bindPanel(){
+  /* узлы */
+  bbodyEl.querySelectorAll('[data-sel]').forEach(row => {
+    row.addEventListener('click', e => {
+      if(e.target.closest('[data-del]')) return;
+      const id = row.dataset.sel;
+      state.selected = (state.selected === id) ? null : id;
+      renderChrome();
+      renderPanel();
+    });
+  });
+  bbodyEl.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteNode(btn.dataset.del);
+    });
+  });
+  const clearBtn = bbodyEl.querySelector('[data-clear]');
+  if(clearBtn) clearBtn.addEventListener('click', clearAll);
+
+  /* форма */
+  bbodyEl.querySelectorAll('[data-stream]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.formStream = btn.dataset.stream;
+      save();
+      renderPanel();
+      const ta = document.getElementById('fText');
+      if(ta){
+        ta.placeholder = 'Что это за ' + streamWord(state.formStream) + '?';
+        ta.value = state.formText;
+        ta.focus();
+      }
+    });
+  });
+  bbodyEl.querySelectorAll('[data-level]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.formLevel = parseInt(btn.dataset.level, 10);
+      save();
+      renderPanel();
+      const ta = document.getElementById('fText');
+      if(ta){
+        ta.value = state.formText;
+        ta.focus();
+      }
+    });
+  });
+
+  const ta = document.getElementById('fText');
+  const saveBtn = document.getElementById('fSave');
+  if(ta){
+    ta.value = state.formText;
+    ta.addEventListener('input', () => {
+      state.formText = ta.value;
+      if(saveBtn) saveBtn.disabled = !ta.value.trim();
+    });
+    if(saveBtn) saveBtn.disabled = !ta.value.trim();
+  }
+  if(saveBtn){
+    saveBtn.addEventListener('click', () => {
+      const txt = (ta ? ta.value : state.formText).trim();
+      if(!txt) return;
+      addNode(state.formStream, state.formLevel, txt);
+      state.formText = '';
+      if(ta) ta.value = '';
+      saveBtn.disabled = true;
+      state.tab = 'nodes';
+      save();
+      renderChrome();
+      renderPanel();
+    });
+  }
+
+  /* связи */
+  const lt = document.getElementById('linkToggle');
+  if(lt){
+    lt.addEventListener('click', () => {
+      state.linkMode = !state.linkMode;
+      if(!state.linkMode) state.linkFirst = null;
+      renderChrome();
+      renderPanel();
+    });
+  }
+  bbodyEl.querySelectorAll('[data-del-link]').forEach(btn => {
+    btn.addEventListener('click', () => deleteLink(btn.dataset.delLink));
+  });
+}
+
+/* ---------- переключение вкладок ---------- */
+btabsEl.addEventListener('click', e => {
+  const b = e.target.closest('.btab');
+  if(!b) return;
+  state.tab = b.dataset.tab;
+  save();
+  renderChrome();
+  renderPanel();
+});
+
+/* =====================================================================
+   12. СТАРТ
+   ===================================================================== */
+load();
+initSVG();
+renderChrome();
+renderPanel();
+requestAnimationFrame(frame);
+
+/* периодическая перерисовка баланса не нужна — она внутри панели «Связи»,
+   но добавим мини-индикатор в шапку карточки выбранного узла через renderChrome */
+
+})();
+</script>
+</body>
+</html>
