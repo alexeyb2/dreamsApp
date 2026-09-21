@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0d1117"/>
+<title>Пирамида Сознания · Точки тела</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --panel2:#11151b; --border:#232b36;
+  --text:#e6edf3; --muted:#8b949e;
+  --thought:#54a0ff; --feeling:#ff7675; --action:#fdcb6e;
+  --gold:#ffd166; --green:#4ade80; --yellow:#fbbf24; --red:#ef4444;
+  --white:#ffffff;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{
+  margin:0;padding:0;
+  background:radial-gradient(120% 90% at 50% -10%,#16202e 0%,#0d1117 55%) fixed;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:15px;line-height:1.4;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+}
+.app{max-width:480px;margin:0 auto;padding:8px 12px 34px;}
+
+.hdr{text-align:center;margin-bottom:2px;}
+.hdr h1{
+  font-size:13px;margin:0;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  background:linear-gradient(90deg,#54a0ff,#ffd166,#ff7675);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hdr .sub{margin:2px 0 0;font-size:9.5px;color:var(--muted);letter-spacing:.12em;}
+
+/* ---------- SVG stage ---------- */
+.stage{position:relative;margin:0 -8px;}
+#scene{display:block;width:100%;height:auto;max-height:52vh;}
+#scene text{font-family:inherit;pointer-events:none;user-select:none;}
+
+.status-badge{
+  position:absolute;top:4px;left:50%;transform:translateX(-50%);
+  font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+  padding:4px 12px;border-radius:99px;
+  background:rgba(74,222,128,.14);color:var(--green);
+  border:1px solid rgba(74,222,128,.42);
+  transition:opacity .35s, background .35s, color .35s, border-color .35s;
+  pointer-events:none;opacity:0;white-space:nowrap;
+  backdrop-filter:blur(6px);
+}
+.status-badge.on{opacity:1;}
+.status-badge.locked{
+  background:rgba(239,68,68,.12);color:var(--red);
+  border-color:rgba(239,68,68,.42);
+}
+.status-badge.hint{
+  background:rgba(251,191,36,.12);color:var(--yellow);
+  border-color:rgba(251,191,36,.42);
+}
+.status-badge.meet{
+  background:rgba(255,209,102,.18);color:var(--gold);
+  border-color:rgba(255,209,102,.55);
+  box-shadow:0 0 24px -6px rgba(255,209,102,.6);
+}
+
+/* ---------- panels ---------- */
+.panel{
+  background:linear-gradient(180deg,#161b22,#11151b);
+  border:1px solid var(--border);border-radius:14px;
+  padding:11px 14px;margin-top:8px;
+}
+.grp-title{
+  font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);font-weight:800;margin:0 0 8px;
+  display:flex;align-items:center;gap:6px;
+}
+.grp-title .dot{
+  width:5px;height:5px;border-radius:50%;background:var(--gold);
+  box-shadow:0 0 6px var(--gold);
+}
+.grp-title.gold{color:var(--gold);}
+
+/* ---------- balance ---------- */
+.bal-row{display:flex;align-items:center;gap:12px;}
+.bal-avg{text-align:center;min-width:64px;}
+.bal-avg .big{
+  font-size:24px;font-weight:800;line-height:1;
+  font-variant-numeric:tabular-nums;
+  background:linear-gradient(180deg,#fff,#93a7bb);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.bal-avg .cap{
+  font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-top:3px;font-weight:700;
+}
+.bal-spread{flex:1;min-width:0;}
+.spread-line{font-size:11px;color:var(--muted);letter-spacing:.02em;}
+.spread-line b{color:var(--text);font-variant-numeric:tabular-nums;}
+.spread-hint{font-size:13px;font-weight:800;margin-top:2px;}
+.bal-lock{
+  font-size:22px;line-height:1;
+  transition:transform .3s, filter .3s;
+  filter:grayscale(.6) opacity(.55);
+}
+.bal-lock.unlocked{filter:none;}
+
+.drag-hint{
+  font-size:11.5px;color:var(--muted);
+  max-height:0;overflow:hidden;margin-top:0;padding-top:0;
+  transition:max-height .3s ease, margin-top .3s ease, padding-top .3s ease;
+}
+.drag-hint.on{
+  max-height:70px;margin-top:9px;padding-top:9px;
+  border-top:1px solid var(--border);
+}
+.drag-hint b{font-weight:700;}
+.drag-hint .small{font-size:10.5px;color:#5b6675;display:block;margin-top:3px;}
+
+/* ---------- sliders ---------- */
+.slider-row{margin-bottom:9px;}
+.slider-row:last-child{margin-bottom:0;}
+.slider-head{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:1px;font-size:12px;
+}
+.slider-name{
+  display:flex;align-items:center;gap:6px;font-weight:700;
+}
+.slider-name .ico{font-size:13px;line-height:1;}
+.slider-val{
+  font-variant-numeric:tabular-nums;font-weight:800;font-size:13px;
+}
+.slider-lev{
+  font-size:9px;color:var(--muted);letter-spacing:.06em;
+  text-transform:uppercase;margin-left:6px;font-weight:600;
+}
+.slider-input{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:22px;background:transparent;
+  --pct:50%;--col:#54a0ff;
+  margin:0;padding:0;
+}
+.slider-input::-webkit-slider-runnable-track{
+  height:4px;border-radius:99px;
+  background:linear-gradient(to right,var(--col) var(--pct), #232b36 var(--pct));
+}
+.slider-input::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:17px;height:17px;border-radius:50%;
+  background:#fff;border:3px solid var(--col);
+  margin-top:-6.5px;
+  box-shadow:0 0 9px -1px var(--col);
+  transition:transform .15s;
+}
+.slider-input:active::-webkit-slider-thumb{transform:scale(1.15);}
+.slider-input::-moz-range-track{
+  height:4px;border-radius:99px;background:#232b36;
+}
+.slider-input::-moz-range-progress{
+  height:4px;border-radius:99px;background:var(--col);
+}
+.slider-input::-moz-range-thumb{
+  width:17px;height:17px;border-radius:50%;
+  background:#fff;border:3px solid var(--col);
+}
+
+/* ---------- info ---------- */
+.info-tabs{display:flex;gap:6px;margin-bottom:6px;margin-top:8px;}
+.info-tab{
+  flex:1;padding:8px 4px;border-radius:11px;
+  background:var(--panel);border:1px solid var(--border);
+  color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:700;
+  cursor:pointer;transition:all .25s;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  white-space:nowrap;
+}
+.info-tab.active{
+  color:#fff;border-color:var(--c,#54a0ff);
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  box-shadow:0 0 0 1px var(--c) inset;
+}
+.info-tab:active{transform:scale(.97);}
+.info-tab .drag-dot{
+  width:5px;height:5px;border-radius:50%;background:var(--red);
+  box-shadow:0 0 6px var(--red);
+}
+
+.card-level{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:11px;padding-bottom:9px;border-bottom:1px solid var(--border);
+  gap:8px;
+}
+.card-level-name{font-size:13.5px;font-weight:800;}
+.card-level-num{
+  font-size:10px;color:var(--muted);
+  font-variant-numeric:tabular-nums;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:700;text-align:right;
+}
+.card-block{margin-bottom:11px;}
+.card-block:last-child{margin-bottom:0;}
+.card-label{
+  font-size:9.5px;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:4px;
+}
+.card-content{font-size:13.5px;line-height:1.5;}
+.card-content.should{color:#cfdcea;font-style:italic;}
+.card-content.step{color:var(--gold);font-weight:600;}
+.card-blocks{list-style:none;padding:0;margin:0;}
+.card-blocks li{
+  color:#ffb0b0;padding-left:16px;position:relative;
+  margin-bottom:3px;font-size:13.5px;
+}
+.card-blocks li::before{
+  content:"•";position:absolute;left:3px;color:var(--feeling);font-weight:800;
+}
+.card-content.muted{color:var(--muted);font-style:italic;}
+
+/* ==================================================================
+   SVG-анимации
+   ================================================================== */
+@keyframes ringPulse{
+  0%   { r:5;  opacity:1;   }
+  100% { r:44; opacity:0;   }
+}
+@keyframes dotPulse{
+  0%,100%{ opacity:1; }
+  50%    { opacity:.35; }
+}
+@keyframes pointPulse{
+  0%,100%{ r:3;   opacity:.55; }
+  50%    { r:5.5; opacity:1;   }
+}
+.meet-ring{ animation:ringPulse 2s ease-out infinite; }
+.meet-dot{  animation:dotPulse 2s ease-in-out infinite; }
+
+/* ФИКС 1: класс stream-low навешивается самому кругу — селектор без пробела */
+circle.stream-low{ animation:pointPulse 1.6s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hdr">
+    <h1>Пирамида Сознания</h1>
+    <p class="sub">тело · тетраэдры · фасции · потоки</p>
+  </header>
+
+  <div class="stage">
+    <svg id="scene" viewBox="0 0 400 620" preserveAspectRatio="xMidYMid meet" aria-label="Карта тела">
+      <defs>
+        <radialGradient id="meetGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.95"/>
+          <stop offset="30%"  stop-color="#ffd166" stop-opacity="0.55"/>
+          <stop offset="100%" stop-color="#ffd166" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="maleGrad" cx="50%" cy="100%" r="80%">
+          <stop offset="0%"   stop-color="#fdcb6e" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#54a0ff" stop-opacity="0.04"/>
+        </radialGradient>
+        <radialGradient id="femaleGrad" cx="50%" cy="0%" r="80%">
+          <stop offset="0%"   stop-color="#ff7675" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#54a0ff" stop-opacity="0.04"/>
+        </radialGradient>
+        <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.5"/>
+        </filter>
+        <filter id="bigGlow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="6"/>
+        </filter>
+      </defs>
+
+      <!-- ОСЬ (стержень 0,0,0) -->
+      <line x1="200" y1="30" x2="200" y2="590"
+            stroke="rgba(255,255,255,0.05)" stroke-width="8"/>
+      <line x1="200" y1="30" x2="200" y2="590"
+            stroke="rgba(255,255,255,0.16)" stroke-width="0.8"
+            stroke-dasharray="2 6"/>
+
+      <!-- ФИКС 6: траектория спуска Абсолюта (пунктир от макушки вниз) -->
+      <line id="absTrajectory" x1="200" y1="48" x2="200" y2="48"
+            stroke="rgba(255,209,102,0.55)" stroke-width="1.4"
+            stroke-dasharray="3 5" stroke-linecap="round"
+            opacity="0"/>
+
+      <!-- СИЛУЭТ ТЕЛА -->
+      <g id="bodySil">
+        <circle cx="200" cy="75" r="27"
+                fill="rgba(180,200,225,0.03)"
+                stroke="rgba(180,200,225,0.30)" stroke-width="1.2"/>
+        <path d="M 188 100 L 188 122 M 212 100 L 212 122"
+              stroke="rgba(180,200,225,0.30)" stroke-width="1.2" fill="none"
+              stroke-linecap="round"/>
+        <path d="M 200 122
+                 Q 168 122 155 132
+                 Q 148 145 150 195
+                 L 156 285
+                 Q 158 305 178 308
+                 L 200 310
+                 L 222 308
+                 Q 242 305 244 285
+                 L 250 195
+                 Q 252 145 245 132
+                 Q 232 122 200 122 Z"
+              fill="rgba(180,200,225,0.025)"
+              stroke="rgba(180,200,225,0.28)"
+              stroke-width="1.2" stroke-linejoin="round"/>
+        <path d="M 155 135 Q 135 195 127 250 L 122 290 Q 121 298 128 298 Q 135 298 135 290 L 140 250 Q 150 195 165 145"
+              fill="none" stroke="rgba(180,200,225,0.26)" stroke-width="1.2"/>
+        <path d="M 245 135 Q 265 195 273 250 L 278 290 Q 279 298 272 298 Q 265 298 265 290 L 260 250 Q 250 195 235 145"
+              fill="none" stroke="rgba(180,200,225,0.26)" stroke-width="1.2"/>
+        <path d="M 178 308 Q 172 400 170 480 L 168 570"
+              fill="none" stroke="rgba(180,200,225,0.26)" stroke-width="1.2"
+              stroke-linecap="round"/>
+        <path d="M 222 308 Q 228 400 230 480 L 232 570"
+              fill="none" stroke="rgba(180,200,225,0.26)" stroke-width="1.2"
+              stroke-linecap="round"/>
+        <ellipse cx="165" cy="576" rx="14" ry="4.5"
+                 fill="none" stroke="rgba(180,200,225,0.26)" stroke-width="1.1"/>
+        <ellipse cx="235" cy="576" rx="14" ry="4.5"
+                 fill="none" stroke="rgba(180,200,225,0.26)" stroke-width="1.1"/>
+      </g>
+
+      <!-- ФАСЦИАЛЬНЫЕ ЛИНИИ -->
+      <g id="fasciaGroup">
+        <path id="fasciaBackGlow"
+              d="M 200 50 Q 194 180 195 250 L 196 315 Q 197 400 198 500 L 200 578"
+              fill="none" stroke="var(--thought)" stroke-width="6"
+              stroke-opacity="0.10" filter="url(#softGlow)"/>
+        <path id="fasciaBack"
+              d="M 200 50 Q 194 180 195 250 L 196 315 Q 197 400 198 500 L 200 578"
+              fill="none" stroke="var(--thought)" stroke-width="1.5"
+              stroke-opacity="0.55" stroke-linecap="round"/>
+
+        <path id="fasciaFrontGlow"
+              d="M 200 578 L 201 500 Q 203 400 204 315 L 204 250 Q 205 180 200 118"
+              fill="none" stroke="var(--feeling)" stroke-width="6"
+              stroke-opacity="0.10" filter="url(#softGlow)"/>
+        <path id="fasciaFront"
+              d="M 200 578 L 201 500 Q 203 400 204 315 L 204 250 Q 205 180 200 118"
+              fill="none" stroke="var(--feeling)" stroke-width="1.5"
+              stroke-opacity="0.55" stroke-linecap="round"/>
+
+        <path id="fasciaSpiralGlow"
+              d="M 200 315 Q 165 340 175 250 Q 190 180 248 132"
+              fill="none" stroke="var(--action)" stroke-width="6"
+              stroke-opacity="0.10" filter="url(#softGlow)"/>
+        <path id="fasciaSpiral"
+              d="M 200 315 Q 165 340 175 250 Q 190 180 248 132"
+              fill="none" stroke="var(--action)" stroke-width="1.5"
+              stroke-opacity="0.55" stroke-linecap="round"/>
+      </g>
+
+      <!-- МУЖСКОЙ ТЕТРАЭДР 🔺 -->
+      <g id="maleTetra">
+        <polygon id="maleBackL" fill="rgba(84,160,255,0.08)" stroke="none"/>
+        <polygon id="maleBackR" fill="rgba(84,160,255,0.08)" stroke="none"/>
+        <line id="maleInnerEdge1" stroke="rgba(84,160,255,0.30)"
+              stroke-width="0.8" stroke-dasharray="2 3"/>
+        <line id="maleInnerEdge2" stroke="rgba(84,160,255,0.30)"
+              stroke-width="0.8" stroke-dasharray="2 3"/>
+        <polygon id="maleFront"
+                 fill="url(#maleGrad)"
+                 stroke="rgba(253,203,110,0.60)" stroke-width="1.3"
+                 stroke-linejoin="round"/>
+        <line id="maleSpine"
+              stroke="rgba(253,203,110,0.55)" stroke-width="1"/>
+      </g>
+
+      <!-- ЖЕНСКИЙ ТЕТРАЭДР 🔻 -->
+      <g id="femaleTetra">
+        <polygon id="femaleBackL" fill="rgba(84,160,255,0.08)" stroke="none"/>
+        <polygon id="femaleBackR" fill="rgba(84,160,255,0.08)" stroke="none"/>
+        <line id="femaleInnerEdge1" stroke="rgba(84,160,255,0.30)"
+              stroke-width="0.8" stroke-dasharray="2 3"/>
+        <line id="femaleInnerEdge2" stroke="rgba(84,160,255,0.30)"
+              stroke-width="0.8" stroke-dasharray="2 3"/>
+        <polygon id="femaleFront"
+                 fill="url(#femaleGrad)"
+                 stroke="rgba(255,118,117,0.60)" stroke-width="1.3"
+                 stroke-linejoin="round"/>
+        <line id="femaleSpine"
+              stroke="rgba(255,118,117,0.55)" stroke-width="1"/>
+      </g>
+
+      <!-- ТОЧКИ ТЕЛА -->
+      <g id="anatomy"></g>
+
+      <!-- АПЕКСЫ -->
+      <circle id="upperApexHalo" r="9" fill="#ffd166" opacity="0.20" filter="url(#softGlow)"/>
+      <circle id="upperApex" r="3" fill="#ffd166"/>
+      <circle id="lowerApexHalo" r="9" fill="#ffffff" opacity="0.20" filter="url(#softGlow)"/>
+      <circle id="lowerApex" r="3" fill="#ffffff"/>
+
+      <!-- ВСТРЕЧА (пульс на уровне effAbs) -->
+      <g id="meetGroup" opacity="0">
+        <circle id="meetGlow" cx="200" cy="315" r="70" fill="url(#meetGrad)"/>
+        <circle id="meetRing" cx="200" cy="315" r="5"
+                fill="none" stroke="#ffffff" stroke-width="1.5" class="meet-ring"/>
+        <circle id="meetDot" cx="200" cy="315" r="3.5"
+                fill="#ffffff" class="meet-dot"/>
+      </g>
+    </svg>
+    <div class="status-badge" id="statusBadge"></div>
+  </div>
+
+  <!-- БАЛАНС -->
+  <section class="panel">
+    <div class="bal-row">
+      <div class="bal-avg">
+        <div class="big" id="avgVal">0.50</div>
+        <div class="cap">среднее</div>
+      </div>
+      <div class="bal-spread">
+        <div class="spread-line">Разброс <b id="spreadVal">0.00</b></div>
+        <div class="spread-hint" id="spreadHint">Ровно</div>
+      </div>
+      <div class="bal-lock unlocked" id="lockIcon">🔓</div>
+    </div>
+    <div class="drag-hint" id="dragHint"></div>
+  </section>
+
+  <!-- ОСЬ -->
+  <section class="panel">
+    <div class="grp-title gold"><span class="dot"></span>Ось встречи</div>
+    <div class="slider-row">
+      <div class="slider-head">
+        <span class="slider-name"><span class="ico">✨</span>Уровень Абсолюта</span>
+        <span class="slider-val" id="valAbs" style="color:var(--gold)">0.50</span>
+      </div>
+      <input type="range" class="slider-input" id="slAbs"
+             min="0" max="1" step="0.01" value="0.5"
+             style="--col:var(--gold)"/>
+    </div>
+  </section>
+
+  <!-- ТРИ ПОТОКА -->
+  <section class="panel">
+    <div class="grp-title">Три вектора · три фасции</div>
+    <div id="streamSliders"></div>
+  </section>
+
+  <!-- ИНФО-КАРТОЧКА -->
+  <section>
+    <nav class="info-tabs" id="infoTabs"></nav>
+    <div class="panel" id="infoCard" style="margin-top:0"></div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   ДАННЫЕ
+   ===================================================================== */
+const PYRAMID_DATA = {
+  streams: [
+    { id:'thought', name:'Мысль',    color:'#54a0ff', icon:'🧠', line:'спина',   axis:'ян',   rotation:'cw'  },
+    { id:'feeling', name:'Чувство',  color:'#ff7675', icon:'❤️', line:'живот',   axis:'инь',  rotation:'ccw' },
+    { id:'action',  name:'Действие', color:'#fdcb6e', icon:'⚔️', line:'спираль', axis:'центр',rotation:'none'}
+  ],
+  levels: [
+    { id:0, name:'Материя',    desc:'Тело. Инстинкт. Выживание.' },
+    { id:1, name:'Наблюдение', desc:'Замечаю. Дышу. Пауза.' },
+    { id:2, name:'Выбор',      desc:'Система. Логика. Структура.' },
+    { id:3, name:'Творчество', desc:'Поток. Инсайт. Созидание.' },
+    { id:4, name:'Абсолют',    desc:'Тишина. Единство. Бог.' }
+  ],
+  content: {
+    thought: {
+      0:{ should:'«Один шаг сейчас»',
+          blocks:['«Надо всё сразу»','«Это не сработает»','«Я неудачник»'],
+          step_up:'Спроси: «Что я чувствую прямо сейчас?»' },
+      1:{ should:'«Я вижу, почему я делаю этот шаг»',
+          blocks:['«Я уже всё понял»','«Я застрял»'],
+          step_up:'Найди связь между двумя действиями' },
+      2:{ should:'«Я строю систему»',
+          blocks:['«Это скучно»','«А вдруг не сработает»'],
+          step_up:'Сформулируй правило' },
+      3:{ should:'«Я творю из потока»',
+          blocks:['«Это гениально, я особенный»'],
+          step_up:'Отпусти результат' },
+      4:{ should:'Тишина. Знание без слов', blocks:[], step_up:'' }
+    },
+    feeling: {
+      0:{ should:'Тело. Ощущение',
+          blocks:['Паника','Ожидание'],
+          step_up:'Подыши в тело' },
+      1:{ should:'Интерес. Любопытство',
+          blocks:['«Мне страшно»','«Не хочу»'],
+          step_up:'Наблюдай страх' },
+      2:{ should:'Спокойствие. Доверие',
+          blocks:['«Надо контролировать»'],
+          step_up:'Позволь течь' },
+      3:{ should:'Любовь. Благодарность',
+          blocks:['«Я лучше других»'],
+          step_up:'Отдай другому' },
+      4:{ should:'Вибрация. Единство', blocks:[], step_up:'' }
+    },
+    action: {
+      0:{ should:'Маленький шаг',
+          blocks:['Ждать','Планировать'],
+          step_up:'Сделай 1 действие' },
+      1:{ should:'Выбор. Пауза',
+          blocks:['Автоматизм','«Надо»'],
+          step_up:'Выбери осознанно' },
+      2:{ should:'Система. Алгоритм',
+          blocks:['«Хаос»','«Бросаю»'],
+          step_up:'Запиши правило' },
+      3:{ should:'Творчество. Поток',
+          blocks:['«Идеально»','«Всё сразу»'],
+          step_up:'Действуй без делателя' },
+      4:{ should:'Воля Бога', blocks:[], step_up:'' }
+    }
+  }
+};
+
+/* ФИКС 5: даньтянь — центр нижнего тетраэдра, отнесён к действию */
+const ANATOMY = [
+  { id:'crown',     x:200, y:48,  r:3.2, stream:'thought', label:'Макушка'    },
+  { id:'c7',        x:200, y:122, r:2.4, stream:'thought', label:'C7'         },
+  { id:'throat',    x:200, y:112, r:2.4, stream:'feeling', label:'Горло'      },
+  { id:'sternum',   x:200, y:165, r:2.4, stream:'feeling', label:'Грудина'    },
+  { id:'dantian',   x:200, y:270, r:2.6, stream:'action',  label:'Даньтянь'   },
+  { id:'lShoulder', x:152, y:132, r:3.0, stream:'action',  label:'Л. плечо'   },
+  { id:'rShoulder', x:248, y:132, r:3.0, stream:'action',  label:'П. плечо'   },
+  { id:'lHip',      x:165, y:345, r:3.0, stream:'action',  label:'Л. бедро'   },
+  { id:'rHip',      x:235, y:345, r:3.0, stream:'action',  label:'П. бедро'   },
+  { id:'lFoot',     x:165, y:576, r:2.4, stream:'action',  label:'Л. стопа'   },
+  { id:'rFoot',     x:235, y:576, r:2.4, stream:'action',  label:'П. стопа'   },
+  { id:'pubic',     x:200, y:352, r:2.4, stream:'feeling', label:'Лобок'      },
+  { id:'coccyx',    x:200, y:315, r:4.2, stream:'center',  label:'Копчик'     }
+];
+
+const STORE_KEY = 'pyramid-body-v1';
+
+/* =====================================================================
+   СОСТОЯНИЕ
+   ===================================================================== */
+const state = {
+  absLevel: 0.5,
+  streams: { thought:0.5, feeling:0.5, action:0.5 },
+  infoTab: 'thought'
+};
+
+const anim = {
+  absLevel: 0.5,
+  thought: 0.5,
+  feeling: 0.5,
+  action:  0.5
+};
+const SMOOTH = 0.14;
+
+/* ---------- хранилище ---------- */
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(!d || typeof d !== 'object') return;
+    const cl01 = v => Math.max(0, Math.min(1, Number(v)));
+    if(typeof d.absLevel === 'number') state.absLevel = cl01(d.absLevel);
+    if(d.streams && typeof d.streams === 'object'){
+      PYRAMID_DATA.streams.forEach(s=>{
+        if(typeof d.streams[s.id] === 'number') state.streams[s.id] = cl01(d.streams[s.id]);
+      });
+    }
+    if(typeof d.infoTab === 'string' &&
+       PYRAMID_DATA.streams.some(s=>s.id===d.infoTab)){
+      state.infoTab = d.infoTab;
+    }
+  }catch(e){ /* ignore */ }
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      absLevel: state.absLevel,
+      streams: state.streams,
+      infoTab: state.infoTab
+    }));
+  }catch(e){}
+}
+
+/* =====================================================================
+   DOM
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+
+const refs = {
+  fasciaBack:        $('fasciaBack'),
+  fasciaBackGlow:    $('fasciaBackGlow'),
+  fasciaFront:       $('fasciaFront'),
+  fasciaFrontGlow:   $('fasciaFrontGlow'),
+  fasciaSpiral:      $('fasciaSpiral'),
+  fasciaSpiralGlow:  $('fasciaSpiralGlow'),
+
+  absTrajectory:     $('absTrajectory'),
+
+  maleFront:         $('maleFront'),
+  maleBackL:         $('maleBackL'),
+  maleBackR:         $('maleBackR'),
+  maleInnerEdge1:    $('maleInnerEdge1'),
+  maleInnerEdge2:    $('maleInnerEdge2'),
+  maleSpine:         $('maleSpine'),
+
+  femaleFront:       $('femaleFront'),
+  femaleBackL:       $('femaleBackL'),
+  femaleBackR:       $('femaleBackR'),
+  femaleInnerEdge1:  $('femaleInnerEdge1'),
+  femaleInnerEdge2:  $('femaleInnerEdge2'),
+  femaleSpine:       $('femaleSpine'),
+
+  anatomy:           $('anatomy'),
+  upperApex:         $('upperApex'),
+  upperApexHalo:     $('upperApexHalo'),
+  lowerApex:         $('lowerApex'),
+  lowerApexHalo:     $('lowerApexHalo'),
+
+  meetGroup:         $('meetGroup'),
+  meetGlow:          $('meetGlow'),
+  meetRing:          $('meetRing'),
+  meetDot:           $('meetDot'),
+
+  statusBadge:       $('statusBadge'),
+  avgVal:            $('avgVal'),
+  spreadVal:         $('spreadVal'),
+  spreadHint:        $('spreadHint'),
+  lockIcon:          $('lockIcon'),
+  dragHint:          $('dragHint'),
+
+  valAbs:            $('valAbs'),
+  slAbs:             $('slAbs'),
+
+  streamSliders:     $('streamSliders'),
+  infoTabs:          $('infoTabs'),
+  infoCard:          $('infoCard')
+};
+
+/* =====================================================================
+   ТОЧКИ ТЕЛА — построение
+   ===================================================================== */
+const pointEls = {};
+
+function buildAnatomy(){
+  refs.anatomy.innerHTML = '';
+  ANATOMY.forEach(p=>{
+    const fill = p.stream === 'center' ? '#ffffff'
+               : PYRAMID_DATA.streams.find(s=>s.id===p.stream).color;
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', p.x);
+    c.setAttribute('cy', p.y);
+    c.setAttribute('r', p.r);
+    c.setAttribute('fill', fill);
+    c.setAttribute('data-stream', p.stream);
+    c.setAttribute('data-point', p.id);
+    c.setAttribute('opacity', '0.5');
+    refs.anatomy.appendChild(c);
+    pointEls[p.id] = c;
+  });
+}
+
+/* =====================================================================
+   ПРОИЗВОДНЫЕ
+   ===================================================================== */
+function valueToLevel(v){
+  return Math.max(0, Math.min(4, Math.round(v * 4)));
+}
+
+function derive(){
+  const t = anim.thought, f = anim.feeling, a = anim.action;
+  const minUser = Math.min(t, f, a);
+  const maxUser = Math.max(t, f, a);
+  const avg     = (t + f + a) / 3;
+  const spread  = maxUser - minUser;
+
+  const locked  = spread >= 0.10;
+  const effAbs  = locked ? Math.min(anim.absLevel, minUser) : anim.absLevel;
+  const gap     = Math.abs(effAbs - avg);
+
+  const meeting = spread < 0.06 && gap < 0.05;
+
+  let lowestId = 'thought', lowestVal = t;
+  if(f < lowestVal){ lowestVal = f; lowestId = 'feeling'; }
+  if(a < lowestVal){ lowestVal = a; lowestId = 'action'; }
+
+  return { minUser, maxUser, avg, spread, locked, effAbs, gap, meeting,
+           lowestId, lowestVal };
+}
+
+/* =====================================================================
+   РЕНДЕР SVG
+   ===================================================================== */
+const CROWN  = { x:200, y:48  };
+const COCCYX = { x:200, y:315 };
+const L_SHO  = { x:152, y:132 };
+const R_SHO  = { x:248, y:132 };
+const L_HIP  = { x:165, y:345 };
+const R_HIP  = { x:235, y:345 };
+
+/* Куда может опуститься Абсолют (чуть выше копчика) */
+const ABS_MIN_Y = COCCYX.y - 18;   // ~297
+
+function fmt(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }
+
+function renderSVG(t){
+  const d = derive();
+
+  /* ================================================================
+     ФИКС 3 + 6: Абсолют физически спускается по оси.
+     effAbs = 1 → вершина на макушке.
+     effAbs = 0 → вершина почти у копчика.
+     ================================================================ */
+  const absY = CROWN.y + (1 - d.effAbs) * (ABS_MIN_Y - CROWN.y);
+
+  /* Дыхание поверх спуска */
+  const maleApexX = CROWN.x + Math.sin(t * 0.55) * 2.5;
+  const maleApexY = absY - Math.abs(Math.sin(t * 0.4)) * 1.2;
+  const mApex = { x: maleApexX, y: maleApexY };
+
+  const c = COCCYX;
+
+  const lHip = { x: L_HIP.x + Math.sin(t * 0.55) * 1.8,
+                 y: L_HIP.y + Math.cos(t * 0.55) * 1.2 };
+  const rHip = { x: R_HIP.x - Math.sin(t * 0.55) * 1.8,
+                 y: R_HIP.y - Math.cos(t * 0.55) * 1.2 };
+
+  /* Мужской тетраэдр — вершина спускается, основание на бёдрах */
+  refs.maleFront.setAttribute('points',
+    fmt(mApex) + ' ' + fmt(lHip) + ' ' + fmt(rHip));
+  refs.maleBackL.setAttribute('points',
+    fmt(mApex) + ' ' + fmt(c) + ' ' + fmt(lHip));
+  refs.maleBackR.setAttribute('points',
+    fmt(mApex) + ' ' + fmt(c) + ' ' + fmt(rHip));
+
+  refs.maleInnerEdge1.setAttribute('x1', mApex.x);
+  refs.maleInnerEdge1.setAttribute('y1', mApex.y);
+  refs.maleInnerEdge1.setAttribute('x2', lHip.x);
+  refs.maleInnerEdge1.setAttribute('y2', lHip.y);
+  refs.maleInnerEdge2.setAttribute('x1', mApex.x);
+  refs.maleInnerEdge2.setAttribute('y1', mApex.y);
+  refs.maleInnerEdge2.setAttribute('x2', rHip.x);
+  refs.maleInnerEdge2.setAttribute('y2', rHip.y);
+
+  refs.maleSpine.setAttribute('x1', mApex.x);
+  refs.maleSpine.setAttribute('y1', mApex.y);
+  refs.maleSpine.setAttribute('x2', c.x);
+  refs.maleSpine.setAttribute('y2', c.y);
+
+  /* ФИКС 6: траектория спуска Абсолюта */
+  if(d.effAbs < 0.98){
+    refs.absTrajectory.setAttribute('y2', absY.toFixed(1));
+    refs.absTrajectory.style.opacity =
+      (0.35 + (1 - d.effAbs) * 0.55).toFixed(2);
+  } else {
+    refs.absTrajectory.style.opacity = '0';
+  }
+
+  /* ================================================================
+     Женский тетраэдр — фиксирован вершиной в копчике
+     ================================================================ */
+  const femaleCrownX = CROWN.x + Math.sin(-t * 0.55) * 2.5;
+  const femaleCrownY = CROWN.y - 1.5 + Math.cos(-t * 0.55) * 1.2;
+  const fCrown = { x: femaleCrownX, y: femaleCrownY };
+
+  const lSho = { x: L_SHO.x + Math.sin(-t * 0.55) * 1.8,
+                 y: L_SHO.y + Math.cos(-t * 0.55) * 1.2 };
+  const rSho = { x: R_SHO.x - Math.sin(-t * 0.55) * 1.8,
+                 y: R_SHO.y - Math.cos(-t * 0.55) * 1.2 };
+
+  refs.femaleFront.setAttribute('points',
+    fmt(c) + ' ' + fmt(lSho) + ' ' + fmt(rSho));
+  refs.femaleBackL.setAttribute('points',
+    fmt(c) + ' ' + fmt(lSho) + ' ' + fmt(fCrown));
+  refs.femaleBackR.setAttribute('points',
+    fmt(c) + ' ' + fmt(rSho) + ' ' + fmt(fCrown));
+
+  refs.femaleInnerEdge1.setAttribute('x1', c.x);
+  refs.femaleInnerEdge1.setAttribute('y1', c.y);
+  refs.femaleInnerEdge1.setAttribute('x2', lSho.x);
+  refs.femaleInnerEdge1.setAttribute('y2', lSho.y);
+  refs.femaleInnerEdge2.setAttribute('x1', c.x);
+  refs.femaleInnerEdge2.setAttribute('y1', c.y);
+  refs.femaleInnerEdge2.setAttribute('x2', rSho.x);
+  refs.femaleInnerEdge2.setAttribute('y2', rSho.y);
+
+  refs.femaleSpine.setAttribute('x1', c.x);
+  refs.femaleSpine.setAttribute('y1', c.y);
+  refs.femaleSpine.setAttribute('x2', fCrown.x);
+  refs.femaleSpine.setAttribute('y2', fCrown.y);
+
+  /* Прозрачность тетраэдров */
+  const maleOpacity   = 0.35 + anim.action  * 0.75;
+  const femaleOpacity = 0.35 + anim.feeling * 0.75;
+
+  refs.maleFront.style.opacity = maleOpacity;
+  refs.maleBackL.style.opacity = maleOpacity * 0.9;
+  refs.maleBackR.style.opacity = maleOpacity * 0.9;
+  refs.maleSpine.style.opacity = maleOpacity;
+
+  refs.femaleFront.style.opacity = femaleOpacity;
+  refs.femaleBackL.style.opacity = femaleOpacity * 0.9;
+  refs.femaleBackR.style.opacity = femaleOpacity * 0.9;
+  refs.femaleSpine.style.opacity = femaleOpacity;
+
+  /* Апексы */
+  refs.upperApex.setAttribute('cx', mApex.x);
+  refs.upperApex.setAttribute('cy', mApex.y);
+  refs.upperApexHalo.setAttribute('cx', mApex.x);
+  refs.upperApexHalo.setAttribute('cy', mApex.y);
+  refs.upperApexHalo.style.opacity = (0.12 + anim.thought * 0.35).toFixed(2);
+
+  refs.lowerApex.setAttribute('cx', c.x);
+  refs.lowerApex.setAttribute('cy', c.y);
+  refs.lowerApexHalo.setAttribute('cx', c.x);
+  refs.lowerApexHalo.setAttribute('cy', c.y);
+  refs.lowerApexHalo.style.opacity = (0.12 + anim.absLevel * 0.35).toFixed(2);
+
+  /* Фасции */
+  const bB = 0.18 + anim.thought * 0.75;
+  const bF = 0.18 + anim.feeling * 0.75;
+  const bA = 0.18 + anim.action  * 0.75;
+
+  refs.fasciaBack.style.opacity       = bB.toFixed(2);
+  refs.fasciaBackGlow.style.opacity   = (bB * 0.55).toFixed(2);
+  refs.fasciaFront.style.opacity      = bF.toFixed(2);
+  refs.fasciaFrontGlow.style.opacity  = (bF * 0.55).toFixed(2);
+  refs.fasciaSpiral.style.opacity     = bA.toFixed(2);
+  refs.fasciaSpiralGlow.style.opacity = (bA * 0.55).toFixed(2);
+
+  /* Точки тела */
+  ANATOMY.forEach(p=>{
+    const el = pointEls[p.id];
+    if(!el) return;
+    let o;
+    if(p.stream === 'center')       o = 0.5 + anim.absLevel * 0.5;
+    else if(p.stream === 'thought') o = 0.28 + anim.thought * 0.7;
+    else if(p.stream === 'feeling') o = 0.28 + anim.feeling * 0.7;
+    else                            o = 0.28 + anim.action  * 0.7;
+
+    if(p.id === 'crown' || p.id === 'lHip' || p.id === 'rHip') o *= 1.05;
+    if(p.id === 'coccyx') o = 0.7 + anim.absLevel * 0.3;
+
+    el.setAttribute('opacity', Math.min(1, o).toFixed(2));
+  });
+
+  /* ================================================================
+     ФИКС 2: подсветка самого низкого потока — упрощённая очистка
+     ================================================================ */
+  Object.values(pointEls).forEach(el=>{
+    if(el.classList) el.classList.remove('stream-low');
+  });
+
+  if(d.locked){
+    ANATOMY.filter(p=>p.stream === d.lowestId).forEach(p=>{
+      const el = pointEls[p.id];
+      if(el && el.classList) el.classList.add('stream-low');
+    });
+  }
+
+  /* ================================================================
+     ФИКС 4: встреча — маркер движется на уровень effAbs
+     ================================================================ */
+  const meetY = absY + 2;
+  refs.meetDot.setAttribute('cy', meetY.toFixed(1));
+  refs.meetRing.setAttribute('cy', meetY.toFixed(1));
+  refs.meetGlow.setAttribute('cy', meetY.toFixed(1));
+  refs.meetGroup.setAttribute('opacity', d.meeting ? '1' : '0');
+}
+
+/* =====================================================================
+   UI: БАЛАНС
+   ===================================================================== */
+function spreadColor(spread){
+  const t = Math.min(1, spread / 0.5);
+  const hue = 130 * (1 - t);
+  return 'hsl(' + hue.toFixed(0) + ',72%,58%)';
+}
+
+function renderBalance(){
+  const d = derive();
+
+  refs.avgVal.textContent = d.avg.toFixed(2);
+  refs.spreadVal.textContent = d.spread.toFixed(2);
+  refs.spreadVal.style.color = spreadColor(d.spread);
+
+  let hint, hintColor;
+  if(d.spread < 0.15){ hint = 'Ровно';              hintColor = 'var(--green)'; }
+  else if(d.spread < 0.35){ hint = 'Лёгкий перекос'; hintColor = 'var(--yellow)'; }
+  else { hint = 'Сильный перекос'; hintColor = 'var(--red)'; }
+
+  refs.spreadHint.textContent = hint;
+  refs.spreadHint.style.color = hintColor;
+
+  refs.lockIcon.classList.toggle('unlocked', !d.locked);
+  refs.lockIcon.textContent = d.locked ? '🔒' : '🔓';
+
+  if(d.locked){
+    const s = PYRAMID_DATA.streams.find(x=>x.id===d.lowestId);
+    refs.dragHint.classList.add('on');
+    refs.dragHint.innerHTML =
+      'Догони: <b style="color:' + s.color + '">' + s.icon + ' ' + s.name +
+      '</b> · ' + d.lowestVal.toFixed(2) +
+      '<span class="small">самый низкий вектор держит потолок Абсолюта</span>';
+  } else {
+    refs.dragHint.classList.remove('on');
+    refs.dragHint.innerHTML = '';
+  }
+
+  refs.statusBadge.classList.remove('on','locked','hint','meet');
+  if(d.meeting){
+    refs.statusBadge.classList.add('on','meet');
+    refs.statusBadge.textContent = '✦ ВСТРЕЧА · ' + d.avg.toFixed(2) + ' ✦';
+  } else if(d.locked){
+    refs.statusBadge.classList.add('on','locked');
+    refs.statusBadge.textContent = '🔒 ЗАМОК · ' + Math.round(d.spread*100) + '%';
+  } else if(Math.abs(d.effAbs - d.avg) > 0.10){
+    refs.statusBadge.classList.add('on','hint');
+    refs.statusBadge.textContent = 'АБСОЛЮТ ' + d.effAbs.toFixed(2) +
+                                   ' · ТЫ ' + d.avg.toFixed(2);
+  }
+}
+
+/* =====================================================================
+   UI: СЛАЙДЕРЫ
+   ===================================================================== */
+function buildStreamSliders(){
+  let html = '';
+  PYRAMID_DATA.streams.forEach(s=>{
+    html += '<div class="slider-row">';
+    html +=   '<div class="slider-head">';
+    html +=     '<span class="slider-name">';
+    html +=       '<span class="ico">' + s.icon + '</span>' + s.name;
+    html +=       '<span style="font-size:9px;color:#5b6675;letter-spacing:.06em;text-transform:uppercase;margin-left:4px">' + s.line + '</span>';
+    html +=     '</span>';
+    html +=     '<span>';
+    html +=       '<span class="slider-val" id="val_' + s.id + '" style="color:' + s.color + '">0.50</span>';
+    html +=       '<span class="slider-lev" id="lev_' + s.id + '">Выбор</span>';
+    html +=     '</span>';
+    html +=   '</div>';
+    html +=   '<input type="range" class="slider-input" id="sl_' + s.id + '" min="0" max="1" step="0.01" value="0.5" style="--col:' + s.color + '"/>';
+    html += '</div>';
+  });
+  refs.streamSliders.innerHTML = html;
+
+  PYRAMID_DATA.streams.forEach(s=>{
+    const el = document.getElementById('sl_' + s.id);
+    el.addEventListener('input', e=>{
+      state.streams[s.id] = parseFloat(e.target.value);
+      saveState();
+      updateStreamLabels();
+      renderBalance();
+      renderInfoTabs();
+      renderInfoCard();
+    });
+    el.value = state.streams[s.id];
+  });
+  updateStreamLabels();
+}
+
+function updateStreamLabels(){
+  PYRAMID_DATA.streams.forEach(s=>{
+    const v = state.streams[s.id];
+    const lvlIdx = valueToLevel(v);
+    const el = document.getElementById('sl_' + s.id);
+    el.style.setProperty('--pct', (v * 100) + '%');
+    document.getElementById('val_' + s.id).textContent = v.toFixed(2);
+    document.getElementById('lev_' + s.id).textContent = PYRAMID_DATA.levels[lvlIdx].name;
+  });
+}
+
+/* ---------- Абсолют ---------- */
+refs.slAbs.addEventListener('input', e=>{
+  state.absLevel = parseFloat(e.target.value);
+  saveState();
+  updateAbsLabel();
+  renderBalance();
+});
+
+function updateAbsLabel(){
+  refs.slAbs.style.setProperty('--pct', (state.absLevel * 100) + '%');
+  refs.valAbs.textContent = state.absLevel.toFixed(2);
+}
+
+/* =====================================================================
+   UI: ИНФО-КАРТОЧКА
+   ===================================================================== */
+function renderInfoTabs(){
+  const d = derive();
+  refs.infoTabs.innerHTML = '';
+  PYRAMID_DATA.streams.forEach(s=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'info-tab' + (s.id === state.infoTab ? ' active' : '');
+    btn.style.setProperty('--c', s.color);
+
+    const isDrag = d.locked && s.id === d.lowestId;
+    btn.innerHTML = s.icon + ' ' + s.name +
+      (isDrag ? '<span class="drag-dot"></span>' : '');
+
+    btn.addEventListener('click', ()=>{
+      state.infoTab = s.id;
+      saveState();
+      renderInfoTabs();
+      renderInfoCard();
+    });
+    refs.infoTabs.appendChild(btn);
+  });
+}
+
+function renderInfoCard(){
+  const s = PYRAMID_DATA.streams.find(x=>x.id === state.infoTab);
+  const v = state.streams[state.infoTab];
+  const lvlIdx = valueToLevel(v);
+  const lvl = PYRAMID_DATA.levels[lvlIdx];
+  const c = PYRAMID_DATA.content[state.infoTab][lvlIdx];
+
+  const blocksHtml = (c.blocks && c.blocks.length)
+    ? '<ul class="card-blocks">' + c.blocks.map(b=>'<li>'+b+'</li>').join('') + '</ul>'
+    : '<div class="card-content muted">—</div>';
+
+  const stepHtml = c.step_up
+    ? '<div class="card-content step">' + c.step_up + '</div>'
+    : '<div class="card-content muted">—</div>';
+
+  refs.infoCard.innerHTML =
+    '<div class="card-level">' +
+      '<span class="card-level-name" style="color:' + s.color + '">' +
+        s.icon + ' ' + s.name +
+      '</span>' +
+      '<span class="card-level-num">' +
+        'Ур. ' + lvlIdx + ' · ' + lvl.name + ' · ' + v.toFixed(2) +
+      '</span>' +
+    '</div>' +
+    '<div class="card-block">' +
+      '<div class="card-label">📘 Что делать</div>' +
+      '<div class="card-content should">' + c.should + '</div>' +
+    '</div>' +
+    '<div class="card-block">' +
+      '<div class="card-label">🚫 Что мешает</div>' +
+      blocksHtml +
+    '</div>' +
+    '<div class="card-block">' +
+      '<div class="card-label">⬆️ Шаг наверх</div>' +
+      stepHtml +
+    '</div>';
+}
+
+/* =====================================================================
+   ГЛАВНЫЙ ЦИКЛ
+   ===================================================================== */
+let lastSnap = '';
+
+function stepAnim(){
+  anim.absLevel += (state.absLevel - anim.absLevel) * SMOOTH;
+  anim.thought  += (state.streams.thought  - anim.thought)  * SMOOTH;
+  anim.feeling  += (state.streams.feeling  - anim.feeling)  * SMOOTH;
+  anim.action   += (state.streams.action   - anim.action)   * SMOOTH;
+}
+
+let timeStart = null;
+
+function tick(ts){
+  if(timeStart === null) timeStart = ts;
+  const t = (ts - timeStart) / 1000;
+
+  stepAnim();
+  renderSVG(t);
+
+  const d = derive();
+  const snap = (Math.round(d.spread * 40) + '|' +
+                Math.round(d.avg * 40) + '|' +
+                Math.round(d.effAbs * 40) + '|' +
+                (d.locked ? 'L' : '-') +
+                (d.meeting ? 'M' : '-'));
+  if(snap !== lastSnap){
+    lastSnap = snap;
+    renderBalance();
+    updateAbsLabel();
+  }
+
+  requestAnimationFrame(tick);
+}
+
+/* =====================================================================
+   СТАРТ
+   ===================================================================== */
+loadState();
+
+buildAnatomy();
+buildStreamSliders();
+updateAbsLabel();
+
+refs.slAbs.value = state.absLevel;
+
+renderInfoTabs();
+renderInfoCard();
+renderBalance();
+renderSVG(0);
+
+requestAnimationFrame(tick);
+
+})();
+</script>
+</body>
+</html>
