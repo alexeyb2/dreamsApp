@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>СЯ — формула</title>
+<style>
+  html,body{margin:0;background:#000;overflow:hidden;height:100%;
+            font-family:Arial,sans-serif}
+  canvas{display:block}
+  .formula{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+    color:#fff;font-size:26px;letter-spacing:3px;opacity:.9;
+    text-shadow:0 0 24px rgba(255,200,100,.9);white-space:nowrap}
+  .caption{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);
+    color:#888;font-size:13px;letter-spacing:5px;opacity:.55;white-space:nowrap}
+  .sia{position:fixed;top:26px;left:50%;transform:translateX(-50%);
+    color:#fff;font-size:28px;letter-spacing:12px;opacity:.45;
+    text-shadow:0 0 20px #fff;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="sia">С Я</div>
+<div class="formula">V = 0 = 1 = φ = L = M = V</div>
+<div class="caption">одно · во всём · всегда</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let W,H,DPR;
+function resize(){
+  DPR=window.devicePixelRatio||1;
+  W=cv.width=innerWidth*DPR;
+  H=cv.height=innerHeight*DPR;
+  cv.style.width=innerWidth+'px';
+  cv.style.height=innerHeight+'px';
+}
+addEventListener('resize',resize);resize();
+
+const nodes=[
+  {theta:2.0*Math.PI, symbol:'0', label:'пустота', hue:0},
+  {theta:3.0*Math.PI, symbol:'1', label:'число',   hue:30},
+  {theta:4.0*Math.PI, symbol:'φ', label:'форма',   hue:60},
+  {theta:5.0*Math.PI, symbol:'L', label:'жизнь',   hue:130},
+  {theta:6.0*Math.PI, symbol:'M', label:'ум',      hue:200},
+  {theta:7.0*Math.PI, symbol:'V', label:'вибрация',hue:280},
+];
+
+let t=0;
+function loop(){
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.fillRect(0,0,W,H);
+
+  const cx=W/2, cy=H/2;
+  const s=Math.min(W,H)/1000;
+  const a=8*s;
+
+  // спираль
+  ctx.lineWidth=2*DPR;
+  ctx.strokeStyle='rgba(255,200,100,0.22)';
+  ctx.beginPath();
+  for(let th=0.1;th<7.4*Math.PI;th+=0.05){
+    const r=a*th;
+    const x=cx+r*Math.cos(th);
+    const y=cy+r*Math.sin(th);
+    if(th<0.15) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // свечение спирали
+  ctx.lineWidth=7*DPR;
+  ctx.strokeStyle='rgba(255,180,80,0.05)';
+  ctx.beginPath();
+  for(let th=0.1;th<7.4*Math.PI;th+=0.05){
+    const r=a*th;
+    const x=cx+r*Math.cos(th);
+    const y=cy+r*Math.sin(th);
+    if(th<0.15) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // узлы
+  nodes.forEach((n,i)=>{
+    const r=a*n.theta;
+    const ang=n.theta+t*0.12;
+    const x=cx+r*Math.cos(ang);
+    const y=cy+r*Math.sin(ang);
+    const pulse=0.5+0.5*Math.sin(t*1.5 - i*0.7);
+
+    const g=ctx.createRadialGradient(x,y,0,x,y,(22+pulse*18)*s*3);
+    g.addColorStop(0,`hsla(${n.hue},90%,70%,${0.35+pulse*0.35})`);
+    g.addColorStop(1,`hsla(${n.hue},90%,60%,0)`);
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(x,y,(22+pulse*18)*s*3,0,6.283);ctx.fill();
+
+    ctx.fillStyle=`hsla(${n.hue},90%,88%,${0.7+pulse*0.3})`;
+    ctx.beginPath();ctx.arc(x,y,(3+pulse*2)*s*3,0,6.283);ctx.fill();
+
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`${Math.round((16+pulse*7)*s*3)}px Arial`;
+    ctx.fillStyle=`hsla(${n.hue},85%,93%,${0.75+pulse*0.25})`;
+    ctx.fillText(n.symbol, x, y-(22+pulse*7)*s*3);
+
+    ctx.font=`${Math.round(9*s*3)}px Arial`;
+    ctx.fillStyle=`hsla(${n.hue},55%,82%,${0.4+pulse*0.3})`;
+    ctx.fillText(n.label, x, y-(38+pulse*7)*s*3);
+  });
+
+  // центр
+  const cp=0.5+0.5*Math.sin(t*2);
+  const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,(32+cp*28)*s*3);
+  cg.addColorStop(0,`rgba(255,255,255,${0.55+cp*0.35})`);
+  cg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=cg;
+  ctx.beginPath();ctx.arc(cx,cy,(32+cp*28)*s*3,0,6.283);ctx.fill();
+
+  ctx.fillStyle='rgba(255,255,255,0.95)';
+  ctx.beginPath();ctx.arc(cx,cy,(3+cp*2)*s*3,0,6.283);ctx.fill();
+
+  ctx.font=`${Math.round(15*s*3)}px Arial`;
+  ctx.fillStyle=`rgba(255,255,255,${0.55+cp*0.4})`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('СЯ', cx, cy+34*s*3);
+
+  t+=0.016;
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
