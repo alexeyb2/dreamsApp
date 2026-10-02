@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>форма · v3</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
+    font-family:system-ui,-apple-system,sans-serif;}
+  canvas{display:block;touch-action:none;}
+  #ui{position:fixed;bottom:0;left:0;right:0;padding:6px;
+    display:flex;flex-wrap:wrap;gap:4px;z-index:10;justify-content:center;
+    background:linear-gradient(to top, rgba(0,0,0,.94), rgba(0,0,0,.35));}
+  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:9px;
+    padding:8px 9px;font-size:14px;min-width:42px;touch-action:manipulation;}
+  #ui button:active{background:#2a2a4a;}
+  #ui button.hi{background:#3a2a5a;border-color:#a67cff;color:#fff;}
+  #ui button.axis{background:#1a1a26;border-color:#334;font-weight:bold;color:#aab;}
+  #ui button.axis.on{background:#2a3a55;border-color:#66aaff;color:#fff;
+    box-shadow:0 0 8px #66aaff88;}
+  #ui button.play{background:#1a3a1a;border-color:#4a6;}
+  #ui button.play.paused{background:#3a1a1a;border-color:#a44;}
+  #hud{position:fixed;top:6px;left:6px;font-size:11px;background:rgba(0,0,0,.7);
+    padding:6px 8px;border-radius:8px;z-index:10;line-height:1.5;max-width:90%;
+    pointer-events:none;white-space:pre;font-family:ui-monospace,monospace;}
+  #json{position:fixed;top:0;left:0;right:0;bottom:80px;background:#08080c;color:#9f9;
+    font-family:ui-monospace,monospace;font-size:11px;padding:44px 8px 8px;z-index:30;
+    display:none;overflow:auto;border:none;resize:none;width:100%;outline:none;}
+  #json.show{display:block;}
+  #jsonbar{position:fixed;top:0;left:0;right:0;z-index:31;display:none;
+    padding:6px;background:#0a0a0f;border-bottom:1px solid #223;gap:6px;
+    justify-content:space-between;}
+  #jsonbar.show{display:flex;}
+  #jsonbar button{background:#223;color:#eef;border:1px solid #445;border-radius:8px;
+    padding:8px 12px;font-size:13px;}
+  #jsonbar button.acc{background:#3a5a3a;border-color:#6a6;}
+  #jsonbar button.warn{background:#5a3a3a;border-color:#a66;}
+</style>
+</head>
+<body>
+<div id="hud">готов</div>
+
+<div id="jsonbar">
+  <button id="copyAll" class="acc">📋 Копировать всё</button>
+  <button id="applyJson">✅ Загрузить</button>
+  <button id="closeJson" class="warn">✕ Закрыть</button>
+</div>
+<textarea id="json" spellcheck="false"></textarea>
+
+<div id="ui"></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
+
+/* ================= сцена ================= */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 500);
+camera.position.set(7, 6, 10);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.12;
+controls.minDistance = 2; controls.maxDistance = 60;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 0.9));
+const d1 = new THREE.DirectionalLight(0xffffff, 1.1); d1.position.set(6,10,7); scene.add(d1);
+const d2 = new THREE.DirectionalLight(0x6688ff, 0.55); d2.position.set(-5,-3,-6); scene.add(d2);
+
+const grid = new THREE.GridHelper(40, 40, 0x223344, 0x111822);
+grid.material.opacity = 0.5; grid.material.transparent = true; scene.add(grid);
+scene.add(new THREE.AxesHelper(3));
+
+/* ================= состояние ================= */
+const state = {
+  points: [],
+  shapes: [],
+  selectedPoints: new Set(),
+  selectedShapes: new Set(),
+  nextId: 1,
+  paused: false,
+  currentAxis: new THREE.Vector3(1,0,0),
+  axisName: 'X'
+};
+const getPoint = id => state.points.find(p => p.id === id);
+const getShape = id => state.shapes.find(s => s.id === id);
+
+/* ================= роли точек ================= */
+// center: первая точка sphere/circle — таскает всю фигуру
+// radius: вторая точка sphere/circle — меняет размер
+function getPointRoles(pid){
+  const roles = new Set();
+  for (const s of state.shapes){
+    if (s.type === 'sphere' || s.type === 'circle'){
+      if (s.pointIds[0] === pid) roles.add('center');
+      if (s.pointIds[1] === pid) roles.add('radius');
+    }
+  }
+  // если центр — приоритет
+  if (roles.has('center')) return 'center';
+  if (roles.has('radius')) return 'radius';
+  return null;
+}
+
+/* ================= точки ================= */
+const POINT_GEO_NORMAL = new THREE.SphereGeometry(0.16, 20, 16);
+const POINT_GEO_CENTER = new THREE.SphereGeometry(0.24, 22, 18);
+const POINT_GEO_RADIUS = new THREE.SphereGeometry(0.18, 20, 16);
+const RING_GEO = new THREE.TorusGeometry(0.42, 0.028, 8, 32);
+
+function makePointMat(role, sel=false){
+  let color = 0xff8800, emissive = 0x552200, ei = 0.7;
+  if (role === 'center'){ color = 0xffcc22; emissive = 0xaa7700; ei = 1.1; }
+  else if (role === 'radius'){ color = 0x22ddff; emissive = 0x006688; ei = 1.1; }
+  if (sel){ color = 0xffffff; emissive = 0x666699; ei = 1.4; }
+  return new THREE.MeshStandardMaterial({
+    color, emissive, emissiveIntensity: ei,
+    metalness: 0.35, roughness: 0.3
+  });
+}
+
+function addPoint(x=null, y=null, z=null){
+  if (x===null){
+    x = (Math.random()-0.5)*2; y = (Math.random()-0.5)*2; z = (Math.random()-0.5)*2;
+  }
+  const mesh = new THREE.Mesh(POINT_GEO_NORMAL, makePointMat(null));
+  mesh.position.set(x, y, z);
+  mesh.userData.pointId = state.nextId;
+  scene.add(mesh);
+  const p = { id: state.nextId++, mesh };
+  state.points.push(p);
+  return p;
+}
+
+/* обновляем визуал всех точек по их ролям */
+function refreshPointVisuals(){
+  for (const p of state.points){
+    const role = getPointRoles(p.id);
+    const sel = state.selectedPoints.has(p.id);
+    // геометрия по роли
+    let geo = POINT_GEO_NORMAL;
+    if (role === 'center') geo = POINT_GEO_CENTER;
+    else if (role === 'radius') geo = POINT_GEO_RADIUS;
+    if (p.mesh.geometry !== geo) p.mesh.geometry = geo;
+    p.mesh.material.dispose();
+    p.mesh.material = makePointMat(role, sel);
+    // кольцо-гало для центра
+    if (role === 'center'){
+      if (!p._ring){
+        p._ring = new THREE.Mesh(RING_GEO,
+          new THREE.MeshBasicMaterial({color:0xffcc22, transparent:true, opacity:0.65}));
+        scene.add(p._ring);
+      }
+      p._ring.visible = true;
+      p._ring.position.copy(p.mesh.position);
+      p._ring.lookAt(camera.position);
+    } else if (p._ring){
+      p._ring.visible = false;
+    }
+  }
+}
+
+/* ================= фигуры ================= */
+const SHAPE_COLORS = [0x66aaff, 0xff7788, 0x88ff99, 0xffaa66, 0xbb77ff, 0x66dddd, 0xffee66];
+
+function centroidOf(pts){
+  const c = new THREE.Vector3();
+  pts.forEach(p => c.add(p));
+  return c.divideScalar(pts.length);
+}
+
+function buildShapeMesh(shape){
+  const pts = shape.pointIds.map(id => getPoint(id).mesh.position);
+  const centroid = centroidOf(pts);
+  const local = pts.map(p => p.clone().sub(centroid));
+  const color = shape.color;
+  let mesh = null;
+
+  if (shape.type === 'line'){
+    const g = new THREE.BufferGeometry().setFromPoints(local);
+    mesh = new THREE.Line(g, new THREE.LineBasicMaterial({color:0x66ccff}));
+  } else if (shape.type === 'circle'){
+    const r = pts[0].distanceTo(pts[1]);
+    mesh = new THREE.Mesh(new THREE.CircleGeometry(r, 64),
+      new THREE.MeshStandardMaterial({color, side:THREE.DoubleSide, transparent:true,
+        opacity:0.45, roughness:0.4}));
+  } else if (shape.type === 'sphere'){
+    const r = pts[0].distanceTo(pts[1]);
+    mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 24),
+      new THREE.MeshStandardMaterial({color, transparent:true,
+        opacity:0.30, roughness:0.3, metalness:0.35}));
+    mesh.position.copy(pts[0]).sub(centroid);
+  } else if (shape.type === 'triangle'){
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(
+      local.flatMap(v=>[v.x,v.y,v.z]), 3));
+    g.setIndex([0,1,2]); g.computeVertexNormals();
+    mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({color, side:THREE.DoubleSide,
+      transparent:true, opacity:0.6, roughness:0.4}));
+  } else if (shape.type === 'tetra' || shape.type === 'convex'){
+    let g;
+    try { g = new ConvexGeometry(local); }
+    catch(e){ g = new THREE.BufferGeometry(); }
+    mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({color, side:THREE.DoubleSide,
+      transparent:true, opacity:0.55, flatShading:true, roughness:0.4}));
+  } else if (shape.type === 'cube'){
+    const sx = Math.max(Math.abs(pts[0].x-pts[1].x),0.2);
+    const sy = Math.max(Math.abs(pts[0].y-pts[1].y),0.2);
+    const sz = Math.max(Math.abs(pts[0].z-pts[1].z),0.2);
+    mesh = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),
+      new THREE.MeshStandardMaterial({color, transparent:true,
+        opacity:0.4, roughness:0.3, metalness:0.4}));
+  }
+  if (!mesh) return null;
+
+  const group = new THREE.Group();
+  group.position.copy(centroid);
+  group.add(mesh);
+  group.userData.shapeId = shape.id;
+  mesh.userData.shapeId = shape.id;
+  shape._innerMesh = mesh;
+  return group;
+}
+
+function rebuildShape(shape){
+  if (shape.mesh){
+    scene.remove(shape.mesh);
+    shape.mesh.traverse(o=>{
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
+  }
+  shape.mesh = buildShapeMesh(shape);
+  if (shape.mesh) scene.add(shape.mesh);
+}
+
+function buildShape(type, pointIds){
+  const shape = {
+    id: state.nextId++,
+    name: type + '-' + state.shapes.length,
+    type, pointIds: [...pointIds],
+    locked: false,
+    color: SHAPE_COLORS[state.shapes.length % SHAPE_COLORS.length],
+    mesh: null, pendulum: null
+  };
+  state.shapes.push(shape);
+  rebuildShape(shape);
+  refreshPointVisuals();
+  return shape;
+}
+
+/* ================= маятник ================= */
+function togglePendulum(shapeId){
+  const s = getShape(shapeId);
+  if (!s) return;
+  if (s.pendulum){
+    s.pendulum = null;
+    s.locked = false;
+    hud('маятник снят · ' + s.name);
+    return;
+  }
+  const pts = s.pointIds.map(id => getPoint(id).mesh.position);
+  const anchor = centroidOf(pts);
+  const baseOffsets = {};
+  s.pointIds.forEach(id => {
+    const p = getPoint(id);
+    baseOffsets[id] = p.mesh.position.clone().sub(anchor);
+  });
+  s.pendulum = {
+    anchor: anchor.clone(),
+    baseOffsets,
+    groupOffset: s.mesh.position.clone().sub(anchor),
+    axis: state.currentAxis.clone(),
+    amplitude: 0.75,
+    speed: 1.2,
+    phase: 0
+  };
+  s.locked = true;
+  // маркер якоря
+  if (!s._anchorMark){
+    const g = new THREE.Group();
+    const m = new THREE.MeshBasicMaterial({color:0xbb66ff});
+    const c1 = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.02), m);
+    const c2 = new THREE.Mesh(new THREE.BoxGeometry(0.02,0.5,0.02), m);
+    const c3 = new THREE.Mesh(new THREE.BoxGeometry(0.02,0.02,0.5), m);
+    g.add(c1,c2,c3);
+    s._anchorMark = g;
+    scene.add(g);
+  }
+  s._anchorMark.position.copy(anchor);
+  s._anchorMark.visible = true;
+  state.paused = false;
+  hud('маятник привязан · ' + s.name + ' · ось ' + state.axisName);
+}
+
+function clearAnchorMark(s){
+  if (s._anchorMark) s._anchorMark.visible = false;
+}
+
+function setAxisForSelected(v, name){
+  state.currentAxis.set(v[0],v[1],v[2]);
+  state.axisName = name;
+  let count = 0;
+  state.selectedShapes.forEach(id => {
+    const s = getShape(id);
+    if (s && s.pendulum){ s.pendulum.axis.copy(state.currentAxis); count++; }
+  });
+  refreshAxisButtons();
+  hud(count ? `ось ${name} применена (${count})` : `текущая ось: ${name}`);
+}
+
+function flipPhase(){
+  let n = 0;
+  state.selectedShapes.forEach(id => {
+    const s = getShape(id);
+    if (s && s.pendulum){ s.pendulum.phase = (s.pendulum.phase===0)?Math.PI:0; n++; }
+  });
+  hud(n ? `фаза инвертирована (${n})` : 'нет маятников среди выделенных');
+}
+
+/* ================= выделение ================= */
+function togglePoint(id){
+  if (state.selectedPoints.has(id)) state.selectedPoints.delete(id);
+  else state.selectedPoints.add(id);
+  refreshSelection();
+}
+function toggleShape(id){
+  if (state.selectedShapes.has(id)) state.selectedShapes.delete(id);
+  else state.selectedShapes.add(id);
+  refreshSelection();
+}
+function clearSelection(){
+  state.selectedPoints.clear();
+  state.selectedShapes.clear();
+  refreshSelection();
+}
+function refreshSelection(){
+  refreshPointVisuals();
+  state.shapes.forEach(s => {
+    if (!s._innerMesh || !s._innerMesh.material) return;
+    const sel = state.selectedShapes.has(s.id);
+    const m = s._innerMesh.material;
+    if ('emissive' in m){
+      m.emissive = new THREE.Color(sel ? 0x554477 : 0x000000);
+      m.emissiveIntensity = sel ? 0.9 : 0;
+    }
+  });
+  hud();
+}
+
+/* ================= drag ================= */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const dragPlane = new THREE.Plane();
+const dragOffset = new THREE.Vector3();
+let dragging = null, pointerDown = null;
+
+function setPointer(e){
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+}
+
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (e.target !== renderer.domElement) return;
+  setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(state.points.map(p=>p.mesh), false);
+  pointerDown = {x:e.clientX, y:e.clientY, moved:false};
+
+  if (hits.length){
+    const p = state.points.find(pp => pp.mesh === hits[0].object);
+    dragging = p;
+    controls.enabled = false;
+    const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+    dragPlane.setFromNormalAndCoplanarPoint(camDir, p.mesh.position);
+    const hit = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane, hit);
+    dragOffset.subVectors(p.mesh.position, hit);
+  }
+});
+
+renderer.domElement.addEventListener('pointermove', e => {
+  if (pointerDown && !pointerDown.moved){
+    const dx = e.clientX - pointerDown.x, dy = e.clientY - pointerDown.y;
+    if (dx*dx + dy*dy > 36) pointerDown.moved = true;
+  }
+  if (dragging){
+    setPointer(e);
+    raycaster.setFromCamera(pointer, camera);
+    const hit = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(dragPlane, hit)){
+      const newPos = hit.add(dragOffset);
+      const delta = newPos.clone().sub(dragging.mesh.position);
+      const role = getPointRoles(dragging.id);
+
+      // если это центр сферы/круга — двигаем всю фигуру
+      if (role === 'center'){
+        for (const s of state.shapes){
+          if ((s.type==='sphere'||s.type==='circle') && s.pointIds[0]===dragging.id && !s.pendulum){
+            for (let i=1; i<s.pointIds.length; i++){
+              const p2 = getPoint(s.pointIds[i]);
+              if (p2) p2.mesh.position.add(delta);
+            }
+          }
+        }
+      }
+
+      dragging.mesh.position.copy(newPos);
+
+      // пересобираем фигуры без маятника, содержащие эту точку
+      state.shapes.forEach(s => {
+        if (s.pendulum) return;
+        if (s.pointIds.includes(dragging.id)) rebuildShape(s);
+      });
+      // обновляем кольца/маркеры
+      refreshPointVisuals();
+      state.shapes.forEach(s => { if (s._anchorMark && s.pendulum) s._anchorMark.position.copy(s.pendulum.anchor); });
+    }
+  }
+});
+
+function endDrag(e){
+  if (dragging){
+    if (pointerDown && !pointerDown.moved) togglePoint(dragging.id);
+    dragging = null; controls.enabled = true;
+  } else if (pointerDown && !pointerDown.moved){
+    setPointer(e);
+    raycaster.setFromCamera(pointer, camera);
+    const shapes = state.shapes.filter(s=>s.mesh).map(s=>s.mesh);
+    const hits = raycaster.intersectObjects(shapes, true);
+    if (hits.length){
+      let obj = hits[0].object;
+      while (obj && obj.userData.shapeId == null) obj = obj.parent;
+      if (obj) toggleShape(obj.userData.shapeId);
+    } else clearSelection();
+  }
+  pointerDown = null;
+}
+renderer.domElement.addEventListener('pointerup', endDrag);
+renderer.domElement.addEventListener('pointercancel', endDrag);
+
+/* ================= UI ================= */
+const ui = document.getElementById('ui');
+const axisButtons = {};
+let playBtn = null;
+
+function btn(label, fn, cls){
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.onclick = fn;
+  ui.appendChild(b);
+  return b;
+}
+
+const ROLES = {
+  line: ['a','b'], circle: ['center','edge'], sphere: ['center','radius'],
+  triangle: ['a','b','c'], tetra: ['p1','p2','p3','p4'],
+  cube: ['corner1','corner2'], convex: null
+};
+function roleFor(type, i){
+  if (type === 'convex') return 'p'+(i+1);
+  const r = ROLES[type];
+  return r ? (r[i] || ('p'+(i+1))) : 'p'+(i+1);
+}
+
+btn('➕', () => { addPoint(); hud('точка добавлена'); });
+btn('🔗', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки');
+  buildShape('line', ids); refreshSelection(); hud('линия');
+});
+btn('⭕', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки: центр и край');
+  buildShape('circle', ids); refreshSelection(); hud('окружность');
+});
+btn('🔺', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 3) return hud('выдели 3 точки');
+  buildShape('triangle', ids); refreshSelection(); hud('треугольник');
+});
+btn('🔷', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 4) return hud('выдели 4 точки');
+  buildShape('tetra', ids); refreshSelection(); hud('тетраэдр');
+});
+btn('⚪', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки: центр и радиус');
+  buildShape('sphere', ids); refreshSelection(); hud('сфера');
+});
+btn('⬛', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки (диагональ)');
+  buildShape('cube', ids); refreshSelection(); hud('куб');
+});
+btn('✨', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length < 3) return hud('выдели ≥3 точки');
+  buildShape('convex', ids); refreshSelection(); hud('выпуклое');
+});
+btn('🔒', () => {
+  const ids = [...state.selectedShapes];
+  if (!ids.length) return hud('выдели фигуру');
+  ids.forEach(id => { const s = getShape(id); if (s) s.locked = true; });
+  hud('заперто');
+});
+
+btn('🎯', () => {
+  const ids = [...state.selectedShapes];
+  if (ids.length !== 1) return hud('выдели ОДНУ фигуру');
+  togglePendulum(ids[0]);
+  refreshSelection();
+}, 'hi');
+
+axisButtons.X = btn('X', () => setAxisForSelected([1,0,0], 'X'), 'axis');
+axisButtons.Y = btn('Y', () => setAxisForSelected([0,1,0], 'Y'), 'axis');
+axisButtons.Z = btn('Z', () => setAxisForSelected([0,0,1], 'Z'), 'axis');
+axisButtons.X.classList.add('on');
+
+btn('↔', flipPhase, 'axis');
+
+playBtn = btn('▶', () => {
+  state.paused = !state.paused;
+  playBtn.textContent = state.paused ? '▶' : '⏸';
+  playBtn.classList.toggle('paused', state.paused);
+  hud(state.paused ? 'пауза' : 'движение');
+}, 'play');
+playBtn.textContent = '⏸'; // движение идёт по умолчанию
+
+btn('💾', () => showJSON(true));
+btn('📂', () => showJSON(false));
+btn('🗑', () => {
+  if (!confirm('Очистить всё?')) return;
+  state.points.forEach(p => { scene.remove(p.mesh); if (p._ring) scene.remove(p._ring); });
+  state.shapes.forEach(s => {
+    if (s.mesh) scene.remove(s.mesh);
+    if (s._anchorMark) scene.remove(s._anchorMark);
+  });
+  state.points=[]; state.shapes=[];
+  state.selectedPoints.clear(); state.selectedShapes.clear();
+  state.nextId=1; refreshSelection(); save();
+});
+
+function refreshAxisButtons(){
+  for (const k of ['X','Y','Z']){
+    axisButtons[k].classList.toggle('on', state.axisName === k);
+  }
+}
+
+/* ================= JSON ================= */
+const jsonEl = document.getElementById('json');
+const jsonbar = document.getElementById('jsonbar');
+
+function serialize(){
+  const usedIds = new Set();
+  const shapes = state.shapes.map(s => {
+    s.pointIds.forEach(id => usedIds.add(id));
+    const points = s.pointIds.map((id, i) => {
+      const p = getPoint(id);
+      return {
+        role: roleFor(s.type, i),
+        id: p.id,
+        x: +p.mesh.position.x.toFixed(4),
+        y: +p.mesh.position.y.toFixed(4),
+        z: +p.mesh.position.z.toFixed(4)
+      };
+    });
+    return {
+      id: s.id, name: s.name, type: s.type,
+      color: '#' + s.color.toString(16).padStart(6,'0'),
+      locked: !!s.locked,
+      points,
+      pendulum: s.pendulum ? {
+        axis: s.pendulum.axis.toArray().map(v => +v.toFixed(2)),
+        amplitude: +s.pendulum.amplitude.toFixed(3),
+        speed: +s.pendulum.speed.toFixed(3),
+        phase: +s.pendulum.phase.toFixed(3)
+      } : null
+    };
+  });
+  const freePoints = state.points
+    .filter(p => !usedIds.has(p.id))
+    .map(p => ({
+      id: p.id,
+      x: +p.mesh.position.x.toFixed(4),
+      y: +p.mesh.position.y.toFixed(4),
+      z: +p.mesh.position.z.toFixed(4)
+    }));
+  return { v: 2, shapes, freePoints };
+}
+
+function deserialize(data){
+  let v2;
+  if (data.v === 2) v2 = data;
+  else v2 = migrateV1(data);
+
+  state.points.forEach(p => { scene.remove(p.mesh); if (p._ring) scene.remove(p._ring); });
+  state.shapes.forEach(s => {
+    if (s.mesh) scene.remove(s.mesh);
+    if (s._anchorMark) scene.remove(s._anchorMark);
+  });
+  state.points=[]; state.shapes=[];
+  state.selectedPoints.clear(); state.selectedShapes.clear();
+  state.nextId = 1;
+
+  (v2.shapes || []).forEach(sd => {
+    const colorInt = typeof sd.color === 'string'
+      ? parseInt(sd.color.replace('#',''), 16)
+      : (sd.color || 0x66aaff);
+    const pointIds = [];
+    (sd.points || []).forEach(pd => {
+      const mesh = new THREE.Mesh(POINT_GEO_NORMAL, makePointMat(null));
+      mesh.position.set(pd.x, pd.y, pd.z);
+      mesh.userData.pointId = pd.id;
+      scene.add(mesh);
+      state.points.push({ id: pd.id, mesh });
+      pointIds.push(pd.id);
+      state.nextId = Math.max(state.nextId, pd.id + 1);
+    });
+    const shape = {
+      id: sd.id, name: sd.name, type: sd.type,
+      pointIds, locked: !!sd.locked,
+      color: colorInt, mesh: null, pendulum: null
+    };
+    state.shapes.push(shape);
+    state.nextId = Math.max(state.nextId, sd.id + 1);
+  });
+
+  (v2.freePoints || []).forEach(pd => {
+    const mesh = new THREE.Mesh(POINT_GEO_NORMAL, makePointMat(null));
+    mesh.position.set(pd.x, pd.y, pd.z);
+    mesh.userData.pointId = pd.id;
+    scene.add(mesh);
+    state.points.push({ id: pd.id, mesh });
+    state.nextId = Math.max(state.nextId, pd.id + 1);
+  });
+
+  state.shapes.forEach(s => rebuildShape(s));
+
+  (v2.shapes || []).forEach(sd => {
+    if (!sd.pendulum) return;
+    const s = getShape(sd.id);
+    if (!s) return;
+    const pts = s.pointIds.map(id => getPoint(id).mesh.position);
+    const anchor = centroidOf(pts);
+    const baseOffsets = {};
+    s.pointIds.forEach(id => {
+      const p = getPoint(id);
+      baseOffsets[id] = p.mesh.position.clone().sub(anchor);
+    });
+    s.pendulum = {
+      anchor,
+      baseOffsets,
+      groupOffset: s.mesh.position.clone().sub(anchor),
+      axis: new THREE.Vector3(...(sd.pendulum.axis || [1,0,0])),
+      amplitude: sd.pendulum.amplitude ?? 0.75,
+      speed: sd.pendulum.speed ?? 1.2,
+      phase: sd.pendulum.phase ?? 0
+    };
+    s.locked = true;
+    // маркер
+    const g = new THREE.Group();
+    const m = new THREE.MeshBasicMaterial({color:0xbb66ff});
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.02), m));
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.02,0.5,0.02), m));
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.02,0.02,0.5), m));
+    g.position.copy(anchor);
+    s._anchorMark = g;
+    scene.add(g);
+  });
+
+  refreshSelection(); save();
+}
+
+function migrateV1(data){
+  const used = new Set();
+  const shapes = (data.shapes || []).map(s => {
+    const pts = (s.pointIds || []).map(id => {
+      const p = (data.points || []).find(x => x.id === id);
+      if (!p) return null;
+      used.add(id);
+      return { id: p.id, x: p.x, y: p.y, z: p.z };
+    }).filter(Boolean);
+    return {
+      id: s.id, name: s.name, type: s.type,
+      color: '#' + (s.color || 0x66aaff).toString(16).padStart(6,'0'),
+      locked: !!s.locked, points: pts, pendulum: null
+    };
+  });
+  const freePoints = (data.points || [])
+    .filter(p => !used.has(p.id))
+    .map(p => ({ id: p.id, x: p.x, y: p.y, z: p.z }));
+  return { v: 2, shapes, freePoints };
+}
+
+function showJSON(exports){
+  if (exports){
+    const txt = JSON.stringify(serialize(), null, 2);
+    jsonEl.value = txt;
+    try { navigator.clipboard.writeText(txt); hud('JSON в буфере обмена'); }
+    catch(e){ hud('нажми 📋 Копировать всё'); }
+  } else {
+    jsonEl.value = '';
+    jsonEl.placeholder = 'Вставь JSON и нажми ✅ Загрузить...';
+  }
+  jsonEl.classList.add('show');
+  jsonbar.classList.add('show');
+}
+
+document.getElementById('copyAll').onclick = async () => {
+  jsonEl.focus();
+  jsonEl.select();
+  try {
+    await navigator.clipboard.writeText(jsonEl.value);
+    hud('скопировано ✓');
+  } catch(e){
+    try { document.execCommand('copy'); hud('скопировано ✓'); }
+    catch(e2){ hud('выдели вручную'); }
+  }
+};
+document.getElementById('applyJson').onclick = () => {
+  const txt = jsonEl.value.trim();
+  if (!txt) return hud('пусто');
+  try { deserialize(JSON.parse(txt)); hud('загружено'); }
+  catch(e){ hud('ошибка: ' + e.message); }
+};
+document.getElementById('closeJson').onclick = () => {
+  jsonEl.classList.remove('show');
+  jsonbar.classList.remove('show');
+};
+
+/* ================= HUD ================= */
+const hudEl = document.getElementById('hud');
+let hudMsg = '';
+function hud(msg){
+  if (msg) hudMsg = msg;
+  const shapeList = state.shapes.map(s => {
+    const tag = s.pendulum ? '🎯' : (s.locked ? '🔒' : '·');
+    return `${tag}${s.name}`;
+  }).join('  ');
+  hudEl.textContent =
+    `точек:${state.points.length}  фигур:${state.shapes.length}  ось:${state.axisName}` +
+    (state.paused ? '  ПАУЗА' : '') + '\n' +
+    (shapeList ? shapeList + '\n' : '') +
+    `выд: точки ${state.selectedPoints.size}, фигуры ${state.selectedShapes.size}` +
+    (hudMsg ? '\n' + hudMsg : '');
+}
+
+/* ================= сохранение ================= */
+let saveTimer = null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem('forma.v2', JSON.stringify(serialize())); } catch(e){}
+  }, 400);
+}
+function load(){
+  try {
+    const raw = localStorage.getItem('forma.v2');
+    if (raw) deserialize(JSON.parse(raw));
+  } catch(e){}
+}
+
+/* ================= анимация ================= */
+const clock = new THREE.Clock();
+const tmpQ = new THREE.Quaternion();
+const tmpV = new THREE.Vector3();
+
+function animate(){
+  const t = clock.getElapsedTime();
+  for (const s of state.shapes){
+    const pl = s.pendulum;
+    if (!pl || !s.mesh) continue;
+    const angle = state.paused ? 0 :
+      Math.sin(t * pl.speed + pl.phase) * pl.amplitude;
+    tmpQ.setFromAxisAngle(pl.axis, angle);
+    tmpV.copy(pl.groupOffset).applyQuaternion(tmpQ);
+    s.mesh.position.copy(pl.anchor).add(tmpV);
+    s.mesh.quaternion.copy(tmpQ);
+    for (const pid of s.pointIds){
+      const p = getPoint(pid);
+      if (!p) continue;
+      tmpV.copy(pl.baseOffsets[pid]).applyQuaternion(tmpQ);
+      p.mesh.position.copy(pl.anchor).add(tmpV);
+      if (p._ring) p._ring.position.copy(p.mesh.position);
+    }
+  }
+  // кольца смотрят на камеру
+  for (const p of state.points){
+    if (p._ring && p._ring.visible) p._ring.lookAt(camera.position);
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+load();
+hud('готов · ➕ точка · выдели → собери фигуру · 🎯 маятник · ▶/⏸ стоп');
+animate();
+</script>
+</body>
+</html>
