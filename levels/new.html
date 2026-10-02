@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>форма · 3d</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
+    font-family:system-ui,-apple-system,sans-serif;}
+  canvas{display:block;touch-action:none;}
+  #ui{position:fixed;bottom:0;left:0;right:0;padding:8px 6px;
+    display:flex;flex-wrap:wrap;gap:5px;z-index:10;justify-content:center;
+    background:linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,.4));}
+  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:10px;
+    padding:9px 10px;font-size:15px;min-width:46px;touch-action:manipulation;}
+  #ui button:active{background:#2a2a4a;}
+  #ui button.on{background:#3a2a5a;border-color:#a67cff;color:#fff;}
+  #hud{position:fixed;top:6px;left:6px;font-size:12px;background:rgba(0,0,0,.55);
+    padding:6px 9px;border-radius:8px;z-index:10;line-height:1.5;max-width:75%;
+    pointer-events:none;white-space:pre;}
+  #json{position:fixed;top:0;left:0;right:0;bottom:70px;background:#08080c;color:#9f9;
+    font-family:monospace;font-size:11px;padding:8px;z-index:30;display:none;
+    overflow:auto;border:none;resize:none;width:100%;outline:none;}
+</style>
+</head>
+<body>
+<div id="hud">готов</div>
+<textarea id="json" spellcheck="false"></textarea>
+<div id="ui"></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
+
+/* ---------- сцена ---------- */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+scene.fog = new THREE.Fog(0x0a0a0f, 25, 100);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 500);
+camera.position.set(7, 6, 10);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.12;
+controls.minDistance = 2;
+controls.maxDistance = 60;
+
+/* ---------- свет ---------- */
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 0.9));
+const d1 = new THREE.DirectionalLight(0xffffff, 1.1); d1.position.set(6, 10, 7); scene.add(d1);
+const d2 = new THREE.DirectionalLight(0x6688ff, 0.55); d2.position.set(-5, -3, -6); scene.add(d2);
+
+/* ---------- сетка + оси ---------- */
+const grid = new THREE.GridHelper(40, 40, 0x223344, 0x111822);
+grid.material.opacity = 0.6; grid.material.transparent = true; scene.add(grid);
+scene.add(new THREE.AxesHelper(3));
+
+/* ---------- состояние ---------- */
+const state = {
+  points: [],      // {id, mesh, shapeId}
+  shapes: [],      // {id, name, type, pointIds, mesh, locked, color}
+  pendulums: [],   // {id, anchorId, shapeId, axis, amplitude, speed, baseOffset}
+  selectedPoints: new Set(),
+  selectedShapes: new Set(),
+  nextId: 1
+};
+
+const getPoint = id => state.points.find(p => p.id === id);
+
+/* ---------- точки ---------- */
+const POINT_GEO = new THREE.SphereGeometry(0.16, 20, 16);
+function makePointMat(color = 0xff8800, sel = false){
+  return new THREE.MeshStandardMaterial({
+    color: sel ? 0xffffff : color,
+    emissive: sel ? 0x444466 : 0x552200,
+    emissiveIntensity: 0.7,
+    metalness: 0.3, roughness: 0.35
+  });
+}
+
+function addPoint(x = 0, y = 0, z = 0){
+  x += (Math.random()-0.5) * 0.5;
+  y += (Math.random()-0.5) * 0.5;
+  z += (Math.random()-0.5) * 0.5;
+  const mesh = new THREE.Mesh(POINT_GEO, makePointMat());
+  mesh.position.set(x, y, z);
+  mesh.userData.pointId = state.nextId;
+  scene.add(mesh);
+  const p = { id: state.nextId++, mesh, shapeId: null };
+  state.points.push(p);
+  refreshAll();
+  return p;
+}
+
+function updatePointVisual(p){
+  p.mesh.material = makePointMat(0xff8800, state.selectedPoints.has(p.id));
+}
+
+/* ---------- сборка геометрии фигур ---------- */
+function centroidOf(pts){
+  const c = new THREE.Vector3();
+  pts.forEach(p => c.add(p));
+  return c.divideScalar(pts.length);
+}
+
+function buildShapeMesh(shape){
+  const pts = shape.pointIds.map(id => getPoint(id).mesh.position);
+  const centroid = centroidOf(pts);
+  const local = pts.map(p => p.clone().sub(centroid));
+  const color = shape.color || 0x66aaff;
+  let mesh;
+
+  if (shape.type === 'line'){
+    const g = new THREE.BufferGeometry().setFromPoints(local);
+    const m = new THREE.LineBasicMaterial({color:0x66ccff});
+    mesh = new THREE.Line(g, m);
+    mesh.position.copy(centroid);
+  }
+  else if (shape.type === 'circle'){
+    const r = pts[0].distanceTo(pts[1]);
+    const g = new THREE.CircleGeometry(r, 64);
+    const m = new THREE.MeshStandardMaterial({color, side:THREE.DoubleSide,
+      transparent:true, opacity:0.45, roughness:0.4, metalness:0.2});
+    mesh = new THREE.Mesh(g, m);
+    mesh.position.copy(pts[0]);
+  }
+  else if (shape.type === 'sphere'){
+    const r = pts[0].distanceTo(pts[1]);
+    const g = new THREE.SphereGeometry(r, 32, 24);
+    const m = new THREE.MeshStandardMaterial({color, transparent:true,
+      opacity:0.35, roughness:0.3, metalness:0.35});
+    mesh = new THREE.Mesh(g, m);
+    mesh.position.copy(pts[0]);
+  }
+  else if (shape.type === 'triangle'){
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position',
+      new THREE.Float32BufferAttribute(local.flatMap(v => [v.x, v.y, v.z]), 3));
+    g.setIndex([0, 1, 2]);
+    g.computeVertexNormals();
+    const m = new THREE.MeshStandardMaterial({color, side:THREE.DoubleSide,
+      transparent:true, opacity:0.6, roughness:0.4});
+    mesh = new THREE.Mesh(g, m);
+    mesh.position.copy(centroid);
+  }
+  else if (shape.type === 'tetra' || shape.type === 'convex'){
+    let g;
+    try { g = new ConvexGeometry(local); }
+    catch(e){ g = new THREE.BufferGeometry(); }
+    const m = new THREE.MeshStandardMaterial({color, side:THREE.DoubleSide,
+      transparent:true, opacity:0.55, flatShading:true, roughness:0.4});
+    mesh = new THREE.Mesh(g, m);
+    mesh.position.copy(centroid);
+  }
+  else if (shape.type === 'cube'){
+    const sx = Math.max(Math.abs(pts[0].x - pts[1].x), 0.2);
+    const sy = Math.max(Math.abs(pts[0].y - pts[1].y), 0.2);
+    const sz = Math.max(Math.abs(pts[0].z - pts[1].z), 0.2);
+    const g = new THREE.BoxGeometry(sx, sy, sz);
+    const m = new THREE.MeshStandardMaterial({color, transparent:true,
+      opacity:0.4, roughness:0.3, metalness:0.4});
+    mesh = new THREE.Mesh(g, m);
+    mesh.position.copy(centroid);
+  }
+
+  mesh.userData.shapeId = shape.id;
+  return mesh;
+}
+
+function rebuildShape(shape){
+  if (shape.mesh){
+    scene.remove(shape.mesh);
+    if (shape.mesh.geometry) shape.mesh.geometry.dispose();
+    if (shape.mesh.material) shape.mesh.material.dispose();
+  }
+  shape.mesh = buildShapeMesh(shape);
+  scene.add(shape.mesh);
+}
+
+const SHAPE_COLORS = [0x66aaff, 0xff7788, 0x88ff99, 0xffaa66, 0xbb77ff, 0x66dddd, 0xffee66];
+function buildShape(type, pointIds){
+  const shape = {
+    id: state.nextId++,
+    name: type + '-' + state.shapes.length,
+    type, pointIds: [...pointIds],
+    locked: false,
+    color: SHAPE_COLORS[state.shapes.length % SHAPE_COLORS.length],
+    mesh: null
+  };
+  state.shapes.push(shape);
+  rebuildShape(shape);
+  pointIds.forEach(id => { const p = getPoint(id); if (p) p.shapeId = shape.id; });
+  return shape;
+}
+
+/* ---------- выделение ---------- */
+function togglePoint(id){
+  if (state.selectedPoints.has(id)) state.selectedPoints.delete(id);
+  else state.selectedPoints.add(id);
+  refreshSelection();
+}
+function toggleShape(id){
+  if (state.selectedShapes.has(id)) state.selectedShapes.delete(id);
+  else state.selectedShapes.add(id);
+  refreshSelection();
+}
+function clearSelection(){
+  state.selectedPoints.clear();
+  state.selectedShapes.clear();
+  refreshSelection();
+}
+function refreshSelection(){
+  state.points.forEach(updatePointVisual);
+  state.shapes.forEach(s => {
+    if (!s.mesh || !s.mesh.material) return;
+    const sel = state.selectedShapes.has(s.id);
+    if ('emissive' in s.mesh.material){
+      s.mesh.material.emissive = new THREE.Color(sel ? 0x443366 : 0x000000);
+      s.mesh.material.emissiveIntensity = sel ? 0.9 : 0;
+    }
+  });
+  hud();
+}
+
+/* ---------- drag пальцем ---------- */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const dragPlane = new THREE.Plane();
+const dragOffset = new THREE.Vector3();
+let dragging = null;
+let pointerDown = null;
+
+function setPointer(e){
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+}
+
+renderer.domElement.addEventListener('pointerdown', e => {
+  setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(state.points.map(p => p.mesh), false);
+  pointerDown = {x:e.clientX, y:e.clientY, moved:false, id:null};
+
+  if (hits.length){
+    const p = state.points.find(pp => pp.mesh === hits[0].object);
+    dragging = p;
+    controls.enabled = false;
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    dragPlane.setFromNormalAndCoplanarPoint(camDir, p.mesh.position);
+    const hit = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane, hit);
+    dragOffset.subVectors(p.mesh.position, hit);
+  }
+});
+
+renderer.domElement.addEventListener('pointermove', e => {
+  if (pointerDown && !pointerDown.moved){
+    const dx = e.clientX - pointerDown.x, dy = e.clientY - pointerDown.y;
+    if (dx*dx + dy*dy > 36) pointerDown.moved = true;
+  }
+  if (dragging){
+    setPointer(e);
+    raycaster.setFromCamera(pointer, camera);
+    const hit = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(dragPlane, hit)){
+      const np = hit.add(dragOffset);
+      dragging.mesh.position.copy(np);
+      state.shapes.forEach(s => {
+        if (s.pointIds.includes(dragging.id)) {
+          s.locked ? null : rebuildShape(s);
+        }
+      });
+    }
+  }
+});
+
+function endDrag(e){
+  if (dragging){
+    if (pointerDown && !pointerDown.moved) togglePoint(dragging.id);
+    dragging = null;
+    controls.enabled = true;
+  } else if (pointerDown && !pointerDown.moved){
+    // tap → может быть по фигуре
+    setPointer(e);
+    raycaster.setFromCamera(pointer, camera);
+    const shapes = state.shapes.filter(s => s.mesh).map(s => s.mesh);
+    const hits = raycaster.intersectObjects(shapes, false);
+    if (hits.length) toggleShape(hits[0].object.userData.shapeId);
+    else clearSelection();
+  }
+  pointerDown = null;
+}
+renderer.domElement.addEventListener('pointerup', endDrag);
+renderer.domElement.addEventListener('pointercancel', endDrag);
+
+/* ---------- маятник ---------- */
+function attachPendulum(){
+  const anchorId = [...state.selectedPoints][0];
+  const shapeId = [...state.selectedShapes][0];
+  if (anchorId == null || shapeId == null){
+    hud('нужна 1 точка + 1 фигура выделены'); return;
+  }
+  const pl = {
+    id: state.nextId++,
+    anchorId, shapeId,
+    axis: [1, 0, 0],
+    amplitude: Math.PI / 4,
+    speed: 1.2,
+    baseOffset: null
+  };
+  state.pendulums.push(pl);
+}
+
+/* ---------- HUD ---------- */
+const hudEl = document.getElementById('hud');
+let hudMsg = '';
+function hud(msg){
+  if (msg) hudMsg = msg;
+  hudEl.textContent =
+    `точек: ${state.points.length}  фигур: ${state.shapes.length}  маятников: ${state.pendulums.length}\n` +
+    `выделено точек: ${state.selectedPoints.size}  фигур: ${state.selectedShapes.size}` +
+    (hudMsg ? `\n${hudMsg}` : '');
+}
+function refreshAll(){ state.points.forEach(updatePointVisual); hud(); save(); }
+
+/* ---------- UI ---------- */
+const ui = document.getElementById('ui');
+function btn(label, fn, title){
+  const b = document.createElement('button');
+  b.textContent = label; if (title) b.title = title;
+  b.onclick = fn; ui.appendChild(b); return b;
+}
+
+btn('➕', () => { addPoint(0,0,0); hud('точка добавлена'); });
+btn('🔗', () => { // линия
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки');
+  buildShape('line', ids); hud('линия');
+});
+btn('⭕', () => { // окружность
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки');
+  buildShape('circle', ids); hud('окружность');
+});
+btn('🔺', () => { // треугольник
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 3) return hud('выдели 3 точки');
+  buildShape('triangle', ids); hud('треугольник');
+});
+btn('🔷', () => { // тетраэдр
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 4) return hud('выдели 4 точки');
+  buildShape('tetra', ids); hud('тетраэдр');
+});
+btn('🎱', () => { // сфера по 2 точкам (центр + радиус)
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки: центр и радиус');
+  buildShape('sphere', ids); hud('сфера');
+});
+btn('⬛', () => { // куб по 2 точкам
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки (диагональ)');
+  buildShape('cube', ids); hud('куб');
+});
+btn('✨', () => { // произвольный выпуклый
+  const ids = [...state.selectedPoints];
+  if (ids.length < 3) return hud('выдели ≥3 точки');
+  buildShape('convex', ids); hud('выпуклое');
+});
+btn('🔒', () => {
+  const ids = [...state.selectedShapes];
+  if (!ids.length) return hud('выдели фигуру чтобы запереть');
+  ids.forEach(id => {
+    const s = state.shapes.find(x => x.id === id);
+    if (s) s.locked = true;
+  });
+  hud('фигура заперта');
+});
+btn('📌', attachPendulum, 'маятник: 1 точка + 1 фигура');
+btn('💾', () => {
+  const data = serialize();
+  const txt = JSON.stringify(data);
+  try { navigator.clipboard.writeText(txt); hud('JSON в буфере'); }
+  catch(e){ hud('JSON ниже'); }
+  const ta = document.getElementById('json');
+  ta.value = JSON.stringify(data, null, 2);
+  ta.style.display = 'block';
+  setTimeout(() => { ta.style.display = 'none'; }, 12000);
+});
+btn('📂', () => {
+  const ta = document.getElementById('json');
+  ta.value = ta.value || JSON.stringify(serialize(), null, 2);
+  ta.style.display = 'block';
+  const raw = prompt('Вставь JSON:', ta.value);
+  if (raw){ try { deserialize(JSON.parse(raw)); hud('загружено'); } catch(e){ hud('ошибка JSON'); } }
+});
+btn('🗑', () => {
+  if (!confirm('Очистить всё?')) return;
+  state.points.forEach(p => scene.remove(p.mesh));
+  state.shapes.forEach(s => s.mesh && scene.remove(s.mesh));
+  state.points = []; state.shapes = []; state.pendulums = [];
+  state.selectedPoints.clear(); state.selectedShapes.clear();
+  refreshAll();
+});
+
+/* ---------- сериализация ---------- */
+function serialize(){
+  return {
+    v: 1,
+    points: state.points.map(p => ({
+      id: p.id,
+      x: +p.mesh.position.x.toFixed(4),
+      y: +p.mesh.position.y.toFixed(4),
+      z: +p.mesh.position.z.toFixed(4)
+    })),
+    shapes: state.shapes.map(s => ({
+      id: s.id, name: s.name, type: s.type,
+      pointIds: s.pointIds, locked: s.locked, color: s.color
+    })),
+    pendulums: state.pendulums.map(pl => ({
+      anchorId: pl.anchorId, shapeId: pl.shapeId,
+      axis: pl.axis, amplitude: pl.amplitude, speed: pl.speed
+    }))
+  };
+}
+
+function deserialize(data){
+  state.points.forEach(p => scene.remove(p.mesh));
+  state.shapes.forEach(s => s.mesh && scene.remove(s.mesh));
+  state.points = []; state.shapes = []; state.pendulums = [];
+  state.selectedPoints.clear(); state.selectedShapes.clear();
+  state.nextId = 1;
+
+  (data.points || []).forEach(pd => {
+    const mesh = new THREE.Mesh(POINT_GEO, makePointMat());
+    mesh.position.set(pd.x, pd.y, pd.z);
+    mesh.userData.pointId = pd.id;
+    scene.add(mesh);
+    state.points.push({id: pd.id, mesh, shapeId: null});
+    state.nextId = Math.max(state.nextId, pd.id + 1);
+  });
+
+  (data.shapes || []).forEach(sd => {
+    const shape = {
+      id: sd.id, name: sd.name, type: sd.type,
+      pointIds: sd.pointIds, locked: !!sd.locked,
+      color: sd.color, mesh: null
+    };
+    state.shapes.push(shape);
+    rebuildShape(shape);
+    shape.pointIds.forEach(id => { const p = getPoint(id); if (p) p.shapeId = shape.id; });
+    state.nextId = Math.max(state.nextId, sd.id + 1);
+  });
+
+  (data.pendulums || []).forEach(pd => {
+    state.pendulums.push({...pd, id: state.nextId++});
+  });
+
+  refreshAll();
+}
+
+/* ---------- сохранение ---------- */
+let saveTimer = null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem('forma.v1', JSON.stringify(serialize())); } catch(e){}
+  }, 400);
+}
+
+function load(){
+  try {
+    const raw = localStorage.getItem('forma.v1');
+    if (raw) deserialize(JSON.parse(raw));
+  } catch(e){}
+}
+
+/* ---------- анимация ---------- */
+const clock = new THREE.Clock();
+function animate(){
+  const t = clock.getElapsedTime();
+  for (const pl of state.pendulums){
+    const shape = state.shapes.find(s => s.id === pl.shapeId);
+    const anchorP = getPoint(pl.anchorId);
+    if (!shape || !shape.mesh || !anchorP) continue;
+    const anchor = anchorP.mesh.position;
+    if (!pl.baseOffset){
+      pl.baseOffset = shape.mesh.position.clone().sub(anchor);
+    }
+    const angle = Math.sin(t * pl.speed) * pl.amplitude;
+    const axis = new THREE.Vector3(...pl.axis).normalize();
+    const q = new THREE.Quaternion().setFromAxisAngle(axis, angle);
+    const rotated = pl.baseOffset.clone().applyQuaternion(q);
+    shape.mesh.position.copy(anchor).add(rotated);
+    shape.mesh.quaternion.copy(q);
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+load();
+hud('готов · выбери точки и собери фигуру');
+animate();
+</script>
+</body>
+</html>
