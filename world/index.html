@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>форма · v6 мир</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
+    font-family:system-ui,-apple-system,sans-serif;}
+  canvas{display:block;touch-action:none;}
+
+  #topbar{position:fixed;top:0;left:0;right:0;z-index:9;display:flex;gap:6px;
+    padding:6px;pointer-events:none;}
+  #topbar button{pointer-events:auto;background:rgba(20,20,30,.85);color:#eee;
+    border:1px solid #334;border-radius:9px;padding:7px 10px;font-size:13px;}
+  #topbar button.acc{background:rgba(40,30,60,.85);border-color:#a67cff;}
+
+  #coords{position:fixed;top:46px;right:6px;z-index:9;display:none;
+    flex-direction:column;gap:4px;background:rgba(10,10,20,.9);
+    border:1px solid #a67cff;border-radius:10px;padding:8px;font-size:12px;
+    font-family:ui-monospace,monospace;}
+  #coords.show{display:flex;}
+  #coords .cRow{display:flex;align-items:center;gap:6px;}
+  #coords label{width:18px;color:#aab;font-weight:bold;}
+  #coords input{width:78px;background:#0a0a14;color:#eee;border:1px solid #445;
+    border-radius:6px;padding:6px 6px;font-size:13px;font-family:ui-monospace,monospace;
+    text-align:right;}
+  #coords .unit{color:#778;font-size:11px;}
+  #coords .title{color:#ccd;font-size:11px;text-align:center;padding-bottom:2px;}
+
+  #hud{position:fixed;top:46px;left:6px;font-size:11px;background:rgba(0,0,0,.72);
+    padding:6px 8px;border-radius:8px;z-index:8;line-height:1.55;max-width:60%;
+    pointer-events:none;white-space:pre;font-family:ui-monospace,monospace;}
+
+  #ui{position:fixed;bottom:0;left:0;right:0;padding:6px;
+    display:flex;flex-wrap:wrap;gap:4px;z-index:10;justify-content:center;
+    background:linear-gradient(to top, rgba(0,0,0,.94), rgba(0,0,0,.35));}
+  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:9px;
+    padding:8px 9px;font-size:14px;min-width:42px;touch-action:manipulation;}
+  #ui button:active{background:#2a2a4a;}
+  #ui button.hi{background:#3a2a5a;border-color:#a67cff;color:#fff;}
+  #ui button.axis{background:#1a1a26;border-color:#334;font-weight:bold;color:#aab;}
+  #ui button.axis.on{background:#2a3a55;border-color:#66aaff;color:#fff;
+    box-shadow:0 0 8px #66aaff88;}
+  #ui button.play{background:#1a3a1a;border-color:#4a6;}
+  #ui button.play.paused{background:#3a1a1a;border-color:#a44;}
+  #ui button.drag{background:#1a2430;border-color:#456;font-size:13px;padding:7px 8px;}
+  #ui button.drag.on{background:#2a4660;border-color:#69c;color:#fff;
+    box-shadow:0 0 8px #69c8;}
+
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:50;
+    display:none;flex-direction:column;padding:14px;gap:10px;overflow:auto;}
+  .modal.show{display:flex;}
+  .modal h2{margin:0;font-size:16px;color:#eee;}
+  .modal .head{display:flex;justify-content:space-between;align-items:center;}
+  .modal .head button{background:#422;color:#fff;border:none;border-radius:8px;
+    padding:8px 12px;font-size:14px;}
+  .modal .row{background:#14141e;border:1px solid #334;border-radius:10px;
+    padding:10px;display:flex;gap:8px;align-items:center;font-size:14px;}
+  .modal .row.current{border-color:#a67cff;background:#241a3a;}
+  .modal .row input[type=text]{background:#0a0a14;color:#eee;border:1px solid #334;
+    border-radius:6px;padding:6px 8px;font-size:14px;flex:1;min-width:0;}
+  .modal .row input[type=color]{width:36px;height:36px;border:none;background:transparent;
+    padding:0;border-radius:6px;}
+  .modal .row .tag{font-size:11px;color:#889;font-family:ui-monospace,monospace;}
+  .modal .row button{background:#223;color:#eef;border:1px solid #445;
+    border-radius:7px;padding:7px 9px;font-size:13px;}
+  .modal .row button.danger{background:#5a2a2a;border-color:#a55;}
+  .modal .foot{display:flex;gap:8px;flex-wrap:wrap;}
+  .modal .foot button{background:#223;color:#eef;border:1px solid #445;
+    border-radius:9px;padding:10px 12px;font-size:14px;flex:1;}
+  .modal .foot button.acc{background:#2a3a5a;border-color:#68a;}
+  .modal .foot button.warn{background:#5a3a2a;border-color:#a86;}
+  .modal .empty{color:#667;font-size:13px;text-align:center;padding:16px;}
+
+  #jsonbar{position:fixed;top:0;left:0;right:0;z-index:31;display:none;
+    padding:6px;background:#0a0a0f;border-bottom:1px solid #223;gap:6px;
+    justify-content:space-between;}
+  #jsonbar.show{display:flex;}
+  #jsonbar button{background:#223;color:#eef;border:1px solid #445;border-radius:8px;
+    padding:8px 12px;font-size:13px;}
+  #jsonbar button.acc{background:#3a5a3a;border-color:#6a6;}
+  #jsonbar button.warn{background:#5a3a3a;border-color:#a66;}
+  #json{position:fixed;top:0;left:0;right:0;bottom:80px;background:#08080c;color:#9f9;
+    font-family:ui-monospace,monospace;font-size:11px;padding:44px 8px 8px;z-index:30;
+    display:none;overflow:auto;border:none;resize:none;width:100%;outline:none;}
+  #json.show{display:block;}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <button id="sceneBtn" class="acc">🎬 —</button>
+  <button id="shapesBtn">📋 фигуры</button>
+</div>
+<div id="hud">готов</div>
+
+<div id="coords">
+  <div class="title">точка <span id="coordPointId">—</span></div>
+  <div class="cRow"><label>X</label><input id="cX" type="number" step="0.1"><span class="unit">м→</span></div>
+  <div class="cRow"><label>Y</label><input id="cY" type="number" step="0.1"><span class="unit">м↑</span></div>
+  <div class="cRow"><label>Z</label><input id="cZ" type="number" step="0.1"><span class="unit">м↗</span></div>
+</div>
+
+<div id="sceneModal" class="modal">
+  <div class="head">
+    <h2>Сцены</h2>
+    <button onclick="document.getElementById('sceneModal').classList.remove('show')">✕</button>
+  </div>
+  <div id="sceneList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  <div class="foot">
+    <button id="newScene">➕ новая</button>
+    <button id="exportAll" class="acc">⬇ всё</button>
+    <button id="importAll" class="warn">⬆ всё</button>
+  </div>
+</div>
+
+<div id="shapesModal" class="modal">
+  <div class="head">
+    <h2>Фигуры сцены</h2>
+    <button onclick="document.getElementById('shapesModal').classList.remove('show')">✕</button>
+  </div>
+  <div id="shapeList" style="display:flex;flex-direction:column;gap:8px;"></div>
+</div>
+
+<div id="jsonbar">
+  <button id="copyAll" class="acc">📋 Копировать всё</button>
+  <button id="applyJson">✅ Загрузить</button>
+  <button id="closeJson" class="warn">✕ Закрыть</button>
+</div>
+<textarea id="json" spellcheck="false"></textarea>
+
+<div id="ui"></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
+
+/* ================= three.js ================= */
+const threeScene = new THREE.Scene();
+threeScene.background = new THREE.Color(0x0a0a0f);
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(4, 3, 6);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.12;
+controls.minDistance = 0.5; controls.maxDistance = 200;
+
+threeScene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 0.9));
+const d1 = new THREE.DirectionalLight(0xffffff, 1.1); d1.position.set(6,10,7); threeScene.add(d1);
+const d2 = new THREE.DirectionalLight(0x6688ff, 0.55); d2.position.set(-5,-3,-6); threeScene.add(d2);
+
+/* ================= система координат (мир) ================= */
+// Соглашение:
+//  +X — вправо    −X — влево
+//  +Y — вверх     −Y — вниз
+//  +Z — вперёд    −Z — назад
+
+const grid = new THREE.GridHelper(80, 80, 0x334455, 0x151a22);
+grid.material.opacity = 0.55; grid.material.transparent = true;
+threeScene.add(grid);
+
+function meterLines(){
+  const group = new THREE.Group();
+  const matMajor = new THREE.LineBasicMaterial({color:0x445577, transparent:true, opacity:0.65});
+  const HALF = 40;
+  for (let i = -HALF; i <= HALF; i += 5){
+    if (i === 0) continue;
+    const gx = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-HALF, 0, i), new THREE.Vector3(HALF, 0, i)]);
+    group.add(new THREE.Line(gx, matMajor));
+    const gz = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(i, 0, -HALF), new THREE.Vector3(i, 0, HALF)]);
+    group.add(new THREE.Line(gz, matMajor));
+  }
+  return group;
+}
+threeScene.add(meterLines());
+
+function makeLabel(text, color='#ccd'){
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.font = 'bold 40px system-ui,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 64, 32);
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  const mat = new THREE.SpriteMaterial({map:tex, transparent:true, depthTest:false});
+  const sp = new THREE.Sprite(mat);
+  sp.scale.set(0.9, 0.45, 1);
+  return sp;
+}
+
+const axisLabels = new THREE.Group();
+threeScene.add(axisLabels);
+(function initAxisLabels(){
+  const marks = [1, 2, 3, 5, 10, 15, 20, 30];
+  for (const m of marks){
+    const lx = makeLabel(m+'м', '#ff9999'); lx.position.set(m, 0.1, 0); axisLabels.add(lx);
+    const ly = makeLabel(m+'м', '#99ff99'); ly.position.set(0, m, 0); axisLabels.add(ly);
+    const lz = makeLabel(m+'м', '#99aaff'); lz.position.set(0, 0.1, m); axisLabels.add(lz);
+  }
+  const oX = makeLabel('X→ вправо', '#ff7777'); oX.position.set(2.5, 0.25, 0);
+  oX.scale.set(3.0, 0.55, 1); axisLabels.add(oX);
+  const oY = makeLabel('Y↑ вверх', '#77ff77'); oY.position.set(0, 2.5, 0);
+  oY.scale.set(2.6, 0.55, 1); axisLabels.add(oY);
+  const oZ = makeLabel('Z↗ вперёд', '#7799ff'); oZ.position.set(0, 0.25, 2.5);
+  oZ.scale.set(3.0, 0.55, 1); axisLabels.add(oZ);
+})();
+
+(function drawAxes(){
+  const L = 40;
+  const add = (a, b, c) => {
+    const g = new THREE.BufferGeometry().setFromPoints([a, b]);
+    return new THREE.Line(g, new THREE.LineBasicMaterial({color:c}));
+  };
+  threeScene.add(add(new THREE.Vector3(-L,0,0), new THREE.Vector3(L,0,0), 0xcc3333));
+  threeScene.add(add(new THREE.Vector3(0,0,0), new THREE.Vector3(0,L,0), 0x33cc33));
+  threeScene.add(add(new THREE.Vector3(0,0,-L), new THREE.Vector3(0,0,L), 0x3355cc));
+})();
+
+(function youMarker(){
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.35, 0.45, 32),
+    new THREE.MeshBasicMaterial({color:0xffcc44, side:THREE.DoubleSide, transparent:true, opacity:0.8}));
+  ring.rotation.x = -Math.PI/2; ring.position.y = 0.02; g.add(ring);
+  const needle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.02, 0.02, 1.7, 8),
+    new THREE.MeshBasicMaterial({color:0xffcc44, transparent:true, opacity:0.5}));
+  needle.position.y = 0.85; g.add(needle);
+  const dot = new THREE.Mesh(
+    new THREE.SphereGeometry(0.08, 12, 10),
+    new THREE.MeshBasicMaterial({color:0xffcc44}));
+  dot.position.y = 1.7; g.add(dot);
+  threeScene.add(g);
+})();
+
+/* ================= состояние ================= */
+const state = {
+  scenes: [],
+  currentSceneId: null,
+  nextSceneId: 1,
+  selectedPoints: new Set(),
+  selectedShapes: new Set(),
+  paused: false,
+  currentAxis: new THREE.Vector3(1,0,0),
+  axisName: 'X',
+  dragMode: 'ground'  // ground | vertical | screen
+};
+const cs = () => state.scenes.find(s => s.id === state.currentSceneId);
+const getPoint = id => { const s = cs(); return s ? s.points.find(p => p.id === id) : null; };
+const getShape = id => { const s = cs(); return s ? s.shapes.find(x => x.id === id) : null; };
+
+function newScene(name){
+  const group = new THREE.Group();
+  threeScene.add(group); group.visible = false;
+  const s = {
+    id: state.nextSceneId++,
+    name: name || ('сцена-' + (state.scenes.length + 1)),
+    points: [], shapes: [], group, nextLocalId: 1
+  };
+  state.scenes.push(s);
+  return s;
+}
+function switchScene(id){
+  const cur = cs();
+  if (cur) cur.group.visible = false;
+  state.currentSceneId = id;
+  const s = cs();
+  if (s) s.group.visible = true;
+  state.selectedPoints.clear(); state.selectedShapes.clear();
+  refreshSelection(); refreshSceneBtn(); save();
+}
+function deleteScene(id){
+  const idx = state.scenes.findIndex(s => s.id === id);
+  if (idx < 0) return;
+  if (state.scenes.length === 1) return hud('нельзя удалить последнюю');
+  if (!confirm('Удалить сцену "' + state.scenes[idx].name + '"?')) return;
+  const s = state.scenes[idx];
+  threeScene.remove(s.group);
+  s.group.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) o.material.dispose();
+  });
+  state.scenes.splice(idx, 1);
+  if (state.currentSceneId === id) switchScene(state.scenes[0].id);
+  refreshSceneList(); save();
+}
+
+/* ================= роли точек ================= */
+function getPointRoles(pid){
+  const roles = new Set();
+  const s = cs(); if (!s) return null;
+  for (const sh of s.shapes){
+    if (sh.type === 'sphere' || sh.type === 'circle'){
+      if (sh.pointIds[0] === pid) roles.add('center');
+      if (sh.pointIds[1] === pid) roles.add('radius');
+    }
+  }
+  if (roles.has('center')) return 'center';
+  if (roles.has('radius')) return 'radius';
+  return null;
+}
+
+/* ================= точки ================= */
+const POINT_GEO_NORMAL = new THREE.SphereGeometry(0.08, 20, 16);
+const POINT_GEO_CENTER = new THREE.SphereGeometry(0.13, 22, 18);
+const POINT_GEO_RADIUS = new THREE.SphereGeometry(0.10, 20, 16);
+const RING_GEO = new THREE.TorusGeometry(0.22, 0.018, 8, 32);
+
+function makePointMat(role, sel=false){
+  let color = 0xff8800, emissive = 0x552200, ei = 0.7;
+  if (role === 'center'){ color = 0xffcc22; emissive = 0xaa7700; ei = 1.1; }
+  else if (role === 'radius'){ color = 0x22ddff; emissive = 0x006688; ei = 1.1; }
+  if (sel){ color = 0xffffff; emissive = 0x666699; ei = 1.4; }
+  return new THREE.MeshStandardMaterial({
+    color, emissive, emissiveIntensity: ei, metalness: 0.35, roughness: 0.3});
+}
+
+function addPoint(x=null, y=null, z=null){
+  const s = cs(); if (!s) return;
+  if (x===null){
+    // перед тобой в 2 метрах, на уровне груди
+    x = (Math.random()-0.5)*1.0;
+    y = 1.5;
+    z = 1.5 + Math.random()*1.0;
+  }
+  const mesh = new THREE.Mesh(POINT_GEO_NORMAL, makePointMat(null));
+  mesh.position.set(x, y, z);
+  const localId = s.nextLocalId++;
+  mesh.userData.pointId = localId;
+  s.group.add(mesh);
+  s.points.push({ id: localId, mesh });
+  return s.points[s.points.length-1];
+}
+
+function refreshPointVisuals(){
+  const s = cs(); if (!s) return;
+  for (const p of s.points){
+    const role = getPointRoles(p.id);
+    const sel = state.selectedPoints.has(p.id);
+    let geo = POINT_GEO_NORMAL;
+    if (role === 'center') geo = POINT_GEO_CENTER;
+    else if (role === 'radius') geo = POINT_GEO_RADIUS;
+    if (p.mesh.geometry !== geo) p.mesh.geometry = geo;
+    p.mesh.material.dispose();
+    p.mesh.material = makePointMat(role, sel);
+    if (role === 'center'){
+      if (!p._ring){
+        p._ring = new THREE.Mesh(RING_GEO,
+          new THREE.MeshBasicMaterial({color:0xffcc22, transparent:true, opacity:0.65}));
+        s.group.add(p._ring);
+      }
+      p._ring.visible = true;
+      p._ring.position.copy(p.mesh.position);
+      p._ring.lookAt(camera.position);
+    } else if (p._ring){
+      p._ring.visible = false;
+    }
+  }
+}
+
+/* ================= фигуры ================= */
+const SHAPE_COLORS = [0x66aaff, 0xff7788, 0x88ff99, 0xffaa66, 0xbb77ff, 0x66dddd, 0xffee66];
+
+function centroidOf(pts){
+  const c = new THREE.Vector3();
+  pts.forEach(p => c.add(p));
+  return c.divideScalar(pts.length);
+}
+
+function buildShapeMesh(shape){
+  const pts = shape.pointIds.map(id => getPoint(id).mesh.position);
+  const centroid = centroidOf(pts);
+  const local = pts.map(p => p.clone().sub(centroid));
+  const color = shape.color;
+  let mesh = null;
+
+  if (shape.type === 'line'){
+    const g = new THREE.BufferGeometry().setFromPoints(local);
+    mesh = new THREE.Line(g, new THREE.LineBasicMaterial({color:0x66ccff}));
+  } else if (shape.type === 'circle'){
+    const r = pts[0].distanceTo(pts[1]);
+    mesh = new THREE.Mesh(new THREE.CircleGeometry(r, 64),
+      new THREE.MeshStandardMaterial({color, side:THREE.DoubleSide, transparent:true,
+        opacity:0.45, roughness:0.4}));
+  } else if (shape.type === 'sphere'){
+    const r = pts[0].distanceTo(pts[1]);
+    mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 24),
+      new THREE.MeshStandardMaterial({color, transparent:true,
+        opacity:0.25, roughness:0.3, metalness:0.35}));
+    mesh.position.copy(pts[0]).sub(centroid);
+  } else if (shape.type === 'triangle'){
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(
+      local.flatMap(v=>[v.x,v.y,v.z]), 3));
+    g.setIndex([0,1,2]); g.computeVertexNormals();
+    mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({color, side:THREE.DoubleSide,
+      transparent:true, opacity:0.5, roughness:0.4}));
+  } else if (shape.type === 'tetra' || shape.type === 'convex'){
+    let g;
+    try { g = new ConvexGeometry(local); }
+    catch(e){ g = new THREE.BufferGeometry(); }
+    mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({color, side:THREE.DoubleSide,
+      transparent:true, opacity:0.45, flatShading:true, roughness:0.4}));
+  } else if (shape.type === 'cube'){
+    const sx = Math.max(Math.abs(pts[0].x-pts[1].x),0.2);
+    const sy = Math.max(Math.abs(pts[0].y-pts[1].y),0.2);
+    const sz = Math.max(Math.abs(pts[0].z-pts[1].z),0.2);
+    mesh = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),
+      new THREE.MeshStandardMaterial({color, transparent:true,
+        opacity:0.3, roughness:0.3, metalness:0.4}));
+  }
+  if (!mesh) return null;
+
+  const group = new THREE.Group();
+  group.position.copy(centroid);
+  group.add(mesh);
+  group.userData.shapeId = shape.id;
+  mesh.userData.shapeId = shape.id;
+  shape._innerMesh = mesh;
+  return group;
+}
+
+function rebuildShape(shape){
+  const s = cs(); if (!s) return;
+  if (shape.mesh){
+    s.group.remove(shape.mesh);
+    shape.mesh.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
+  }
+  shape.mesh = buildShapeMesh(shape);
+  if (shape.mesh) s.group.add(shape.mesh);
+}
+
+function buildShape(type, pointIds){
+  const s = cs(); if (!s) return;
+  const shape = {
+    id: s.nextLocalId++,
+    name: type + '-' + s.shapes.length,
+    type, pointIds: [...pointIds],
+    locked: false,
+    color: SHAPE_COLORS[s.shapes.length % SHAPE_COLORS.length],
+    mesh: null, pendulum: null
+  };
+  s.shapes.push(shape);
+  rebuildShape(shape);
+  refreshPointVisuals();
+  return shape;
+}
+
+/* ================= маятник ================= */
+function togglePendulum(shapeId){
+  const s = cs(); if (!s) return;
+  const shape = getShape(shapeId);
+  if (!shape) return;
+  if (shape.pendulum){
+    shape.pendulum = null;
+    shape.locked = false;
+    if (shape._anchorMark) shape._anchorMark.visible = false;
+    hud('маятник снят · ' + shape.name);
+    return;
+  }
+  const pts = shape.pointIds.map(id => getPoint(id).mesh.position);
+  const anchor = centroidOf(pts);
+  const baseOffsets = {};
+  shape.pointIds.forEach(id => {
+    const p = getPoint(id);
+    baseOffsets[id] = p.mesh.position.clone().sub(anchor);
+  });
+  shape.pendulum = {
+    anchor: anchor.clone(), baseOffsets,
+    groupOffset: shape.mesh.position.clone().sub(anchor),
+    axis: state.currentAxis.clone(),
+    amplitude: 0.75, speed: 1.2, phase: 0
+  };
+  shape.locked = true;
+  if (!shape._anchorMark){
+    const g = new THREE.Group();
+    const m = new THREE.MeshBasicMaterial({color:0xbb66ff});
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.02), m));
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.02,0.5,0.02), m));
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.02,0.02,0.5), m));
+    shape._anchorMark = g;
+    s.group.add(g);
+  }
+  shape._anchorMark.position.copy(anchor);
+  shape._anchorMark.visible = true;
+  state.paused = false;
+  if (playBtn){ playBtn.textContent = '⏸'; playBtn.classList.remove('paused'); }
+  hud('маятник привязан · ' + shape.name + ' · ось ' + state.axisName);
+}
+
+function setAxisForSelected(v, name){
+  state.currentAxis.set(v[0],v[1],v[2]);
+  state.axisName = name;
+  let count = 0;
+  state.selectedShapes.forEach(id => {
+    const sh = getShape(id);
+    if (sh && sh.pendulum){ sh.pendulum.axis.copy(state.currentAxis); count++; }
+  });
+  refreshAxisButtons();
+  hud(count ? `ось ${name} применена (${count})` : `текущая ось: ${name}`);
+}
+function flipPhase(){
+  let n = 0;
+  state.selectedShapes.forEach(id => {
+    const sh = getShape(id);
+    if (sh && sh.pendulum){ sh.pendulum.phase = (sh.pendulum.phase===0)?Math.PI:0; n++; }
+  });
+  hud(n ? `фаза инвертирована (${n})` : 'нет маятников');
+}
+
+/* ================= выделение ================= */
+function togglePoint(id){
+  if (state.selectedPoints.has(id)) state.selectedPoints.delete(id);
+  else state.selectedPoints.add(id);
+  refreshSelection();
+}
+function toggleShape(id){
+  if (state.selectedShapes.has(id)) state.selectedShapes.delete(id);
+  else state.selectedShapes.add(id);
+  refreshSelection();
+}
+function clearSelection(){
+  state.selectedPoints.clear();
+  state.selectedShapes.clear();
+  refreshSelection();
+}
+function refreshSelection(){
+  refreshPointVisuals();
+  const s = cs(); if (!s) return;
+  s.shapes.forEach(sh => {
+    if (!sh._innerMesh || !sh._innerMesh.material) return;
+    const sel = state.selectedShapes.has(sh.id);
+    const m = sh._innerMesh.material;
+    if ('emissive' in m){
+      m.emissive = new THREE.Color(sel ? 0x554477 : 0x000000);
+      m.emissiveIntensity = sel ? 0.9 : 0;
+    }
+  });
+  syncCoordPanel();
+  hud();
+}
+
+/* ================= панель координат ================= */
+const coordsEl = document.getElementById('coords');
+const cX = document.getElementById('cX');
+const cY = document.getElementById('cY');
+const cZ = document.getElementById('cZ');
+const coordPointId = document.getElementById('coordPointId');
+
+function syncCoordPanel(){
+  const s = cs();
+  if (state.selectedPoints.size === 1 && s){
+    const id = [...state.selectedPoints][0];
+    const p = s.points.find(x => x.id === id);
+    if (p){
+      coordsEl.classList.add('show');
+      coordPointId.textContent = id;
+      if (document.activeElement !== cX) cX.value = p.mesh.position.x.toFixed(2);
+      if (document.activeElement !== cY) cY.value = p.mesh.position.y.toFixed(2);
+      if (document.activeElement !== cZ) cZ.value = p.mesh.position.z.toFixed(2);
+      return;
+    }
+  }
+  coordsEl.classList.remove('show');
+}
+
+function setPointFromPanel(){
+  const s = cs(); if (!s) return;
+  if (state.selectedPoints.size !== 1) return;
+  const id = [...state.selectedPoints][0];
+  const p = s.points.find(x => x.id === id);
+  if (!p) return;
+  const nx = parseFloat(cX.value) || 0;
+  const ny = parseFloat(cY.value) || 0;
+  const nz = parseFloat(cZ.value) || 0;
+  const delta = new THREE.Vector3(nx, ny, nz).sub(p.mesh.position);
+  // если это центр — тащим всё
+  const role = getPointRoles(p.id);
+  if (role === 'center'){
+    for (const sh of s.shapes){
+      if ((sh.type==='sphere'||sh.type==='circle') && sh.pointIds[0]===p.id && !sh.pendulum){
+        for (let i=1; i<sh.pointIds.length; i++){
+          const p2 = getPoint(sh.pointIds[i]);
+          if (p2) p2.mesh.position.add(delta);
+        }
+      }
+    }
+  }
+  p.mesh.position.set(nx, ny, nz);
+  s.shapes.forEach(sh => {
+    if (!sh.pendulum && sh.pointIds.includes(p.id)) rebuildShape(sh);
+  });
+  refreshPointVisuals();
+  hud();
+  save();
+}
+cX.addEventListener('change', setPointFromPanel);
+cY.addEventListener('change', setPointFromPanel);
+cZ.addEventListener('change', setPointFromPanel);
+cX.addEventListener('blur', setPointFromPanel);
+cY.addEventListener('blur', setPointFromPanel);
+cZ.addEventListener('blur', setPointFromPanel);
+
+/* ================= drag ================= */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const dragPlane = new THREE.Plane();
+const dragOffset = new THREE.Vector3();
+let dragging = null, pointerDown = null;
+
+function setPointer(e){
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+}
+
+function makeDragPlane(pos){
+  if (state.dragMode === 'ground'){
+    // горизонтальная плоскость на текущей высоте точки
+    return new THREE.Plane(new THREE.Vector3(0,1,0), -pos.y);
+  } else if (state.dragMode === 'vertical'){
+    // вертикальная плоскость: содержит мировую Y, обращена к камере
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    camDir.y = 0;
+    if (camDir.lengthSq() < 1e-6) camDir.set(0,0,1);
+    camDir.normalize();
+    return new THREE.Plane().setFromNormalAndCoplanarPoint(camDir, pos);
+  } else {
+    // экранная плоскость
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    return new THREE.Plane().setFromNormalAndCoplanarPoint(camDir, pos);
+  }
+}
+
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (e.target !== renderer.domElement) return;
+  const s = cs(); if (!s) return;
+  setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(s.points.map(p=>p.mesh), false);
+  pointerDown = {x:e.clientX, y:e.clientY, moved:false};
+
+  if (hits.length){
+    const p = s.points.find(pp => pp.mesh === hits[0].object);
+    dragging = p;
+    controls.enabled = false;
+    dragPlane.copy(makeDragPlane(p.mesh.position));
+    const hit = new THREE.Vector3();
+    raycaster.ray.intersectPlane(dragPlane, hit);
+    dragOffset.subVectors(p.mesh.position, hit);
+  }
+});
+
+renderer.domElement.addEventListener('pointermove', e => {
+  if (pointerDown && !pointerDown.moved){
+    const dx = e.clientX - pointerDown.x, dy = e.clientY - pointerDown.y;
+    if (dx*dx + dy*dy > 36) pointerDown.moved = true;
+  }
+  if (dragging){
+    const s = cs(); if (!s) return;
+    setPointer(e);
+    raycaster.setFromCamera(pointer, camera);
+    const hit = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(dragPlane, hit)){
+      const newPos = hit.add(dragOffset);
+      if (state.dragMode === 'ground'){
+        // высота фиксируется на старой
+        newPos.y = dragging.mesh.position.y;
+      }
+      const delta = newPos.clone().sub(dragging.mesh.position);
+      const role = getPointRoles(dragging.id);
+      if (role === 'center'){
+        for (const sh of s.shapes){
+          if ((sh.type==='sphere'||sh.type==='circle') && sh.pointIds[0]===dragging.id && !sh.pendulum){
+            for (let i=1; i<sh.pointIds.length; i++){
+              const p2 = getPoint(sh.pointIds[i]);
+              if (p2) p2.mesh.position.add(delta);
+            }
+          }
+        }
+      }
+      dragging.mesh.position.copy(newPos);
+      s.shapes.forEach(sh => {
+        if (sh.pendulum) return;
+        if (sh.pointIds.includes(dragging.id)) rebuildShape(sh);
+      });
+      refreshPointVisuals();
+      syncCoordPanel();
+      hud();
+    }
+  }
+});
+
+function endDrag(e){
+  const s = cs();
+  if (dragging){
+    if (pointerDown && !pointerDown.moved) togglePoint(dragging.id);
+    dragging = null; controls.enabled = true; save();
+  } else if (pointerDown && !pointerDown.moved && s){
+    setPointer(e);
+    raycaster.setFromCamera(pointer, camera);
+    const shapes = s.shapes.filter(x=>x.mesh).map(x=>x.mesh);
+    const hits = raycaster.intersectObjects(shapes, true);
+    if (hits.length){
+      let obj = hits[0].object;
+      while (obj && obj.userData.shapeId == null) obj = obj.parent;
+      if (obj) toggleShape(obj.userData.shapeId);
+    } else clearSelection();
+  }
+  pointerDown = null;
+}
+renderer.domElement.addEventListener('pointerup', endDrag);
+renderer.domElement.addEventListener('pointercancel', endDrag);
+
+/* ================= UI ================= */
+const ui = document.getElementById('ui');
+const axisButtons = {};
+const dragButtons = {};
+let playBtn = null;
+
+function btn(label, fn, cls){
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.onclick = fn;
+  ui.appendChild(b);
+  return b;
+}
+
+const ROLES = {
+  line: ['a','b'], circle: ['center','edge'], sphere: ['center','radius'],
+  triangle: ['a','b','c'], tetra: ['p1','p2','p3','p4'],
+  cube: ['corner1','corner2'], convex: null
+};
+function roleFor(type, i){
+  if (type === 'convex') return 'p'+(i+1);
+  const r = ROLES[type];
+  return r ? (r[i] || ('p'+(i+1))) : 'p'+(i+1);
+}
+
+btn('➕', () => { addPoint(); hud('точка впереди на 1.5–2.5 м'); });
+
+/* --- режимы перетаскивания --- */
+dragButtons.ground = btn('⬛ вперёд/вбок', () => setDragMode('ground'), 'drag on');
+dragButtons.vertical = btn('↕ вверх', () => setDragMode('vertical'), 'drag');
+dragButtons.screen = btn('🖐 экран', () => setDragMode('screen'), 'drag');
+
+function setDragMode(m){
+  state.dragMode = m;
+  for (const k of Object.keys(dragButtons))
+    dragButtons[k].classList.toggle('on', k === m);
+  const names = {ground:'вперёд/вбок/назад', vertical:'вверх/вниз', screen:'свободно по экрану'};
+  hud('режим перетаскивания: ' + names[m]);
+}
+
+btn('🔗', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки');
+  buildShape('line', ids); refreshSelection(); hud('линия');
+});
+btn('⭕', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки: центр и край');
+  buildShape('circle', ids); refreshSelection(); hud('окружность');
+});
+btn('🔺', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 3) return hud('выдели 3 точки');
+  buildShape('triangle', ids); refreshSelection(); hud('треугольник');
+});
+btn('🔷', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 4) return hud('выдели 4 точки');
+  buildShape('tetra', ids); refreshSelection(); hud('тетраэдр');
+});
+btn('⚪', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки: центр и радиус');
+  buildShape('sphere', ids); refreshSelection(); hud('сфера');
+});
+btn('⬛фиг', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length !== 2) return hud('выдели 2 точки (диагональ)');
+  buildShape('cube', ids); refreshSelection(); hud('куб');
+});
+btn('✨', () => {
+  const ids = [...state.selectedPoints];
+  if (ids.length < 3) return hud('выдели ≥3 точки');
+  buildShape('convex', ids); refreshSelection(); hud('выпуклое');
+});
+btn('🔒', () => {
+  const ids = [...state.selectedShapes];
+  if (!ids.length) return hud('выдели фигуру');
+  ids.forEach(id => { const sh = getShape(id); if (sh) sh.locked = true; });
+  hud('заперто');
+});
+btn('🎯', () => {
+  const ids = [...state.selectedShapes];
+  if (ids.length !== 1) return hud('выдели ОДНУ фигуру');
+  togglePendulum(ids[0]); refreshSelection();
+}, 'hi');
+
+axisButtons.X = btn('X', () => setAxisForSelected([1,0,0], 'X'), 'axis');
+axisButtons.Y = btn('Y', () => setAxisForSelected([0,1,0], 'Y'), 'axis');
+axisButtons.Z = btn('Z', () => setAxisForSelected([0,0,1], 'Z'), 'axis');
+axisButtons.X.classList.add('on');
+btn('↔', flipPhase, 'axis');
+
+playBtn = btn('⏸', () => {
+  state.paused = !state.paused;
+  playBtn.textContent = state.paused ? '▶' : '⏸';
+  playBtn.classList.toggle('paused', state.paused);
+  hud(state.paused ? 'пауза' : 'движение');
+}, 'play');
+
+btn('💾', () => showJSON(true));
+btn('📂', () => showJSON(false));
+btn('🗑', () => {
+  const s = cs(); if (!s) return;
+  if (!confirm('Очистить сцену "' + s.name + '"?')) return;
+  for (const p of s.points){
+    s.group.remove(p.mesh);
+    if (p._ring) s.group.remove(p._ring);
+  }
+  for (const sh of s.shapes){
+    if (sh.mesh) s.group.remove(sh.mesh);
+    if (sh._anchorMark) s.group.remove(sh._anchorMark);
+  }
+  s.points = []; s.shapes = [];
+  s.nextLocalId = 1;
+  state.selectedPoints.clear(); state.selectedShapes.clear();
+  refreshSelection(); save();
+});
+
+function refreshAxisButtons(){
+  for (const k of ['X','Y','Z']) axisButtons[k].classList.toggle('on', state.axisName === k);
+}
+
+/* ================= сцены UI ================= */
+const sceneBtn = document.getElementById('sceneBtn');
+const shapesBtn = document.getElementById('shapesBtn');
+const sceneModal = document.getElementById('sceneModal');
+const shapesModal = document.getElementById('shapesModal');
+
+function refreshSceneBtn(){ const s = cs(); sceneBtn.textContent = '🎬 ' + (s ? s.name : '—'); }
+function refreshSceneList(){
+  const list = document.getElementById('sceneList');
+  list.innerHTML = '';
+  state.scenes.forEach(sc => {
+    const row = document.createElement('div');
+    row.className = 'row' + (sc.id === state.currentSceneId ? ' current' : '');
+    const info = document.createElement('div');
+    info.style.flex = '1';
+    info.innerHTML = `<div style="font-weight:bold">${sc.name}</div>
+      <div class="tag">${sc.shapes.length} фигур · ${sc.points.length} точек</div>`;
+    info.onclick = () => { switchScene(sc.id); refreshSceneList(); sceneModal.classList.remove('show'); };
+    const editBtn = document.createElement('button'); editBtn.textContent = '✎';
+    editBtn.onclick = () => {
+      const nn = prompt('Название сцены:', sc.name);
+      if (nn){ sc.name = nn; refreshSceneBtn(); refreshSceneList(); save(); }
+    };
+    const delBtn = document.createElement('button'); delBtn.textContent = '🗑';
+    delBtn.className = 'danger';
+    delBtn.onclick = () => deleteScene(sc.id);
+    row.appendChild(info); row.appendChild(editBtn); row.appendChild(delBtn);
+    list.appendChild(row);
+  });
+}
+sceneBtn.onclick = () => { refreshSceneList(); sceneModal.classList.add('show'); };
+document.getElementById('newScene').onclick = () => {
+  const name = prompt('Название новой сцены:', 'сцена-' + (state.scenes.length + 1));
+  if (name === null) return;
+  const s = newScene(name || undefined);
+  switchScene(s.id); refreshSceneList(); sceneModal.classList.remove('show');
+};
+document.getElementById('exportAll').onclick = () => {
+  const data = serializeAll();
+  const txt = JSON.stringify(data, null, 2);
+  jsonEl.value = txt; jsonEl.classList.add('show'); jsonbar.classList.add('show');
+  try { navigator.clipboard.writeText(txt); hud('всё в буфер'); }
+  catch(e){ hud('нажми 📋 Копировать'); }
+};
+document.getElementById('importAll').onclick = () => {
+  const txt = prompt('Вставь JSON:');
+  if (!txt) return;
+  try {
+    const data = JSON.parse(txt);
+    if (data.type === 'all') deserializeAll(data);
+    else deserializeSceneInto(cs(), data);
+    hud('загружено'); refreshSceneList();
+  } catch(e){ hud('ошибка: ' + e.message); }
+};
+
+/* ================= фигуры UI ================= */
+shapesBtn.onclick = () => { refreshShapeList(); shapesModal.classList.add('show'); };
+function refreshShapeList(){
+  const list = document.getElementById('shapeList'); list.innerHTML = '';
+  const s = cs(); if (!s) return;
+  if (!s.shapes.length){ list.innerHTML = '<div class="empty">Фигур нет.</div>'; return; }
+  s.shapes.forEach(sh => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const color = document.createElement('input');
+    color.type = 'color';
+    color.value = '#' + sh.color.toString(16).padStart(6,'0');
+    color.oninput = () => {
+      sh.color = parseInt(color.value.replace('#',''),16);
+      if (sh._innerMesh && sh._innerMesh.material)
+        sh._innerMesh.material.color = new THREE.Color(sh.color);
+      save();
+    };
+    const nameInp = document.createElement('input');
+    nameInp.type = 'text'; nameInp.value = sh.name;
+    nameInp.oninput = () => { sh.name = nameInp.value; hud(); save(); };
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    const pCount = sh.pointIds.length;
+    const lock = sh.locked ? '🔒' : '';
+    const pend = sh.pendulum ? '🎯' : '';
+    tag.textContent = `${sh.type}·${pCount}т ${lock}${pend}`;
+    const focusBtn = document.createElement('button');
+    focusBtn.textContent = '◎';
+    focusBtn.onclick = () => {
+      state.selectedShapes.clear();
+      state.selectedShapes.add(sh.id);
+      refreshSelection(); shapesModal.classList.remove('show');
+    };
+    row.appendChild(color); row.appendChild(nameInp);
+    row.appendChild(tag); row.appendChild(focusBtn);
+    list.appendChild(row);
+  });
+}
+
+/* ================= JSON ================= */
+const jsonEl = document.getElementById('json');
+const jsonbar = document.getElementById('jsonbar');
+
+function serializeScene(s){
+  const usedIds = new Set();
+  const shapes = s.shapes.map(sh => {
+    sh.pointIds.forEach(id => usedIds.add(id));
+    const points = sh.pointIds.map((id, i) => {
+      const p = s.points.find(x => x.id === id);
+      return {
+        role: roleFor(sh.type, i), id: p.id,
+        x: +p.mesh.position.x.toFixed(4),
+        y: +p.mesh.position.y.toFixed(4),
+        z: +p.mesh.position.z.toFixed(4)
+      };
+    });
+    return {
+      id: sh.id, name: sh.name, type: sh.type,
+      color: '#' + sh.color.toString(16).padStart(6,'0'),
+      locked: !!sh.locked, points,
+      pendulum: sh.pendulum ? {
+        axis: sh.pendulum.axis.toArray().map(v => +v.toFixed(2)),
+        amplitude: +sh.pendulum.amplitude.toFixed(3),
+        speed: +sh.pendulum.speed.toFixed(3),
+        phase: +sh.pendulum.phase.toFixed(3)
+      } : null
+    };
+  });
+  const freePoints = s.points
+    .filter(p => !usedIds.has(p.id))
+    .map(p => ({
+      id: p.id,
+      x: +p.mesh.position.x.toFixed(4),
+      y: +p.mesh.position.y.toFixed(4),
+      z: +p.mesh.position.z.toFixed(4)
+    }));
+  return { name: s.name, shapes, freePoints };
+}
+function serializeAll(){
+  return {
+    v: 4, type: 'all', current: state.currentSceneId,
+    axisConvention: { x: 'right+', y: 'up+', z: 'forward+' },
+    scenes: state.scenes.map(s => ({ id: s.id, ...serializeScene(s) }))
+  };
+}
+function serializeCurrentScene(){
+  const s = cs();
+  return { v: 4, type: 'scene', ...serializeScene(s),
+    axisConvention: { x: 'right+', y: 'up+', z: 'forward+' } };
+}
+
+function deserializeSceneInto(target, data){
+  if (data.v === 1 || data.v === 2) data = migrateV1toV2(data);
+  for (const p of target.points){
+    target.group.remove(p.mesh);
+    if (p._ring) target.group.remove(p._ring);
+  }
+  for (const sh of target.shapes){
+    if (sh.mesh) target.group.remove(sh.mesh);
+    if (sh._anchorMark) target.group.remove(sh._anchorMark);
+  }
+  target.points = []; target.shapes = [];
+  target.nextLocalId = 1;
+  if (data.name) target.name = data.name;
+
+  (data.shapes || []).forEach(sd => {
+    const colorInt = typeof sd.color === 'string'
+      ? parseInt(sd.color.replace('#',''), 16) : (sd.color || 0x66aaff);
+    const pointIds = [];
+    (sd.points || []).forEach(pd => {
+      const mesh = new THREE.Mesh(POINT_GEO_NORMAL, makePointMat(null));
+      mesh.position.set(pd.x, pd.y, pd.z);
+      mesh.userData.pointId = pd.id;
+      target.group.add(mesh);
+      target.points.push({ id: pd.id, mesh });
+      pointIds.push(pd.id);
+      target.nextLocalId = Math.max(target.nextLocalId, pd.id + 1);
+    });
+    const shape = {
+      id: sd.id, name: sd.name, type: sd.type,
+      pointIds, locked: !!sd.locked,
+      color: colorInt, mesh: null, pendulum: null
+    };
+    target.shapes.push(shape);
+    target.nextLocalId = Math.max(target.nextLocalId, sd.id + 1);
+  });
+  (data.freePoints || []).forEach(pd => {
+    const mesh = new THREE.Mesh(POINT_GEO_NORMAL, makePointMat(null));
+    mesh.position.set(pd.x, pd.y, pd.z);
+    mesh.userData.pointId = pd.id;
+    target.group.add(mesh);
+    target.points.push({ id: pd.id, mesh });
+    target.nextLocalId = Math.max(target.nextLocalId, pd.id + 1);
+  });
+
+  const oldCurrent = state.currentSceneId;
+  state.currentSceneId = target.id;
+  target.shapes.forEach(sh => rebuildShape(sh));
+
+  (data.shapes || []).forEach(sd => {
+    if (!sd.pendulum) return;
+    const sh = target.shapes.find(x => x.id === sd.id);
+    if (!sh) return;
+    const pts = sh.pointIds.map(id => getPoint(id).mesh.position);
+    const anchor = centroidOf(pts);
+    const baseOffsets = {};
+    sh.pointIds.forEach(id => {
+      const p = getPoint(id);
+      baseOffsets[id] = p.mesh.position.clone().sub(anchor);
+    });
+    sh.pendulum = {
+      anchor, baseOffsets,
+      groupOffset: sh.mesh.position.clone().sub(anchor),
+      axis: new THREE.Vector3(...(sd.pendulum.axis || [1,0,0])),
+      amplitude: sd.pendulum.amplitude ?? 0.75,
+      speed: sd.pendulum.speed ?? 1.2,
+      phase: sd.pendulum.phase ?? 0
+    };
+    sh.locked = true;
+    const g = new THREE.Group();
+    const m = new THREE.MeshBasicMaterial({color:0xbb66ff});
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.02), m));
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.02,0.5,0.02), m));
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.02,0.02,0.5), m));
+    g.position.copy(anchor);
+    sh._anchorMark = g;
+    target.group.add(g);
+  });
+
+  state.currentSceneId = oldCurrent;
+  refreshPointVisuals();
+}
+function migrateV1toV2(data){
+  const used = new Set();
+  const shapes = (data.shapes || []).map(s => {
+    const pts = (s.pointIds || []).map(id => {
+      const p = (data.points || []).find(x => x.id === id);
+      if (!p) return null;
+      used.add(id);
+      return { id: p.id, x: p.x, y: p.y, z: p.z };
+    }).filter(Boolean);
+    return {
+      id: s.id, name: s.name, type: s.type,
+      color: '#' + (s.color || 0x66aaff).toString(16).padStart(6,'0'),
+      locked: !!s.locked, points: pts, pendulum: null
+    };
+  });
+  const freePoints = (data.points || [])
+    .filter(p => !used.has(p.id))
+    .map(p => ({ id: p.id, x: p.x, y: p.y, z: p.z }));
+  return { name: data.name, shapes, freePoints };
+}
+function deserializeAll(data){
+  state.scenes.forEach(s => {
+    threeScene.remove(s.group);
+    s.group.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
+  });
+  state.scenes = []; state.nextSceneId = 1;
+  state.selectedPoints.clear(); state.selectedShapes.clear();
+  (data.scenes || []).forEach(sd => {
+    const s = newScene(sd.name || ('сцена-' + state.scenes.length));
+    deserializeSceneInto(s, sd);
+    s.id = sd.id || s.id;
+    state.nextSceneId = Math.max(state.nextSceneId, s.id + 1);
+  });
+  if (!state.scenes.length) newScene();
+  const cur = data.current && state.scenes.find(x => x.id === data.current);
+  switchScene(cur ? cur.id : state.scenes[0].id);
+  refreshSceneBtn();
+}
+function showJSON(exporting){
+  if (exporting){
+    const data = serializeCurrentScene();
+    const txt = JSON.stringify(data, null, 2);
+    jsonEl.value = txt;
+    try { navigator.clipboard.writeText(txt); hud('сцена в буфер'); }
+    catch(e){ hud('нажми 📋 Копировать'); }
+  } else { jsonEl.value = ''; jsonEl.placeholder = 'Вставь JSON...'; }
+  jsonEl.classList.add('show'); jsonbar.classList.add('show');
+}
+document.getElementById('copyAll').onclick = async () => {
+  jsonEl.focus(); jsonEl.select();
+  try { await navigator.clipboard.writeText(jsonEl.value); hud('скопировано ✓'); }
+  catch(e){
+    try { document.execCommand('copy'); hud('скопировано ✓'); }
+    catch(e2){ hud('выдели вручную'); }
+  }
+};
+document.getElementById('applyJson').onclick = () => {
+  const txt = jsonEl.value.trim(); if (!txt) return hud('пусто');
+  try {
+    const data = JSON.parse(txt);
+    if (data.type === 'all' || (data.scenes && Array.isArray(data.scenes)))
+      deserializeAll(data);
+    else { deserializeSceneInto(cs(), data); refreshSceneBtn(); refreshSelection(); }
+    hud('загружено');
+  } catch(e){ hud('ошибка: ' + e.message); }
+};
+document.getElementById('closeJson').onclick = () => {
+  jsonEl.classList.remove('show'); jsonbar.classList.remove('show');
+};
+
+/* ================= HUD ================= */
+const hudEl = document.getElementById('hud');
+let hudMsg = '';
+
+function describe(p){
+  const parts = [];
+  const fmt = v => Math.abs(v).toFixed(2);
+  if (Math.abs(p.x) > 0.01) parts.push(fmt(p.x) + 'м ' + (p.x>0?'вправо':'влево'));
+  if (Math.abs(p.y) > 0.01) parts.push(fmt(p.y) + 'м ' + (p.y>0?'вверх':'вниз'));
+  if (Math.abs(p.z) > 0.01) parts.push(fmt(p.z) + 'м ' + (p.z>0?'вперёд':'назад'));
+  return parts.length ? parts.join(', ') : 'в нуле';
+}
+
+function hud(msg){
+  if (msg) hudMsg = msg;
+  const s = cs();
+  const sceneName = s ? s.name : '—';
+  const shapeList = s ? s.shapes.map(sh => {
+    const tag = sh.pendulum ? '🎯' : (sh.locked ? '🔒' : '·');
+    return `${tag}${sh.name}`;
+  }).join('  ') : '';
+  let coords = '';
+  if (state.selectedPoints.size && s){
+    const ids = [...state.selectedPoints].slice(0, 2);
+    coords = ids.map(id => {
+      const p = s.points.find(x => x.id === id);
+      if (!p) return '';
+      const v = p.mesh.position;
+      return `• точка ${id}\n   X${v.x>=0?'+':''}${v.x.toFixed(2)}  Y${v.y>=0?'+':''}${v.y.toFixed(2)}  Z${v.z>=0?'+':''}${v.z.toFixed(2)}\n   ${describe(v)}`;
+    }).join('\n');
+    if (state.selectedPoints.size > 2) coords += `\n…ещё ${state.selectedPoints.size-2}`;
+  }
+  const dragName = {ground:'⬛ вперёд/вбок', vertical:'↕ вверх/вниз', screen:'🖐 экран'}[state.dragMode];
+  hudEl.textContent =
+    `🎬 ${sceneName}  ·  точек:${s?s.points.length:0}  фигур:${s?s.shapes.length:0}\n` +
+    `ось маятника:${state.axisName}  режим:${dragName}` +
+    (state.paused ? '  ПАУЗА' : '') +
+    (shapeList ? '\n' + shapeList : '') +
+    `\nвыд: точки ${state.selectedPoints.size}, фигуры ${state.selectedShapes.size}` +
+    (coords ? '\n' + coords : '') +
+    (hudMsg ? '\n' + hudMsg : '');
+}
+
+/* ================= сохранение ================= */
+let saveTimer = null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem('forma.v6', JSON.stringify(serializeAll())); } catch(e){}
+  }, 400);
+}
+function load(){
+  try {
+    const raw = localStorage.getItem('forma.v6');
+    if (raw){ deserializeAll(JSON.parse(raw)); return; }
+    const v5 = localStorage.getItem('forma.v5');
+    if (v5){ deserializeAll(JSON.parse(v5)); return; }
+  } catch(e){}
+  const s = newScene('сцена-1');
+  switchScene(s.id);
+}
+
+/* ================= анимация ================= */
+const clock = new THREE.Clock();
+const tmpQ = new THREE.Quaternion();
+const tmpV = new THREE.Vector3();
+
+function animate(){
+  const t = clock.getElapsedTime();
+  for (const s of state.scenes){
+    if (!s.group.visible) continue;
+    for (const sh of s.shapes){
+      const pl = sh.pendulum;
+      if (!pl || !sh.mesh) continue;
+      const angle = state.paused ? 0 : Math.sin(t * pl.speed + pl.phase) * pl.amplitude;
+      tmpQ.setFromAxisAngle(pl.axis, angle);
+      tmpV.copy(pl.groupOffset).applyQuaternion(tmpQ);
+      sh.mesh.position.copy(pl.anchor).add(tmpV);
+      sh.mesh.quaternion.copy(tmpQ);
+      for (const pid of sh.pointIds){
+        const p = s.points.find(x => x.id === pid);
+        if (!p) continue;
+        tmpV.copy(pl.baseOffsets[pid]).applyQuaternion(tmpQ);
+        p.mesh.position.copy(pl.anchor).add(tmpV);
+        if (p._ring) p._ring.position.copy(p.mesh.position);
+      }
+    }
+    for (const p of s.points){
+      if (p._ring && p._ring.visible) p._ring.lookAt(camera.position);
+    }
+  }
+  controls.update();
+  renderer.render(threeScene, camera);
+  requestAnimationFrame(animate);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+load();
+refreshSceneBtn();
+hud('готов · ты в нуле · X→ право, Y↑ верх, Z↗ вперёд');
+animate();
+</script>
+</body>
+</html>
