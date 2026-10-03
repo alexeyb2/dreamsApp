@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>сакральная геометрия · тело v2</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
+    font-family:system-ui,-apple-system,sans-serif;}
+  canvas{display:block;touch-action:none;}
+  #hud{position:fixed;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.75);
+    padding:8px 10px;border-radius:8px;z-index:10;line-height:1.6;
+    font-family:ui-monospace,monospace;max-width:90%;pointer-events:none;white-space:pre;}
+  #ui{position:fixed;bottom:0;left:0;right:0;padding:6px;
+    display:flex;flex-wrap:wrap;gap:4px;z-index:10;justify-content:center;
+    background:linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,.2));}
+  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:8px;
+    padding:8px 10px;font-size:13px;touch-action:manipulation;font-weight:bold;}
+  #ui button:active{background:#2a2a4a;}
+  #ui button.on{background:#3a2a5a;border-color:#a67cff;color:#fff;
+    box-shadow:0 0 8px #a67cff88;}
+  #ui button.breath{background:#1a3a1a;border-color:#4a6;}
+  #ui button.breath.off{background:#3a1a1a;border-color:#a44;}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#0a0a0f;z-index:100;font-size:16px;color:#a67cff;}
+  #load.hidden{display:none;}
+</style>
+</head>
+<body>
+<div id="load">загружаю тело…</div>
+<div id="hud">готов</div>
+<div id="ui"></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+/* ================= сцена ================= */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+scene.fog = new THREE.Fog(0x0a0a0f, 15, 45);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(3.5, 2.2, 4.5);
+camera.lookAt(0, 1, 0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.target.set(0, 1, 0);
+controls.minDistance = 1;
+controls.maxDistance = 20;
+
+/* ================= свет ================= */
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.0));
+const key = new THREE.DirectionalLight(0xffffff, 1.2);
+key.position.set(5, 8, 6);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0x6688ff, 0.6);
+fill.position.set(-5, 3, -6);
+scene.add(fill);
+
+/* ================= сетка и оси ================= */
+const grid = new THREE.GridHelper(20, 40, 0x334455, 0x151a22);
+grid.material.opacity = 0.5;
+grid.material.transparent = true;
+scene.add(grid);
+const axes = new THREE.AxesHelper(1.5);
+axes.position.y = 0.01;
+scene.add(axes);
+
+/* ================= состояние ================= */
+const state = {
+  model: null,
+  skeletonHelper: null,
+  bones: {},
+  // группы геометрии
+  upperTetra: null,
+  lowerTetra: null,
+  upperCircle: null,
+  lowerCircle: null,
+  sphereBelly: null,
+  sphereHips: null,
+  rays: [],
+  grabPoints: [],
+  markers: [],
+  // флаги
+  showSkeleton: true,
+  showUpperTetra: true,
+  showLowerTetra: true,
+  showCircles: true,
+  showSphereBelly: true,
+  showSphereHips: true,
+  showRays: true,
+  breathing: false,
+  breathPhase: 0,
+  breathSpeed: 1.5,
+  baseRadius: 0.55,
+  radiusRange: 0.3
+};
+
+/* ================= загрузка Xbot ================= */
+const loader = new GLTFLoader();
+const MODEL_URL = 'https://threejs.org/examples/models/gltf/Xbot.glb';
+
+loader.load(MODEL_URL, (gltf) => {
+  const model = gltf.scene;
+  model.traverse(o => {
+    if (o.isMesh){
+      if (o.material){
+        o.material.transparent = true;
+        o.material.opacity = 0.85;
+      }
+    }
+  });
+  scene.add(model);
+  state.model = model;
+
+  // скелет
+  const skinned = [];
+  model.traverse(o => { if (o.isSkinnedMesh) skinned.push(o); });
+  if (skinned.length){
+    const helper = new THREE.SkeletonHelper(model);
+    helper.material.depthTest = false;
+    helper.renderOrder = 1;
+    scene.add(helper);
+    state.skeletonHelper = helper;
+  }
+
+  // кости
+  const boneList = [];
+  model.traverse(o => { if (o.isBone) boneList.push(o); });
+  for (const b of boneList){
+    const name = b.name.replace(/^mixamorig:?/i, '').toLowerCase();
+    state.bones[name] = b;
+  }
+
+  buildGeometry();
+  document.getElementById('load').classList.add('hidden');
+  hud('тело загружено · костей: ' + boneList.length);
+  refreshUI();
+}, undefined, (err) => {
+  document.getElementById('load').textContent = 'ошибка: ' + err.message;
+});
+
+/* ================= хелперы ================= */
+function getBoneWorld(name){
+  const b = state.bones[name];
+  if (!b) return null;
+  const v = new THREE.Vector3();
+  b.getWorldPosition(v);
+  return v;
+}
+
+function makeCircle(radius, y, color, segments = 72){
+  const pts = [];
+  for (let i = 0; i <= segments; i++){
+    const a = i / segments * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * radius, y, Math.sin(a) * radius));
+  }
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  return new THREE.Line(g, new THREE.LineBasicMaterial({
+    color, transparent: true, opacity: 0.65
+  }));
+}
+
+function makeTetra(basePts, apex, color){
+  // грани
+  const verts = [...basePts, apex];
+  const faces = [[0,1,2],[0,1,3],[1,2,3],[2,0,3]];
+  const pos = [];
+  for (const f of faces){
+    for (const i of f) pos.push(verts[i].x, verts[i].y, verts[i].z);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.computeVertexNormals();
+
+  const group = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({
+    color, transparent: true, opacity: 0.12,
+    side: THREE.DoubleSide, emissive: color, emissiveIntensity: 0.25,
+    depthWrite: false
+  });
+  group.add(new THREE.Mesh(geo, mat));
+
+  // рёбра
+  const edges = [[0,1],[1,2],[2,0],[0,3],[1,3],[2,3]];
+  const ep = [];
+  for (const [a,b] of edges){
+    ep.push(verts[a].x, verts[a].y, verts[a].z);
+    ep.push(verts[b].x, verts[b].y, verts[b].z);
+  }
+  const eg = new THREE.BufferGeometry();
+  eg.setAttribute('position', new THREE.Float32BufferAttribute(ep, 3));
+  group.add(new THREE.LineSegments(eg, new THREE.LineBasicMaterial({
+    color, transparent: true, opacity: 0.85
+  })));
+  return group;
+}
+
+/* ================= построение начальной сцены ================= */
+function buildGeometry(){
+  // ===== стартовая калибровка =====
+  const hips = getBoneWorld('hips') || new THREE.Vector3(0, 0.9, 0);
+  const headTop = getBoneWorld('headtop_end') || new THREE.Vector3(0, 1.7, 0);
+  const bodyHeight = headTop.distanceTo(hips);
+  const baseRadius = bodyHeight * 0.55;
+
+  // ===== две тетры: верхняя (вершина вверх) и нижняя (вершина вниз) =====
+  // верхняя
+  const upperBase = [];
+  for (let i = 0; i < 3; i++){
+    const a = (i / 3) * Math.PI * 2 + Math.PI / 6;
+    upperBase.push(new THREE.Vector3(Math.cos(a) * baseRadius, 0, Math.sin(a) * baseRadius));
+  }
+  state.upperTetra = makeTetra(
+    upperBase,
+    new THREE.Vector3(0, bodyHeight * 1.35, 0),
+    0x66aaff
+  );
+  scene.add(state.upperTetra);
+
+  // нижняя — перевёрнутая, со сдвигом на 60°
+  const lowerBase = [];
+  for (let i = 0; i < 3; i++){
+    const a = (i / 3) * Math.PI * 2 + Math.PI / 6 + Math.PI / 3;
+    lowerBase.push(new THREE.Vector3(
+      Math.cos(a) * baseRadius,
+      bodyHeight * 1.35,
+      Math.sin(a) * baseRadius
+    ));
+  }
+  state.lowerTetra = makeTetra(
+    lowerBase,
+    new THREE.Vector3(0, 0, 0),
+    0xdd66ff
+  );
+  scene.add(state.lowerTetra);
+
+  // ===== два круга =====
+  state.upperCircle = makeCircle(baseRadius, 0.001, 0x88ccff);
+  scene.add(state.upperCircle);
+  state.lowerCircle = makeCircle(baseRadius, bodyHeight * 1.35, 0xdd88ff);
+  scene.add(state.lowerCircle);
+
+  // ===== два шара =====
+  // шар 1: живот, дышит
+  state.sphereBelly = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 32, 24),
+    new THREE.MeshStandardMaterial({
+      color: 0xffaa44, transparent: true, opacity: 0.28,
+      emissive: 0xff6600, emissiveIntensity: 0.5, depthWrite: false
+    })
+  );
+  scene.add(state.sphereBelly);
+
+  // шар 2: копчик → ноги
+  state.sphereHips = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 32, 24),
+    new THREE.MeshStandardMaterial({
+      color: 0x44ff99, transparent: true, opacity: 0.18,
+      emissive: 0x00aa55, emissiveIntensity: 0.4, depthWrite: false,
+      wireframe: false
+    })
+  );
+  scene.add(state.sphereHips);
+
+  // ===== лучи от основания верхней тетры к животу =====
+  for (const r of state.rays) scene.remove(r);
+  state.rays = [];
+  for (let i = 0; i < 3; i++){
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const line = new THREE.Line(g, new THREE.LineBasicMaterial({
+      color: 0xff8844, transparent: true, opacity: 0.55
+    }));
+    line.userData.baseIndex = i;
+    state.rays.push(line);
+    scene.add(line);
+  }
+
+  // ===== маркеры якорных точек =====
+  if (state.markers) state.markers.forEach(m => scene.remove(m));
+  state.markers = [];
+  const addMarker = (pos, color) => {
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.04, 12, 10),
+      new THREE.MeshBasicMaterial({color, depthTest: false})
+    );
+    m.position.copy(pos);
+    m.renderOrder = 2;
+    scene.add(m);
+    state.markers.push(m);
+  };
+  addMarker(hips, 0x00ff88);
+  addMarker(headTop, 0xff4488);
+
+  // ===== точки-«ручки» на полу для таскания =====
+  if (state.grabPoints) state.grabPoints.forEach(g => scene.remove(g));
+  state.grabPoints = [];
+  for (let i = 0; i < 3; i++){
+    const a = (i / 3) * Math.PI * 2 + Math.PI / 6;
+    const gp = new THREE.Mesh(
+      new THREE.SphereGeometry(0.14, 18, 14),
+      new THREE.MeshStandardMaterial({
+        color: 0x88ff88, emissive: 0x00aa44, emissiveIntensity: 0.8,
+        transparent: true, opacity: 0.9
+      })
+    );
+    gp.userData.isGrab = true;
+    gp.userData.baseAngle = a;
+    gp.userData.baseRadius = baseRadius;
+    gp.renderOrder = 3;
+    scene.add(gp);
+    state.grabPoints.push(gp);
+  }
+}
+
+/* ================= обновление геометрии ================= */
+function updateGeometry(){
+  if (!state.model) return;
+
+  const hips = getBoneWorld('hips') || getBoneWorld('pelvis');
+  const headTop = getBoneWorld('headtop_end') || getBoneWorld('head');
+  const spine2 = getBoneWorld('spine2') || getBoneWorld('spine1');
+  const lFoot = getBoneWorld('leftfoot') || getBoneWorld('lefttoebase');
+  const rFoot = getBoneWorld('rightfoot') || getBoneWorld('righttoebase');
+  if (!hips || !headTop) return;
+
+  const belly = spine2
+    ? hips.clone().lerp(spine2, 0.6)
+    : hips.clone().lerp(headTop, 0.5);
+
+  const feet = (lFoot && rFoot)
+    ? lFoot.clone().add(rFoot).multiplyScalar(0.5)
+    : new THREE.Vector3(hips.x, 0, hips.z);
+
+  const bodyHeight = headTop.distanceTo(hips);
+  const baseRadius = bodyHeight * 0.55;
+  const apexHeight = bodyHeight * 1.35;
+  const modelPos = state.model.position;
+
+  /* ===== тетраэдры ===== */
+  // верхняя
+  const upperBasePts = [];
+  for (let i = 0; i < 3; i++){
+    const a = (i / 3) * Math.PI * 2 + Math.PI / 6;
+    upperBasePts.push(new THREE.Vector3(
+      modelPos.x + Math.cos(a) * baseRadius,
+      0,
+      modelPos.z + Math.sin(a) * baseRadius
+    ));
+  }
+  const upperApex = new THREE.Vector3(modelPos.x, apexHeight, modelPos.z);
+  rebuildTetra(state.upperTetra, upperBasePts, upperApex);
+
+  // нижняя — перевёрнутая
+  const lowerBasePts = [];
+  for (let i = 0; i < 3; i++){
+    const a = (i / 3) * Math.PI * 2 + Math.PI / 6 + Math.PI / 3;
+    lowerBasePts.push(new THREE.Vector3(
+      modelPos.x + Math.cos(a) * baseRadius,
+      apexHeight,
+      modelPos.z + Math.sin(a) * baseRadius
+    ));
+  }
+  const lowerApex = new THREE.Vector3(modelPos.x, 0, modelPos.z);
+  rebuildTetra(state.lowerTetra, lowerBasePts, lowerApex);
+
+  /* ===== круги ===== */
+  rebuildCircle(state.upperCircle, baseRadius, 0.002, modelPos.x, modelPos.z);
+  rebuildCircle(state.lowerCircle, baseRadius, apexHeight, modelPos.x, modelPos.z);
+
+  /* ===== шары ===== */
+  // шар 1: живот — дышит
+  let rBelly = state.baseRadius;
+  if (state.breathing) rBelly += Math.sin(state.breathPhase) * state.radiusRange;
+  state.sphereBelly.position.copy(belly);
+  state.sphereBelly.scale.setScalar(rBelly);
+
+  // шар 2: копчик → ноги
+  const rHips = hips.distanceTo(feet);
+  state.sphereHips.position.copy(hips);
+  state.sphereHips.scale.setScalar(Math.max(rHips, 0.1));
+
+  /* ===== лучи ===== */
+  if (state.rays.length === 3){
+    for (const line of state.rays){
+      const i = line.userData.baseIndex;
+      const a = (i / 3) * Math.PI * 2 + Math.PI / 6;
+      const bp = new THREE.Vector3(
+        modelPos.x + Math.cos(a) * baseRadius, 0,
+        modelPos.z + Math.sin(a) * baseRadius
+      );
+      const arr = line.geometry.attributes.position.array;
+      arr[0] = bp.x; arr[1] = bp.y; arr[2] = bp.z;
+      arr[3] = belly.x; arr[4] = belly.y; arr[5] = belly.z;
+      line.geometry.attributes.position.needsUpdate = true;
+    }
+  }
+
+  /* ===== маркеры якорей ===== */
+  if (state.markers.length >= 2){
+    state.markers[0].position.copy(hips);
+    state.markers[1].position.copy(headTop);
+  }
+
+  /* ===== точки-ручки ===== */
+  for (const gp of state.grabPoints){
+    const a = gp.userData.baseAngle;
+    const r = gp.userData.baseRadius;
+    gp.position.set(
+      modelPos.x + Math.cos(a) * r,
+      0,
+      modelPos.z + Math.sin(a) * r
+    );
+  }
+}
+
+function rebuildTetra(group, basePts, apex){
+  if (!group) return;
+  const verts = [...basePts, apex];
+  // грани
+  const faces = [[0,1,2],[0,1,3],[1,2,3],[2,0,3]];
+  const pos = [];
+  for (const f of faces){
+    for (const i of f) pos.push(verts[i].x, verts[i].y, verts[i].z);
+  }
+  const mesh = group.children[0];
+  if (mesh && mesh.geometry){
+    mesh.geometry.setAttribute('position',
+      new THREE.Float32BufferAttribute(pos, 3));
+    mesh.geometry.computeVertexNormals();
+  }
+  // рёбра
+  const edges = [[0,1],[1,2],[2,0],[0,3],[1,3],[2,3]];
+  const ep = [];
+  for (const [a,b] of edges){
+    ep.push(verts[a].x, verts[a].y, verts[a].z);
+    ep.push(verts[b].x, verts[b].y, verts[b].z);
+  }
+  const edgeMesh = group.children[1];
+  if (edgeMesh && edgeMesh.geometry){
+    edgeMesh.geometry.setAttribute('position',
+      new THREE.Float32BufferAttribute(ep, 3));
+  }
+}
+
+function rebuildCircle(line, radius, y, cx, cz){
+  if (!line) return;
+  const pts = [];
+  const seg = 72;
+  for (let i = 0; i <= seg; i++){
+    const a = i / seg * Math.PI * 2;
+    pts.push(new THREE.Vector3(cx + Math.cos(a) * radius, y, cz + Math.sin(a) * radius));
+  }
+  line.geometry.setFromPoints(pts);
+}
+
+/* ================= перетаскивание тела ================= */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+let dragging = false;
+let dragStartPointer = new THREE.Vector3();
+let dragStartModelPos = new THREE.Vector3();
+
+function setPointer(e){
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+}
+
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (e.target !== renderer.domElement) return;
+  setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(state.grabPoints, false);
+  if (!hits.length) return;
+
+  // плоскость на y=0
+  dragPlane.set(new THREE.Vector3(0, 1, 0), 0);
+  const hit = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(dragPlane, hit)) return;
+
+  dragging = true;
+  controls.enabled = false;
+  dragStartPointer.copy(hit);
+  dragStartModelPos.copy(state.model.position);
+  e.preventDefault();
+}, true);
+
+renderer.domElement.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(dragPlane, hit)) return;
+  const delta = hit.clone().sub(dragStartPointer);
+  state.model.position.x = dragStartModelPos.x + delta.x;
+  state.model.position.z = dragStartModelPos.z + delta.z;
+  hud('сдвиг тела: x=' + state.model.position.x.toFixed(2) +
+      '  z=' + state.model.position.z.toFixed(2));
+  e.preventDefault();
+}, {passive:false});
+
+function endDrag(){
+  if (dragging){
+    dragging = false;
+    controls.enabled = true;
+  }
+}
+renderer.domElement.addEventListener('pointerup', endDrag);
+renderer.domElement.addEventListener('pointercancel', endDrag);
+
+/* ================= UI ================= */
+const ui = document.getElementById('ui');
+function btn(label, fn, cls){
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.onclick = fn;
+  ui.appendChild(b);
+  return b;
+}
+
+let btnSkel, btnUp, btnLow, btnCircle, btnBel, btnHips, btnRays, btnBreath;
+
+btnSkel   = btn('🦴 скелет', () => {
+  state.showSkeleton = !state.showSkeleton;
+  if (state.skeletonHelper) state.skeletonHelper.visible = state.showSkeleton;
+  refreshUI();
+}, 'on');
+
+btnUp     = btn('▲ верх', () => {
+  state.showUpperTetra = !state.showUpperTetra;
+  if (state.upperTetra) state.upperTetra.visible = state.showUpperTetra;
+  refreshUI();
+}, 'on');
+
+btnLow    = btn('▼ низ', () => {
+  state.showLowerTetra = !state.showLowerTetra;
+  if (state.lowerTetra) state.lowerTetra.visible = state.showLowerTetra;
+  refreshUI();
+}, 'on');
+
+btnCircle = btn('◯ круги', () => {
+  state.showCircles = !state.showCircles;
+  if (state.upperCircle) state.upperCircle.visible = state.showCircles;
+  if (state.lowerCircle) state.lowerCircle.visible = state.showCircles;
+  refreshUI();
+}, 'on');
+
+btnBel    = btn('🟠 живот', () => {
+  state.showSphereBelly = !state.showSphereBelly;
+  if (state.sphereBelly) state.sphereBelly.visible = state.showSphereBelly;
+  refreshUI();
+}, 'on');
+
+btnHips   = btn('🟢 копчик', () => {
+  state.showSphereHips = !state.showSphereHips;
+  if (state.sphereHips) state.sphereHips.visible = state.showSphereHips;
+  refreshUI();
+}, 'on');
+
+btnRays   = btn('📡 лучи', () => {
+  state.showRays = !state.showRays;
+  for (const r of state.rays) r.visible = state.showRays;
+  refreshUI();
+}, 'on');
+
+btnBreath = btn('🌬 дыхание', () => {
+  state.breathing = !state.breathing;
+  refreshUI();
+}, 'breath');
+
+btn('🎥 вид', () => {
+  camera.position.set(3.5, 2.2, 4.5);
+  controls.target.set(0, 1, 0);
+  controls.update();
+});
+
+btn('⟲ тело', () => {
+  if (state.model) state.model.position.set(0, 0, 0);
+  hud('тело в центре');
+});
+
+function refreshUI(){
+  btnSkel.classList.toggle('on', state.showSkeleton);
+  btnUp.classList.toggle('on', state.showUpperTetra);
+  btnLow.classList.toggle('on', state.showLowerTetra);
+  btnCircle.classList.toggle('on', state.showCircles);
+  btnBel.classList.toggle('on', state.showSphereBelly);
+  btnHips.classList.toggle('on', state.showSphereHips);
+  btnRays.classList.toggle('on', state.showRays);
+  btnBreath.classList.toggle('off', state.breathing);
+  btnBreath.textContent = state.breathing ? '⏸ дыхание' : '🌬 дыхание';
+}
+
+/* ================= HUD ================= */
+const hudEl = document.getElementById('hud');
+function hud(msg){
+  hudEl.textContent = msg;
+}
+
+/* ================= анимация ================= */
+const clock = new THREE.Clock();
+
+function animate(){
+  const dt = clock.getDelta();
+
+  if (state.breathing){
+    state.breathPhase += dt * state.breathSpeed * Math.PI * 2;
+  }
+
+  updateGeometry();
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+refreshUI();
+hud('готов · загружаю Xbot…');
+animate();
+</script>
+</body>
+</html>
