@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>марионетка · X-крест</title>
+<title>марионетка · Xbot</title>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
@@ -11,7 +11,7 @@
   canvas{display:block;touch-action:none;}
   #hud{position:fixed;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.78);
     padding:8px 10px;border-radius:8px;z-index:10;line-height:1.5;
-    font-family:ui-monospace,monospace;pointer-events:none;color:#8cf;}
+    font-family:ui-monospace,monospace;pointer-events:none;color:#8cf;max-width:80%;}
   #err{position:fixed;top:8px;left:8px;right:8px;font-size:12px;
     background:rgba(80,10,10,.95);padding:10px;border-radius:8px;z-index:20;
     font-family:ui-monospace,monospace;color:#fdd;display:none;white-space:pre-wrap;}
@@ -29,7 +29,7 @@
 </style>
 </head>
 <body>
-<div id="load">собираю марионетку…</div>
+<div id="load">загружаю тело…</div>
 <div id="hud">старт</div>
 <div id="err"></div>
 <div id="ui"></div>
@@ -60,17 +60,18 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 try {
 
 /* ================= сцена ================= */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a0f);
-scene.fog = new THREE.Fog(0x0a0a0f, 12, 40);
+scene.fog = new THREE.Fog(0x0a0a0f, 12, 45);
 
 const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.05, 100);
-camera.position.set(3.0, 2.5, 4.5);
-camera.lookAt(0, 1.5, 0);
+camera.position.set(3.5, 2.5, 5.0);
+camera.lookAt(0, 1.2, 0);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -80,9 +81,9 @@ document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.1;
-controls.target.set(0, 1.5, 0);
+controls.target.set(0, 1.2, 0);
 controls.minDistance = 0.5;
-controls.maxDistance = 20;
+controls.maxDistance = 25;
 
 /* ================= свет ================= */
 scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.1));
@@ -97,151 +98,82 @@ grid.material.opacity = 0.55;
 grid.material.transparent = true;
 scene.add(grid);
 
-/* ================= материалы ================= */
-const MAT_BODY   = new THREE.MeshStandardMaterial({color:0xc98b5a, roughness:0.6, metalness:0.1});
-const MAT_JOINT  = new THREE.MeshStandardMaterial({color:0x8b5a3a, roughness:0.5});
-const MAT_HEAD   = new THREE.MeshStandardMaterial({color:0xd8a070, roughness:0.5});
-const MAT_HAND   = new THREE.MeshStandardMaterial({color:0xe4b080, roughness:0.5});
-
-/* ================= МАРИОНЕТКА =================
-   Иерархия Object3D. Каждая кость — пустой контейнер
-   с визуальным мешем-цилиндром. Ребёнок на позиции
-   (0, -length, 0) от родителя.
-=============================================== */
-const puppet = new THREE.Group();
-scene.add(puppet);
-
-function makeLimb(parent, len, radius, mat){
-  // контейнер кости
-  const bone = new THREE.Group();
-  parent.add(bone);
-  // визуальный цилиндр от 0 до -len по Y
-  const mesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius*0.9, len, 10),
-    mat
-  );
-  mesh.position.y = -len / 2;
-  bone.add(mesh);
-  // сустав-шарик в начале
-  const joint = new THREE.Mesh(new THREE.SphereGeometry(radius*1.15, 12, 10), MAT_JOINT);
-  joint.position.y = 0;
-  bone.add(joint);
-  // сохранить длину
-  bone.userData.length = len;
-  return bone;
-}
-
-function makeEnd(parent, radius, mat){
-  const bone = new THREE.Group();
-  parent.add(bone);
-  const s = new THREE.Mesh(new THREE.SphereGeometry(radius, 14, 10), mat);
-  bone.add(s);
-  bone.userData.length = 0;
-  return bone;
-}
-
-/* позвоночник */
-const hips   = new THREE.Group(); puppet.add(hips);
-hips.position.set(0, 1.00, 0);
-const hipsBall = new THREE.Mesh(new THREE.SphereGeometry(0.10, 14, 10), MAT_JOINT);
-hips.add(hipsBall);
-
-const chest  = makeLimb(hips, 0.45, 0.09, MAT_BODY);
-chest.position.set(0, 0.10, 0);
-
-const neck   = makeLimb(chest, 0.14, 0.04, MAT_BODY);
-neck.position.set(0, -0.45, 0);
-
-const head   = new THREE.Group(); neck.add(head);
-head.position.set(0, -0.14, 0);
-const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.11, 18, 14), MAT_HEAD);
-headMesh.position.y = -0.11;
-head.add(headMesh);
-head.userData.length = 0.11;
-
-/* руки — в rest висят вниз */
-const lShoulder = new THREE.Group(); chest.add(lShoulder);
-lShoulder.position.set(-0.16, -0.05, 0);
-const lArm      = makeLimb(lShoulder, 0.26, 0.045, MAT_BODY);
-const lForearm  = makeLimb(lArm, 0.24, 0.040, MAT_BODY);
-lForearm.position.set(0, -0.26, 0);
-const lHand     = makeEnd(lForearm, 0.045, MAT_HAND);
-lHand.position.set(0, -0.24, 0);
-
-const rShoulder = new THREE.Group(); chest.add(rShoulder);
-rShoulder.position.set(0.16, -0.05, 0);
-const rArm      = makeLimb(rShoulder, 0.26, 0.045, MAT_BODY);
-const rForearm  = makeLimb(rArm, 0.24, 0.040, MAT_BODY);
-rForearm.position.set(0, -0.26, 0);
-const rHand     = makeEnd(rForearm, 0.045, MAT_HAND);
-rHand.position.set(0, -0.24, 0);
-
-/* ноги */
-const lUpLeg   = makeLimb(hips, 0.44, 0.055, MAT_BODY);
-lUpLeg.position.set(-0.08, -0.05, 0);
-const lLeg     = makeLimb(lUpLeg, 0.42, 0.048, MAT_BODY);
-lLeg.position.set(0, -0.44, 0);
-const lFoot    = makeEnd(lLeg, 0.055, MAT_HAND);
-lFoot.position.set(0, -0.42, 0);
-
-const rUpLeg   = makeLimb(hips, 0.44, 0.055, MAT_BODY);
-rUpLeg.position.set(0.08, -0.05, 0);
-const rLeg     = makeLimb(rUpLeg, 0.42, 0.048, MAT_BODY);
-rLeg.position.set(0, -0.44, 0);
-const rFoot    = makeEnd(rLeg, 0.055, MAT_HAND);
-rFoot.position.set(0, -0.42, 0);
-
-/* сохранить все кости */
-const ALL_BONES = [hips, chest, neck, head,
-                   lShoulder, lArm, lForearm, lHand,
-                   rShoulder, rArm, rForearm, rHand,
-                   lUpLeg, lLeg, lFoot,
-                   rUpLeg, rLeg, rFoot];
-
-/* ================= КРЕСТ X =================
-   Верхние концы X — к кистям рук.
-   Нижние концы X — к стопам.
-   Центр — к голове.
-============================================== */
-const VAGA_CENTER_REST = new THREE.Vector3(0, 2.60, 0);
-const VAGA_HALF = 0.95;
-
+/* ================= состояние ================= */
 const state = {
-  vagaCenter: VAGA_CENTER_REST.clone(),
+  model: null,
+  bones: {},
+  boneList: [],
+  skeletonHelper: null,
+  // вага
+  vagaCenter: new THREE.Vector3(0, 2.60, 0),
   vagaVisual: null,
   vagaHandle: null,
-  // 6 нитей: 2 кисти, 2 стопы, 1 голова, 1 таз
+  // нити
   strings: [],
+  // rest-значения для feet-follow
+  restHipsY: 0,
+  restAvgFeetY: 0,
   // drag
   dragging: null,
   dragMode: null,
   dragPlane: new THREE.Plane(),
   dragOffset: new THREE.Vector3(),
   pointerDown: null,
+  // видимость
   showStrings: true,
   showVaga: true,
-  // силы притяжения по группам
-  kHand: 0.85,
-  kFoot: 0.85,
-  kHead: 0.75,
-  kPelvis: 0.5
+  showSkeleton: false,
+  useFeetFollow: true
 };
 
-/* локальные смещения точки крепления от центра ваги */
-const STRING_SPECS = [
-  // кисти — на верхних концах X (передние)
-  { key:'кисть Л', bone:lHand, local:new THREE.Vector3(-VAGA_HALF,  0.15, -VAGA_HALF), k:'kHand', color:0x88ff88 },
-  { key:'кисть П', bone:rHand, local:new THREE.Vector3( VAGA_HALF,  0.15, -VAGA_HALF), k:'kHand', color:0x88ff88 },
-  // стопы — на нижних концах X (задние)
-  { key:'стопа Л', bone:lFoot, local:new THREE.Vector3(-VAGA_HALF, -0.20,  VAGA_HALF), k:'kFoot', color:0xcc88ff },
-  { key:'стопа П', bone:rFoot, local:new THREE.Vector3( VAGA_HALF, -0.20,  VAGA_HALF), k:'kFoot', color:0xcc88ff },
-  // голова — на вертикальной стойке сверху
-  { key:'голова',  bone:head,  local:new THREE.Vector3( 0,  0.55,  0), k:'kHead',  color:0xffcc44 },
-  // таз — на стойке снизу (под центром)
-  { key:'таз',     bone:hips,  local:new THREE.Vector3( 0, -0.15,  0), k:'kPelvis', color:0xff88cc }
-];
+const VAGA_REST = new THREE.Vector3(0, 2.60, 0);
+const VAGA_HALF = 0.95;
 
-/* ================= построить крест ================= */
+// силы притяжения по группам
+let kHand = 0.85;
+let kFoot = 0.85;
+let kHead = 0.75;
+let kPelvis = 0.55;
+
+// ссылки на кнопки — объявляем ЗАРАНЕЕ
+var btnStrings = null;
+var btnVaga = null;
+var btnSkel = null;
+var btnStrong = null;
+var btnSoft = null;
+var btnFollow = null;
+
+/* ================= helpers ================= */
+function makeLabel(text, color){
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.font = 'bold 26px system-ui,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 32);
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthTest: false, depthWrite: false
+  }));
+  sp.scale.set(0.46, 0.11, 1);
+  return sp;
+}
+
+function bone(name){
+  return state.bones[name.toLowerCase()] || null;
+}
+
+function boneWorld(b){
+  if (!b) return null;
+  b.updateWorldMatrix(true, false);
+  const v = new THREE.Vector3();
+  b.getWorldPosition(v);
+  return v;
+}
+
+/* ================= построить крест X ================= */
 function buildVaga(){
   if (state.vagaVisual) scene.remove(state.vagaVisual);
   const g = new THREE.Group();
@@ -257,7 +189,7 @@ function buildVaga(){
     g.add(new THREE.Line(geo, m));
   }
 
-  // X-крест в горизонтальной плоскости
+  // X-крест
   seg(new THREE.Vector3(-S, 0.15, -S), new THREE.Vector3(S, 0.15, S), mat);
   seg(new THREE.Vector3(-S, 0.15,  S), new THREE.Vector3(S, 0.15, -S), mat);
   // нижний брус между стопами
@@ -265,10 +197,10 @@ function buildVaga(){
   // перемычки
   seg(new THREE.Vector3(-S, 0.15, -S), new THREE.Vector3(-S, -0.20, S), mat);
   seg(new THREE.Vector3( S, 0.15, -S), new THREE.Vector3( S, -0.20, S), mat);
-  // вертикальная стойка вверх к ручке
+  // вертикальная стойка к ручке
   seg(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0.55, 0), matUp);
 
-  // ручка — жёлтый шар в центре
+  // ручка ваги
   state.vagaHandle = new THREE.Mesh(
     new THREE.SphereGeometry(0.14, 22, 16),
     new THREE.MeshStandardMaterial({
@@ -284,30 +216,22 @@ function buildVaga(){
   state.vagaHandle.add(hit);
   scene.add(state.vagaHandle);
 
-  // подпись
   const sp = makeLabel('ВАГА', '#ffcc44');
   sp.position.set(0, 0.80, 0);
   g.add(sp);
 }
 
-function makeLabel(text, color){
-  const c = document.createElement('canvas');
-  c.width = 256; c.height = 64;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = color;
-  ctx.font = 'bold 26px system-ui,sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(text, 128, 32);
-  const tex = new THREE.CanvasTexture(c);
-  tex.anisotropy = 4;
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: tex, transparent: true, depthTest: false, depthWrite: false
-  }));
-  sp.scale.set(0.5, 0.12, 1);
-  return sp;
-}
+/* ================= нити ================= */
+// ссылки на кости — заполнятся при загрузке
+const STRING_SPECS = [
+  { key:'кисть Л', bone:'lefthand',     k:'kHand',   local:new THREE.Vector3(-VAGA_HALF,  0.15, -VAGA_HALF), color:0x88ff88 },
+  { key:'кисть П', bone:'righthand',    k:'kHand',   local:new THREE.Vector3( VAGA_HALF,  0.15, -VAGA_HALF), color:0x88ff88 },
+  { key:'стопа Л', bone:'leftfoot',     k:'kFoot',   local:new THREE.Vector3(-VAGA_HALF, -0.20,  VAGA_HALF), color:0xcc88ff },
+  { key:'стопа П', bone:'rightfoot',    k:'kFoot',   local:new THREE.Vector3( VAGA_HALF, -0.20,  VAGA_HALF), color:0xcc88ff },
+  { key:'голова',  bone:'head',         k:'kHead',   local:new THREE.Vector3(0,  0.55,  0), color:0xffcc44 },
+  { key:'таз',     bone:'hips',         k:'kPelvis', local:new THREE.Vector3(0, -0.15,  0), color:0xff88cc }
+];
 
-/* ================= построить нити ================= */
 function buildStrings(){
   for (const s of state.strings){
     scene.remove(s.mesh); scene.remove(s.line); scene.remove(s.label);
@@ -316,6 +240,8 @@ function buildStrings(){
 
   for (let i = 0; i < STRING_SPECS.length; i++){
     const spec = STRING_SPECS[i];
+    const b = bone(spec.bone);
+    if (!b) continue;
 
     const mesh = new THREE.Mesh(
       new THREE.SphereGeometry(0.07, 18, 12),
@@ -345,7 +271,7 @@ function buildStrings(){
 
     state.strings.push({
       mesh, line, label,
-      bone: spec.bone,
+      boneRef: b,
       local: spec.local.clone(),
       offset: new THREE.Vector3(0, 0, 0),
       kName: spec.k,
@@ -355,7 +281,6 @@ function buildStrings(){
   }
 }
 
-/* ================= мировые позиции точки нити ================= */
 function stringWorldPos(s){
   return new THREE.Vector3(
     state.vagaCenter.x + s.local.x + s.offset.x,
@@ -364,83 +289,101 @@ function stringWorldPos(s){
   );
 }
 
-/* ================= AIM =================
-   Кость "смотрит" осью -Y (в направлении ребёнка) на цель.
-============================================== */
-const tmpV = new THREE.Vector3();
-const tmpV2 = new THREE.Vector3();
-const tmpQ = new THREE.Quaternion();
-const tmpQ2 = new THREE.Quaternion();
+/* ================= AIM ================= */
 const LOCAL_DOWN = new THREE.Vector3(0, -1, 0);
 
-function aimBone(bone, target, k){
-  if (!bone || k <= 0) return;
-  bone.updateWorldMatrix(true, false);
+function aimBone(b, target, k){
+  if (!b) return;
+  b.updateWorldMatrix(true, false);
 
-  // мировая позиция кости
   const bonePos = new THREE.Vector3();
-  bone.getWorldPosition(bonePos);
+  b.getWorldPosition(bonePos);
 
-  // текущее мировое направление "к ребёнку" = локальный -Y
   const boneWorldQ = new THREE.Quaternion();
-  bone.getWorldQuaternion(boneWorldQ);
-  const currentDir = LOCAL_DOWN.clone().applyQuaternion(boneWorldQ).normalize();
+  b.getWorldQuaternion(boneWorldQ);
 
-  // куда хотим: от кости к цели
+  const curDir = LOCAL_DOWN.clone().applyQuaternion(boneWorldQ).normalize();
+
   const toTarget = target.clone().sub(bonePos);
   if (toTarget.lengthSq() < 1e-8) return;
   toTarget.normalize();
 
-  // смешивание
   const kk = Math.max(0, Math.min(1.0, k));
-  const finalDir = currentDir.clone().lerp(toTarget, kk).normalize();
+  const finalDir = curDir.clone().lerp(toTarget, kk).normalize();
 
-  // кватернион поворота
-  const dq = new THREE.Quaternion().setFromUnitVectors(currentDir, finalDir);
-
-  // новая мировая ориентация
+  const dq = new THREE.Quaternion().setFromUnitVectors(curDir, finalDir);
   const newWorldQ = dq.clone().multiply(boneWorldQ);
 
-  // в локальную систему
   const parentQ = new THREE.Quaternion();
-  if (bone.parent) bone.parent.getWorldQuaternion(parentQ);
-  bone.quaternion.copy(parentQ.clone().invert().multiply(newWorldQ));
-  bone.updateWorldMatrix(true, false);
+  if (b.parent) b.parent.getWorldQuaternion(parentQ);
+  b.quaternion.copy(parentQ.clone().invert().multiply(newWorldQ));
+  b.updateWorldMatrix(true, false);
 }
 
 /* ================= обновить всё ================= */
 function updateAll(){
-  // сброс всех костей в rest
-  for (const b of ALL_BONES) b.quaternion.identity();
-  puppet.updateMatrixWorld(true);
+  if (!state.model) return;
 
-  // смещение всей куклы за вагой (hips)
-  const dx = state.vagaCenter.x - VAGA_CENTER_REST.x;
-  const dz = state.vagaCenter.z - VAGA_CENTER_REST.z;
-  puppet.position.set(dx, 0, dz);
+  // 1. Все кости в rest
+  for (const b of state.boneList){
+    if (b.userData.restQuat) b.quaternion.copy(b.userData.restQuat);
+    if (b.userData.restPos) b.position.copy(b.userData.restPos);
+  }
+  state.model.updateMatrixWorld(true);
 
-  // AIM по каждой нити
-  for (const s of state.strings){
-    const k = state[s.kName];
-    aimBone(s.bone, stringWorldPos(s), k);
-    puppet.updateMatrixWorld(true);
+  // 2. Движение ваги — hips смещается вбок/вперёд
+  const hips = bone('hips') || bone('pelvis');
+  if (hips && hips.userData.restPos){
+    const dx = state.vagaCenter.x - VAGA_REST.x;
+    const dz = state.vagaCenter.z - VAGA_REST.z;
+    hips.position.x = hips.userData.restPos.x + dx;
+    hips.position.z = hips.userData.restPos.z + dz;
+  }
+  state.model.updateMatrixWorld(true);
+
+  // 3. Feet-follow: таз поднимается если средняя точка стоп ушла вверх
+  if (state.useFeetFollow){
+    const lf = bone('leftfoot');
+    const rf = bone('rightfoot');
+    if (lf && rf && hips){
+      const lfp = boneWorld(lf);
+      const rfp = boneWorld(rf);
+      const avgY = (lfp.y + rfp.y) / 2;
+      const dy = avgY - state.restAvgFeetY;
+      hips.position.y = hips.userData.restPos.y + dy * 0.5;
+      state.model.updateMatrixWorld(true);
+    }
   }
 
-  // обновить визуал ваги и нитей
-  const off = new THREE.Vector3().subVectors(state.vagaCenter, VAGA_CENTER_REST);
-  if (state.vagaVisual) state.vagaVisual.position.copy(off);
-  if (state.vagaHandle) state.vagaHandle.position.copy(state.vagaCenter);
+  // 4. AIM по каждой нити
+  for (const s of state.strings){
+    const k = state[s.kName] !== undefined ? state[s.kName] : 0.7;
+    aimBone(s.boneRef, stringWorldPos(s), k);
+    state.model.updateMatrixWorld(true);
+  }
 
+  // 5. Визуал ваги
+  const off = new THREE.Vector3().subVectors(state.vagaCenter, VAGA_REST);
+  if (state.vagaVisual){
+    state.vagaVisual.position.copy(off);
+    state.vagaVisual.visible = state.showVaga;
+  }
+  if (state.vagaHandle){
+    state.vagaHandle.position.copy(state.vagaCenter);
+    state.vagaHandle.visible = state.showVaga;
+  }
+
+  // 6. Визуал нитей
   for (const s of state.strings){
     const wpos = stringWorldPos(s);
     s.mesh.position.copy(wpos);
 
-    const bonePos = new THREE.Vector3();
-    s.bone.getWorldPosition(bonePos);
+    const bp = new THREE.Vector3();
+    s.boneRef.getWorldPosition(bp);
 
     const a = s.line.geometry.attributes.position.array;
     a[0] = wpos.x; a[1] = wpos.y; a[2] = wpos.z;
-    a[3] = bonePos.x; a[4] = bonePos.y; a[5] = bonePos.z;
+    a[3] = bp.x;   a[4] = bp.y;   a[5] = bp.z;
     s.line.geometry.attributes.position.needsUpdate = true;
     s.line.visible = state.showStrings;
 
@@ -450,13 +393,90 @@ function updateAll(){
   }
 }
 
-/* ================= старт ================= */
-buildVaga();
-buildStrings();
-updateAll();
-document.getElementById('load').classList.add('hidden');
-window.__hud('готов · тяни ручку ваги или точки нитей');
-refreshUI();
+/* ================= загрузка Xbot ================= */
+const loader = new GLTFLoader();
+const MODEL_URL = 'https://threejs.org/examples/models/gltf/Xbot.glb';
+
+loader.load(MODEL_URL, function(gltf){
+  window.__hud('модель получена · собираю');
+
+  const model = gltf.scene;
+  model.traverse(function(o){
+    if (o.isMesh && o.material){
+      o.material.transparent = true;
+      o.material.opacity = 0.85;
+    }
+  });
+  scene.add(model);
+  state.model = model;
+
+  const skinned = [];
+  model.traverse(function(o){ if (o.isSkinnedMesh) skinned.push(o); });
+  if (skinned.length){
+    const helper = new THREE.SkeletonHelper(model);
+    helper.material.depthTest = false;
+    helper.renderOrder = 1;
+    helper.visible = false;
+    scene.add(helper);
+    state.skeletonHelper = helper;
+  }
+
+  const boneList = [];
+  model.traverse(function(o){
+    if (o.isBone){
+      boneList.push(o);
+      o.userData.restQuat = o.quaternion.clone();
+      o.userData.restPos = o.position.clone();
+      const name = o.name.replace(/^mixamorig:?/i, '').toLowerCase();
+      state.bones[name] = o;
+    }
+  });
+  state.boneList = boneList;
+
+  // Опустить руки вниз (из T-pose в A-pose)
+  const lArm = bone('leftarm');
+  const rArm = bone('rightarm');
+  if (lArm) lArm.rotateZ(-Math.PI * 0.42);
+  if (rArm) rArm.rotateZ(Math.PI * 0.42);
+  // предплечья чуть согнуть
+  const lFore = bone('leftforearm');
+  const rFore = bone('rightforearm');
+  if (lFore) lFore.rotateZ(-Math.PI * 0.08);
+  if (rFore) rFore.rotateZ(Math.PI * 0.08);
+
+  model.updateMatrixWorld(true);
+
+  // сохранить как новый rest (после позы)
+  for (const b of boneList){
+    b.userData.restQuat.copy(b.quaternion);
+    b.userData.restPos.copy(b.position);
+    const wq = new THREE.Quaternion();
+    b.getWorldQuaternion(wq);
+    b.userData.restWorldQuat = wq;
+  }
+
+  // запомнить rest hips и среднюю точку стоп
+  const hips = bone('hips') || bone('pelvis');
+  if (hips) state.restHipsY = hips.position.y;
+  const lf = bone('leftfoot');
+  const rf = bone('rightfoot');
+  if (lf && rf){
+    const lfp = boneWorld(lf);
+    const rfp = boneWorld(rf);
+    state.restAvgFeetY = (lfp.y + rfp.y) / 2;
+  }
+
+  buildVaga();
+  buildStrings();
+  updateAll();
+
+  document.getElementById('load').classList.add('hidden');
+  window.__hud('готов · тяни ручку ваги или нити');
+  refreshUI();
+}, undefined, function(err){
+  window.__err('модель: ' + (err && err.message ? err.message : err));
+  document.getElementById('load').textContent = 'ошибка загрузки';
+});
 
 /* ================= управление ================= */
 const raycaster = new THREE.Raycaster();
@@ -471,7 +491,6 @@ function setPointer(x, y){
 function findHandleAt(x, y){
   setPointer(x, y);
   raycaster.setFromCamera(pointer, camera);
-
   if (state.vagaHandle && state.vagaHandle.visible){
     const hh = raycaster.intersectObject(state.vagaHandle, true);
     if (hh.length){
@@ -480,7 +499,6 @@ function findHandleAt(x, y){
       if (o) return { obj: o, mode: 'vaga' };
     }
   }
-
   const meshes = [];
   for (const s of state.strings) if (s.mesh.visible) meshes.push(s.mesh);
   const hits = raycaster.intersectObjects(meshes, true);
@@ -544,18 +562,23 @@ function endDrag(){
 renderer.domElement.addEventListener('pointerup', endDrag);
 renderer.domElement.addEventListener('pointercancel', endDrag);
 
-/* ================= reset ================= */
+/* ================= сброс ================= */
 function resetAll(){
-  state.vagaCenter.copy(VAGA_CENTER_REST);
+  state.vagaCenter.copy(VAGA_REST);
   for (const s of state.strings) s.offset.set(0, 0, 0);
-  for (const b of ALL_BONES) b.quaternion.identity();
-  puppet.position.set(0, 0, 0);
+  for (const b of state.boneList){
+    if (b.userData.restQuat) b.quaternion.copy(b.userData.restQuat);
+    if (b.userData.restPos) b.position.copy(b.userData.restPos);
+  }
+  state.model.updateMatrixWorld(true);
   updateAll();
 }
 
-/* ================= UI ================= */
+/* ================= UI =================
+   Все кнопки создаются ДО refreshUI().
+========================================== */
 const ui = document.getElementById('ui');
-function btn(label, fn, cls){
+function mkBtn(label, fn, cls){
   const b = document.createElement('button');
   b.textContent = label;
   if (cls) b.className = cls;
@@ -564,36 +587,50 @@ function btn(label, fn, cls){
   return b;
 }
 
-const btnStrings = btn('🪢 нити', function(){
+btnStrings = mkBtn('🪢 нити', function(){
   state.showStrings = !state.showStrings; updateAll(); refreshUI();
 }, 'on');
-const btnVaga = btn('✝ вага', function(){
-  state.showVaga = !state.showVaga;
-  if (state.vagaVisual) state.vagaVisual.visible = state.showVaga;
-  if (state.vagaHandle) state.vagaHandle.visible = state.showVaga;
-  refreshUI();
+
+btnVaga = mkBtn('✝ вага', function(){
+  state.showVaga = !state.showVaga; updateAll(); refreshUI();
 }, 'on');
-const btnStrong = btn('💪 сильно', function(){
-  state.kHand = 1.0; state.kFoot = 1.0; state.kHead = 0.9; state.kPelvis = 0.6;
-  updateAll(); refreshUI();
+
+btnSkel = mkBtn('🦴 скелет', function(){
+  state.showSkeleton = !state.showSkeleton;
+  if (state.skeletonHelper) state.skeletonHelper.visible = state.showSkeleton;
+  refreshUI();
 });
-const btnSoft = btn('🪶 мягко', function(){
-  state.kHand = 0.55; state.kFoot = 0.55; state.kHead = 0.5; state.kPelvis = 0.35;
+
+btnStrong = mkBtn('💪 сильно', function(){
+  kHand = 1.0; kFoot = 1.0; kHead = 0.9; kPelvis = 0.7;
   updateAll(); refreshUI();
 });
 
-btn('⟲ сброс', resetAll, 'reset');
-btn('🎥 вид', function(){
-  camera.position.set(3.0, 2.5, 4.5);
-  controls.target.set(0, 1.5, 0);
+btnSoft = mkBtn('🪶 мягко', function(){
+  kHand = 0.55; kFoot = 0.55; kHead = 0.5; kPelvis = 0.35;
+  updateAll(); refreshUI();
+});
+
+btnFollow = mkBtn('📌 ходит', function(){
+  state.useFeetFollow = !state.useFeetFollow;
+  updateAll(); refreshUI();
+}, 'on');
+
+mkBtn('⟲ сброс', resetAll, 'reset');
+mkBtn('🎥 вид', function(){
+  camera.position.set(3.5, 2.5, 5.0);
+  controls.target.set(0, 1.2, 0);
   controls.update();
 });
 
+/* refreshUI — ПОСЛЕ объявления всех кнопок */
 function refreshUI(){
-  btnStrings.classList.toggle('on', state.showStrings);
-  btnVaga.classList.toggle('on', state.showVaga);
-  btnStrong.classList.toggle('on', state.kHand === 1.0);
-  btnSoft.classList.toggle('on', state.kHand === 0.55);
+  if (btnStrings) btnStrings.classList.toggle('on', state.showStrings);
+  if (btnVaga) btnVaga.classList.toggle('on', state.showVaga);
+  if (btnSkel) btnSkel.classList.toggle('on', state.showSkeleton);
+  if (btnStrong) btnStrong.classList.toggle('on', kHand === 1.0);
+  if (btnSoft) btnSoft.classList.toggle('on', kHand === 0.55);
+  if (btnFollow) btnFollow.classList.toggle('on', state.useFeetFollow);
 }
 
 /* ================= анимация ================= */
@@ -607,6 +644,9 @@ addEventListener('resize', function(){
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
+
+refreshUI();
+window.__hud('загружаю Xbot…');
 animate();
 
 } catch(e){
