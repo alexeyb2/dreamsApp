@@ -3,42 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>марионетка · Havok</title>
+<title>v0.1 · Xbot test Babylon</title>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
     font-family:system-ui,-apple-system,sans-serif;}
-  canvas{display:block;touch-action:none;width:100%;height:100%;outline:none;}
-  #hud{position:fixed;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.8);
-    padding:8px 10px;border-radius:8px;z-index:10;line-height:1.5;
-    font-family:ui-monospace,monospace;pointer-events:none;color:#8cf;max-width:85%;
-    white-space:pre-wrap;}
+  #hud{position:fixed;top:8px;left:8px;font-size:12px;background:rgba(0,0,0,.85);
+    padding:10px 12px;border-radius:8px;z-index:10;line-height:1.6;
+    font-family:ui-monospace,monospace;color:#8cf;max-width:90%;
+    white-space:pre-wrap;pointer-events:none;}
   #err{position:fixed;top:8px;left:8px;right:8px;font-size:12px;
     background:rgba(80,10,10,.95);padding:10px;border-radius:8px;z-index:20;
     font-family:ui-monospace,monospace;color:#fdd;display:none;white-space:pre-wrap;}
-  #ui{position:fixed;bottom:0;left:0;right:0;padding:6px;
-    display:flex;flex-wrap:wrap;gap:4px;z-index:10;justify-content:center;
-    background:linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,.2));}
-  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:8px;
-    padding:9px 12px;font-size:13px;touch-action:manipulation;font-weight:bold;}
-  #ui button:active{background:#2a2a4a;}
-  #ui button.on{background:#3a2a5a;border-color:#a67cff;color:#fff;}
-  #ui button.reset{background:#3a2a1a;border-color:#a86;color:#ffe;}
   #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
     background:#0a0a0f;z-index:100;font-size:16px;color:#a67cff;}
   #load.hidden{display:none;}
 </style>
 </head>
 <body>
-<div id="load">загружаю Havok…</div>
-<div id="hud">старт</div>
+<div id="load">версия v0.1 · загружаю…</div>
+<div id="hud">v0.1 · старт</div>
 <div id="err"></div>
-<div id="ui"></div>
 
 <script>
   window.__hud = function(m){
     var el = document.getElementById('hud');
-    if (el) el.textContent = m;
+    if (el) el.textContent = 'v0.1 · ' + m;
   };
   window.__err = function(m){
     var el = document.getElementById('err');
@@ -53,52 +43,54 @@
 
 <script src="https://cdn.babylonjs.com/babylon.js"></script>
 <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-<script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
 
 <script>
 (async function(){
 try {
+  window.__hud('создаю canvas');
 
-  window.__hud('Havok init…');
-  const havok = await HavokPhysics();
-  window.__hud('Havok ok · сцена');
-
-  /* ================= canvas и сцена ================= */
   const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  canvas.style.display = 'block';
+  canvas.style.touchAction = 'none';
   document.body.appendChild(canvas);
-  const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+
+  const engine = new BABYLON.Engine(canvas, true);
+  window.__hud('engine ok · создаю сцену');
 
   const scene = new BABYLON.Scene(engine);
-  scene.useRightHandedSystem = true;
   scene.clearColor = new BABYLON.Color4(0.04, 0.04, 0.06, 1);
 
+  // Камера — универсальная, смотрим на 0,1,0 с расстояния 5
   const camera = new BABYLON.ArcRotateCamera('cam',
-    Math.PI / 2, Math.PI / 2.5, 6.5,
+    -Math.PI / 2, Math.PI / 2.5, 5,
     new BABYLON.Vector3(0, 1.0, 0), scene);
   camera.attachControl(canvas, true);
-  camera.lowerRadiusLimit = 1.5;
-  camera.upperRadiusLimit = 30;
+  camera.lowerRadiusLimit = 1;
+  camera.upperRadiusLimit = 50;
   camera.wheelDeltaPercentage = 0.02;
-  camera.panningSensibility = 200;
 
-  const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
-  hemi.intensity = 0.95;
-  const dir = new BABYLON.DirectionalLight('dir', new BABYLON.Vector3(-1, -2, -1), scene);
-  dir.intensity = 0.9;
+  window.__hud('камера ok · свет');
 
-  const plugin = new BABYLON.HavokPlugin(true, havok);
-  scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), plugin);
+  const hemi = new BABYLON.HemisphericLight('hemi',
+    new BABYLON.Vector3(0, 1, 0), scene);
+  hemi.intensity = 1.0;
+  const dir = new BABYLON.DirectionalLight('dir',
+    new BABYLON.Vector3(-1, -2, -1), scene);
+  dir.intensity = 0.7;
 
-  // пол
-  const ground = BABYLON.MeshBuilder.CreateGround('ground', { width: 30, height: 30 }, scene);
-  const groundMat = new BABYLON.StandardMaterial('gm', scene);
-  groundMat.diffuseColor = new BABYLON.Color3(0.08, 0.08, 0.12);
-  groundMat.specularColor = new BABYLON.Color3(0, 0, 0);
-  ground.material = groundMat;
-  new BABYLON.PhysicsAggregate(ground, BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
+  window.__hud('свет ok · создаю пол');
 
-  /* ================= загрузка Xbot ================= */
-  window.__hud('загружаю Xbot…');
+  const ground = BABYLON.MeshBuilder.CreateGround('ground',
+    { width: 20, height: 20 }, scene);
+  const gm = new BABYLON.StandardMaterial('gm', scene);
+  gm.diffuseColor = new BABYLON.Color3(0.10, 0.10, 0.15);
+  gm.specularColor = new BABYLON.Color3(0, 0, 0);
+  ground.material = gm;
+
+  window.__hud('пол ok · гружу Xbot…');
+
   const result = await BABYLON.SceneLoader.ImportMeshAsync(
     null,
     'https://threejs.org/examples/models/gltf/',
@@ -106,282 +98,70 @@ try {
     scene
   );
 
+  window.__hud('модель загружена · считаю bounds');
+
   const rootMesh = result.meshes[0];
-  // пересчёт bbox
   rootMesh.computeWorldMatrix(true);
   const bounds = rootMesh.getHierarchyBoundingVectors(true);
   const size = bounds.max.subtract(bounds.min);
-  const height = size.y;
 
-  // диагностика
-  window.__hud('модель: h=' + height.toFixed(3) + '  x=' + size.x.toFixed(3) +
-    '  y=' + size.y.toFixed(3) + '  z=' + size.z.toFixed(3));
+  let msg = 'мешей: ' + result.meshes.length + '\n';
+  msg += 'bounding: x=' + size.x.toFixed(3) +
+         ' y=' + size.y.toFixed(3) +
+         ' z=' + size.z.toFixed(3) + '\n';
+  msg += 'позиция корня: ' + rootMesh.position.toString() + '\n';
 
-  // подгонка до 1.8 м
-  let scaleFactor = 1.0;
-  if (height > 0 && (height < 0.5 || height > 5)){
-    scaleFactor = 1.8 / height;
-    rootMesh.scaling = new BABYLON.Vector3(scaleFactor, scaleFactor, scaleFactor);
-    rootMesh.computeWorldMatrix(true);
-    rootMesh.refreshBoundingInfo(true);
-    window.__hud('масштаб применён: ' + scaleFactor.toFixed(4));
-  } else {
-    window.__hud('масштаб ок: h=' + height.toFixed(3) + ' м');
-  }
-
-  // скелет и skinned mesh
+  // найти скелет
   let skeleton = null;
   let skinnedMesh = null;
   for (const m of result.meshes){
-    if (m.skeleton && m.getTotalVertices && m.getTotalVertices() > 0){
-      skinnedMesh = m;
+    if (m.skeleton){
       skeleton = m.skeleton;
-      break;
-    }
-  }
-  if (!skeleton){
-    window.__err('нет скелета');
-    document.getElementById('load').textContent = 'нет скелета';
-    return;
-  }
-  window.__hud('костей: ' + skeleton.bones.length + ' · собрал ragdoll');
-
-  /* ================= конфиг Ragdoll ================= */
-  // размеры в метрах — рост 1.8
-  const C = [
-    { bones:['mixamorig:Hips'],      size:0.20 },
-    { bones:['mixamorig:Spine'],     size:0.18 },
-    { bones:['mixamorig:Spine1'],    size:0.18 },
-    { bones:['mixamorig:Spine2'],    size:0.18 },
-    { bones:['mixamorig:Neck'],      size:0.10 },
-    { bones:['mixamorig:Head'],      size:0.16 },
-    { bones:['mixamorig:LeftShoulder'],  size:0.10 },
-    { bones:['mixamorig:RightShoulder'], size:0.10 },
-    { bones:['mixamorig:LeftArm'],   depth:0.10, width:0.10, height:0.28, boxOffset:0.14, boneOffsetAxis:BABYLON.Axis.Y,
-      rotationAxis:BABYLON.Axis.Z, min:-1.0, max:1.0 },
-    { bones:['mixamorig:RightArm'],  depth:0.10, width:0.10, height:0.28, boxOffset:0.14, boneOffsetAxis:BABYLON.Axis.Y,
-      rotationAxis:BABYLON.Axis.Z, min:-1.0, max:1.0 },
-    { bones:['mixamorig:LeftForeArm'], depth:0.09, width:0.09, height:0.26, boxOffset:0.13, boneOffsetAxis:BABYLON.Axis.Y,
-      rotationAxis:BABYLON.Axis.X, min:-1.4, max:0.1 },
-    { bones:['mixamorig:RightForeArm'], depth:0.09, width:0.09, height:0.26, boxOffset:0.13, boneOffsetAxis:BABYLON.Axis.Y,
-      rotationAxis:BABYLON.Axis.X, min:-1.4, max:0.1 },
-    { bones:['mixamorig:LeftHand'],  size:0.07 },
-    { bones:['mixamorig:RightHand'], size:0.07 },
-    { bones:['mixamorig:LeftUpLeg'],  depth:0.14, width:0.14, height:0.42, boxOffset:0.20, boneOffsetAxis:BABYLON.Axis.Y,
-      rotationAxis:BABYLON.Axis.X, min:-0.8, max:0.8 },
-    { bones:['mixamorig:RightUpLeg'], depth:0.14, width:0.14, height:0.42, boxOffset:0.20, boneOffsetAxis:BABYLON.Axis.Y,
-      rotationAxis:BABYLON.Axis.X, min:-0.8, max:0.8 },
-    { bones:['mixamorig:LeftLeg'],  depth:0.12, width:0.12, height:0.40, boxOffset:0.19, boneOffsetAxis:BABYLON.Axis.Y,
-      rotationAxis:BABYLON.Axis.X, min:-1.3, max:0.0 },
-    { bones:['mixamorig:RightLeg'], depth:0.12, width:0.12, height:0.40, boxOffset:0.19, boneOffsetAxis:BABYLON.Axis.Y,
-      rotationAxis:BABYLON.Axis.X, min:-1.3, max:0.0 },
-    { bones:['mixamorig:LeftFoot'],  size:0.10 },
-    { bones:['mixamorig:RightFoot'], size:0.10 }
-  ];
-
-  const ragdoll = new BABYLON.Ragdoll(skeleton, skinnedMesh, C);
-  ragdoll.ragdoll();
-
-  /* ================= стартовая позиция ================= */
-  // немного приподнимем — чтобы не сразу упала
-  // (ragdoll ставит тела по текущим трансформам костей, а модель уже на полу)
-
-  /* ================= вага ================= */
-  const VAGA_REST = new BABYLON.Vector3(0, 2.10, 0);
-  const VAGA_HALF = 0.85;
-
-  function line(a, b, color, updatable){
-    return BABYLON.MeshBuilder.CreateLines('v', {
-      points: [a, b], updatable: updatable || false
-    }, scene);
-  }
-
-  const S = VAGA_HALF;
-  const vagaLines = [];
-  function addLine(a, b, color){
-    const l = line(a, b, color);
-    l.color = color;
-    l.isPickable = false;
-    vagaLines.push(l);
-    return l;
-  }
-
-  addLine(new BABYLON.Vector3(-S, 0.20, -S), new BABYLON.Vector3(S, 0.20, S),
-    new BABYLON.Color3(0.87, 0.87, 0.87));
-  addLine(new BABYLON.Vector3(-S, 0.20, S), new BABYLON.Vector3(S, 0.20, -S),
-    new BABYLON.Color3(0.87, 0.87, 0.87));
-  addLine(new BABYLON.Vector3(-S, -0.20, S), new BABYLON.Vector3(S, -0.20, S),
-    new BABYLON.Color3(0.87, 0.87, 0.87));
-  addLine(new BABYLON.Vector3(-S, 0.20, -S), new BABYLON.Vector3(-S, -0.20, S),
-    new BABYLON.Color3(0.87, 0.87, 0.87));
-  addLine(new BABYLON.Vector3(S, 0.20, -S), new BABYLON.Vector3(S, -0.20, S),
-    new BABYLON.Color3(0.87, 0.87, 0.87));
-  addLine(new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 0.55, 0),
-    new BABYLON.Color3(1.0, 0.8, 0.27));
-
-  // ручка ваги
-  const handle = BABYLON.MeshBuilder.CreateSphere('vagaHandle', { diameter: 0.22 }, scene);
-  const handleMat = new BABYLON.StandardMaterial('hm', scene);
-  handleMat.emissiveColor = new BABYLON.Color3(1.0, 0.67, 0);
-  handleMat.diffuseColor = new BABYLON.Color3(1.0, 0.67, 0);
-  handle.material = handleMat;
-  handle.position = VAGA_REST.clone();
-  handle.isPickable = true;
-
-  const drag = new BABYLON.PointerDragBehavior({
-    dragPlaneNormal: new BABYLON.Vector3(0, 0, 1)
-  });
-  drag.useObjectOrientationForDragging = false;
-  handle.addBehavior(drag);
-
-  /* ================= нити ================= */
-  const STRING_SPECS = [
-    { key:'плечо Л', bone:'mixamorig:LeftArm',
-      local:new BABYLON.Vector3(-VAGA_HALF, 0.20, -VAGA_HALF),
-      color:new BABYLON.Color3(0.53,1,0.53), K: 6.0 },
-    { key:'плечо П', bone:'mixamorig:RightArm',
-      local:new BABYLON.Vector3(VAGA_HALF, 0.20, -VAGA_HALF),
-      color:new BABYLON.Color3(0.53,1,0.53), K: 6.0 },
-    { key:'бедро Л', bone:'mixamorig:LeftUpLeg',
-      local:new BABYLON.Vector3(-VAGA_HALF, -0.20, VAGA_HALF),
-      color:new BABYLON.Color3(0.8,0.53,1), K: 6.0 },
-    { key:'бедро П', bone:'mixamorig:RightUpLeg',
-      local:new BABYLON.Vector3(VAGA_HALF, -0.20, VAGA_HALF),
-      color:new BABYLON.Color3(0.8,0.53,1), K: 6.0 },
-    { key:'голова', bone:'mixamorig:Head',
-      local:new BABYLON.Vector3(0, 0.55, 0),
-      color:new BABYLON.Color3(1,0.8,0.27), K: 4.0 }
-  ];
-
-  const markers = [];
-  const linesRefs = [];
-
-  for (const spec of STRING_SPECS){
-    const mk = BABYLON.MeshBuilder.CreateSphere('m_' + spec.key, { diameter: 0.10 }, scene);
-    const mmat = new BABYLON.StandardMaterial('mm_' + spec.key, scene);
-    mmat.emissiveColor = spec.color;
-    mk.material = mmat;
-    mk.isPickable = false;
-    markers.push({ mesh: mk, spec: spec });
-
-    const ln = line(BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero(), spec.color, true);
-    ln.color = spec.color;
-    ln.isPickable = false;
-    linesRefs.push(ln);
-  }
-
-  const boneIdx = {};
-  for (const spec of STRING_SPECS){
-    boneIdx[spec.key] = skeleton.getBoneIndexByName(spec.bone);
-  }
-
-  /* ================= helpers ================= */
-  function boneWorldPos(name){
-    const idx = skeleton.getBoneIndexByName(name);
-    if (idx < 0) return null;
-    const b = skeleton.bones[idx];
-    b.computeWorldMatrix(true);
-    return b.getAbsolutePosition();
-  }
-
-  function stringWorldPos(spec, vagaCenter){
-    return new BABYLON.Vector3(
-      vagaCenter.x + spec.local.x,
-      vagaCenter.y + spec.local.y,
-      vagaCenter.z + spec.local.z
-    );
-  }
-
-  /* ================= K управляется ================= */
-  let K_FACTOR = 1.0;
-
-  function applyForces(){
-    const vaga = handle.position;
-    for (const spec of STRING_SPECS){
-      const idx = boneIdx[spec.key];
-      if (idx < 0) continue;
-      const target = stringWorldPos(spec, vaga);
-      const bp = boneWorldPos(spec.bone);
-      if (!bp) continue;
-      const dx = target.x - bp.x;
-      const dy = target.y - bp.y;
-      const dz = target.z - bp.z;
-      // импульс за кадр (dt ~ 1/60): impulse = m * v; упрощённо сила * dt
-      const s = spec.K * K_FACTOR * 0.5;
-      const impulse = new BABYLON.Vector3(dx * s, dy * s, dz * s);
-      const agg = ragdoll.getAggregate(idx);
-      if (agg && agg.body){
-        agg.body.applyImpulse(impulse, BABYLON.Vector3.ZeroReadOnly);
+      if (m.getTotalVertices && m.getTotalVertices() > 0){
+        skinnedMesh = m;
       }
     }
   }
-
-  function updateVisual(){
-    const vaga = handle.position;
-    const off = vaga.subtract(VAGA_REST);
-
-    for (const l of vagaLines){
-      l.position.copyFrom(off);
-    }
-
-    for (let i = 0; i < markers.length; i++){
-      const m = markers[i];
-      const spec = m.spec;
-      const wpos = stringWorldPos(spec, vaga);
-      m.mesh.position.copyFrom(wpos);
-
-      const bp = boneWorldPos(spec.bone);
-      if (bp){
-        BABYLON.MeshBuilder.CreateLines('ul', {
-          points: [wpos, bp],
-          instance: linesRefs[i]
-        }, scene);
-      }
-    }
+  if (skeleton){
+    msg += 'костей: ' + skeleton.bones.length + '\n';
+    msg += 'первая кость: ' + (skeleton.bones[0]?.name || '?') + '\n';
+    const names = skeleton.bones.slice(0, 8).map(b => b.name).join(', ');
+    msg += 'кости: ' + names + '\n';
+  } else {
+    msg += 'СКЕЛЕТ НЕ НАЙДЕН\n';
   }
 
-  scene.onBeforeRenderObservable.add(() => {
-    applyForces();
-    updateVisual();
-  });
+  window.__hud(msg);
 
-  /* ================= UI ================= */
-  const ui = document.getElementById('ui');
-  function mkBtn(label, fn, cls){
-    const b = document.createElement('button');
-    b.textContent = label;
-    if (cls) b.className = cls;
-    b.onclick = fn;
-    ui.appendChild(b);
-    return b;
+  // Подгонка масштаба — если модель крошечная или огромная
+  const height = size.y;
+  if (height > 0.001 && (height < 0.5 || height > 5)){
+    const k = 1.8 / height;
+    rootMesh.scaling = new BABYLON.Vector3(k, k, k);
+    window.__hud(msg + '\nмасштаб применён: ' + k.toFixed(4));
+  } else {
+    window.__hud(msg + '\nмасштаб ок');
   }
 
-  mkBtn('⟲ сброс', function(){
-    handle.position.copyFrom(VAGA_REST);
-  }, 'reset');
+  // камера смотрит на центр модели
+  const center = bounds.min.add(size.scale(0.5));
+  camera.target = center;
+  camera.radius = size.length() * 1.6;
 
-  mkBtn('🎥 вид', function(){
-    camera.alpha = Math.PI / 2;
-    camera.beta = Math.PI / 2.5;
-    camera.radius = 6.5;
-    camera.target = new BABYLON.Vector3(0, 1.0, 0);
+  engine.runRenderLoop(function(){
+    scene.render();
   });
-
-  mkBtn('💪 сильно', function(){ K_FACTOR = 2.0; });
-  mkBtn('🪶 мягко', function(){ K_FACTOR = 0.5; });
-
-  /* ================= старт ================= */
-  engine.runRenderLoop(() => scene.render());
-  window.addEventListener('resize', () => engine.resize());
+  window.addEventListener('resize', function(){
+    engine.resize();
+  });
 
   document.getElementById('load').classList.add('hidden');
-  window.__hud('готов · тащи жёлтую ручку');
+  window.__hud(msg + '\nготов · тащи камеру пальцем');
 
 } catch(e){
   window.__err('FATAL: ' + (e && e.message ? e.message : e) +
     '\n' + (e && e.stack ? e.stack : ''));
-  const ld = document.getElementById('load');
-  if (ld) ld.textContent = 'ошибка: ' + (e && e.message ? e.message : e);
+  document.getElementById('load').textContent = 'ошибка: ' + (e && e.message ? e.message : e);
 }
 })();
 </script>
