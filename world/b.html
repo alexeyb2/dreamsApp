@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>марионетка</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
+    font-family:system-ui,-apple-system,sans-serif;}
+  canvas{display:block;touch-action:none;}
+  #hud{position:fixed;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.78);
+    padding:8px 10px;border-radius:8px;z-index:10;line-height:1.5;
+    font-family:ui-monospace,monospace;max-width:80%;pointer-events:none;color:#8cf;}
+  #err{position:fixed;top:8px;left:8px;right:8px;font-size:12px;
+    background:rgba(80,10,10,.95);padding:10px;border-radius:8px;z-index:20;
+    font-family:ui-monospace,monospace;color:#fdd;display:none;white-space:pre-wrap;}
+  #ui{position:fixed;bottom:0;left:0;right:0;padding:6px;
+    display:flex;flex-wrap:wrap;gap:4px;z-index:10;justify-content:center;
+    background:linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,.2));}
+  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:8px;
+    padding:9px 12px;font-size:13px;touch-action:manipulation;font-weight:bold;}
+  #ui button:active{background:#2a2a4a;}
+  #ui button.on{background:#3a2a5a;border-color:#a67cff;color:#fff;}
+  #ui button.reset{background:#3a2a1a;border-color:#a86;color:#ffe;}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#0a0a0f;z-index:100;font-size:16px;color:#a67cff;}
+  #load.hidden{display:none;}
+</style>
+</head>
+<body>
+<div id="load">загружаю тело…</div>
+<div id="hud">старт</div>
+<div id="err"></div>
+<div id="ui"></div>
+
+<script>
+  window.__hud = function(m){
+    const el = document.getElementById('hud');
+    if (el) el.textContent = m;
+  };
+  window.__err = function(m){
+    const el = document.getElementById('err');
+    if (el){ el.style.display = 'block'; el.textContent += m + '\n'; }
+    console.error(m);
+  };
+  window.addEventListener('error', function(e){
+    window.__err('error: ' + (e.message || e));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    window.__err('reject: ' + (e.reason && e.reason.message || e.reason));
+  });
+</script>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+try {
+
+/* ================= сцена ================= */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+scene.fog = new THREE.Fog(0x0a0a0f, 10, 40);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.05, 100);
+camera.position.set(3.5, 2.2, 4.5);
+camera.lookAt(0, 1.0, 0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.target.set(0, 1.0, 0);
+controls.minDistance = 0.5;
+controls.maxDistance = 25;
+
+/* ================= свет ================= */
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.1));
+const keyL = new THREE.DirectionalLight(0xffffff, 1.3);
+keyL.position.set(4, 7, 5); scene.add(keyL);
+const fillL = new THREE.DirectionalLight(0x6688ff, 0.6);
+fillL.position.set(-4, 2, -5); scene.add(fillL);
+
+/* ================= пол ================= */
+const grid = new THREE.GridHelper(20, 40, 0x334455, 0x151a22);
+grid.material.opacity = 0.55;
+grid.material.transparent = true;
+scene.add(grid);
+scene.add(new THREE.AxesHelper(0.8));
+
+/* ================= КУКЛОВОД =================
+   8 нитей. Каждая идёт от точки-поводка к кости.
+   Точки висят в воздухе вокруг/над телом.
+   Тянешь точку — кость поворачивается к ней от корня.
+================================================ */
+const STRINGS = [
+  // key,         bone,          начальная позиция поводка
+  { key:'голова',  bone:'head',        pos:new THREE.Vector3( 0.0, 2.60, 0.0), color:0xffcc44 },
+  { key:'шея',     bone:'neck',        pos:new THREE.Vector3( 0.0, 2.20, 0.0), color:0xffaa44 },
+  { key:'плечо Л', bone:'leftarm',     pos:new THREE.Vector3(-1.4, 2.10, 0.0), color:0x88ff88 },
+  { key:'плечо П', bone:'rightarm',    pos:new THREE.Vector3( 1.4, 2.10, 0.0), color:0x88ff88 },
+  { key:'локоть Л',bone:'leftforearm', pos:new THREE.Vector3(-2.2, 1.60, 0.0), color:0x66ffaa },
+  { key:'локоть П',bone:'rightforearm',pos:new THREE.Vector3( 2.2, 1.60, 0.0), color:0x66ffaa },
+  { key:'бедро Л', bone:'leftupleg',   pos:new THREE.Vector3(-0.8, 0.40, 0.0), color:0xcc88ff },
+  { key:'бедро П', bone:'rightupleg',  pos:new THREE.Vector3( 0.8, 0.40, 0.0), color:0xcc88ff }
+];
+
+const state = {
+  model: null,
+  bones: {},
+  boneList: [],
+  strings: [],      // {mesh, line, bone, restPos, key, color}
+  dragging: null,
+  dragPlane: new THREE.Plane(),
+  dragOffset: new THREE.Vector3(),
+  pointerDown: null,
+  showStrings: true,
+  showSkeleton: false
+};
+
+let K_STRENGTH = 1.0; // сила притяжения кости к поводку
+
+/* ================= хелперы ================= */
+function getBoneWorld(bone){
+  if (!bone) return null;
+  bone.updateWorldMatrix(true, false);
+  const v = new THREE.Vector3();
+  bone.getWorldPosition(v);
+  return v;
+}
+
+function makeLabel(text, color){
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.font = 'bold 26px system-ui,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 32);
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthTest: false, depthWrite: false
+  }));
+  sp.scale.set(0.42, 0.10, 1);
+  return sp;
+}
+
+/* ================= AIM: кость → поводок =================
+   Кость поворачивается от своего КОРНЯ в сторону поводка.
+   Это как натягивание нити: если нить тянет вверх — кость идёт вверх.
+================================================ */
+function aimBone(bone, target, k){
+  if (!bone.userData.restQuat) return;
+
+  // сбросить в rest
+  bone.quaternion.copy(bone.userData.restQuat);
+  bone.updateWorldMatrix(true, false);
+
+  const bonePos = new THREE.Vector3();
+  bone.getWorldPosition(bonePos);
+
+  const worldQuat = new THREE.Quaternion();
+  bone.getWorldQuaternion(worldQuat);
+
+  // ось кости — её локальный Y в мировых координатах
+  const yAxis = new THREE.Vector3(0, 1, 0).applyQuaternion(worldQuat).normalize();
+
+  const toTarget = target.clone().sub(bonePos);
+  if (toTarget.lengthSq() < 1e-8) return;
+  toTarget.normalize();
+
+  // смешивание rest → target по силе k (0..1.5)
+  const kk = Math.max(0, Math.min(1.5, k));
+  const dir = yAxis.clone().lerp(toTarget, kk).normalize();
+
+  const dq = new THREE.Quaternion().setFromUnitVectors(yAxis, dir);
+  const newWorldQuat = dq.clone().multiply(worldQuat);
+
+  const parentQ = new THREE.Quaternion();
+  if (bone.parent) bone.parent.getWorldQuaternion(parentQ);
+  bone.quaternion.copy(parentQ.clone().invert().multiply(newWorldQuat));
+  bone.updateWorldMatrix(true, false);
+}
+
+/* ================= обновить всё ================= */
+function updateAll(){
+  if (!state.model) return;
+
+  // 1. Сброс всех костей в rest
+  for (let i = 0; i < state.boneList.length; i++){
+    const b = state.boneList[i];
+    if (b.userData.restQuat) b.quaternion.copy(b.userData.restQuat);
+  }
+  state.model.updateMatrixWorld(true);
+
+  // 2. Применяем нити (по иерархии — родители первыми)
+  //    сортируем по глубине
+  const list = [];
+  for (let i = 0; i < state.strings.length; i++){
+    const s = state.strings[i];
+    if (!s.bone) continue;
+    let d = 0, p = s.bone.parent;
+    while (p){ d++; p = p.parent; }
+    list.push({ s: s, depth: d });
+  }
+  list.sort(function(a,b){ return a.depth - b.depth; });
+
+  for (let i = 0; i < list.length; i++){
+    const s = list[i].s;
+    aimBone(s.bone, s.mesh.position, K_STRENGTH);
+  }
+  state.model.updateMatrixWorld(true);
+
+  // 3. Обновить линии нитей (от поводка к кости)
+  for (let i = 0; i < state.strings.length; i++){
+    const s = state.strings[i];
+    const bonePos = getBoneWorld(s.bone);
+    if (!bonePos) { s.line.visible = false; continue; }
+    const arr = s.line.geometry.attributes.position.array;
+    arr[0] = s.mesh.position.x;
+    arr[1] = s.mesh.position.y;
+    arr[2] = s.mesh.position.z;
+    arr[3] = bonePos.x;
+    arr[4] = bonePos.y;
+    arr[5] = bonePos.z;
+    s.line.geometry.attributes.position.needsUpdate = true;
+    s.line.visible = state.showStrings;
+
+    // подпись над поводком
+    s.label.position.copy(s.mesh.position);
+    s.label.position.y += 0.16;
+    s.label.visible = state.showStrings;
+  }
+}
+
+/* ================= построить поводки ================= */
+function buildStrings(){
+  // удалить старые, если были
+  for (let i = 0; i < state.strings.length; i++){
+    scene.remove(state.strings[i].mesh);
+    scene.remove(state.strings[i].line);
+    scene.remove(state.strings[i].label);
+  }
+  state.strings = [];
+
+  for (let i = 0; i < STRINGS.length; i++){
+    const spec = STRINGS[i];
+    const bone = state.bones[spec.bone];
+    if (!bone) continue;
+
+    // шар-поводок
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.09, 22, 16),
+      new THREE.MeshStandardMaterial({
+        color: spec.color,
+        emissive: spec.color,
+        emissiveIntensity: 1.0,
+        transparent: true,
+        opacity: 0.95
+      })
+    );
+    mesh.position.copy(spec.pos);
+    mesh.userData.isString = true;
+    mesh.userData.stringIdx = i;
+    mesh.renderOrder = 5;
+
+    // невидимая большая сфера для попадания пальцем
+    const hit = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 8, 6),
+      new THREE.MeshBasicMaterial({visible: false})
+    );
+    hit.userData.isHit = true;
+    mesh.add(hit);
+
+    scene.add(mesh);
+
+    // линия-нить
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const line = new THREE.Line(g, new THREE.LineBasicMaterial({
+      color: spec.color,
+      transparent: true,
+      opacity: 0.7
+    }));
+    scene.add(line);
+
+    // подпись
+    const label = makeLabel(spec.key, '#88ccff');
+    scene.add(label);
+
+    state.strings.push({
+      mesh: mesh,
+      line: line,
+      label: label,
+      bone: bone,
+      restPos: spec.pos.clone(),
+      key: spec.key,
+      color: spec.color
+    });
+  }
+}
+
+/* ================= загрузка Xbot ================= */
+const loader = new GLTFLoader();
+const MODEL_URL = 'https://threejs.org/examples/models/gltf/Xbot.glb';
+
+loader.load(MODEL_URL, function(gltf){
+  window.__hud('модель получена · собираю');
+
+  const model = gltf.scene;
+  model.traverse(function(o){
+    if (o.isMesh && o.material){
+      o.material.transparent = true;
+      o.material.opacity = 0.82;
+    }
+  });
+  scene.add(model);
+  state.model = model;
+
+  // Скелет — скрыт по умолчанию
+  const skinned = [];
+  model.traverse(function(o){ if (o.isSkinnedMesh) skinned.push(o); });
+  let helper = null;
+  if (skinned.length){
+    helper = new THREE.SkeletonHelper(model);
+    helper.material.depthTest = false;
+    helper.renderOrder = 1;
+    helper.visible = false;
+    scene.add(helper);
+    state.skeletonHelper = helper;
+  }
+
+  // Кости + rest кватернионы
+  const boneList = [];
+  model.traverse(function(o){
+    if (o.isBone){
+      boneList.push(o);
+      o.userData.restQuat = o.quaternion.clone();
+      const name = o.name.replace(/^mixamorig:?/i, '').toLowerCase();
+      state.bones[name] = o;
+    }
+  });
+  state.boneList = boneList;
+
+  // Проверка: какие кости нашли
+  const need = ['head','neck','leftarm','rightarm','leftforearm','rightforearm',
+                'leftupleg','rightupleg'];
+  let found = [];
+  let missing = [];
+  for (let i = 0; i < need.length; i++){
+    if (state.bones[need[i]]) found.push(need[i]);
+    else missing.push(need[i]);
+  }
+  window.__hud('кости найдено: ' + found.length + '/' + need.length +
+    (missing.length ? '\nнет: ' + missing.join(', ') : ''));
+
+  buildStrings();
+  updateAll();
+
+  document.getElementById('load').classList.add('hidden');
+  window.__hud('готов · тащи шары-поводки');
+  refreshUI();
+}, undefined, function(err){
+  window.__err('модель не загрузилась: ' + (err && err.message ? err.message : err));
+  document.getElementById('load').textContent = 'ошибка загрузки';
+});
+
+/* ================= управление ================= */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function setPointer(x, y){
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((x - r.left) / r.width) * 2 - 1;
+  pointer.y = -((y - r.top) / r.height) * 2 + 1;
+}
+
+function findStringAt(x, y){
+  setPointer(x, y);
+  raycaster.setFromCamera(pointer, camera);
+  const meshes = [];
+  for (let i = 0; i < state.strings.length; i++) meshes.push(state.strings[i].mesh);
+  const hits = raycaster.intersectObjects(meshes, true);
+  if (!hits.length) return null;
+  let obj = hits[0].object;
+  while (obj && !obj.userData.isString) obj = obj.parent;
+  return obj;
+}
+
+renderer.domElement.addEventListener('pointerdown', function(e){
+  if (e.target !== renderer.domElement) return;
+  const obj = findStringAt(e.clientX, e.clientY);
+  state.pointerDown = {x: e.clientX, y: e.clientY, moved: false};
+
+  if (obj){
+    state.dragging = obj;
+    controls.enabled = false;
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    state.dragPlane.setFromNormalAndCoplanarPoint(camDir, obj.position);
+    const hit = new THREE.Vector3();
+    raycaster.ray.intersectPlane(state.dragPlane, hit);
+    state.dragOffset.subVectors(obj.position, hit);
+    e.preventDefault();
+  }
+}, true);
+
+renderer.domElement.addEventListener('pointermove', function(e){
+  if (state.pointerDown && !state.pointerDown.moved){
+    const dx = e.clientX - state.pointerDown.x;
+    const dy = e.clientY - state.pointerDown.y;
+    if (dx*dx + dy*dy > 25) state.pointerDown.moved = true;
+  }
+  if (!state.dragging) return;
+  setPointer(e.clientX, e.clientY);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = new THREE.Vector3();
+  if (raycaster.ray.intersectPlane(state.dragPlane, hit)){
+    state.dragging.position.copy(hit.add(state.dragOffset));
+    updateAll();
+  }
+  e.preventDefault();
+}, {passive:false});
+
+function endDrag(){
+  if (state.dragging){
+    state.dragging = null;
+    controls.enabled = true;
+  }
+  state.pointerDown = null;
+}
+renderer.domElement.addEventListener('pointerup', endDrag);
+renderer.domElement.addEventListener('pointercancel', endDrag);
+
+/* ================= сброс ================= */
+function resetStrings(){
+  for (let i = 0; i < state.strings.length; i++){
+    const s = state.strings[i];
+    s.mesh.position.copy(s.restPos);
+  }
+  // кости в rest
+  for (let i = 0; i < state.boneList.length; i++){
+    const b = state.boneList[i];
+    if (b.userData.restQuat){
+      b.quaternion.copy(b.userData.restQuat);
+      b.updateWorldMatrix(true, false);
+    }
+  }
+  state.model.updateMatrixWorld(true);
+  updateAll();
+}
+
+/* ================= UI ================= */
+const ui = document.getElementById('ui');
+function btn(label, fn, cls){
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.onclick = fn;
+  ui.appendChild(b);
+  return b;
+}
+
+let btnStrings, btnSkel, btnStrong, btnSoft;
+
+btnStrings = btn('🪢 нити', function(){
+  state.showStrings = !state.showStrings;
+  updateAll();
+  refreshUI();
+}, 'on');
+
+btnSkel = btn('🦴 скелет', function(){
+  state.showSkeleton = !state.showSkeleton;
+  if (state.skeletonHelper) state.skeletonHelper.visible = state.showSkeleton;
+  refreshUI();
+});
+
+btnStrong = btn('💪 сильно', function(){
+  K_STRENGTH = 1.4;
+  updateAll();
+  refreshUI();
+});
+
+btnSoft = btn('🪶 мягко', function(){
+  K_STRENGTH = 0.7;
+  updateAll();
+  refreshUI();
+});
+
+btn('⟲ сброс', resetStrings, 'reset');
+
+btn('🎥 вид', function(){
+  camera.position.set(3.5, 2.2, 4.5);
+  controls.target.set(0, 1.0, 0);
+  controls.update();
+});
+
+function refreshUI(){
+  btnStrings.classList.toggle('on', state.showStrings);
+  btnSkel.classList.toggle('on', state.showSkeleton);
+  btnStrong.classList.toggle('on', K_STRENGTH === 1.4);
+  btnSoft.classList.toggle('on', K_STRENGTH === 0.7);
+}
+
+/* ================= анимация ================= */
+const clock = new THREE.Clock();
+function animate(){
+  clock.getDelta();
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+addEventListener('resize', function(){
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+refreshUI();
+window.__hud('загружаю Xbot…');
+animate();
+
+} catch(e){
+  window.__err('FATAL: ' + (e && e.message ? e.message : e) +
+    '\n' + (e && e.stack ? e.stack : ''));
+}
+</script>
+</body>
+</html>
