@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>марионетка · вага X</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
+    font-family:system-ui,-apple-system,sans-serif;}
+  canvas{display:block;touch-action:none;}
+  #hud{position:fixed;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.78);
+    padding:8px 10px;border-radius:8px;z-index:10;line-height:1.5;
+    font-family:ui-monospace,monospace;max-width:80%;pointer-events:none;color:#8cf;}
+  #err{position:fixed;top:8px;left:8px;right:8px;font-size:12px;
+    background:rgba(80,10,10,.95);padding:10px;border-radius:8px;z-index:20;
+    font-family:ui-monospace,monospace;color:#fdd;display:none;white-space:pre-wrap;}
+  #ui{position:fixed;bottom:0;left:0;right:0;padding:6px;
+    display:flex;flex-wrap:wrap;gap:4px;z-index:10;justify-content:center;
+    background:linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,.2));}
+  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:8px;
+    padding:9px 12px;font-size:13px;touch-action:manipulation;font-weight:bold;}
+  #ui button:active{background:#2a2a4a;}
+  #ui button.on{background:#3a2a5a;border-color:#a67cff;color:#fff;}
+  #ui button.reset{background:#3a2a1a;border-color:#a86;color:#ffe;}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#0a0a0f;z-index:100;font-size:16px;color:#a67cff;}
+  #load.hidden{display:none;}
+</style>
+</head>
+<body>
+<div id="load">загружаю тело…</div>
+<div id="hud">старт</div>
+<div id="err"></div>
+<div id="ui"></div>
+
+<script>
+  window.__hud = function(m){
+    var el = document.getElementById('hud');
+    if (el) el.textContent = m;
+  };
+  window.__err = function(m){
+    var el = document.getElementById('err');
+    if (el){ el.style.display = 'block'; el.textContent += m + '\n'; }
+    console.error(m);
+  };
+  window.addEventListener('error', function(e){
+    window.__err('error: ' + (e.message || e));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    window.__err('reject: ' + (e.reason && e.reason.message || e.reason));
+  });
+</script>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+try {
+
+/* ================= сцена ================= */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+scene.fog = new THREE.Fog(0x0a0a0f, 15, 60);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.05, 100);
+camera.position.set(4.5, 2.5, 6.0);
+camera.lookAt(0, 1.5, 0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.target.set(0, 1.5, 0);
+controls.minDistance = 0.5;
+controls.maxDistance = 30;
+
+/* ================= свет ================= */
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.1));
+const keyL = new THREE.DirectionalLight(0xffffff, 1.3);
+keyL.position.set(4, 7, 5); scene.add(keyL);
+const fillL = new THREE.DirectionalLight(0x6688ff, 0.6);
+fillL.position.set(-4, 2, -5); scene.add(fillL);
+
+/* ================= пол ================= */
+const grid = new THREE.GridHelper(24, 48, 0x334455, 0x151a22);
+grid.material.opacity = 0.55;
+grid.material.transparent = true;
+scene.add(grid);
+
+/* ================= ВАГА =================
+   X-образный крест (реальная марионетка).
+   Центр креста — ручка (за неё держат).
+   От 4 концов креста и из центра — нити к телу.
+============================================== */
+const VAGA_CENTER = new THREE.Vector3(0, 2.60, 0);
+const VAGA_SIZE = 1.10;     // полудлина лучей X
+
+// 8 точек привязки нитей на ваге.
+// vagaLocal — позиция точки ОТНОСИТЕЛЬНО центра ваги.
+// currentWorld — абсолютная позиция в мире (пересчитывается).
+const STRING_SPECS = [
+  // верх X-креста
+  { key:'плечо Л', bone:'leftarm',      vagaLocal:new THREE.Vector3(-VAGA_SIZE,  0.20, -VAGA_SIZE), color:0x88ff88 },
+  { key:'плечо П', bone:'rightarm',     vagaLocal:new THREE.Vector3( VAGA_SIZE,  0.20, -VAGA_SIZE), color:0x88ff88 },
+  // низ X-креста
+  { key:'бедро Л', bone:'leftupleg',    vagaLocal:new THREE.Vector3(-VAGA_SIZE, -0.20,  VAGA_SIZE), color:0xcc88ff },
+  { key:'бедро П', bone:'rightupleg',   vagaLocal:new THREE.Vector3( VAGA_SIZE, -0.20,  VAGA_SIZE), color:0xcc88ff },
+  // центр — голова и шея
+  { key:'голова',  bone:'head',         vagaLocal:new THREE.Vector3( 0,  0.45,  0), color:0xffcc44 },
+  { key:'шея',     bone:'neck',         vagaLocal:new THREE.Vector3( 0,  0.25,  0), color:0xffaa44 },
+  // ещё два луча X — для предплечий (чуть ниже и сзади)
+  { key:'локоть Л',bone:'leftforearm',  vagaLocal:new THREE.Vector3(-VAGA_SIZE*0.85, -0.40,  VAGA_SIZE*0.85), color:0x66ffaa },
+  { key:'локоть П',bone:'rightforearm', vagaLocal:new THREE.Vector3( VAGA_SIZE*0.85, -0.40,  VAGA_SIZE*0.85), color:0x66ffaa }
+];
+
+const state = {
+  model: null,
+  bones: {},
+  boneList: [],
+  skeletonHelper: null,
+  // вага
+  vagaCenter: VAGA_CENTER.clone(),
+  vagaRestCenter: VAGA_CENTER.clone(),
+  vagaVisual: null,   // Group с линиями креста
+  vagaHandle: null,
+  // точки привязки
+  strings: [],
+  // drag
+  dragging: null,     // mesh, который тащим
+  dragMode: null,     // 'vaga' | 'string'
+  dragPlane: new THREE.Plane(),
+  dragOffset: new THREE.Vector3(),
+  pointerDown: null,
+  // видимость
+  showStrings: true,
+  showVaga: true,
+  showSkeleton: false
+};
+
+let K_STRENGTH = 0.85;
+
+/* ================= хелперы ================= */
+function getBoneWorld(bone){
+  if (!bone) return null;
+  bone.updateWorldMatrix(true, false);
+  const v = new THREE.Vector3();
+  bone.getWorldPosition(v);
+  return v;
+}
+
+function makeLabel(text, color){
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.font = 'bold 26px system-ui,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 32);
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthTest: false, depthWrite: false
+  }));
+  sp.scale.set(0.42, 0.10, 1);
+  return sp;
+}
+
+function makeLine(a, b, color, opacity){
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([
+    a.x, a.y, a.z, b.x, b.y, b.z
+  ], 3));
+  return new THREE.Line(g, new THREE.LineBasicMaterial({
+    color: color, transparent: true, opacity: opacity
+  }));
+}
+
+/* ================= вага X ================= */
+function buildVaga(){
+  if (state.vagaVisual) scene.remove(state.vagaVisual);
+  const group = new THREE.Group();
+  scene.add(group);
+  state.vagaVisual = group;
+
+  const c = state.vagaRestCenter;
+  const S = VAGA_SIZE;
+
+  // X-крест: два диагональных бруса
+  // брус 1: от (-S,0,-S) до (S,0,S)
+  group.add(makeLine(
+    new THREE.Vector3(c.x - S, c.y + 0.20, c.z - S),
+    new THREE.Vector3(c.x + S, c.y + 0.20, c.z + S),
+    0xdddddd, 0.85));
+  // брус 2: от (-S,0,S) до (S,0,-S)
+  group.add(makeLine(
+    new THREE.Vector3(c.x - S, c.y + 0.20, c.z + S),
+    new THREE.Vector3(c.x + S, c.y + 0.20, c.z - S),
+    0xdddddd, 0.85));
+
+  // Дополнительные брусы для низа (к бёдрам) — сдвиг вниз
+  group.add(makeLine(
+    new THREE.Vector3(c.x - S*0.85, c.y - 0.40, c.z + S*0.85),
+    new THREE.Vector3(c.x + S*0.85, c.y - 0.40, c.z + S*0.85),
+    0x888899, 0.6));
+  // перемычки от верхних концов к нижним
+  group.add(makeLine(
+    new THREE.Vector3(c.x - S, c.y + 0.20, c.z - S),
+    new THREE.Vector3(c.x - S*0.85, c.y - 0.40, c.z + S*0.85),
+    0x888899, 0.5));
+  group.add(makeLine(
+    new THREE.Vector3(c.x + S, c.y + 0.20, c.z - S),
+    new THREE.Vector3(c.x + S*0.85, c.y - 0.40, c.z + S*0.85),
+    0x888899, 0.5));
+
+  // вертикальная стойка — от центра вверх к ручке
+  group.add(makeLine(
+    new THREE.Vector3(c.x, c.y, c.z),
+    new THREE.Vector3(c.x, c.y + 0.60, c.z),
+    0xaaaaaa, 0.85));
+
+  // ручка — большой шар в центре
+  state.vagaHandle = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 24, 18),
+    new THREE.MeshStandardMaterial({
+      color: 0xffcc44, emissive: 0xffaa00, emissiveIntensity: 1.2,
+      transparent: true, opacity: 0.95
+    }));
+  state.vagaHandle.position.copy(c);
+  state.vagaHandle.userData.isVagaHandle = true;
+  state.vagaHandle.renderOrder = 6;
+  // невидимая сфера для попадания
+  const hit = new THREE.Mesh(
+    new THREE.SphereGeometry(0.35, 8, 6),
+    new THREE.MeshBasicMaterial({visible: false}));
+  hit.userData.isHit = true;
+  state.vagaHandle.add(hit);
+  scene.add(state.vagaHandle);
+
+  // подпись у ручки
+  const lbl = makeLabel('ВАГА', '#ffcc44');
+  lbl.position.set(c.x, c.y + 0.40, c.z);
+  scene.add(lbl);
+  state.vagaLabel = lbl;
+}
+
+/* ================= нити ================= */
+function buildStrings(){
+  for (const s of state.strings){
+    scene.remove(s.mesh);
+    scene.remove(s.line);
+    scene.remove(s.label);
+  }
+  state.strings = [];
+
+  for (let i = 0; i < STRING_SPECS.length; i++){
+    const spec = STRING_SPECS[i];
+    const bone = state.bones[spec.bone];
+    if (!bone) continue;
+
+    // шар-точка крепления
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 20, 14),
+      new THREE.MeshStandardMaterial({
+        color: spec.color, emissive: spec.color, emissiveIntensity: 1.0,
+        transparent: true, opacity: 0.95
+      }));
+    mesh.userData.isString = true;
+    mesh.userData.stringIdx = i;
+    mesh.renderOrder = 5;
+    const hit = new THREE.Mesh(
+      new THREE.SphereGeometry(0.25, 8, 6),
+      new THREE.MeshBasicMaterial({visible: false}));
+    hit.userData.isHit = true;
+    mesh.add(hit);
+    scene.add(mesh);
+
+    // нить
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const line = new THREE.Line(g, new THREE.LineBasicMaterial({
+      color: spec.color, transparent: true, opacity: 0.75
+    }));
+    scene.add(line);
+
+    // подпись
+    const label = makeLabel(spec.key, '#88ccff');
+    scene.add(label);
+
+    state.strings.push({
+      mesh: mesh,
+      line: line,
+      label: label,
+      bone: bone,
+      // смещение относительно центра ваги
+      vagaLocal: spec.vagaLocal.clone(),
+      // текущая мировая позиция (пересчитывается при драге и ваге)
+      worldOffset: new THREE.Vector3(0, 0, 0), // дополнительное смещение (когда потянул)
+      key: spec.key,
+      color: spec.color
+    });
+  }
+}
+
+/* ================= позиция точки крепления =================
+   world = vagaCenter + vagaLocal + worldOffset
+   - vagaLocal — фиксирована (точка на кресте)
+   - worldOffset — меняется когда пользователь тащит точку
+   - vagaCenter — меняется когда тащат ручку ваги
+============================================================ */
+function stringWorldPos(s){
+  return new THREE.Vector3(
+    state.vagaCenter.x + s.vagaLocal.x + s.worldOffset.x,
+    state.vagaCenter.y + s.vagaLocal.y + s.worldOffset.y,
+    state.vagaCenter.z + s.vagaLocal.z + s.worldOffset.z
+  );
+}
+
+/* ================= AIM кость → точка ================= */
+function aimBone(bone, target, k){
+  if (!bone.userData.restQuat) return;
+  bone.quaternion.copy(bone.userData.restQuat);
+  bone.updateWorldMatrix(true, false);
+
+  const bonePos = new THREE.Vector3();
+  bone.getWorldPosition(bonePos);
+  const worldQuat = new THREE.Quaternion();
+  bone.getWorldQuaternion(worldQuat);
+  const yAxis = new THREE.Vector3(0,1,0).applyQuaternion(worldQuat).normalize();
+
+  const toTarget = target.clone().sub(bonePos);
+  if (toTarget.lengthSq() < 1e-8) return;
+  toTarget.normalize();
+
+  const kk = Math.max(0, Math.min(1.0, k));
+  const dir = yAxis.clone().lerp(toTarget, kk).normalize();
+
+  const dq = new THREE.Quaternion().setFromUnitVectors(yAxis, dir);
+  const newWorldQuat = dq.clone().multiply(worldQuat);
+
+  const parentQ = new THREE.Quaternion();
+  if (bone.parent) bone.parent.getWorldQuaternion(parentQ);
+  bone.quaternion.copy(parentQ.clone().invert().multiply(newWorldQuat));
+  bone.updateWorldMatrix(true, false);
+}
+
+/* ================= обновить всё ================= */
+function updateAll(){
+  if (!state.model) return;
+
+  // 1. Все кости в rest
+  for (let i = 0; i < state.boneList.length; i++){
+    const b = state.boneList[i];
+    if (b.userData.restQuat) b.quaternion.copy(b.userData.restQuat);
+    if (b.userData.restPos) b.position.copy(b.userData.restPos);
+  }
+  state.model.updateMatrixWorld(true);
+
+  // 2. Сдвиг hips вбок/вперёд от движения ваги (горизонтальная часть)
+  const hips = state.bones['hips'] || state.bones['pelvis'];
+  if (hips && hips.userData.restPos){
+    const dx = state.vagaCenter.x - state.vagaRestCenter.x;
+    const dz = state.vagaCenter.z - state.vagaRestCenter.z;
+    hips.position.x = hips.userData.restPos.x + dx;
+    hips.position.z = hips.userData.restPos.z + dz;
+  }
+  state.model.updateMatrixWorld(true);
+
+  // 3. AIM костей к точкам крепления (по иерархии — родители первыми)
+  const list = [];
+  for (let i = 0; i < state.strings.length; i++){
+    const s = state.strings[i];
+    if (!s.bone) continue;
+    let d = 0, p = s.bone.parent;
+    while (p){ d++; p = p.parent; }
+    list.push({ s: s, depth: d });
+  }
+  list.sort(function(a,b){ return a.depth - b.depth; });
+
+  for (let i = 0; i < list.length; i++){
+    const s = list[i].s;
+    aimBone(s.bone, stringWorldPos(s), K_STRENGTH);
+  }
+  state.model.updateMatrixWorld(true);
+
+  // 4. Обновить позиции точек, нитей, подписей
+  for (let i = 0; i < state.strings.length; i++){
+    const s = state.strings[i];
+    const wpos = stringWorldPos(s);
+    s.mesh.position.copy(wpos);
+
+    const bp = getBoneWorld(s.bone);
+    if (!bp){ s.line.visible = false; continue; }
+    const a = s.line.geometry.attributes.position.array;
+    a[0] = wpos.x; a[1] = wpos.y; a[2] = wpos.z;
+    a[3] = bp.x;   a[4] = bp.y;   a[5] = bp.z;
+    s.line.geometry.attributes.position.needsUpdate = true;
+    s.line.visible = state.showStrings;
+
+    s.label.position.set(wpos.x, wpos.y + 0.16, wpos.z);
+    s.label.visible = state.showStrings;
+    s.mesh.visible = state.showStrings;
+  }
+
+  // 5. Вага — вся группа смещается
+  if (state.vagaVisual){
+    const off = new THREE.Vector3().subVectors(state.vagaCenter, state.vagaRestCenter);
+    state.vagaVisual.position.copy(off);
+  }
+  if (state.vagaHandle){
+    state.vagaHandle.position.copy(state.vagaCenter);
+  }
+  if (state.vagaLabel){
+    state.vagaLabel.position.set(
+      state.vagaCenter.x,
+      state.vagaCenter.y + 0.40,
+      state.vagaCenter.z
+    );
+    state.vagaLabel.visible = state.showVaga;
+  }
+  if (state.vagaVisual){
+    for (let i = 0; i < state.vagaVisual.children.length; i++){
+      state.vagaVisual.children[i].visible = state.showVaga;
+    }
+  }
+  if (state.vagaHandle) state.vagaHandle.visible = state.showVaga;
+}
+
+/* ================= загрузка ================= */
+const loader = new GLTFLoader();
+const MODEL_URL = 'https://threejs.org/examples/models/gltf/Xbot.glb';
+
+loader.load(MODEL_URL, function(gltf){
+  window.__hud('модель получена');
+
+  const model = gltf.scene;
+  model.traverse(function(o){
+    if (o.isMesh && o.material){
+      o.material.transparent = true;
+      o.material.opacity = 0.82;
+    }
+  });
+  scene.add(model);
+  state.model = model;
+
+  const skinned = [];
+  model.traverse(function(o){ if (o.isSkinnedMesh) skinned.push(o); });
+  if (skinned.length){
+    const helper = new THREE.SkeletonHelper(model);
+    helper.material.depthTest = false;
+    helper.renderOrder = 1;
+    helper.visible = false;
+    scene.add(helper);
+    state.skeletonHelper = helper;
+  }
+
+  const boneList = [];
+  model.traverse(function(o){
+    if (o.isBone){
+      boneList.push(o);
+      o.userData.restQuat = o.quaternion.clone();
+      o.userData.restPos = o.position.clone();
+      const name = o.name.replace(/^mixamorig:?/i, '').toLowerCase();
+      state.bones[name] = o;
+    }
+  });
+  state.boneList = boneList;
+
+  buildVaga();
+  buildStrings();
+  updateAll();
+
+  document.getElementById('load').classList.add('hidden');
+  window.__hud('готов · тяни ручку ваги или нити');
+  refreshUI();
+}, undefined, function(err){
+  window.__err('модель: ' + (err && err.message ? err.message : err));
+  document.getElementById('load').textContent = 'ошибка загрузки';
+});
+
+/* ================= управление ================= */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function setPointer(x, y){
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((x - r.left) / r.width) * 2 - 1;
+  pointer.y = -((y - r.top) / r.height) * 2 + 1;
+}
+
+function findHandleAt(x, y){
+  setPointer(x, y);
+  raycaster.setFromCamera(pointer, camera);
+
+  // ручка ваги
+  if (state.vagaHandle && state.vagaHandle.visible){
+    const hh = raycaster.intersectObject(state.vagaHandle, true);
+    if (hh.length){
+      let o = hh[0].object;
+      while (o && !o.userData.isVagaHandle) o = o.parent;
+      if (o) return { obj: o, mode: 'vaga' };
+    }
+  }
+  // точки привязки
+  const meshes = [];
+  for (let i = 0; i < state.strings.length; i++){
+    if (state.strings[i].mesh.visible) meshes.push(state.strings[i].mesh);
+  }
+  const hits = raycaster.intersectObjects(meshes, true);
+  if (hits.length){
+    let obj = hits[0].object;
+    while (obj && !obj.userData.isString) obj = obj.parent;
+    if (obj) return { obj: obj, mode: 'string' };
+  }
+  return null;
+}
+
+renderer.domElement.addEventListener('pointerdown', function(e){
+  if (e.target !== renderer.domElement) return;
+  const r = findHandleAt(e.clientX, e.clientY);
+  state.pointerDown = {x: e.clientX, y: e.clientY, moved: false};
+
+  if (r){
+    state.dragging = r.obj;
+    state.dragMode = r.mode;
+    controls.enabled = false;
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    state.dragPlane.setFromNormalAndCoplanarPoint(camDir, r.obj.position);
+    const hit = new THREE.Vector3();
+    raycaster.ray.intersectPlane(state.dragPlane, hit);
+    state.dragOffset.subVectors(r.obj.position, hit);
+    e.preventDefault();
+  }
+}, true);
+
+renderer.domElement.addEventListener('pointermove', function(e){
+  if (state.pointerDown && !state.pointerDown.moved){
+    const dx = e.clientX - state.pointerDown.x;
+    const dy = e.clientY - state.pointerDown.y;
+    if (dx*dx + dy*dy > 25) state.pointerDown.moved = true;
+  }
+  if (!state.dragging) return;
+
+  setPointer(e.clientX, e.clientY);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(state.dragPlane, hit)) return;
+  const newPos = hit.add(state.dragOffset);
+
+  if (state.dragMode === 'vaga'){
+    // ручка ваги — двигаем центр ваги
+    state.vagaCenter.copy(newPos);
+  } else {
+    // точка привязки — сохраняем смещение относительно ваги
+    const idx = state.dragging.userData.stringIdx;
+    const s = state.strings[idx];
+    if (s){
+      const base = new THREE.Vector3()
+        .copy(state.vagaCenter)
+        .add(s.vagaLocal);
+      s.worldOffset.subVectors(newPos, base);
+    }
+  }
+  updateAll();
+  e.preventDefault();
+}, {passive:false});
+
+function endDrag(){
+  if (state.dragging){
+    state.dragging = null;
+    controls.enabled = true;
+  }
+  state.pointerDown = null;
+}
+renderer.domElement.addEventListener('pointerup', endDrag);
+renderer.domElement.addEventListener('pointercancel', endDrag);
+
+/* ================= сброс ================= */
+function resetAll(){
+  state.vagaCenter.copy(state.vagaRestCenter);
+  for (let i = 0; i < state.strings.length; i++){
+    state.strings[i].worldOffset.set(0, 0, 0);
+  }
+  for (let i = 0; i < state.boneList.length; i++){
+    const b = state.boneList[i];
+    if (b.userData.restQuat) b.quaternion.copy(b.userData.restQuat);
+    if (b.userData.restPos) b.position.copy(b.userData.restPos);
+  }
+  state.model.updateMatrixWorld(true);
+  updateAll();
+}
+
+/* ================= UI ================= */
+const ui = document.getElementById('ui');
+function btn(label, fn, cls){
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.onclick = fn;
+  ui.appendChild(b);
+  return b;
+}
+
+const btnStrings = btn('🪢 нити', function(){
+  state.showStrings = !state.showStrings;
+  updateAll(); refreshUI();
+}, 'on');
+
+const btnVaga = btn('✝ вага', function(){
+  state.showVaga = !state.showVaga;
+  updateAll(); refreshUI();
+}, 'on');
+
+const btnSkel = btn('🦴 скелет', function(){
+  state.showSkeleton = !state.showSkeleton;
+  if (state.skeletonHelper) state.skeletonHelper.visible = state.showSkeleton;
+  refreshUI();
+});
+
+const btnStrong = btn('💪 сильно', function(){
+  K_STRENGTH = 1.0; updateAll(); refreshUI();
+});
+
+const btnSoft = btn('🪶 мягко', function(){
+  K_STRENGTH = 0.55; updateAll(); refreshUI();
+});
+
+btn('⟲ сброс', resetAll, 'reset');
+
+btn('🎥 вид', function(){
+  camera.position.set(4.5, 2.5, 6.0);
+  controls.target.set(0, 1.5, 0);
+  controls.update();
+});
+
+function refreshUI(){
+  btnStrings.classList.toggle('on', state.showStrings);
+  btnVaga.classList.toggle('on', state.showVaga);
+  btnSkel.classList.toggle('on', state.showSkeleton);
+  btnStrong.classList.toggle('on', K_STRENGTH === 1.0);
+  btnSoft.classList.toggle('on', K_STRENGTH === 0.55);
+}
+
+/* ================= анимация ================= */
+function animate(){
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+addEventListener('resize', function(){
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+refreshUI();
+window.__hud('загружаю Xbot…');
+animate();
+
+} catch(e){
+  window.__err('FATAL: ' + (e && e.message ? e.message : e) +
+    '\n' + (e && e.stack ? e.stack : ''));
+}
+</script>
+</body>
+</html>
