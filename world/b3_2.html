@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>v0.2 · ragdoll</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
+    font-family:system-ui,-apple-system,sans-serif;}
+  #hud{position:fixed;top:8px;left:8px;font-size:12px;background:rgba(0,0,0,.85);
+    padding:10px 12px;border-radius:8px;z-index:10;line-height:1.6;
+    font-family:ui-monospace,monospace;color:#8cf;max-width:92%;
+    white-space:pre-wrap;pointer-events:none;}
+  #err{position:fixed;top:8px;left:8px;right:8px;font-size:12px;
+    background:rgba(80,10,10,.95);padding:10px;border-radius:8px;z-index:20;
+    font-family:ui-monospace,monospace;color:#fdd;display:none;white-space:pre-wrap;}
+  #ui{position:fixed;bottom:0;left:0;right:0;padding:6px;
+    display:flex;flex-wrap:wrap;gap:4px;z-index:10;justify-content:center;
+    background:linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,.2));}
+  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:8px;
+    padding:10px 14px;font-size:13px;touch-action:manipulation;font-weight:bold;}
+  #ui button:active{background:#2a2a4a;}
+  #ui button.reset{background:#3a2a1a;border-color:#a86;color:#ffe;}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#0a0a0f;z-index:100;font-size:16px;color:#a67cff;text-align:center;
+    padding:20px;}
+  #load.hidden{display:none;}
+</style>
+</head>
+<body>
+<div id="load">v0.2 · загружаю Havok…</div>
+<div id="hud">v0.2 · старт</div>
+<div id="err"></div>
+<div id="ui"></div>
+
+<script>
+  window.__hud = function(m){
+    var el = document.getElementById('hud');
+    if (el) el.textContent = 'v0.2 · ' + m;
+  };
+  window.__err = function(m){
+    var el = document.getElementById('err');
+    if (el){ el.style.display = 'block'; el.textContent += m + '\n'; }
+    console.error(m);
+  };
+  window.addEventListener('error', function(e){ window.__err('error: ' + (e.message || e)); });
+  window.addEventListener('unhandledrejection', function(e){
+    window.__err('reject: ' + (e.reason && e.reason.message || e.reason));
+  });
+</script>
+
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+<script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+
+<script>
+(async function(){
+try {
+  window.__hud('Havok init…');
+  const havok = await HavokPhysics();
+  window.__hud('Havok ok');
+
+  const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  canvas.style.display = 'block';
+  canvas.style.touchAction = 'none';
+  document.body.appendChild(canvas);
+
+  const engine = new BABYLON.Engine(canvas, true);
+  const scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0.04, 0.04, 0.06, 1);
+
+  const camera = new BABYLON.ArcRotateCamera('cam',
+    -Math.PI / 2, Math.PI / 2.5, 5,
+    new BABYLON.Vector3(0, 0.9, 0), scene);
+  camera.attachControl(canvas, true);
+  camera.lowerRadiusLimit = 1;
+  camera.upperRadiusLimit = 30;
+  camera.wheelDeltaPercentage = 0.02;
+
+  const hemi = new BABYLON.HemisphericLight('hemi',
+    new BABYLON.Vector3(0, 1, 0), scene);
+  hemi.intensity = 1.0;
+  const dir = new BABYLON.DirectionalLight('dir',
+    new BABYLON.Vector3(-1, -2, -1), scene);
+  dir.intensity = 0.7;
+
+  // физика
+  const plugin = new BABYLON.HavokPlugin(true, havok);
+  scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), plugin);
+  window.__hud('физика включена');
+
+  // пол
+  const ground = BABYLON.MeshBuilder.CreateGround('ground',
+    { width: 20, height: 20 }, scene);
+  const gm = new BABYLON.StandardMaterial('gm', scene);
+  gm.diffuseColor = new BABYLON.Color3(0.10, 0.10, 0.15);
+  gm.specularColor = new BABYLON.Color3(0, 0, 0);
+  ground.material = gm;
+  new BABYLON.PhysicsAggregate(ground,
+    BABYLON.PhysicsShapeType.BOX, { mass: 0 }, scene);
+
+  // грузим Xbot
+  window.__hud('груз Xbot…');
+  const result = await BABYLON.SceneLoader.ImportMeshAsync(
+    null, 'https://threejs.org/examples/models/gltf/', 'Xbot.glb', scene);
+
+  const rootMesh = result.meshes[0];
+
+  // скелет
+  let skeleton = null, skinnedMesh = null;
+  for (const m of result.meshes){
+    if (m.skeleton){
+      skeleton = m.skeleton;
+      if (m.getTotalVertices && m.getTotalVertices() > 0) skinnedMesh = m;
+    }
+  }
+  if (!skeleton){
+    window.__err('нет скелета');
+    return;
+  }
+
+  // Приподнять модель чтобы ragdoll начал падать с воздуха
+  rootMesh.position.y = 2.0;
+  rootMesh.computeWorldMatrix(true);
+  rootMesh.refreshBoundingInfo(true);
+
+  window.__hud('костей: ' + skeleton.bones.length + ' · ragdoll конфиг');
+
+  // Конфиг — размеры костей, взяты из типичной антропометрии
+  // для роста 1.8 м
+  const C = [
+    { bones:['mixamorig:Hips'],       size:0.20 },
+    { bones:['mixamorig:Spine'],      size:0.18 },
+    { bones:['mixamorig:Spine1'],     size:0.18 },
+    { bones:['mixamorig:Spine2'],     size:0.18 },
+    { bones:['mixamorig:Neck'],       size:0.10 },
+    { bones:['mixamorig:Head'],       size:0.15 },
+    { bones:['mixamorig:LeftShoulder'],  size:0.10 },
+    { bones:['mixamorig:RightShoulder'], size:0.10 },
+
+    { bones:['mixamorig:LeftArm'],
+      depth:0.10, width:0.10, height:0.28,
+      boxOffset:0.14, boneOffsetAxis:BABYLON.Axis.Y,
+      rotationAxis:BABYLON.Axis.Z, min:-0.9, max:0.9 },
+    { bones:['mixamorig:RightArm'],
+      depth:0.10, width:0.10, height:0.28,
+      boxOffset:0.14, boneOffsetAxis:BABYLON.Axis.Y,
+      rotationAxis:BABYLON.Axis.Z, min:-0.9, max:0.9 },
+
+    { bones:['mixamorig:LeftForeArm'],
+      depth:0.09, width:0.09, height:0.26,
+      boxOffset:0.13, boneOffsetAxis:BABYLON.Axis.Y,
+      rotationAxis:BABYLON.Axis.X, min:-1.4, max:0.1 },
+    { bones:['mixamorig:RightForeArm'],
+      depth:0.09, width:0.09, height:0.26,
+      boxOffset:0.13, boneOffsetAxis:BABYLON.Axis.Y,
+      rotationAxis:BABYLON.Axis.X, min:-1.4, max:0.1 },
+
+    { bones:['mixamorig:LeftHand'],  size:0.07 },
+    { bones:['mixamorig:RightHand'], size:0.07 },
+
+    { bones:['mixamorig:LeftUpLeg'],
+      depth:0.14, width:0.14, height:0.42,
+      boxOffset:0.20, boneOffsetAxis:BABYLON.Axis.Y,
+      rotationAxis:BABYLON.Axis.X, min:-0.9, max:0.9 },
+    { bones:['mixamorig:RightUpLeg'],
+      depth:0.14, width:0.14, height:0.42,
+      boxOffset:0.20, boneOffsetAxis:BABYLON.Axis.Y,
+      rotationAxis:BABYLON.Axis.X, min:-0.9, max:0.9 },
+
+    { bones:['mixamorig:LeftLeg'],
+      depth:0.12, width:0.12, height:0.40,
+      boxOffset:0.19, boneOffsetAxis:BABYLON.Axis.Y,
+      rotationAxis:BABYLON.Axis.X, min:-1.3, max:0.0 },
+    { bones:['mixamorig:RightLeg'],
+      depth:0.12, width:0.12, height:0.40,
+      boxOffset:0.19, boneOffsetAxis:BABYLON.Axis.Y,
+      rotationAxis:BABYLON.Axis.X, min:-1.3, max:0.0 },
+
+    { bones:['mixamorig:LeftFoot'],  size:0.10 },
+    { bones:['mixamorig:RightFoot'], size:0.10 }
+  ];
+
+  let ragdoll;
+  try {
+    ragdoll = new BABYLON.Ragdoll(skeleton, skinnedMesh, C);
+    window.__hud('ragdoll объект создан · включаю физику');
+    ragdoll.ragdoll();
+    window.__hud('ragdoll активен · кукла падает');
+  } catch(e){
+    window.__err('Ragdoll ошибка: ' + (e && e.message ? e.message : e));
+    return;
+  }
+
+  // UI
+  const ui = document.getElementById('ui');
+
+  const btnReset = document.createElement('button');
+  btnReset.textContent = '⟲ сброс';
+  btnReset.className = 'reset';
+  btnReset.onclick = function(){
+    // перезапустить ragdoll с исходным положением
+    rootMesh.position.y = 2.0;
+    rootMesh.computeWorldMatrix(true);
+    ragdoll.ragdoll();
+    hud2('ragdoll перезапущен');
+  };
+  ui.appendChild(btnReset);
+
+  const btnView = document.createElement('button');
+  btnView.textContent = '🎥 вид';
+  btnView.onclick = function(){
+    camera.alpha = -Math.PI / 2;
+    camera.beta = Math.PI / 2.5;
+    camera.radius = 5;
+    camera.target = new BABYLON.Vector3(0, 0.9, 0);
+  };
+  ui.appendChild(btnView);
+
+  let lastMsg = '';
+  function hud2(m){ lastMsg = m; }
+
+  engine.runRenderLoop(function(){
+    scene.render();
+  });
+  window.addEventListener('resize', function(){
+    engine.resize();
+  });
+
+  document.getElementById('load').classList.add('hidden');
+
+  // Обновляем hud каждый 0.5 сек чтобы видеть текущую высоту корня
+  setInterval(function(){
+    if (!skeleton) return;
+    const hipsIdx = skeleton.getBoneIndexByName('mixamorig:Hips');
+    if (hipsIdx < 0) return;
+    const hips = skeleton.bones[hipsIdx];
+    hips.computeWorldMatrix(true);
+    const p = hips.getAbsolutePosition();
+    window.__hud('кукла падает\n' +
+      'hips: x=' + p.x.toFixed(2) +
+      ' y=' + p.y.toFixed(2) +
+      ' z=' + p.z.toFixed(2) + '\n' +
+      (lastMsg ? lastMsg + '\n' : '') +
+      'тащи камеру пальцем');
+  }, 500);
+
+} catch(e){
+  window.__err('FATAL: ' + (e && e.message ? e.message : e) +
+    '\n' + (e && e.stack ? e.stack : ''));
+  document.getElementById('load').textContent = 'ошибка: ' + (e && e.message ? e.message : e);
+}
+})();
+</script>
+</body>
+</html>
