@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>v4.0 · лучи через тело</title>
+<title>v4.1 · диагностика</title>
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
     font-family:system-ui,-apple-system,sans-serif;}
   canvas{display:block;touch-action:none;}
-  #hud{position:fixed;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.82);
+  #hud{position:fixed;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.85);
     padding:8px 10px;border-radius:8px;z-index:10;line-height:1.55;
     font-family:ui-monospace,monospace;color:#8cf;max-width:82%;pointer-events:none;
     white-space:pre-wrap;}
@@ -21,33 +21,41 @@
     background:linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,.2));}
   #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:8px;
     padding:9px 12px;font-size:13px;touch-action:manipulation;font-weight:bold;}
-  #ui button:active{background:#2a2a4a;}
   #ui button.reset{background:#3a2a1a;border-color:#a86;color:#ffe;}
   #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-    background:#0a0a0f;z-index:100;font-size:16px;color:#a67cff;text-align:center;padding:20px;}
+    background:#0a0a0f;z-index:100;font-size:14px;color:#a67cff;text-align:center;padding:20px;
+    font-family:ui-monospace,monospace;}
   #load.hidden{display:none;}
 </style>
 </head>
 <body>
-<div id="load">v4.0 · загружаю Xbot…</div>
-<div id="hud">v4.0 · старт</div>
+<div id="load">v4.1 · HTML готов</div>
+<div id="hud">v4.1 · inline скрипт</div>
 <div id="err"></div>
 <div id="ui"></div>
 
 <script>
   window.__hud = function(m){
     var el = document.getElementById('hud');
-    if (el) el.textContent = 'v4.0 · ' + m;
+    if (el) el.textContent = 'v4.1 · ' + m;
+  };
+  window.__load = function(m){
+    var el = document.getElementById('load');
+    if (el) el.textContent = 'v4.1 · ' + m;
   };
   window.__err = function(m){
     var el = document.getElementById('err');
     if (el){ el.style.display = 'block'; el.textContent += m + '\n'; }
     console.error(m);
   };
-  window.addEventListener('error', function(e){ window.__err('error: ' + (e.message || e)); });
-  window.addEventListener('unhandledrejection', function(e){
-    window.__err('reject: ' + (e.reason && e.reason.message || e.reason));
+  window.addEventListener('error', function(e){
+    window.__err('window.error: ' + (e.message || e) + ' | ' + (e.filename || '') + ':' + (e.lineno || ''));
   });
+  window.addEventListener('unhandledrejection', function(e){
+    window.__err('unhandled: ' + (e.reason && e.reason.message || e.reason));
+  });
+  window.__hud('inline скрипт выполнен');
+  window.__load('inline готов');
 </script>
 
 <script type="importmap">
@@ -58,13 +66,19 @@
 </script>
 
 <script type="module">
+window.__load('module запущен');
+
 import * as THREE from 'three';
+window.__load('THREE загружен');
+
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+window.__load('OrbitControls загружен');
+
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+window.__load('GLTFLoader загружен');
 
 try {
 
-/* ================= сцена ================= */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a0f);
 scene.fog = new THREE.Fog(0x0a0a0f, 14, 50);
@@ -77,6 +91,7 @@ const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
+window.__load('renderer ok');
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -95,6 +110,7 @@ const grid = new THREE.GridHelper(24, 48, 0x334455, 0x151a22);
 grid.material.opacity = 0.55;
 grid.material.transparent = true;
 scene.add(grid);
+window.__load('сцена ok · гружу Xbot');
 
 /* ================= состояние ================= */
 const state = {
@@ -103,42 +119,28 @@ const state = {
   bones: {},
   boneList: [],
   skeletonHelper: null,
-
-  // цепочки IK ног
   chainLLeg: null,
   chainRLeg: null,
-
-  // рест стоп
   footRestL: new THREE.Vector3(),
   footRestR: new THREE.Vector3(),
-
-  // центр "через тело" — на уровне копчика, чуть выше
   crossPointRest: new THREE.Vector3(0, 1.2, 0),
-
-  // маркеры
   markL: null,
   markR: null,
   markRestL: new THREE.Vector3(-0.55, 2.50, 0),
   markRestR: new THREE.Vector3( 0.55, 2.50, 0),
-
-  // тело
   bodyX: 0,
   bodyZ: 0,
   distance: 0,
-
-  // коэффициенты
-  kBodyX: -0.9,   // отрицательный = тело идёт ПРОТИВ ноги (как при ходьбе)
-  kBodyZ:  0.9,   // положительный = тело идёт ЗА средней точкой (шаг вперёд)
-
-  // drag
+  kBodyX: -0.9,
+  kBodyZ:  0.9,
   dragging: null,
   dragPlane: new THREE.Plane(),
   dragOffset: new THREE.Vector3(),
   pointerDown: null,
-  showSkeleton: false
+  showSkeleton: false,
+  crossMark: null
 };
 
-/* ================= лимиты ================= */
 const JOINT_LIMITS = {
   leftupleg:  { x: [-1.3, 1.3], y: [-0.5, 0.5], z: [-0.5, 0.5] },
   rightupleg: { x: [-1.3, 1.3], y: [-0.5, 0.5], z: [-0.5, 0.5] },
@@ -164,53 +166,42 @@ function clampJoint(b){
   b.quaternion.setFromEuler(tmpEuler);
 }
 
-/* ================= CCD IK ================= */
 function ccdIK(chain, target, iterations){
   if (!chain || chain.length < 2) return;
   const endBone = chain[chain.length - 1];
   const endWorld = new THREE.Vector3();
-
   for (let it = 0; it < iterations; it++){
     for (let i = chain.length - 2; i >= 0; i--){
       const b = chain[i];
       b.updateWorldMatrix(true, false);
       const bonePos = new THREE.Vector3();
       b.getWorldPosition(bonePos);
-
       endBone.updateWorldMatrix(true, false);
       endBone.getWorldPosition(endWorld);
-
       const toEnd = endWorld.clone().sub(bonePos);
       const toTarget = target.clone().sub(bonePos);
       if (toEnd.lengthSq() < 1e-8 || toTarget.lengthSq() < 1e-8) continue;
       toEnd.normalize();
       toTarget.normalize();
-
       const dot = Math.max(-1, Math.min(1, toEnd.dot(toTarget)));
       const angle = Math.acos(dot);
       if (angle < 1e-4) continue;
-
       const axis = new THREE.Vector3().crossVectors(toEnd, toTarget);
       if (axis.lengthSq() < 1e-8) continue;
       axis.normalize();
-
       const dq = new THREE.Quaternion().setFromAxisAngle(axis, angle);
-
       const boneWorldQ = new THREE.Quaternion();
       b.getWorldQuaternion(boneWorldQ);
       const newWorldQ = dq.clone().multiply(boneWorldQ);
-
       const parentQ = new THREE.Quaternion();
       if (b.parent) b.parent.getWorldQuaternion(parentQ);
       b.quaternion.copy(parentQ.clone().invert().multiply(newWorldQ));
-
       clampJoint(b);
       b.updateWorldMatrix(true, true);
     }
   }
 }
 
-/* ================= маркеры и лучи через тело ================= */
 function makeLine(color, dashed){
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
@@ -224,21 +215,21 @@ function makeLine(color, dashed){
     return l;
   }
   return new THREE.Line(g, new THREE.LineBasicMaterial({
-    color.s: color, transparent: true, opacity: 0.85
+    color: color, transparent: true, opacity: 0.85
   }));
 }
 
 function buildMarkers(){
   function mk(color, side){
     const m = new THREE.Mesh(
-      new THREE.SphereGeometry(0.11ide = side;
-   , 18, 14),
+      new THREE.SphereGeometry(0.11, 18, 14),
       new THREE.MeshStandardMaterial({
         color: color, emissive: color, emissiveIntensity: 1.3,
         transparent: true, opacity: 0.95
       }));
     m.renderOrder = 5;
-    m.userData const hit = new THREE.Mesh(
+    m.userData.side = side;
+    const hit = new THREE.Mesh(
       new THREE.SphereGeometry(0.32, 8, 6),
       new THREE.MeshBasicMaterial({visible: false}));
     hit.userData.isMarkHit = true;
@@ -246,36 +237,24 @@ function buildMarkers(){
     scene.add(m);
     return m;
   }
-
   state.markL = mk(0x88ccff, 'L');
   state.markR = mk(0xff88cc, 'R');
   state.markL.position.copy(state.markRestL);
   state.markR.position.copy(state.markRestR);
 
-  // ЛУЧИ ЧЕРЕЗ ТЕЛО:
-  // Каждый луч состоит из двух сегментов:
-  //   1. От маркера вниз до crossPoint (выше копчика, около груди)
-  //   2. От crossPoint к стопе
-  // Визуально проходит СКВОЗЬ тело.
-
-  // левая нога
-  state.lineL_top = makeLine(0x88ccff, true);    // маркер → cross
-  state.lineL_bot = makeLine(0x88ccff, false);   // cross → стопа
+  state.lineL_top = makeLine(0x88ccff, true);
+  state.lineL_bot = makeLine(0x88ccff, false);
   scene.add(state.lineL_top, state.lineL_bot);
-
-  // правая нога
   state.lineR_top = makeLine(0xff88cc, true);
   state.lineR_bot = makeLine(0xff88cc, false);
   scene.add(state.lineR_top, state.lineR_bot);
 
-  // маркер crossPoint — маленькая сфера в центре тела
   state.crossMark = new THREE.Mesh(
     new THREE.SphereGeometry(0.05, 12, 10),
     new THREE.MeshBasicMaterial({color: 0xffaa44, transparent: true, opacity: 0.8})
   );
   scene.add(state.crossMark);
 
-  // точка старта
   const startMark = new THREE.Mesh(
     new THREE.RingGeometry(0.15, 0.20, 24),
     new THREE.MeshBasicMaterial({color: 0xffaa44, side: THREE.DoubleSide, transparent: true, opacity: 0.8})
@@ -285,16 +264,12 @@ function buildMarkers(){
   scene.add(startMark);
 }
 
-/* ================= обновить ================= */
 function updateAll(){
   if (!state.model) return;
 
   const deltaL = new THREE.Vector3().subVectors(state.markL.position, state.markRestL);
   const deltaR = new THREE.Vector3().subVectors(state.markR.position, state.markRestR);
 
-  // тело:
-  //   X: противоположно среднему смещению ног
-  //   Z: вместе со средним смещением ног
   const avgX = (deltaL.x + deltaR.x) * 0.5;
   const avgZ = (deltaL.z + deltaR.z) * 0.5;
 
@@ -307,7 +282,6 @@ function updateAll(){
   }
   state.model.updateMatrixWorld(true);
 
-  // сброс ног в rest
   if (state.chainLLeg){
     for (const b of state.chainLLeg){
       if (b.userData.restQuat) b.quaternion.copy(b.userData.restQuat);
@@ -320,23 +294,19 @@ function updateAll(){
   }
   state.model.updateMatrixWorld(true);
 
-  // цели стоп = rest + delta
   const targetL = state.footRestL.clone().add(deltaL);
   const targetR = state.footRestR.clone().add(deltaR);
 
-  // IK
   if (state.chainLLeg) ccdIK(state.chainLLeg, targetL, 8);
   state.model.updateMatrixWorld(true);
   if (state.chainRLeg) ccdIK(state.chainRLeg, targetR, 8);
   state.model.updateMatrixWorld(true);
 
-  // позиция crossPoint — «внутри тела» на уровне груди
   const crossPos = state.crossPointRest.clone();
   crossPos.x += state.bodyX;
   crossPos.z += state.bodyZ;
   if (state.crossMark) state.crossMark.position.copy(crossPos);
 
-  // получить текущие стопы
   function endPos(chain){
     if (!chain) return new THREE.Vector3();
     const b = chain[chain.length - 1];
@@ -357,33 +327,65 @@ function updateAll(){
     if (l.computeLineDistances) l.computeLineDistances();
   }
 
-  // луч L: markL → cross → footL
   setLine(state.lineL_top, state.markL.position, crossPos);
   setLine(state.lineL_bot, crossPos, footL);
-
-  // луч R: markR → cross → footR
   setLine(state.lineR_top, state.markR.position, crossPos);
   setLine(state.lineR_bot, crossPos, footR);
 
-  // пройденное расстояние
   state.distance = Math.sqrt(state.bodyX * state.bodyX + state.bodyZ * state.bodyZ);
 
   window.__hud(
     'тяни шары сверху:\n' +
-    '🟦 синий → левая стопа (луч через тело)\n' +
+    '🟦 синий → левая стопа\n' +
     '🩷 розовый → правая стопа\n' +
-    'тело идёт против ноги (как при ходьбе)\n' +
+    'тело идёт против ноги\n' +
     '---\n' +
     'тело: x=' + state.bodyX.toFixed(2) + '  z=' + state.bodyZ.toFixed(2) + ' м\n' +
     'пройдено: ' + state.distance.toFixed(2) + ' м'
   );
 }
 
-/* ================= загрузка ================= */
+/* ================= загрузка — с альтернативным URL ================= */
+const URLS = [
+  'https://threejs.org/examples/models/gltf/Xbot.glb',
+  'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/Xbot.glb',
+  'https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/models/gltf/Xbot.glb'
+];
+
 const loader = new GLTFLoader();
-loader.load('https://threejs.org/examples/models/gltf/Xbot.glb',
-  function(gltf){
-    window.__hud('модель получена');
+let urlIdx = 0;
+
+function tryLoad(){
+  if (urlIdx >= URLS.length){
+    window.__err('все URL не сработали');
+    document.getElementById('load').textContent = 'все URL недоступны';
+    return;
+  }
+  const url = URLS[urlIdx];
+  window.__load('пробую ' + (urlIdx+1) + '/3: ' + url.split('/')[2]);
+
+  loader.load(url,
+    function(gltf){
+      window.__load('модель загружена');
+      onLoaded(gltf);
+    },
+    function(progress){
+      if (progress.total){
+        const pct = Math.round(progress.loaded / progress.total * 100);
+        window.__load('загрузка ' + pct + '%');
+      }
+    },
+    function(err){
+      window.__err('URL ' + (urlIdx+1) + ' упал: ' + (err && err.message ? err.message : err));
+      urlIdx++;
+      tryLoad();
+    }
+  );
+}
+
+function onLoaded(gltf){
+  try {
+    window.__load('обрабатываю модель');
 
     const model = gltf.scene;
     model.traverse(function(o){
@@ -425,7 +427,6 @@ loader.load('https://threejs.org/examples/models/gltf/Xbot.glb',
     if (lf){ lf.updateWorldMatrix(true, false); lf.getWorldPosition(state.footRestL); }
     if (rf){ rf.updateWorldMatrix(true, false); rf.getWorldPosition(state.footRestR); }
 
-    // crossPoint — на уровне копчика + 30 см (примерно грудь)
     const hips = bone('hips') || bone('pelvis');
     if (hips){
       hips.updateWorldMatrix(true, false);
@@ -445,14 +446,13 @@ loader.load('https://threejs.org/examples/models/gltf/Xbot.glb',
     updateAll();
 
     document.getElementById('load').classList.add('hidden');
-    window.__hud('готов · тяни шары · лучи через тело');
-  },
-  undefined,
-  function(err){
-    window.__err('модель: ' + (err && err.message ? err.message : err));
-    document.getElementById('load').textContent = 'ошибка загрузки';
+    window.__hud('готов · тяни шары');
+  } catch(e){
+    window.__err('onLoaded: ' + (e && e.message ? e.message : e));
   }
-);
+}
+
+tryLoad();
 
 /* ================= управление ================= */
 const raycaster = new THREE.Raycaster();
@@ -516,7 +516,6 @@ function endDrag(){
 renderer.domElement.addEventListener('pointerup', endDrag);
 renderer.domElement.addEventListener('pointercancel', endDrag);
 
-/* ================= сброс ================= */
 function resetAll(){
   state.markL.position.copy(state.markRestL);
   state.markR.position.copy(state.markRestR);
@@ -537,21 +536,17 @@ function mkBtn(label, fn, cls){
   ui.appendChild(b);
   return b;
 }
-
 mkBtn('⟲ сброс', resetAll, 'reset');
-
 mkBtn('🦴 скелет', function(){
   state.showSkeleton = !state.showSkeleton;
   if (state.skeletonHelper) state.skeletonHelper.visible = state.showSkeleton;
 });
-
 mkBtn('🎥 вид', function(){
   camera.position.set(3.5, 2.2, 5.0);
   controls.target.set(0, 1.0, 0);
   controls.update();
 });
 
-/* ================= анимация ================= */
 function animate(){
   controls.update();
   renderer.render(scene, camera);
@@ -562,12 +557,12 @@ addEventListener('resize', function(){
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
-
 animate();
 
 } catch(e){
   window.__err('FATAL: ' + (e && e.message ? e.message : e) +
     '\n' + (e && e.stack ? e.stack : ''));
+  window.__load('FATAL — смотри #err');
 }
 </script>
 </body>
