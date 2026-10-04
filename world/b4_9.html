@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>v5.0 · прямой луч</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
+    font-family:system-ui,-apple-system,sans-serif;}
+  canvas{display:block;touch-action:none;}
+  #hud{position:fixed;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.82);
+    padding:8px 10px;border-radius:8px;z-index:10;line-height:1.55;
+    font-family:ui-monospace,monospace;color:#8cf;max-width:82%;pointer-events:none;
+    white-space:pre-wrap;}
+  #err{position:fixed;top:8px;left:8px;right:8px;font-size:12px;
+    background:rgba(80,10,10,.95);padding:10px;border-radius:8px;z-index:20;
+    font-family:ui-monospace,monospace;color:#fdd;display:none;white-space:pre-wrap;}
+  #ui{position:fixed;bottom:0;left:0;right:0;padding:6px;
+    display:flex;flex-wrap:wrap;gap:4px;z-index:10;justify-content:center;
+    background:linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,.2));}
+  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:8px;
+    padding:9px 12px;font-size:13px;touch-action:manipulation;font-weight:bold;}
+  #ui button.active{background:#3a2a5a;border-color:#a67cff;color:#fff;}
+  #ui button.reset{background:#3a2a1a;border-color:#a86;color:#ffe;}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#0a0a0f;z-index:100;font-size:14px;color:#a67cff;text-align:center;padding:20px;
+    font-family:ui-monospace,monospace;}
+  #load.hidden{display:none;}
+</style>
+</head>
+<body>
+<div id="load">v5.0 · HTML готов</div>
+<div id="hud">v5.0 · inline</div>
+<div id="err"></div>
+<div id="ui"></div>
+
+<script>
+  window.__hud = function(m){
+    var el = document.getElementById('hud');
+    if (el) el.textContent = 'v5.0 · ' + m;
+  };
+  window.__load = function(m){
+    var el = document.getElementById('load');
+    if (el) el.textContent = 'v5.0 · ' + m;
+  };
+  window.__err = function(m){
+    var el = document.getElementById('err');
+    if (el){ el.style.display = 'block'; el.textContent += m + '\n'; }
+    console.error(m);
+  };
+  window.addEventListener('error', function(e){
+    window.__err('window.error: ' + (e.message || e));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    window.__err('unhandled: ' + (e.reason && e.reason.message || e.reason));
+  });
+</script>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+try {
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+scene.fog = new THREE.Fog(0x0a0a0f, 14, 50);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.05, 100);
+camera.position.set(3.5, 2.2, 5.0);
+camera.lookAt(0, 1.0, 0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.target.set(0, 1.0, 0);
+controls.minDistance = 0.5;
+controls.maxDistance = 25;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.1));
+const keyL = new THREE.DirectionalLight(0xffffff, 1.3);
+keyL.position.set(4, 8, 5); scene.add(keyL);
+const fillL = new THREE.DirectionalLight(0x6688ff, 0.55);
+fillL.position.set(-4, 2, -5); scene.add(fillL);
+
+const grid = new THREE.GridHelper(24, 48, 0x334455, 0x151a22);
+grid.material.opacity = 0.55;
+grid.material.transparent = true;
+scene.add(grid);
+
+/* ================= состояние ================= */
+const state = {
+  model: null,
+  modelRoot: null,
+  bones: {},
+  boneList: [],
+  skeletonHelper: null,
+
+  chainLLeg: null,
+  chainRLeg: null,
+
+  hipsRest: new THREE.Vector3(0, 1.0, 0),
+  footRestL: new THREE.Vector3(),
+  footRestR: new THREE.Vector3(),
+  legLenL: 0.85,
+  legLenR: 0.85,
+
+  markL: null,
+  markR: null,
+  markRestL: new THREE.Vector3(-0.55, 2.50, 0),
+  markRestR: new THREE.Vector3( 0.55, 2.50, 0),
+
+  topBar: null,
+  barStubL: null,
+  barStubR: null,
+
+  bodyX: 0,
+  bodyZ: 0,
+  distance: 0,
+  kBodyX: -0.9,
+  kBodyZ:  0.9,
+
+  dragging: null,
+  dragPlane: new THREE.Plane(),
+  dragOffset: new THREE.Vector3(),
+  pointerDown: null,
+  showSkeleton: false,
+  crossMark: null,
+  // ограничение насколько высоко может подняться маркер относительно таза
+  minMarkHeight: 0.5
+};
+
+/* ================= лимиты ================= */
+const JOINT_LIMITS = {
+  leftupleg:  { x: [-1.3, 1.3], y: [-0.5, 0.5], z: [-0.5, 0.5] },
+  rightupleg: { x: [-1.3, 1.3], y: [-0.5, 0.5], z: [-0.5, 0.5] },
+  leftleg:    { x: [0, 1.6],    y: [-0.15, 0.15], z: [-0.15, 0.15] },
+  rightleg:   { x: [0, 1.6],    y: [-0.15, 0.15], z: [-0.15, 0.15] },
+  leftfoot:   { x: [-0.6, 0.6], y: [-0.3, 0.3], z: [-0.3, 0.3] },
+  rightfoot:  { x: [-0.6, 0.6], y: [-0.3, 0.3], z: [-0.3, 0.3] }
+};
+
+function bone(name){
+  return state.bones[name.toLowerCase()] || null;
+}
+
+const tmpEuler = new THREE.Euler();
+function clampJoint(b){
+  const name = b.name.replace(/^mixamorig:?/i, '').toLowerCase();
+  const lim = JOINT_LIMITS[name];
+  if (!lim) return;
+  tmpEuler.setFromQuaternion(b.quaternion, 'XYZ');
+  tmpEuler.x = Math.max(lim.x[0], Math.min(lim.x[1], tmpEuler.x));
+  tmpEuler.y = Math.max(lim.y[0], Math.min(lim.y[1], tmpEuler.y));
+  tmpEuler.z = Math.max(lim.z[0], Math.min(lim.z[1], tmpEuler.z));
+  b.quaternion.setFromEuler(tmpEuler);
+}
+
+function ccdIK(chain, target, iterations){
+  if (!chain || chain.length < 2) return;
+  const endBone = chain[chain.length - 1];
+  const endWorld = new THREE.Vector3();
+  for (let it = 0; it < iterations; it++){
+    for (let i = chain.length - 2; i >= 0; i--){
+      const b = chain[i];
+      b.updateWorldMatrix(true, false);
+      const bonePos = new THREE.Vector3();
+      b.getWorldPosition(bonePos);
+      endBone.updateWorldMatrix(true, false);
+      endBone.getWorldPosition(endWorld);
+      const toEnd = endWorld.clone().sub(bonePos);
+      const toTarget = target.clone().sub(bonePos);
+      if (toEnd.lengthSq() < 1e-8 || toTarget.lengthSq() < 1e-8) continue;
+      toEnd.normalize();
+      toTarget.normalize();
+      const dot = Math.max(-1, Math.min(1, toEnd.dot(toTarget)));
+      const angle = Math.acos(dot);
+      if (angle < 1e-4) continue;
+      const axis = new THREE.Vector3().crossVectors(toEnd, toTarget);
+      if (axis.lengthSq() < 1e-8) continue;
+      axis.normalize();
+      const dq = new THREE.Quaternion().setFromAxisAngle(axis, angle);
+      const boneWorldQ = new THREE.Quaternion();
+      b.getWorldQuaternion(boneWorldQ);
+      const newWorldQ = dq.clone().multiply(boneWorldQ);
+      const parentQ = new THREE.Quaternion();
+      if (b.parent) b.parent.getWorldQuaternion(parentQ);
+      b.quaternion.copy(parentQ.clone().invert().multiply(newWorldQ));
+      clampJoint(b);
+      b.updateWorldMatrix(true, true);
+    }
+  }
+}
+
+function makeLine(color, dashed){
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+  if (dashed){
+    const m = new THREE.LineDashedMaterial({
+      color: color, transparent: true, opacity: 0.85,
+      dashSize: 0.07, gapSize: 0.05
+    });
+    const l = new THREE.Line(g, m);
+    l.computeLineDistances();
+    return l;
+  }
+  return new THREE.Line(g, new THREE.LineBasicMaterial({
+    color: color, transparent: true, opacity: 0.9
+  }));
+}
+
+function buildMarkers(){
+  function mk(color, side){
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.11, 18, 14),
+      new THREE.MeshStandardMaterial({
+        color: color, emissive: color, emissiveIntensity: 1.3,
+        transparent: true, opacity: 0.95
+      }));
+    m.renderOrder = 5;
+    m.userData.side = side;
+    const hit = new THREE.Mesh(
+      new THREE.SphereGeometry(0.32, 8, 6),
+      new THREE.MeshBasicMaterial({visible: false}));
+    hit.userData.isMarkHit = true;
+    m.add(hit);
+    scene.add(m);
+    return m;
+  }
+  state.markL = mk(0x88ccff, 'L');
+  state.markR = mk(0xff88cc, 'R');
+  state.markL.position.copy(state.markRestL);
+  state.markR.position.copy(state.markRestR);
+
+  // перекладина между маркерами
+  const barGeo = new THREE.BufferGeometry();
+  barGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+  state.topBar = new THREE.Line(barGeo, new THREE.LineBasicMaterial({
+    color: 0xdddddd, transparent: true, opacity: 0.95
+  }));
+  scene.add(state.topBar);
+
+  state.barStubL = makeLine(0x889999, false);
+  state.barStubR = makeLine(0x889999, false);
+  scene.add(state.barStubL, state.barStubR);
+
+  // луч: один прямой, но визуально делим на два участка
+  state.lineL_top = makeLine(0x88ccff, true);
+  state.lineL_bot = makeLine(0x88ccff, false);
+  scene.add(state.lineL_top, state.lineL_bot);
+  state.lineR_top = makeLine(0xff88cc, true);
+  state.lineR_bot = makeLine(0xff88cc, false);
+  scene.add(state.lineR_top, state.lineR_bot);
+
+  // точка в тазу
+  state.crossMark = new THREE.Mesh(
+    new THREE.SphereGeometry(0.06, 16, 12),
+    new THREE.MeshStandardMaterial({
+      color: 0xffaa44, emissive: 0xffaa44, emissiveIntensity: 1.2,
+      transparent: true, opacity: 0.95
+    })
+  );
+  scene.add(state.crossMark);
+
+  const startMark = new THREE.Mesh(
+    new THREE.RingGeometry(0.15, 0.20, 24),
+    new THREE.MeshBasicMaterial({color: 0xffaa44, side: THREE.DoubleSide, transparent: true, opacity: 0.8})
+  );
+  startMark.rotation.x = -Math.PI / 2;
+  startMark.position.set(0, 0.005, 0);
+  scene.add(startMark);
+}
+
+/* ================= обновление =================
+   ЛОГИКА ПРЯМОГО ЛУЧА:
+   1. C = текущая позиция hips (таз) — обновляется каждый кадр.
+   2. dir = normalize(C - markPos) — направление от маркера к тазу.
+   3. targetFoot = C + dir * legLength — стопа на продолжении луча.
+   Точки markPos, C, targetFoot — на ОДНОЙ прямой.
+================================================= */
+function updateAll(){
+  if (!state.model) return;
+
+  // 1. тело идёт по среднему смещению маркеров
+  const deltaL = new THREE.Vector3().subVectors(state.markL.position, state.markRestL);
+  const deltaR = new THREE.Vector3().subVectors(state.markR.position, state.markRestR);
+  const avgX = (deltaL.x + deltaR.x) * 0.5;
+  const avgZ = (deltaL.z + deltaR.z) * 0.5;
+
+  state.bodyX = state.kBodyX * avgX;
+  state.bodyZ = state.kBodyZ * avgZ;
+
+  if (state.modelRoot){
+    state.modelRoot.position.x = state.bodyX;
+    state.modelRoot.position.z = state.bodyZ;
+  }
+  state.model.updateMatrixWorld(true);
+
+  // 2. сброс ног в rest
+  if (state.chainLLeg){
+    for (const b of state.chainLLeg){
+      if (b.userData.restQuat) b.quaternion.copy(b.userData.restQuat);
+    }
+  }
+  if (state.chainRLeg){
+    for (const b of state.chainRLeg){
+      if (b.userData.restQuat) b.quaternion.copy(b.userData.restQuat);
+    }
+  }
+  state.model.updateMatrixWorld(true);
+
+  // 3. получить актуальную позицию таза
+  const hips = bone('hips') || bone('pelvis');
+  let C = state.hipsRest.clone();
+  if (hips){
+    hips.updateWorldMatrix(true, false);
+    hips.getWorldPosition(C);
+  }
+  if (state.crossMark) state.crossMark.position.copy(C);
+
+  // 4. вычислить цели стоп как продолжение луча
+  function computeTargetFoot(markPos, legLen){
+    const dir = new THREE.Vector3().subVectors(C, markPos);
+    // если маркер слишком близко к тазу — направление нестабильно,
+    // берём строго вертикально
+    if (dir.lengthSq() < 0.05){
+      dir.set(0, -1, 0);
+    } else {
+      dir.normalize();
+    }
+    // маркер не может быть ниже чем C.y + minMarkHeight
+    // (иначе foot уйдёт вверх — режем)
+    return C.clone().addScaledVector(dir, legLen);
+  }
+
+  const targetL = computeTargetFoot(state.markL.position, state.legLenL);
+  const targetR = computeTargetFoot(state.markR.position, state.legLenR);
+
+  // 5. IK
+  if (state.chainLLeg) ccdIK(state.chainLLeg, targetL, 10);
+  state.model.updateMatrixWorld(true);
+  if (state.chainRLeg) ccdIK(state.chainRLeg, targetR, 10);
+  state.model.updateMatrixWorld(true);
+
+  // 6. получить ФАКТИЧЕСКИЕ позиции стоп
+  function endPos(chain){
+    if (!chain) return new THREE.Vector3();
+    const b = chain[chain.length - 1];
+    b.updateWorldMatrix(true, false);
+    const v = new THREE.Vector3();
+    b.getWorldPosition(v);
+    return v;
+  }
+  const footL = endPos(state.chainLLeg);
+  const footR = endPos(state.chainRLeg);
+
+  // 7. отрисовать лучи: markPos → C → foot (прямая)
+  function setLine(l, a, b){
+    if (!l) return;
+    const arr = l.geometry.attributes.position.array;
+    arr[0] = a.x; arr[1] = a.y; arr[2] = a.z;
+    arr[3] = b.x; arr[4] = b.y; arr[5] = b.z;
+    l.geometry.attributes.position.needsUpdate = true;
+    if (l.computeLineDistances) l.computeLineDistances();
+  }
+
+  // перекладина
+  setLine(state.topBar, state.markL.position, state.markR.position);
+
+  const stub = 0.10;
+  setLine(state.barStubL,
+    state.markL.position,
+    state.markL.position.clone().add(new THREE.Vector3(0, -stub, 0)));
+  setLine(state.barStubR,
+    state.markR.position,
+    state.markR.position.clone().add(new THREE.Vector3(0, -stub, 0)));
+
+  // ПРЯМЫЕ ЛУЧИ
+  setLine(state.lineL_top, state.markL.position, C);
+  setLine(state.lineL_bot, C, footL);
+  setLine(state.lineR_top, state.markR.position, C);
+  setLine(state.lineR_bot, C, footR);
+
+  state.distance = Math.sqrt(state.bodyX * state.bodyX + state.bodyZ * state.bodyZ);
+
+  window.__hud(
+    'прямой луч: маркер → таз → стопа\n' +
+    '🟦 синий → левая стопа\n' +
+    '🩷 розовый → правая стопа\n' +
+    '---\n' +
+    'тело: x=' + state.bodyX.toFixed(2) + '  z=' + state.bodyZ.toFixed(2) + ' м\n' +
+    'пройдено: ' + state.distance.toFixed(2) + ' м'
+  );
+}
+
+/* ================= загрузка ================= */
+const URLS = [
+  'https://threejs.org/examples/models/gltf/Xbot.glb',
+  'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/Xbot.glb',
+  'https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/models/gltf/Xbot.glb'
+];
+const loader = new GLTFLoader();
+let urlIdx = 0;
+
+function tryLoad(){
+  if (urlIdx >= URLS.length){
+    window.__err('все URL не сработали');
+    document.getElementById('load').textContent = 'все URL недоступны';
+    return;
+  }
+  window.__load('пробую ' + (urlIdx+1) + '/3');
+  loader.load(URLS[urlIdx], function(gltf){
+    window.__load('модель загружена');
+    onLoaded(gltf);
+  }, function(p){
+    if (p.total) window.__load('загрузка ' + Math.round(p.loaded/p.total*100) + '%');
+  }, function(err){
+    window.__err('URL ' + (urlIdx+1) + ' упал: ' + (err && err.message ? err.message : err));
+    urlIdx++; tryLoad();
+  });
+}
+
+function onLoaded(gltf){
+  try {
+    const model = gltf.scene;
+    model.traverse(function(o){
+      if (o.isMesh && o.material){
+        o.material.transparent = true;
+        o.material.opacity = 0.88;
+      }
+    });
+    scene.add(model);
+    state.model = model;
+    state.modelRoot = model;
+
+    const skinned = [];
+    model.traverse(function(o){ if (o.isSkinnedMesh) skinned.push(o); });
+    if (skinned.length){
+      const helper = new THREE.SkeletonHelper(model);
+      helper.material.depthTest = false;
+      helper.renderOrder = 1;
+      helper.visible = false;
+      scene.add(helper);
+      state.skeletonHelper = helper;
+    }
+
+    const boneList = [];
+    model.traverse(function(o){
+      if (o.isBone){
+        boneList.push(o);
+        o.userData.restQuat = o.quaternion.clone();
+        o.userData.restPos = o.position.clone();
+        const name = o.name.replace(/^mixamorig:?/i, '').toLowerCase();
+        state.bones[name] = o;
+      }
+    });
+    state.boneList = boneList;
+    model.updateMatrixWorld(true);
+
+    // rest hips
+    const hips = bone('hips') || bone('pelvis');
+    if (hips){
+      hips.updateWorldMatrix(true, false);
+      hips.getWorldPosition(state.hipsRest);
+    }
+
+    // rest стоп
+    const lf = bone('leftfoot');
+    const rf = bone('rightfoot');
+    if (lf){ lf.updateWorldMatrix(true, false); lf.getWorldPosition(state.footRestL); }
+    if (rf){ rf.updateWorldMatrix(true, false); rf.getWorldPosition(state.footRestR); }
+
+    // длины ног
+    state.legLenL = state.footRestL.distanceTo(state.hipsRest);
+    state.legLenR = state.footRestR.distanceTo(state.hipsRest);
+    // минимум 0.5 — на всякий случай
+    if (state.legLenL < 0.3) state.legLenL = 0.85;
+    if (state.legLenR < 0.3) state.legLenR = 0.85;
+
+    const lUp = bone('leftupleg');
+    const lLeg = bone('leftleg');
+    const rUp = bone('rightupleg');
+    const rLeg = bone('rightleg');
+    state.chainLLeg = [lUp, lLeg, lf].filter(Boolean);
+    state.chainRLeg = [rUp, rLeg, rf].filter(Boolean);
+
+    buildMarkers();
+    updateAll();
+
+    document.getElementById('load').classList.add('hidden');
+    window.__hud('готов · луч прямой');
+  } catch(e){
+    window.__err('onLoaded: ' + (e && e.message ? e.message : e));
+  }
+}
+
+tryLoad();
+
+/* ================= управление ================= */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function setPointer(x, y){
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((x - r.left) / r.width) * 2 - 1;
+  pointer.y = -((y - r.top) / r.height) * 2 + 1;
+}
+
+function findMarkerAt(x, y){
+  setPointer(x, y);
+  raycaster.setFromCamera(pointer, camera);
+  const meshes = [state.markL, state.markR].filter(Boolean);
+  const hits = raycaster.intersectObjects(meshes, true);
+  if (!hits.length) return null;
+  let o = hits[0].object;
+  while (o && !o.userData.side) o = o.parent;
+  return o;
+}
+
+renderer.domElement.addEventListener('pointerdown', function(e){
+  if (e.target !== renderer.domElement) return;
+  const m = findMarkerAt(e.clientX, e.clientY);
+  state.pointerDown = {x: e.clientX, y: e.clientY, moved: false};
+  if (m){
+    state.dragging = m;
+    controls.enabled = false;
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    state.dragPlane.setFromNormalAndCoplanarPoint(camDir, m.position);
+    const hit = new THREE.Vector3();
+    raycaster.ray.intersectPlane(state.dragPlane, hit);
+    state.dragOffset.subVectors(m.position, hit);
+    e.preventDefault();
+  }
+}, true);
+
+renderer.domElement.addEventListener('pointermove', function(e){
+  if (state.pointerDown && !state.pointerDown.moved){
+    const dx = e.clientX - state.pointerDown.x;
+    const dy = e.clientY - state.pointerDown.y;
+    if (dx*dx + dy*dy > 25) state.pointerDown.moved = true;
+  }
+  if (!state.dragging) return;
+  setPointer(e.clientX, e.clientY);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(state.dragPlane, hit)) return;
+  const np = hit.add(state.dragOffset);
+  state.dragging.position.copy(np);
+  updateAll();
+  e.preventDefault();
+}, {passive: false});
+
+function endDrag(){
+  if (state.dragging){ state.dragging = null; controls.enabled = true; }
+  state.pointerDown = null;
+}
+renderer.domElement.addEventListener('pointerup', endDrag);
+renderer.domElement.addEventListener('pointercancel', endDrag);
+
+function resetAll(){
+  state.markL.position.copy(state.markRestL);
+  state.markR.position.copy(state.markRestR);
+  state.bodyX = 0;
+  state.bodyZ = 0;
+  state.distance = 0;
+  if (state.modelRoot) state.modelRoot.position.set(0, 0, 0);
+  updateAll();
+}
+
+/* ================= UI ================= */
+const ui = document.getElementById('ui');
+function mkBtn(label, fn, cls){
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.onclick = fn;
+  ui.appendChild(b);
+  return b;
+}
+mkBtn('⟲ сброс', resetAll, 'reset');
+mkBtn('🦴 скелет', function(){
+  state.showSkeleton = !state.showSkeleton;
+  if (state.skeletonHelper) state.skeletonHelper.visible = state.showSkeleton;
+});
+mkBtn('🎥 вид', function(){
+  camera.position.set(3.5, 2.2, 5.0);
+  controls.target.set(0, 1.0, 0);
+  controls.update();
+});
+
+function animate(){
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+addEventListener('resize', function(){
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+animate();
+
+} catch(e){
+  window.__err('FATAL: ' + (e && e.message ? e.message : e) +
+    '\n' + (e && e.stack ? e.stack : ''));
+  window.__load('FATAL');
+}
+</script>
+</body>
+</html>
