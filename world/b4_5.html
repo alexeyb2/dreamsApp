@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>v3.1 · крестовое управление</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0a0f;color:#ddd;
+    font-family:system-ui,-apple-system,sans-serif;}
+  canvas{display:block;touch-action:none;}
+  #hud{position:fixed;top:8px;left:8px;font-size:11px;background:rgba(0,0,0,.82);
+    padding:8px 10px;border-radius:8px;z-index:10;line-height:1.55;
+    font-family:ui-monospace,monospace;color:#8cf;max-width:82%;pointer-events:none;
+    white-space:pre-wrap;}
+  #err{position:fixed;top:8px;left:8px;right:8px;font-size:12px;
+    background:rgba(80,10,10,.95);padding:10px;border-radius:8px;z-index:20;
+    font-family:ui-monospace,monospace;color:#fdd;display:none;white-space:pre-wrap;}
+  #ui{position:fixed;bottom:0;left:0;right:0;padding:6px;
+    display:flex;flex-wrap:wrap;gap:4px;z-index:10;justify-content:center;
+    background:linear-gradient(to top, rgba(0,0,0,.9), rgba(0,0,0,.2));}
+  #ui button{background:#161624;color:#eee;border:1px solid #333;border-radius:8px;
+    padding:9px 12px;font-size:13px;touch-action:manipulation;font-weight:bold;}
+  #ui button:active{background:#2a2a4a;}
+  #ui button.reset{background:#3a2a1a;border-color:#a86;color:#ffe;}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:#0a0a0f;z-index:100;font-size:16px;color:#a67cff;text-align:center;padding:20px;}
+  #load.hidden{display:none;}
+</style>
+</head>
+<body>
+<div id="load">v3.1 · загружаю Xbot…</div>
+<div id="hud">v3.1 · старт</div>
+<div id="err"></div>
+<div id="ui"></div>
+
+<script>
+  window.__hud = function(m){
+    var el = document.getElementById('hud');
+    if (el) el.textContent = 'v3.1 · ' + m;
+  };
+  window.__err = function(m){
+    var el = document.getElementById('err');
+    if (el){ el.style.display = 'block'; el.textContent += m + '\n'; }
+    console.error(m);
+  };
+  window.addEventListener('error', function(e){ window.__err('error: ' + (e.message || e)); });
+  window.addEventListener('unhandledrejection', function(e){
+    window.__err('reject: ' + (e.reason && e.reason.message || e.reason));
+  });
+</script>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+try {
+
+/* ================= сцена ================= */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+scene.fog = new THREE.Fog(0x0a0a0f, 14, 50);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.05, 100);
+camera.position.set(3.5, 2.4, 5.5);
+camera.lookAt(0, 1.0, 0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.target.set(0, 1.0, 0);
+controls.minDistance = 0.5;
+controls.maxDistance = 25;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222233, 1.1));
+const keyL = new THREE.DirectionalLight(0xffffff, 1.3);
+keyL.position.set(4, 8, 5); scene.add(keyL);
+const fillL = new THREE.DirectionalLight(0x6688ff, 0.55);
+fillL.position.set(-4, 2, -5); scene.add(fillL);
+
+const grid = new THREE.GridHelper(24, 48, 0x334455, 0x151a22);
+grid.material.opacity = 0.55;
+grid.material.transparent = true;
+scene.add(grid);
+
+/* ================= состояние ================= */
+const state = {
+  model: null,
+  modelRoot: null,
+  bones: {},
+  boneList: [],
+  skeletonHelper: null,
+
+  // цепочки IK
+  chainLArm: null,  // leftarm, leftforearm, lefthand
+  chainRArm: null,
+  chainLLeg: null,  // leftupleg, leftleg, leftfoot
+  chainRLeg: null,
+
+  // рест-позиции конечностей (мировые, при root = 0)
+  restLeftArm: new THREE.Vector3(),
+  restRightArm: new THREE.Vector3(),
+  restLeftUpLeg: new THREE.Vector3(),
+  restRightUpLeg: new THREE.Vector3(),
+  restLeftFoot: new THREE.Vector3(),
+  restRightFoot: new THREE.Vector3(),
+
+  // маркеры
+  markL: null,  // управляет leftArm + rightUpLeg
+  markR: null,  // управляет rightArm + leftUpLeg
+  markRestL: new THREE.Vector3(-0.55, 2.50, 0),
+  markRestR: new THREE.Vector3( 0.55, 2.50, 0),
+
+  // тело
+  bodyOffset: new THREE.Vector3(0, 0, 0),
+  distance: 0,
+
+  // drag
+  dragging: null,
+  dragPlane: new THREE.Plane(),
+  dragOffset: new THREE.Vector3(),
+  pointerDown: null,
+  showSkeleton: false
+};
+
+/* ================= лимиты ================= */
+const JOINT_LIMITS = {
+  // руки
+  leftarm:    { x: [-1.5, 1.5], y: [-1.5, 1.5], z: [-1.5, 1.5] },
+  rightarm:   { x: [-1.5, 1.5], y: [-1.5, 1.5], z: [-1.5, 1.5] },
+  leftforearm:  { x: [-1.5, 0.1], y: [-0.3, 0.3], z: [-0.3, 0.3] },
+  rightforearm: { x: [-1.5, 0.1], y: [-0.3, 0.3], z: [-0.3, 0.3] },
+  lefthand:   { x: [-0.4, 0.4], y: [-0.4, 0.4], z: [-0.4, 0.4] },
+  righthand:  { x: [-0.4, 0.4], y: [-0.4, 0.4], z: [-0.4, 0.4] },
+  // ноги
+  leftupleg:  { x: [-1.3, 1.3], y: [-0.5, 0.5], z: [-0.5, 0.5] },
+  rightupleg: { x: [-1.3, 1.3], y: [-0.5, 0.5], z: [-0.5, 0.5] },
+  leftleg:    { x: [0, 1.6],    y: [-0.15, 0.15], z: [-0.15, 0.15] },
+  rightleg:   { x: [0, 1.6],    y: [-0.15, 0.15], z: [-0.15, 0.15] },
+  leftfoot:   { x: [-0.6, 0.6], y: [-0.3, 0.3], z: [-0.3, 0.3] },
+  rightfoot:  { x: [-0.6, 0.6], y: [-0.3, 0.3], z: [-0.3, 0.3] }
+};
+
+function bone(name){
+  return state.bones[name.toLowerCase()] || null;
+}
+
+const tmpEuler = new THREE.Euler();
+function clampJoint(b){
+  const name = b.name.replace(/^mixamorig:?/i, '').toLowerCase();
+  const lim = JOINT_LIMITS[name];
+  if (!lim) return;
+  tmpEuler.setFromQuaternion(b.quaternion, 'XYZ');
+  tmpEuler.x = Math.max(lim.x[0], Math.min(lim.x[1], tmpEuler.x));
+  tmpEuler.y = Math.max(lim.y[0], Math.min(lim.y[1], tmpEuler.y));
+  tmpEuler.z = Math.max(lim.z[0], Math.min(lim.z[1], tmpEuler.z));
+  b.quaternion.setFromEuler(tmpEuler);
+}
+
+/* ================= CCD IK ================= */
+function ccdIK(chain, target, iterations){
+  if (!chain || chain.length < 2) return;
+  const endBone = chain[chain.length - 1];
+  const endWorld = new THREE.Vector3();
+
+  for (let it = 0; it < iterations; it++){
+    for (let i = chain.length - 2; i >= 0; i--){
+      const b = chain[i];
+      b.updateWorldMatrix(true, false);
+      const bonePos = new THREE.Vector3();
+      b.getWorldPosition(bonePos);
+
+      endBone.updateWorldMatrix(true, false);
+      endBone.getWorldPosition(endWorld);
+
+      const toEnd = endWorld.clone().sub(bonePos);
+      const toTarget = target.clone().sub(bonePos);
+      if (toEnd.lengthSq() < 1e-8 || toTarget.lengthSq() < 1e-8) continue;
+      toEnd.normalize();
+      toTarget.normalize();
+
+      const dot = Math.max(-1, Math.min(1, toEnd.dot(toTarget)));
+      const angle = Math.acos(dot);
+      if (angle < 1e-4) continue;
+
+      const axis = new THREE.Vector3().crossVectors(toEnd, toTarget);
+      if (axis.lengthSq() < 1e-8) continue;
+      axis.normalize();
+
+      const dq = new THREE.Quaternion().setFromAxisAngle(axis, angle);
+
+      const boneWorldQ = new THREE.Quaternion();
+      b.getWorldQuaternion(boneWorldQ);
+      const newWorldQ = dq.clone().multiply(boneWorldQ);
+
+      const parentQ = new THREE.Quaternion();
+      if (b.parent) b.parent.getWorldQuaternion(parentQ);
+      b.quaternion.copy(parentQ.clone().invert().multiply(newWorldQ));
+
+      clampJoint(b);
+      b.updateWorldMatrix(true, true);
+    }
+  }
+}
+
+/* ================= построить маркеры и лучи ================= */
+function makeDashedLine(color){
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+  const m = new THREE.LineDashedMaterial({
+    color: color, transparent: true, opacity: 0.85,
+    dashSize: 0.08, gapSize: 0.05
+  });
+  const l = new THREE.Line(g, m);
+  l.computeLineDistances();
+  return l;
+}
+
+function makeSolidLine(color){
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+  const m = new THREE.LineBasicMaterial({
+    color: color, transparent: true, opacity: 0.85
+  });
+  return new THREE.Line(g, m);
+}
+
+function buildMarkers(){
+  function mk(color, x){
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(0.11, 18, 14),
+      new THREE.MeshStandardMaterial({
+        color: color, emissive: color, emissiveIntensity: 1.3,
+        transparent: true, opacity: 0.95
+      }));
+    m.renderOrder = 5;
+    m.userData.side = x;
+    const hit = new THREE.Mesh(
+      new THREE.SphereGeometry(0.32, 8, 6),
+      new THREE.MeshBasicMaterial({visible: false}));
+    hit.userData.isMarkHit = true;
+    m.add(hit);
+    scene.add(m);
+    return m;
+  }
+
+  state.markL = mk(0x88ccff, 'L');
+  state.markR = mk(0xff88cc, 'R');
+  state.markL.position.copy(state.markRestL);
+  state.markR.position.copy(state.markRestR);
+
+  // для маркера L:
+  //   toArm_L   — пунктир к левой руке
+  //   toLeg_R   — сплошная к правой ноге (крест)
+  // для маркера R:
+  //   toArm_R   — пунктир к правой руке
+  //   toLeg_L   — сплошная к левой ноге (крест)
+  state.lineL_arm = makeDashedLine(0x88ccff);   // левая рука
+  state.lineL_leg = makeSolidLine(0x9966ff);    // правая нога (крест)
+  state.lineR_arm = makeDashedLine(0xff88cc);   // правая рука
+  state.lineR_leg = makeSolidLine(0xff8844);    // левая нога (крест)
+
+  scene.add(state.lineL_arm, state.lineL_leg, state.lineR_arm, state.lineR_leg);
+
+  // визуальный крест наверху
+  const S = 0.55;
+  const pts = [
+    new THREE.Vector3(-S, 2.50, -S), new THREE.Vector3(S, 2.50, S),
+    new THREE.Vector3(-S, 2.50, S),  new THREE.Vector3(S, 2.50, -S)
+  ];
+  const crossGeo = new THREE.BufferGeometry().setFromPoints([pts[0], pts[1]]);
+  scene.add(new THREE.Line(crossGeo, new THREE.LineBasicMaterial({
+    color: 0x556677, transparent: true, opacity: 0.35
+  })));
+  const crossGeo2 = new THREE.BufferGeometry().setFromPoints([pts[2], pts[3]]);
+  scene.add(new THREE.Line(crossGeo2, new THREE.LineBasicMaterial({
+    color: 0x556677, transparent: true, opacity: 0.35
+  })));
+
+  // точка старта
+  const startMark = new THREE.Mesh(
+    new THREE.RingGeometry(0.15, 0.20, 24),
+    new THREE.MeshBasicMaterial({color: 0xffaa44, side: THREE.DoubleSide, transparent: true, opacity: 0.8})
+  );
+  startMark.rotation.x = -Math.PI / 2;
+  startMark.position.set(0, 0.005, 0);
+  scene.add(startMark);
+}
+
+/* ================= обновить всё ================= */
+function updateAll(){
+  if (!state.model) return;
+
+  const deltaL = new THREE.Vector3().subVectors(state.markL.position, state.markRestL);
+  const deltaR = new THREE.Vector3().subVectors(state.markR.position, state.markRestR);
+
+  // тело идёт за средним смещением маркеров по горизонтали
+  const avgX = (deltaL.x + deltaR.x) * 0.5;
+  const avgZ = (deltaL.z + deltaR.z) * 0.5;
+  state.bodyOffset.x = avgX;
+  state.bodyOffset.z = avgZ;
+  if (state.modelRoot){
+    state.modelRoot.position.x = avgX;
+    state.modelRoot.position.z = avgZ;
+  }
+  state.model.updateMatrixWorld(true);
+
+  // сброс костей в rest
+  for (const b of state.boneList){
+    if (b.userData.restQuat) b.quaternion.copy(b.userData.restQuat);
+  }
+  state.model.updateMatrixWorld(true);
+
+  // цели конечностей:
+  // маркер L → leftArm (прямо) + rightUpLeg (крест)
+  // маркер R → rightArm (прямо) + leftUpLeg (крест)
+  // смещение передаётся как delta маркера
+
+  // цели для конечностей берём от rest-позиций (в текущем мире root)
+  // но с прибавленным delta
+  const targetLeftArm = state.restLeftArm.clone()
+    .add(new THREE.Vector3(deltaL.x, deltaL.y, deltaL.z));
+  // для ноги ограничим Y — иначе нога попытается подняться слишком высоко
+  const targetRightLeg = state.restRightUpLeg.clone()
+    .add(new THREE.Vector3(deltaL.x, deltaL.y * 0.4, deltaL.z));
+
+  const targetRightArm = state.restRightArm.clone()
+    .add(new THREE.Vector3(deltaR.x, deltaR.y, deltaR.z));
+  const targetLeftLeg = state.restLeftUpLeg.clone()
+    .add(new THREE.Vector3(deltaR.x, deltaR.y * 0.4, deltaR.z));
+
+  // рука тоже ограничим по Y чуть-чуть
+  targetLeftArm.y  = Math.min(targetLeftArm.y,  state.restLeftArm.y  + 0.8);
+  targetRightArm.y = Math.min(targetRightArm.y, state.restRightArm.y + 0.8);
+
+  // IK руки сначала (потому что они выше — общее плечо держит)
+  if (state.chainLArm) ccdIK(state.chainLArm, targetLeftArm, 8);
+  state.model.updateMatrixWorld(true);
+  if (state.chainRArm) ccdIK(state.chainRArm, targetRightArm, 8);
+  state.model.updateMatrixWorld(true);
+
+  // IK ноги
+  if (state.chainLLeg) ccdIK(state.chainLLeg, targetLeftLeg, 8);
+  state.model.updateMatrixWorld(true);
+  if (state.chainRLeg) ccdIK(state.chainRLeg, targetRightLeg, 8);
+  state.model.updateMatrixWorld(true);
+
+  // получить актуальные позиции конца каждой цепочки — для нитей
+  function endPos(chain){
+    if (!chain) return new THREE.Vector3();
+    const b = chain[chain.length - 1];
+    b.updateWorldMatrix(true, false);
+    const v = new THREE.Vector3();
+    b.getWorldPosition(v);
+    return v;
+  }
+  const handL = endPos(state.chainLArm);
+  const handR = endPos(state.chainRArm);
+  const footL = endPos(state.chainLLeg);
+  const footR = endPos(state.chainRLeg);
+
+  // обновить линии
+  function setLine(l, a, b){
+    if (!l) return;
+    const arr = l.geometry.attributes.position.array;
+    arr[0] = a.x; arr[1] = a.y; arr[2] = a.z;
+    arr[3] = b.x; arr[4] = b.y; arr[5] = b.z;
+    l.geometry.attributes.position.needsUpdate = true;
+    if (l.computeLineDistances) l.computeLineDistances();
+  }
+
+  // L → левая рука (пунктир)
+  setLine(state.lineL_arm, state.markL.position, handL);
+  // L → правая нога (сплошная), визуально через копчик — просто линия
+  //   от маркера L к правой стопе
+  setLine(state.lineL_leg, state.markL.position, footR);
+  // R → правая рука
+  setLine(state.lineR_arm, state.markR.position, handR);
+  // R → левая нога
+  setLine(state.lineR_leg, state.markR.position, footL);
+
+  // пройденное расстояние
+  state.distance = Math.sqrt(avgX * avgX + avgZ * avgZ);
+
+  window.__hud(
+    'тяни шары сверху:\n' +
+    '🟦 синий → левая рука + правая нога\n' +
+    '🩷 розовый → правая рука + левая нога\n' +
+    '---\n' +
+    'тело: x=' + avgX.toFixed(2) + '  z=' + avgZ.toFixed(2) + ' м\n' +
+    'пройдено: ' + state.distance.toFixed(2) + ' м'
+  );
+}
+
+/* ================= загрузка ================= */
+const loader = new GLTFLoader();
+loader.load('https://threejs.org/examples/models/gltf/Xbot.glb',
+  function(gltf){
+    window.__hud('модель получена');
+
+    const model = gltf.scene;
+    model.traverse(function(o){
+      if (o.isMesh && o.material){
+        o.material.transparent = true;
+        o.material.opacity = 0.88;
+      }
+    });
+    scene.add(model);
+    state.model = model;
+    state.modelRoot = model;
+
+    const skinned = [];
+    model.traverse(function(o){ if (o.isSkinnedMesh) skinned.push(o); });
+    if (skinned.length){
+      const helper = new THREE.SkeletonHelper(model);
+      helper.material.depthTest = false;
+      helper.renderOrder = 1;
+      helper.visible = false;
+      scene.add(helper);
+      state.skeletonHelper = helper;
+    }
+
+    const boneList = [];
+    model.traverse(function(o){
+      if (o.isBone){
+        boneList.push(o);
+        o.userData.restQuat = o.quaternion.clone();
+        o.userData.restPos = o.position.clone();
+        const name = o.name.replace(/^mixamorig:?/i, '').toLowerCase();
+        state.bones[name] = o;
+      }
+    });
+    state.boneList = boneList;
+    model.updateMatrixWorld(true);
+
+    // рест-позиции конечностей
+    function getWorld(b){
+      if (!b) return null;
+      b.updateWorldMatrix(true, false);
+      const v = new THREE.Vector3();
+      b.getWorldPosition(v);
+      return v;
+    }
+
+    state.restLeftArm  = getWorld(bone('leftarm'))  || new THREE.Vector3();
+    state.restRightArm = getWorld(bone('rightarm')) || new THREE.Vector3();
+    state.restLeftUpLeg  = getWorld(bone('leftupleg'))  || new THREE.Vector3();
+    state.restRightUpLeg = getWorld(bone('rightupleg')) || new THREE.Vector3();
+    state.restLeftFoot  = getWorld(bone('leftfoot'))  || new THREE.Vector3();
+    state.restRightFoot = getWorld(bone('rightfoot')) || new THREE.Vector3();
+
+    // цепочки
+    const lSh = bone('leftshoulder');
+    const lArm = bone('leftarm');
+    const lFore = bone('leftforearm');
+    const lHand = bone('lefthand');
+    const rSh = bone('rightshoulder');
+    const rArm = bone('rightarm');
+    const rFore = bone('rightforearm');
+    const rHand = bone('righthand');
+
+    const lUp = bone('leftupleg');
+    const lLeg = bone('leftleg');
+    const lFoot = bone('leftfoot');
+    const rUp = bone('rightupleg');
+    const rLeg = bone('rightleg');
+    const rFoot = bone('rightfoot');
+
+    state.chainLArm = [lArm, lFore, lHand].filter(Boolean);
+    state.chainRArm = [rArm, rFore, rHand].filter(Boolean);
+    state.chainLLeg = [lUp, lLeg, lFoot].filter(Boolean);
+    state.chainRLeg = [rUp, rLeg, rFoot].filter(Boolean);
+
+    buildMarkers();
+    updateAll();
+
+    document.getElementById('load').classList.add('hidden');
+    window.__hud('готов · тяни шары сверху');
+  },
+  undefined,
+  function(err){
+    window.__err('модель: ' + (err && err.message ? err.message : err));
+    document.getElementById('load').textContent = 'ошибка загрузки';
+  }
+);
+
+/* ================= управление ================= */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function setPointer(x, y){
+  const r = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((x - r.left) / r.width) * 2 - 1;
+  pointer.y = -((y - r.top) / r.height) * 2 + 1;
+}
+
+function findMarkerAt(x, y){
+  setPointer(x, y);
+  raycaster.setFromCamera(pointer, camera);
+  const meshes = [state.markL, state.markR].filter(Boolean);
+  const hits = raycaster.intersectObjects(meshes, true);
+  if (!hits.length) return null;
+  let o = hits[0].object;
+  while (o && !o.userData.side) o = o.parent;
+  return o;
+}
+
+renderer.domElement.addEventListener('pointerdown', function(e){
+  if (e.target !== renderer.domElement) return;
+  const m = findMarkerAt(e.clientX, e.clientY);
+  state.pointerDown = {x: e.clientX, y: e.clientY, moved: false};
+  if (m){
+    state.dragging = m;
+    controls.enabled = false;
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    state.dragPlane.setFromNormalAndCoplanarPoint(camDir, m.position);
+    const hit = new THREE.Vector3();
+    raycaster.ray.intersectPlane(state.dragPlane, hit);
+    state.dragOffset.subVectors(m.position, hit);
+    e.preventDefault();
+  }
+}, true);
+
+renderer.domElement.addEventListener('pointermove', function(e){
+  if (state.pointerDown && !state.pointerDown.moved){
+    const dx = e.clientX - state.pointerDown.x;
+    const dy = e.clientY - state.pointerDown.y;
+    if (dx*dx + dy*dy > 25) state.pointerDown.moved = true;
+  }
+  if (!state.dragging) return;
+  setPointer(e.clientX, e.clientY);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(state.dragPlane, hit)) return;
+  const np = hit.add(state.dragOffset);
+  state.dragging.position.copy(np);
+  updateAll();
+  e.preventDefault();
+}, {passive: false});
+
+function endDrag(){
+  if (state.dragging){ state.dragging = null; controls.enabled = true; }
+  state.pointerDown = null;
+}
+renderer.domElement.addEventListener('pointerup', endDrag);
+renderer.domElement.addEventListener('pointercancel', endDrag);
+
+/* ================= сброс ================= */
+function resetAll(){
+  state.markL.position.copy(state.markRestL);
+  state.markR.position.copy(state.markRestR);
+  state.bodyOffset.set(0, 0, 0);
+  state.distance = 0;
+  if (state.modelRoot) state.modelRoot.position.set(0, 0, 0);
+  updateAll();
+}
+
+/* ================= UI ================= */
+const ui = document.getElementById('ui');
+function mkBtn(label, fn, cls){
+  const b = document.createElement('button');
+  b.textContent = label;
+  if (cls) b.className = cls;
+  b.onclick = fn;
+  ui.appendChild(b);
+  return b;
+}
+
+mkBtn('⟲ сброс', resetAll, 'reset');
+
+mkBtn('🦴 скелет', function(){
+  state.showSkeleton = !state.showSkeleton;
+  if (state.skeletonHelper) state.skeletonHelper.visible = state.showSkeleton;
+});
+
+mkBtn('🎥 вид', function(){
+  camera.position.set(3.5, 2.4, 5.5);
+  controls.target.set(0, 1.0, 0);
+  controls.update();
+});
+
+/* ================= анимация ================= */
+function animate(){
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+addEventListener('resize', function(){
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+animate();
+
+} catch(e){
+  window.__err('FATAL: ' + (e && e.message ? e.message : e) +
+    '\n' + (e && e.stack ? e.stack : ''));
+}
+</script>
+</body>
+</html>
