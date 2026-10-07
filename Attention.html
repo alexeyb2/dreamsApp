@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Найди всех — игра на внимательность</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #1e2a4a 0%, #0b0f1a 70%);
+    color: #e8eefc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
+  .game { width: min(92vw, 620px); }
+
+  /* ---------- Верхняя панель ---------- */
+  .hud { display: flex; gap: 10px; margin-bottom: 12px; }
+
+  .stat {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stat .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #7f8db0;
+  }
+  .stat .value { font-size: 20px; font-weight: 700; transition: color .2s; }
+  .stat .value.low { color: #f87171; }
+
+  .task {
+    text-align: center;
+    font-size: 16px;
+    color: #c7d3ee;
+    margin-bottom: 8px;
+    min-height: 22px;
+  }
+
+  .bar {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #4ade80, #22d3ee);
+    transition: width .1s linear, background .3s;
+  }
+  .bar-fill.low { background: linear-gradient(90deg, #f87171, #fb923c); }
+
+  /* ---------- Игровое поле ---------- */
+  .board {
+    --gap: 6px;
+    --cols: 4;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    gap: var(--gap);
+    width: 100%;
+  }
+
+  .cell {
+    aspect-ratio: 1;
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    font-family: inherit;
+    font-size: calc((min(92vw, 620px) - (var(--cols) - 1) * var(--gap)) / var(--cols) * 0.62);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .12s ease, background .2s, box-shadow .2s, opacity .3s;
+  }
+  .cell:hover { background: rgba(255,255,255,0.12); transform: scale(1.06); }
+  .cell:active { transform: scale(0.94); }
+
+  .cell.found {
+    background: rgba(74, 222, 128, 0.20);
+    box-shadow: inset 0 0 0 2px #4ade80;
+    opacity: .5;
+    cursor: default;
+    transform: none;
+  }
+
+  .cell.wrong {
+    background: rgba(248, 113, 113, 0.28);
+    animation: cellShake .35s ease;
+  }
+  @keyframes cellShake {
+    0%, 100% { transform: translateX(0) scale(1); }
+    25% { transform: translateX(-4px) scale(1.02); }
+    75% { transform: translateX(4px) scale(1.02); }
+  }
+
+  .board.shake { animation: boardShake .3s ease; }
+  @keyframes boardShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  /* ---------- Оверлей ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(6, 10, 20, 0.82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    padding: 32px 28px;
+    text-align: center;
+    border-radius: 24px;
+    background: linear-gradient(160deg, #1b2540, #121a2e);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+    transform: translateY(12px) scale(.97);
+    transition: transform .3s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .overlay.show .card { transform: none; }
+
+  .card .emoji { font-size: 56px; line-height: 1; }
+  .card h1 { font-size: 22px; margin: 14px 0 8px; }
+  .card p { color: #a8b6d4; font-size: 15px; line-height: 1.5; margin: 0 0 22px; }
+
+  .btn {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    padding: 13px 30px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6d8bff, #8b5cf6);
+    box-shadow: 0 8px 24px rgba(109,139,255,.4);
+    transition: transform .15s, box-shadow .2s;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(109,139,255,.55); }
+  .btn:active { transform: translateY(0) scale(.98); }
+</style>
+</head>
+<body>
+
+<div class="game">
+  <header class="hud">
+    <div class="stat"><span class="label">Уровень</span><span class="value" id="level">1</span></div>
+    <div class="stat"><span class="label">Найдено</span><span class="value"><span id="found">0</span>/<span id="total">0</span></span></div>
+    <div class="stat"><span class="label">Время</span><span class="value" id="time">45</span></div>
+  </header>
+
+  <div class="task" id="task">Найди всех кошек 🐱</div>
+  <div class="bar"><div class="bar-fill" id="bar"></div></div>
+  <div class="board" id="board"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="card">
+    <div class="emoji" id="ov-emoji">🐱</div>
+    <h1 id="ov-title">Найди всех кошек</h1>
+    <p id="ov-text">На поле спрятаны нужные emoji. Нажимай на них как можно быстрее! За ошибку — минус 3 секунды.</p>
+    <button class="btn" id="ov-btn">Начать игру</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ========== Настройки уровней ==========
+     cols   — размер сетки (cols × cols)
+     target — что ищем
+     others — среди чего ищем
+     targets— сколько нужно найти
+     time   — секунд на уровень
+  ======================================== */
+  const LEVELS = [
+    { cols: 4, targets: 3, time: 45, target: '🐱', others: ['🐶'], task: 'Найди всех кошек 🐱' },
+    { cols: 5, targets: 4, time: 45, target: '🐸', others: ['🐢'], task: 'Найди всех лягушек 🐸' },
+    { cols: 5, targets: 4, time: 40, target: '🌸', others: ['🌺'], task: 'Найди всю сакуру 🌸' },
+    { cols: 6, targets: 5, time: 45, target: '🐭', others: ['🐹'], task: 'Найди всех мышек 🐭' },
+    { cols: 7, targets: 6, time: 55, target: '😺', others: ['😸'], task: 'Найди улыбающихся котов 😺' }
+  ];
+
+  const WRONG_PENALTY = 3;   // секунд за промах
+  const TICK_MS = 100;       // шаг таймера
+
+  /* ---------- DOM ---------- */
+  const boardEl  = document.getElementById('board');
+  const levelEl  = document.getElementById('level');
+  const foundEl  = document.getElementById('found');
+  const totalEl  = document.getElementById('total');
+  const timeEl   = document.getElementById('time');
+  const barEl    = document.getElementById('bar');
+  const taskEl   = document.getElementById('task');
+  const overlay  = document.getElementById('overlay');
+  const ovEmoji  = document.getElementById('ov-emoji');
+  const ovTitle  = document.getElementById('ov-title');
+  const ovText   = document.getElementById('ov-text');
+  const ovBtn    = document.getElementById('ov-btn');
+
+  /* ---------- Состояние ---------- */
+  const state = {
+    idx: 0,
+    found: 0,
+    needed: 0,
+    timeLeft: 0,
+    timer: null,
+    playing: false,
+    action: null
+  };
+
+  /* ---------- Оверлей ---------- */
+  function showOverlay(emoji, title, text, btnLabel, action) {
+    ovEmoji.textContent = emoji;
+    ovTitle.textContent = title;
+    ovText.textContent = text;
+    ovBtn.textContent = btnLabel;
+    state.action = action;
+    overlay.classList.add('show');
+  }
+  function hideOverlay() {
+    overlay.classList.remove('show');
+  }
+  ovBtn.addEventListener('click', () => {
+    const fn = state.action;
+    state.action = null;
+    if (fn) fn();
+  });
+
+  /* ---------- Игра ---------- */
+  function startGame() {
+    state.idx = 0;
+    startLevel();
+  }
+
+  function startLevel() {
+    const cfg = LEVELS[state.idx];
+
+    state.found = 0;
+    state.needed = cfg.targets;
+    state.timeLeft = cfg.time;
+    state.playing = true;
+
+    levelEl.textContent = state.idx + 1;
+    totalEl.textContent = cfg.targets;
+    foundEl.textContent = '0';
+    taskEl.textContent = cfg.task;
+
+    updateTimeUI(cfg.time);
+    buildBoard(cfg);
+    hideOverlay();
+
+    clearInterval(state.timer);
+    state.timer = setInterval(tick, TICK_MS);
+  }
+
+  function buildBoard(cfg) {
+    const total = cfg.cols * cfg.cols;
+
+    boardEl.style.setProperty('--cols', cfg.cols);
+    boardEl.innerHTML = '';
+
+    // выбираем уникальные индексы для «целей»
+    const targetIdx = new Set();
+    while (targetIdx.size < cfg.targets) {
+      targetIdx.add(Math.floor(Math.random() * total));
+    }
+
+    const frag = document.createDocumentFragment();
+
+    for (let i = 0; i < total; i++) {
+      const isTarget = targetIdx.has(i);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cell';
+      btn.dataset.target = isTarget ? '1' : '0';
+      btn.textContent = isTarget
+        ? cfg.target
+        : cfg.others[Math.floor(Math.random() * cfg.others.length)];
+
+      btn.addEventListener('click', () => onCellClick(btn));
+      frag.appendChild(btn);
+    }
+
+    boardEl.appendChild(frag);
+  }
+
+  function onCellClick(btn) {
+    if (!state.playing) return;
+    if (btn.classList.contains('found')) return;
+
+    if (btn.dataset.target === '1') {
+      // попал!
+      btn.classList.add('found');
+      state.found++;
+      foundEl.textContent = state.found;
+
+      if (state.found >= state.needed) levelComplete();
+    } else {
+      // промах
+      btn.classList.add('wrong');
+      setTimeout(() => btn.classList.remove('wrong'), 400);
+
+      boardEl.classList.add('shake');
+      setTimeout(() => boardEl.classList.remove('shake'), 300);
+
+      state.timeLeft = Math.max(0, state.timeLeft - WRONG_PENALTY);
+      updateTimeUI(LEVELS[state.idx].time);
+
+      if (state.timeLeft <= 0) gameOver();
+    }
+  }
+
+  /* ---------- Таймер ---------- */
+  function tick() {
+    if (!state.playing) return;
+
+    state.timeLeft = Math.max(0, state.timeLeft - TICK_MS / 1000);
+    updateTimeUI(LEVELS[state.idx].time);
+
+    if (state.timeLeft <= 0) gameOver();
+  }
+
+  function updateTimeUI(max) {
+    const secs = Math.ceil(state.timeLeft);
+    timeEl.textContent = secs;
+
+    const pct = Math.max(0, (state.timeLeft / max) * 100);
+    barEl.style.width = pct + '%';
+
+    const low = state.timeLeft <= 10;
+    barEl.classList.toggle('low', low);
+    timeEl.classList.toggle('low', low);
+  }
+
+  /* ---------- Итоги ---------- */
+  function levelComplete() {
+    state.playing = false;
+    clearInterval(state.timer);
+
+    const isLast = state.idx >= LEVELS.length - 1;
+
+    if (isLast) {
+      showOverlay(
+        '🏆',
+        'Победа!',
+        'Ты нашёл всё, что было спрятано. Внимательность — на максимуме!',
+        'Играть снова',
+        startGame
+      );
+    } else {
+      showOverlay(
+        '🎉',
+        'Уровень пройден!',
+        `Найдено ${state.found} из ${state.needed}. Следующий уровень будет сложнее.`,
+        'Дальше →',
+        () => { state.idx++; startLevel(); }
+      );
+    }
+  }
+
+  function gameOver() {
+    if (!state.playing) return;
+    state.playing = false;
+    clearInterval(state.timer);
+
+    showOverlay(
+      '⏰',
+      'Время вышло!',
+      `Ты нашёл ${state.found} из ${state.needed}. Попробуй ещё раз — получится!`,
+      'Заново',
+      startLevel
+    );
+  }
+
+  /* ---------- Старт ---------- */
+  showOverlay(
+    '🐱',
+    'Найди всех кошек',
+    'На поле спрятаны нужные emoji. Нажимай на них как можно быстрее! За ошибку — минус 3 секунды. Всего 5 уровней.',
+    'Начать игру',
+    startGame
+  );
+})();
+</script>
+</body>
+</html>
