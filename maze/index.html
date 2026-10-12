@@ -1,463 +1,835 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Neuron Cleaner - Puzzle</title>
-    <style>
-        body {
-            background-color: #FDF5E6;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #5C4033;
-            user-select: none;
-        }
-        canvas {
-            background-color: #FDF5E6;
-            border-radius: 10px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-        .header {
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            color: #8B4513;
-        }
-        .header p {
-            margin: 5px 0 0 0;
-            font-size: 14px;
-            opacity: 0.7;
-        }
-        .controls {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-        }
-        button {
-            background-color: #8B4513;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-        }
-        button:hover {
-            background-color: #A0522D;
-        }
-        button:active {
-            transform: scale(0.95);
-        }
-        .win-message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(253, 245, 230, 0.95);
-            padding: 20px 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            text-align: center;
-            display: none;
-            pointer-events: none;
-        }
-        .win-message h2 {
-            margin: 0 0 10px 0;
-            color: #8B4513;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#FDF5E6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Arrow Maze</title>
+<style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+        margin: 0; padding: 0; width: 100%; height: 100%;
+        overflow: hidden;
+        background: #FDF5E6;
+        color: #5C4033;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        user-select: none; -webkit-user-select: none;
+        touch-action: none;
+    }
+    #app {
+        display: flex; flex-direction: column;
+        width: 100%; height: 100%;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    /* --- Шапка --- */
+    #top-bar {
+        display: flex; align-items: center;
+        padding: 10px 14px 6px;
+        gap: 8px;
+        z-index: 10;
+    }
+    .icon-btn {
+        background: transparent;
+        border: none;
+        padding: 6px;
+        cursor: pointer;
+        color: #8B4513;
+        font-size: 22px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 10px;
+        transition: background 0.2s;
+        min-width: 38px; min-height: 38px;
+        font-family: inherit;
+    }
+    .icon-btn:active { background: rgba(139,69,19,0.1); }
+    #title-wrap {
+        flex: 1;
+        text-align: center;
+        line-height: 1.1;
+    }
+    #levelTitle { font-size: 17px; font-weight: 700; color: #8B4513; display: block; }
+    #levelSub { font-size: 12px; font-weight: 600; color: #7B68EE; text-transform: uppercase; letter-spacing: 1px; }
+    #levelSub.easy { color: #27AE60; }
+    #levelSub.medium { color: #E67E22; }
+    #levelSub.hard { color: #8E44AD; }
+    #right-icons { display: flex; gap: 4px; }
+
+    /* --- Полоска с каплями --- */
+    #drops-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 4px 18px 10px;
+        border-bottom: 1px solid rgba(139,69,19,0.1);
+        margin-bottom: 8px;
+    }
+    #drops { display: flex; gap: 8px; }
+    .drop {
+        width: 26px; height: 26px;
+        background: #3498DB;
+        border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+        position: relative;
+    }
+    .drop::after {
+        content: '';
+        position: absolute;
+        top: -3px; left: 50%; transform: translateX(-50%);
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 6px solid #3498DB;
+    }
+    .drop.used { background: #D5D5D5; }
+    .drop.used::after { border-bottom-color: #D5D5D5; }
+
+    /* --- Канва --- */
+    #canvas-wrap {
+        flex: 1;
+        position: relative;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden;
+        padding: 0 8px;
+    }
+    canvas {
+        display: block;
+        background: #FDF5E6;
+        touch-action: none;
+    }
+
+    /* --- Оверлеи --- */
+    .overlay {
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(253, 245, 230, 0.96);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        z-index: 20; padding: 20px;
+        text-align: center;
+        transition: opacity 0.25s;
+    }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+    .overlay h2 { margin: 0 0 12px 0; font-size: 24px; color: #8B4513; }
+    .stars { font-size: 38px; letter-spacing: 6px; margin: 8px 0 14px; }
+    .overlay p { margin: 4px 0; font-size: 14px; color: #5C4033; opacity: 0.75; }
+    .overlay-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .btn {
+        background: linear-gradient(135deg, #A0522D, #8B4513);
+        color: white; border: none;
+        padding: 13px 28px; border-radius: 14px;
+        font-size: 15px; font-weight: 600;
+        cursor: pointer; font-family: inherit;
+        box-shadow: 0 6px 16px rgba(139, 69, 19, 0.25);
+        transition: transform 0.12s;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn-outline {
+        background: transparent; color: #8B4513;
+        border: 2px solid #8B4513; box-shadow: none;
+    }
+
+    /* --- Сетка уровней --- */
+    #levelGrid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        width: 100%; max-width: 340px;
+        margin: 12px 0 20px;
+    }
+    .level-cell {
+        aspect-ratio: 1;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(139, 69, 19, 0.08);
+        border-radius: 12px;
+        font-weight: 700; font-size: 18px;
+        color: #8B4513; cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.15s;
+        position: relative;
+    }
+    .level-cell.locked { opacity: 0.35; cursor: not-allowed; }
+    .level-cell.current { border-color: #8B4513; background: rgba(139, 69, 19, 0.15); }
+    .level-cell .star-mini { position: absolute; bottom: 2px; font-size: 10px; }
+    .level-cell:active:not(.locked) { transform: scale(0.94); }
+
+    /* --- Нижняя панель --- */
+    #bottom-bar {
+        padding: 10px 18px 16px;
+        display: flex; justify-content: center;
+        z-index: 10;
+    }
+</style>
 </head>
 <body>
 
-    <div class="header">
-        <h1 id="levelTitle">Уровень 1</h1>
-        <p>Нажимай на стрелки, чтобы они вылетели.</p>
+<div id="app">
+    <header id="top-bar">
+        <button id="backBtn" class="icon-btn" aria-label="Назад">←</button>
+        <div id="title-wrap">
+            <span id="levelTitle">Level 1</span>
+            <span id="levelSub" class="easy">Easy</span>
+        </div>
+        <div id="right-icons">
+            <button id="paletteBtn" class="icon-btn" aria-label="Темы">🎨</button>
+            <button id="menuBtn" class="icon-btn" aria-label="Меню">⚙</button>
+        </div>
+    </header>
+
+    <div id="drops-bar">
+        <div id="drops">
+            <div class="drop"></div>
+            <div class="drop"></div>
+            <div class="drop"></div>
+        </div>
+        <button id="hintBtn" class="icon-btn" aria-label="Подсказка" style="font-size:20px;">💡</button>
     </div>
 
-    <canvas id="gameCanvas" width="450" height="450"></canvas>
+    <main id="canvas-wrap">
+        <canvas id="gameCanvas"></canvas>
 
-    <div class="controls">
-        <button id="restartBtn">Заново</button>
-        <button id="nextBtn" style="display: none;">Следующий уровень</button>
-    </div>
+        <div id="winOverlay" class="overlay hidden">
+            <h2>Уровень пройден!</h2>
+            <div id="stars" class="stars">⭐⭐⭐</div>
+            <p id="winStats"></p>
+            <div class="overlay-actions">
+                <button id="winRestartBtn" class="btn btn-outline">Заново</button>
+                <button id="nextBtn" class="btn">Дальше →</button>
+            </div>
+        </div>
 
-    <div id="winMessage" class="win-message">
-        <h2>Уровень пройден!</h2>
-        <p>Нажми "Следующий уровень"</p>
-    </div>
+        <div id="menuOverlay" class="overlay hidden">
+            <h2>Уровни</h2>
+            <div id="levelGrid"></div>
+            <button id="closeMenuBtn" class="btn btn-outline">Закрыть</button>
+        </div>
+    </main>
+
+    <footer id="bottom-bar">
+        <button id="restartBtn" class="btn btn-outline">↻ Заново</button>
+    </footer>
+</div>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const levelTitle = document.getElementById('levelTitle');
-    const restartBtn = document.getElementById('restartBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const winMessage = document.getElementById('winMessage');
+(() => {
+'use strict';
 
-    // --- Настройки ---
-    const GRID_SIZE = 45;
-    const COLS = 9;
-    const ROWS = 9;
-    const OFFSET_X = (canvas.width - COLS * GRID_SIZE) / 2;
-    const OFFSET_Y = (canvas.height - ROWS * GRID_SIZE) / 2;
-    const ARROW_LENGTH = 3 * GRID_SIZE; // Длина стрелки
-    const SPEED = 8; // Скорость движения
+// ========== КОНФИГ ==========
+const SPEED = 7;
+const ARROW_LENGTH_CELLS = 2.2;
+const HEAD_RADIUS_CELLS = 0.7;
 
-    let currentLevel = 0;
-    let arrows = [];
-    let animationId;
-    let isGameWon = false;
+// ========== УРОВНИ ==========
+const LEVELS = [
+    { size: [9,9], arrows: [ { points: [[2,4],[7,4]] } ], par: 1, diff: 'easy' },
 
-    // --- Данные уровней (ручной набор) ---
-    // Координаты в клетках сетки (x: 0..8, y: 0..8)
-    const levels = [
-        // Уровень 1: Одна простая стрелка вправо
-        [
-            { points: [{x: 2, y: 4}, {x: 6, y: 4}], dir: 'right' }
+    { size: [9,9], arrows: [
+        { points: [[2,4],[5,4]] },
+        { points: [[6,2],[6,6]] }
+    ], par: 2, diff: 'easy' },
+
+    { size: [9,9], arrows: [ { points: [[2,2],[2,6],[6,6]] } ], par: 1, diff: 'easy' },
+
+    { size: [9,9], arrows: [
+        { points: [[1,3],[6,3]] },
+        { points: [[4,1],[4,6]] },
+        { points: [[3,7],[7,7]] }
+    ], par: 3, diff: 'medium' },
+
+    {
+        size: [14,10],
+        arrows: [
+            { points: [[1,1],[3,1]] },
+            { points: [[1,2],[1,4]] },
+            { points: [[3,2],[5,2]] },
+            { points: [[4,3],[4,5]] },
+            { points: [[1,5],[3,5]] },
+            { points: [[5,3],[5,5]] },
+            { points: [[1,7],[4,7]] },
+            { points: [[3,6],[3,8]] },
+            { points: [[5,6],[5,8]] },
+            { points: [[6,7],[8,7]] },
+            { points: [[6,1],[8,1]] },
+            { points: [[6,2],[6,4]] },
+            { points: [[8,2],[8,4]] },
+            { points: [[7,3],[7,5]] },
+            { points: [[9,1],[12,1]] },
+            { points: [[9,2],[9,4]] },
+            { points: [[11,2],[11,4]] },
+            { points: [[9,5],[12,5]] },
+            { points: [[12,2],[12,4]] },
+            { points: [[1,6],[3,6]] },
+            { points: [[6,5],[8,5]] },
+            { points: [[9,6],[12,6]] },
+            { points: [[10,7],[10,9]] },
+            { points: [[1,8],[4,8]] },
+            { points: [[2,9],[5,9]] },
+            { points: [[6,8],[8,8]] },
+            { points: [[6,9],[8,9]] },
+            { points: [[11,7],[13,7]] },
+            { points: [[12,8],[12,9]] },
+            { points: [[13,2],[13,5]] },
         ],
-        // Уровень 2: Две стрелки, одна блокирует другую
-        [
-            { points: [{x: 2, y: 2}, {x: 6, y: 2}], dir: 'right' },
-            { points: [{x: 4, y: 5}, {x: 4, y: 1}], dir: 'up' } // Эта стрелка мешает первой, её нужно нажать первой
-        ],
-        // Уровень 3: Г-образная стрелка
-        [
-            { points: [{x: 2, y: 2}, {x: 2, y: 6}, {x: 6, y: 6}], dir: 'right' }
-        ],
-        // Уровень 4: Две Г-образные стрелки
-        [
-            { points: [{x: 2, y: 2}, {x: 2, y: 6}, {x: 5, y: 6}], dir: 'right' },
-            { points: [{x: 6, y: 1}, {x: 6, y: 5}, {x: 3, y: 5}], dir: 'left' }
-        ]
-    ];
+        par: 30,
+        diff: 'hard'
+    }
+];
 
-    // --- Класс Стрелки ---
-    class Arrow {
-        constructor(data) {
-            // Конвертируем координаты сетки в пиксели
-            this.points = data.points.map(p => ({
-                x: p.x * GRID_SIZE + OFFSET_X + GRID_SIZE / 2,
-                y: p.y * GRID_SIZE + OFFSET_Y + GRID_SIZE / 2
-            }));
-            
-            this.segments = [];
-            this.totalLength = 0;
-            this.traveled = 0;
-            this.state = 'idle'; // idle, moving, cleared
-            this.isHovered = false;
-            
-            // Строим сегменты для расчета длины
-            for (let i = 0; i < this.points.length - 1; i++) {
-                const p1 = this.points[i];
-                const p2 = this.points[i + 1];
-                const dx = p2.x - p1.x;
-                const dy = p2.y - p1.y;
-                const length = Math.hypot(dx, dy);
-                const angle = Math.atan2(dy, dx);
-                this.segments.push({ x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, length, angle });
-                this.totalLength += length;
-            }
-            
-            this.headPos = this.getPointAtDistance(0);
+// ========== DOM ==========
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvas-wrap');
+const levelTitle = document.getElementById('levelTitle');
+const levelSub = document.getElementById('levelSub');
+const winOverlay = document.getElementById('winOverlay');
+const menuOverlay = document.getElementById('menuOverlay');
+const levelGrid = document.getElementById('levelGrid');
+const starsEl = document.getElementById('stars');
+const winStats = document.getElementById('winStats');
+const dropsEl = document.querySelectorAll('.drop');
+
+const backBtn = document.getElementById('backBtn');
+const paletteBtn = document.getElementById('paletteBtn');
+const menuBtn = document.getElementById('menuBtn');
+const hintBtn = document.getElementById('hintBtn');
+const closeMenuBtn = document.getElementById('closeMenuBtn');
+const restartBtn = document.getElementById('restartBtn');
+const winRestartBtn = document.getElementById('winRestartBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+// ========== СОСТОЯНИЕ ==========
+let GRID_SIZE = 45;
+let ARROW_LENGTH = 0;
+let HEAD_RADIUS = 0;
+let COLS = 9, ROWS = 9;
+
+let arrows = [];
+let particles = [];
+let currentLevel = 0;
+let movesCount = 0;
+let isGameWon = false;
+let animationId = null;
+
+const PROGRESS_KEY = 'arrow-maze-progress-v1';
+let progress = loadProgress();
+
+// ========== ЗВУК ==========
+const Sound = (() => {
+    let actx = null;
+    function ensure() {
+        if (!actx) {
+            try { actx = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch (e) { actx = null; }
         }
+        if (actx && actx.state === 'suspended') actx.resume();
+        return actx;
+    }
+    function beep(freq, dur, type = 'sine', vol = 0.07) {
+        const a = ensure(); if (!a) return;
+        const osc = a.createOscillator(), g = a.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        g.gain.value = vol;
+        g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+        osc.connect(g).connect(a.destination);
+        osc.start(); osc.stop(a.currentTime + dur);
+    }
+    return {
+        click() { beep(520, 0.08, 'sine', 0.06); },
+        block() { beep(140, 0.15, 'sawtooth', 0.05); },
+        clear() { beep(880, 0.15, 'triangle', 0.07); setTimeout(() => beep(1320, 0.15, 'triangle', 0.05), 60); },
+        win()   { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.2, 'sine', 0.08), i * 110)); },
+        hint()  { beep(1500, 0.1, 'sine', 0.04); }
+    };
+})();
 
-        // Получить точку на расстоянии dist от начала
-        getPointAtDistance(dist) {
-            if (dist <= 0) {
-                const seg = this.segments[0];
-                return { x: seg.x1, y: seg.y1, angle: seg.angle };
+// ========== УТИЛИТЫ ==========
+function cellToPixel(cx, cy) {
+    return { x: cx * GRID_SIZE + GRID_SIZE / 2, y: cy * GRID_SIZE + GRID_SIZE / 2 };
+}
+
+// ========== ЧАСТИЦЫ ==========
+class Particle {
+    constructor(x, y, color) {
+        this.x = x; this.y = y;
+        const a = Math.random() * Math.PI * 2;
+        const s = 1 + Math.random() * 3.5;
+        this.vx = Math.cos(a) * s; this.vy = Math.sin(a) * s;
+        this.life = 1; this.decay = 0.025 + Math.random() * 0.02;
+        this.size = 1.5 + Math.random() * 2.5;
+        this.color = color;
+    }
+    update() {
+        this.x += this.vx; this.y += this.vy;
+        this.vx *= 0.95; this.vy *= 0.95;
+        this.life -= this.decay;
+    }
+    draw() {
+        if (this.life <= 0) return;
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+}
+
+// ========== СТРЕЛКА ==========
+class Arrow {
+    constructor(data) {
+        this.cellPoints = data.points.map(p => [p[0], p[1]]);
+        this.buildFromCellPoints();
+        this.state = 'idle';
+        this.isHovered = false;
+        this.pulsePhase = Math.random() * Math.PI * 2;
+        this.isHinted = false;
+    }
+
+    buildFromCellPoints() {
+        this.points = this.cellPoints.map(p => cellToPixel(p[0], p[1]));
+        this.segments = [];
+        this.totalLength = 0;
+        for (let i = 0; i < this.points.length - 1; i++) {
+            const a = this.points[i], b = this.points[i + 1];
+            const dx = b.x - a.x, dy = b.y - a.y;
+            const len = Math.hypot(dx, dy);
+            this.segments.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, length: len, angle: Math.atan2(dy, dx) });
+            this.totalLength += len;
+        }
+        this.headDist = this.totalLength;
+        this.updateHeadPos();
+    }
+
+    updateHeadPos() { this.headPos = this.getPointAtDistance(this.headDist); }
+
+    getPointAtDistance(dist) {
+        if (this.segments.length === 0) return { x: 0, y: 0, angle: 0 };
+        if (dist < 0) {
+            const s = this.segments[0];
+            return { x: s.x1 + Math.cos(s.angle) * dist, y: s.y1 + Math.sin(s.angle) * dist, angle: s.angle };
+        }
+        if (dist >= this.totalLength) {
+            const s = this.segments[this.segments.length - 1];
+            const extra = dist - this.totalLength;
+            return { x: s.x2 + Math.cos(s.angle) * extra, y: s.y2 + Math.sin(s.angle) * extra, angle: s.angle };
+        }
+        let cur = 0;
+        for (const s of this.segments) {
+            if (cur + s.length >= dist) {
+                const t = (dist - cur) / s.length;
+                return { x: s.x1 + (s.x2 - s.x1) * t, y: s.y1 + (s.y2 - s.y1) * t, angle: s.angle };
             }
-            if (dist >= this.totalLength) {
-                const lastSeg = this.segments[this.segments.length - 1];
-                const extra = dist - this.totalLength;
-                return {
-                    x: lastSeg.x2 + Math.cos(lastSeg.angle) * extra,
-                    y: lastSeg.y2 + Math.sin(lastSeg.angle) * extra,
-                    angle: lastSeg.angle
-                };
+            cur += s.length;
+        }
+        const s = this.segments[this.segments.length - 1];
+        return { x: s.x2, y: s.y2, angle: s.angle };
+    }
+
+    getBodyPoints() {
+        const start = this.headDist - ARROW_LENGTH;
+        const end = this.headDist;
+        const verts = [0]; let d = 0;
+        for (const s of this.segments) { d += s.length; verts.push(d); }
+        const interest = [start, end];
+        for (const v of verts) if (v > start && v < end) interest.push(v);
+        interest.sort((a, b) => a - b);
+        return interest.map(dd => this.getPointAtDistance(dd));
+    }
+
+    getBodySamples() {
+        const pts = this.getBodyPoints();
+        const samples = [];
+        for (let i = 0; i < pts.length - 1; i++) {
+            const a = pts[i], b = pts[i + 1];
+            const len = Math.hypot(b.x - a.x, b.y - a.y);
+            const steps = Math.max(1, Math.floor(len / 6));
+            for (let j = 0; j <= steps; j++) {
+                samples.push({ x: a.x + (b.x - a.x) * (j / steps), y: a.y + (b.y - a.y) * (j / steps) });
             }
-            
-            let currentDist = 0;
-            for (let seg of this.segments) {
-                if (currentDist + seg.length >= dist) {
-                    const t = (dist - currentDist) / seg.length;
-                    return {
-                        x: seg.x1 + (seg.x2 - seg.x1) * t,
-                        y: seg.y1 + (seg.y2 - seg.y1) * t,
-                        angle: seg.angle
-                    };
+        }
+        return samples;
+    }
+
+    headTouchesArrow(headPos, other) {
+        if (other === this || other.state === 'cleared') return false;
+        const samples = other.getBodySamples();
+        for (const s of samples) {
+            if (Math.hypot(headPos.x - s.x, headPos.y - s.y) < HEAD_RADIUS) return true;
+        }
+        return false;
+    }
+
+    isClickable() {
+        if (this.state !== 'idle') return false;
+        const saved = this.headDist;
+        for (let i = 1; i <= 4; i++) {
+            this.headDist = saved + i * SPEED;
+            const testHead = this.getPointAtDistance(this.headDist);
+            for (const other of arrows) {
+                if (this.headTouchesArrow(testHead, other)) {
+                    this.headDist = saved;
+                    return false;
                 }
-                currentDist += seg.length;
             }
         }
-
-        // Получить массив точек для отрисовки тела
-        getBodyPoints() {
-            const tailDist = this.traveled - ARROW_LENGTH;
-            const headDist = this.traveled;
-            
-            let result = [];
-            let startDist = Math.max(0, tailDist);
-            let endDist = Math.min(this.totalLength, headDist);
-
-            // Если хвост еще не дошел до конца пути
-            if (startDist < endDist) {
-                result.push(this.getPointAtDistance(startDist));
-                
-                let currentDist = 0;
-                for (let seg of this.segments) {
-                    if (currentDist + seg.length > startDist && currentDist < endDist) {
-                        let segStart = Math.max(startDist, currentDist);
-                        let segEnd = Math.min(endDist, currentDist + seg.length);
-                        
-                        let t1 = (segStart - currentDist) / seg.length;
-                        let t2 = (segEnd - currentDist) / seg.length;
-                        
-                        result.push({
-                            x: seg.x1 + (seg.x2 - seg.x1) * t1,
-                            y: seg.y1 + (seg.y2 - seg.y1) * t1
-                        });
-                        result.push({
-                            x: seg.x1 + (seg.x2 - seg.x1) * t2,
-                            y: seg.y1 + (seg.y2 - seg.y1) * t2
-                        });
-                    }
-                    currentDist += seg.length;
-                    if (currentDist > endDist) break;
-                }
-            }
-
-            // Если голова ушла дальше конца пути
-            if (headDist > this.totalLength) {
-                result.push(this.getPointAtDistance(this.totalLength));
-                result.push(this.getPointAtDistance(headDist));
-            }
-
-            return result;
-        }
-
-        update() {
-            if (this.state !== 'moving') return;
-
-            this.traveled += SPEED;
-            this.headPos = this.getPointAtDistance(this.traveled);
-
-            // Проверка на вылет за экран
-            if (this.headPos.x < -100 || this.headPos.x > canvas.width + 100 ||
-                this.headPos.y < -100 || this.headPos.y > canvas.height + 100) {
-                this.state = 'cleared';
-                return;
-            }
-
-            // Проверка столкновений с другими стрелками
-            for (let other of arrows) {
-                if (other === this || other.state === 'cleared') continue;
-                
-                // Проверяем, не попала ли голова в тело другой стрелки
-                const dist = this.pointToArrowDistance(this.headPos, other);
-                if (dist < 12) {
-                    // Столкновение! Откатываем назад
-                    this.traveled -= SPEED;
-                    this.headPos = this.getPointAtDistance(this.traveled);
-                    this.state = 'idle';
-                    break;
-                }
-            }
-        }
-
-        pointToArrowDistance(pt, otherArrow) {
-            let minDist = Infinity;
-            for (let seg of otherArrow.segments) {
-                const dist = this.pointToSegmentDistance(pt.x, pt.y, seg.x1, seg.y1, seg.x2, seg.y2);
-                if (dist < minDist) minDist = dist;
-            }
-            return minDist;
-        }
-
-        pointToSegmentDistance(px, py, x1, y1, x2, y2) {
-            const A = px - x1;
-            const B = py - y1;
-            const C = x2 - x1;
-            const D = y2 - y1;
-            const dot = A * C + B * D;
-            const len_sq = C * C + D * D;
-            let param = -1;
-            if (len_sq != 0) param = dot / len_sq;
-            let xx, yy;
-            if (param < 0) { xx = x1; yy = y1; }
-            else if (param > 1) { xx = x2; yy = y2; }
-            else { xx = x1 + param * C; yy = y1 + param * D; }
-            const dx = px - xx;
-            const dy = py - yy;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        draw() {
-            if (this.state === 'cleared') return;
-
-            const bodyPoints = this.getBodyPoints();
-            if (bodyPoints.length < 2) return;
-
-            // Рисуем тело
-            ctx.beginPath();
-            ctx.strokeStyle = this.isHovered ? '#A0522D' : '#8B4513';
-            ctx.lineWidth = 8;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            ctx.moveTo(bodyPoints[0].x, bodyPoints[0].y);
-            for (let i = 1; i < bodyPoints.length; i++) {
-                ctx.lineTo(bodyPoints[i].x, bodyPoints[i].y);
-            }
-            ctx.stroke();
-
-            // Рисуем голову (стрелку)
-            if (this.state === 'idle' || this.state === 'moving') {
-                this.drawArrowHead(this.headPos.x, this.headPos.y, this.headPos.angle);
-            }
-        }
-
-        drawArrowHead(x, y, angle) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle);
-            
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(-18, -10);
-            ctx.lineTo(-18, 10);
-            ctx.closePath();
-            ctx.fillStyle = this.isHovered ? '#A0522D' : '#8B4513';
-            ctx.fill();
-            ctx.restore();
-        }
-
-        isClicked(mx, my) {
-            if (this.state !== 'idle') return false;
-            const dist = Math.hypot(mx - this.headPos.x, my - this.headPos.y);
-            return dist < 30;
-        }
-
-        checkHover(mx, my) {
-            if (this.state !== 'idle') return false;
-            const dist = Math.hypot(mx - this.headPos.x, my - this.headPos.y);
-            this.isHovered = dist < 30;
-            return this.isHovered;
-        }
+        this.headDist = saved;
+        return true;
     }
 
-    // --- Игровой цикл и логика ---
+    update() {
+        if (this.state !== 'moving') return;
+        this.headDist += SPEED;
+        this.updateHeadPos();
 
-    function initLevel(index) {
-        currentLevel = index;
-        levelTitle.textContent = `Уровень ${index + 1}`;
-        
-        // Создаем стрелки из данных уровня
-        arrows = levels[index].map(data => new Arrow(data));
-        
-        isGameWon = false;
-        winMessage.style.display = 'none';
-        nextBtn.style.display = 'none';
-        
-        if (animationId) cancelAnimationFrame(animationId);
-        gameLoop();
-    }
+        if (Math.random() < 0.4) particles.push(new Particle(this.headPos.x, this.headPos.y, '#A0522D'));
 
-    function drawGrid() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for (let i = 0; i < COLS; i++) {
-            for (let j = 0; j < ROWS; j++) {
-                const x = i * GRID_SIZE + OFFSET_X + GRID_SIZE / 2;
-                const y = j * GRID_SIZE + OFFSET_Y + GRID_SIZE / 2;
-                ctx.beginPath();
-                ctx.arc(x, y, 2, 0, Math.PI * 2);
-                ctx.fillStyle = '#D2B48C';
-                ctx.fill();
-            }
+        const W = canvas.clientWidth, H = canvas.clientHeight;
+        if (this.headPos.x < -80 || this.headPos.x > W + 80 ||
+            this.headPos.y < -80 || this.headPos.y > H + 80) {
+            this.state = 'cleared';
+            for (let i = 0; i < 12; i++) particles.push(new Particle(this.headPos.x, this.headPos.y, '#8B4513'));
+            Sound.clear();
+            return;
         }
-    }
 
-    function checkWin() {
-        const allCleared = arrows.every(a => a.state === 'cleared');
-        if (allCleared && !isGameWon) {
-            isGameWon = true;
-            winMessage.style.display = 'block';
-            
-            // Если есть следующий уровень, показываем кнопку
-            if (currentLevel < levels.length - 1) {
-                nextBtn.style.display = 'inline-block';
-            } else {
-                levelTitle.textContent = 'Все уровни пройдены!';
-            }
-        }
-    }
-
-    function gameLoop() {
-        drawGrid();
-        
-        arrows.forEach(a => {
-            a.update();
-            a.draw();
-        });
-
-        checkWin();
-        animationId = requestAnimationFrame(gameLoop);
-    }
-
-    // --- Управление ---
-
-    canvas.addEventListener('mousemove', (e) => {
-        if (isGameWon) return;
-        const rect = canvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-
-        let cursorChanged = false;
-        arrows.forEach(a => {
-            if (a.checkHover(mx, my)) cursorChanged = true;
-        });
-        canvas.style.cursor = cursorChanged ? 'pointer' : 'crosshair';
-    });
-
-    canvas.addEventListener('mousedown', (e) => {
-        if (isGameWon) return;
-        const rect = canvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-
-        // Ищем стрелку, по которой кликнули (с конца массива, чтобы верхние были в приоритете)
-        for (let i = arrows.length - 1; i >= 0; i--) {
-            const arrow = arrows[i];
-            if (arrow.isClicked(mx, my)) {
-                arrow.state = 'moving';
+        for (const other of arrows) {
+            if (this.headTouchesArrow(this.headPos, other)) {
+                this.headDist -= SPEED;
+                this.updateHeadPos();
+                this.state = 'idle';
+                Sound.block();
                 break;
             }
         }
-    });
+    }
 
-    // Кнопки
-    restartBtn.addEventListener('click', () => {
-        initLevel(currentLevel);
-    });
+    draw(time) {
+        if (this.state === 'cleared') return;
+        const pts = this.getBodyPoints();
+        if (pts.length < 2) return;
 
-    nextBtn.addEventListener('click', () => {
-        if (currentLevel < levels.length - 1) {
-            initLevel(currentLevel + 1);
+        const clickable = this.state === 'idle' && this.isClickable();
+        let alpha = 1, lineWidth = 5;
+        if (this.state === 'idle') {
+            if (clickable) {
+                const p = 0.85 + 0.15 * Math.sin(time * 0.004 + this.pulsePhase);
+                alpha = p;
+                lineWidth = 5 + 1 * Math.sin(time * 0.004 + this.pulsePhase);
+            } else {
+                alpha = 0.55;
+            }
         }
+
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.strokeStyle = this.isHinted ? '#E67E22' : (this.isHovered ? '#A0522D' : '#8B4513');
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(this.headPos.x, this.headPos.y);
+        ctx.rotate(this.headPos.angle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-12, -7);
+        ctx.lineTo(-12, 7);
+        ctx.closePath();
+        ctx.fillStyle = this.isHinted ? '#E67E22' : (this.isHovered ? '#A0522D' : '#8B4513');
+        ctx.fill();
+        ctx.restore();
+
+        if (clickable) {
+            const r = HEAD_RADIUS * 1.6 + 3 * Math.sin(time * 0.004 + this.pulsePhase);
+            ctx.beginPath();
+            ctx.arc(this.headPos.x, this.headPos.y, r, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(160, 82, 45, 0.3)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+
+        if (this.isHinted) {
+            const r = HEAD_RADIUS * 2 + 5 * Math.sin(time * 0.006);
+            ctx.beginPath();
+            ctx.arc(this.headPos.x, this.headPos.y, r, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(230, 126, 34, 0.6)';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1;
+    }
+
+    hitTest(mx, my) {
+        if (this.state !== 'idle') return false;
+        return Math.hypot(mx - this.headPos.x, my - this.headPos.y) < HEAD_RADIUS * 1.5;
+    }
+
+    hoverTest(mx, my) {
+        if (this.state !== 'idle') { this.isHovered = false; return false; }
+        this.isHovered = Math.hypot(mx - this.headPos.x, my - this.headPos.y) < HEAD_RADIUS * 1.5;
+        return this.isHovered;
+    }
+
+    reset() {
+        this.headDist = this.totalLength;
+        this.updateHeadPos();
+        this.state = 'idle';
+        this.isHovered = false;
+        this.isHinted = false;
+    }
+}
+
+// ========== РАЗМЕР ==========
+function resize() {
+    const level = LEVELS[currentLevel];
+    COLS = level.size[0];
+    ROWS = level.size[1];
+
+    const availW = wrap.clientWidth - 16;
+    const availH = wrap.clientHeight - 16;
+    const cellW = availW / COLS;
+    const cellH = availH / ROWS;
+    GRID_SIZE = Math.min(cellW, cellH, 55);
+
+    const w = GRID_SIZE * COLS;
+    const h = GRID_SIZE * ROWS;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    ARROW_LENGTH = ARROW_LENGTH_CELLS * GRID_SIZE;
+    HEAD_RADIUS = HEAD_RADIUS_CELLS * GRID_SIZE;
+
+    for (const a of arrows) a.buildFromCellPoints();
+}
+
+// ========== ИГРОВОЙ ЦИКЛ ==========
+function drawBackground() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < COLS; i++) {
+        for (let j = 0; j < ROWS; j++) {
+            const x = i * GRID_SIZE + GRID_SIZE / 2;
+            const y = j * GRID_SIZE + GRID_SIZE / 2;
+            ctx.beginPath();
+            ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#E8D5B7';
+            ctx.fill();
+        }
+    }
+}
+
+function loop(time) {
+    drawBackground();
+    for (const a of arrows) { a.update(); a.draw(time); }
+
+    particles = particles.filter(p => p.life > 0);
+    for (const p of particles) { p.update(); p.draw(); }
+
+    checkWin();
+    animationId = requestAnimationFrame(loop);
+}
+
+function checkWin() {
+    if (isGameWon) return;
+    if (!arrows.every(a => a.state === 'cleared')) return;
+
+    isGameWon = true;
+    const par = LEVELS[currentLevel].par;
+    let stars = 3;
+    if (movesCount > par) stars = movesCount > par + 2 ? 1 : 2;
+
+    starsEl.textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+    winStats.textContent = `Ходов: ${movesCount} · Минимум: ${par}`;
+    winOverlay.classList.remove('hidden');
+
+    const key = String(currentLevel);
+    const prev = progress[key] || { stars: 0, moves: 999 };
+    if (stars > prev.stars || (stars === prev.stars && movesCount < prev.moves)) {
+        progress[key] = { stars, moves: movesCount };
+    }
+    const nextKey = String(currentLevel + 1);
+    if (!progress[nextKey]) progress[nextKey] = { stars: 0, moves: 999, unlocked: true };
+    else progress[nextKey].unlocked = true;
+    saveProgress();
+
+    Sound.win();
+}
+
+// ========== УПРАВЛЕНИЕ ==========
+function startLevel(index) {
+    if (index < 0 || index >= LEVELS.length) return;
+    currentLevel = index;
+    movesCount = 0;
+    isGameWon = false;
+    winOverlay.classList.add('hidden');
+    particles = [];
+
+    dropsEl.forEach(d => d.classList.remove('used'));
+
+    const lvl = LEVELS[index];
+    levelTitle.textContent = `Level ${index + 1}`;
+    levelSub.textContent = lvl.diff === 'easy' ? 'Easy' : lvl.diff === 'medium' ? 'Medium' : 'Hard';
+    levelSub.className = lvl.diff;
+
+    arrows = lvl.arrows.map(a => new Arrow(a));
+
+    resize();
+
+    if (animationId) cancelAnimationFrame(animationId);
+    animationId = requestAnimationFrame(loop);
+}
+
+// ========== ПРОГРЕСС ==========
+function loadProgress() {
+    try { return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {}; }
+    catch (e) { return {}; }
+}
+function saveProgress() {
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress)); } catch (e) {}
+}
+
+// ========== МЕНЮ ==========
+function buildLevelGrid() {
+    levelGrid.innerHTML = '';
+    LEVELS.forEach((_, i) => {
+        const cell = document.createElement('div');
+        cell.className = 'level-cell';
+        cell.textContent = String(i + 1);
+        const info = progress[String(i)] || {};
+        if (i > 0) {
+            const prev = progress[String(i - 1)];
+            if ((!prev || prev.stars === 0) && !info.unlocked) cell.classList.add('locked');
+        }
+        if (i === currentLevel) cell.classList.add('current');
+        if (info.stars > 0) {
+            const s = document.createElement('div');
+            s.className = 'star-mini';
+            s.textContent = '⭐'.repeat(info.stars);
+            cell.appendChild(s);
+        }
+        cell.addEventListener('click', () => {
+            if (cell.classList.contains('locked')) return;
+            menuOverlay.classList.add('hidden');
+            startLevel(i);
+        });
+        levelGrid.appendChild(cell);
     });
+}
 
-    // Запуск первого уровня
-    initLevel(0);
+// ========== ПОДСКАЗКА ==========
+function useHint() {
+    for (const a of arrows) {
+        if (a.state === 'idle' && a.isClickable()) {
+            a.isHinted = true;
+            Sound.hint();
+            const used = document.querySelectorAll('.drop:not(.used)');
+            if (used.length > 0) used[0].classList.add('used');
+            setTimeout(() => { a.isHinted = false; }, 2000);
+            return;
+        }
+    }
+}
 
+// ========== ВВОД ==========
+function pointerPos(e) {
+    const r = canvas.getBoundingClientRect();
+    let cx, cy;
+    if (e.touches && e.touches.length) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+    else if (e.changedTouches && e.changedTouches.length) { cx = e.changedTouches[0].clientX; cy = e.changedTouches[0].clientY; }
+    else { cx = e.clientX; cy = e.clientY; }
+    const sx = canvas.clientWidth / r.width;
+    const sy = canvas.clientHeight / r.height;
+    return { x: (cx - r.left) * sx, y: (cy - r.top) * sy };
+}
+
+function onMove(e) {
+    if (isGameWon) return;
+    const p = pointerPos(e);
+    let hov = false;
+    for (const a of arrows) if (a.hoverTest(p.x, p.y)) hov = true;
+    canvas.style.cursor = hov ? 'pointer' : 'default';
+}
+
+function onDown(e) {
+    if (e.cancelable) e.preventDefault();
+    if (isGameWon) return;
+    const p = pointerPos(e);
+    let best = null, bestDist = Infinity;
+    for (const a of arrows) {
+        if (a.state !== 'idle') continue;
+        const d = Math.hypot(p.x - a.headPos.x, p.y - a.headPos.y);
+        if (d < HEAD_RADIUS * 1.8 && d < bestDist) { best = a; bestDist = d; }
+    }
+    if (!best) return;
+
+    if (best.isClickable()) {
+        best.state = 'moving';
+        movesCount++;
+        Sound.click();
+        for (let k = 0; k < 8; k++) particles.push(new Particle(best.headPos.x, best.headPos.y, '#D2691E'));
+    } else {
+        Sound.block();
+        for (let k = 0; k < 6; k++) particles.push(new Particle(best.headPos.x, best.headPos.y, '#C0392B'));
+    }
+}
+
+canvas.addEventListener('mousemove', onMove);
+canvas.addEventListener('mousedown', onDown);
+canvas.addEventListener('touchstart', onDown, { passive: false });
+canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+// ========== КНОПКИ ==========
+backBtn.addEventListener('click', () => {
+    if (currentLevel > 0) startLevel(currentLevel - 1);
+});
+menuBtn.addEventListener('click', () => { buildLevelGrid(); menuOverlay.classList.remove('hidden'); });
+paletteBtn.addEventListener('click', () => {
+    const themes = ['#FDF5E6', '#F5F0E8', '#EFE8DC', '#E8E0D0'];
+    const cur = document.body.style.backgroundColor || 'rgb(253, 245, 230)';
+    let idx = 0;
+    themes.forEach((t, i) => {
+        const rgb = hexToRgb(t);
+        if (cur.includes(`${rgb.r}, ${rgb.g}, ${rgb.b}`)) idx = i;
+    });
+    idx = (idx + 1) % themes.length;
+    document.body.style.backgroundColor = themes[idx];
+    canvas.style.backgroundColor = themes[idx];
+});
+function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return { r, g, b };
+}
+hintBtn.addEventListener('click', useHint);
+closeMenuBtn.addEventListener('click', () => menuOverlay.classList.add('hidden'));
+restartBtn.addEventListener('click', () => startLevel(currentLevel));
+winRestartBtn.addEventListener('click', () => startLevel(currentLevel));
+nextBtn.addEventListener('click', () => {
+    if (currentLevel < LEVELS.length - 1) startLevel(currentLevel + 1);
+    else { currentLevel = 0; startLevel(0); }
+});
+
+// ========== РЕСАЙЗ ==========
+window.addEventListener('resize', () => { if (arrows.length) resize(); });
+window.addEventListener('orientationchange', () => { setTimeout(() => { if (arrows.length) resize(); }, 250); });
+
+// ========== СТАРТ ==========
+let startIdx = 0;
+for (let i = 0; i < LEVELS.length; i++) {
+    if (progress[String(i)] && progress[String(i)].stars > 0) {
+        startIdx = Math.min(i + 1, LEVELS.length - 1);
+    }
+}
+startLevel(startIdx);
+
+})();
 </script>
 </body>
 </html>
