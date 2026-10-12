@@ -2,249 +2,462 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Arrow Maze Game</title>
+    <title>Neuron Cleaner - Puzzle</title>
     <style>
         body {
-            background-color: #1a1a1a;
+            background-color: #FDF5E6;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            font-family: Arial, sans-serif;
-            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #5C4033;
+            user-select: none;
         }
         canvas {
-            background-color: #2a2a2a;
+            background-color: #FDF5E6;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            cursor: crosshair;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
-        .info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px;
-            border-radius: 5px;
+        .header {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #8B4513;
+        }
+        .header p {
+            margin: 5px 0 0 0;
             font-size: 14px;
+            opacity: 0.7;
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #8B4513;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #A0522D;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .win-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(253, 245, 230, 0.95);
+            padding: 20px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            display: none;
+            pointer-events: none;
+        }
+        .win-message h2 {
+            margin: 0 0 10px 0;
+            color: #8B4513;
         }
     </style>
 </head>
 <body>
 
-<div class="info">
-    <b>Как играть:</b><br>
-    1. Начните с синей точки.<br>
-    2. Зажмите ЛКМ и ведите по стрелкам.<br>
-    3. Нельзя идти против стрелок!<br>
-    4. Дойдите до зеленой точки.
-</div>
+    <div class="header">
+        <h1 id="levelTitle">Уровень 1</h1>
+        <p>Нажимай на стрелки, чтобы они вылетели.</p>
+    </div>
 
-<canvas id="gameCanvas" width="600" height="600"></canvas>
+    <canvas id="gameCanvas" width="450" height="450"></canvas>
+
+    <div class="controls">
+        <button id="restartBtn">Заново</button>
+        <button id="nextBtn" style="display: none;">Следующий уровень</button>
+    </div>
+
+    <div id="winMessage" class="win-message">
+        <h2>Уровень пройден!</h2>
+        <p>Нажми "Следующий уровень"</p>
+    </div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const gridSize = 60; // Размер клетки
-    const cols = 10;
-    const rows = 10;
+    const levelTitle = document.getElementById('levelTitle');
+    const restartBtn = document.getElementById('restartBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const winMessage = document.getElementById('winMessage');
 
-    // Сетка: 0 - пусто, 1 - линия, 2 - старт, 3 - финиш
-    // directions: 'up', 'down', 'left', 'right' - направление движения по линии
-    // Для простоты примера сделаем несколько линий с направлениями
-    const map = [
-        // x, y, direction, type
-        {x: 1, y: 1, dir: 'right', type: 'start'},
-        {x: 2, y: 1, dir: 'right'},
-        {x: 3, y: 1, dir: 'down'},
-        {x: 3, y: 2, dir: 'down'},
-        {x: 3, y: 3, dir: 'left'},
-        {x: 2, y: 3, dir: 'left'},
-        {x: 1, y: 3, dir: 'up'},
-        {x: 1, y: 2, dir: 'up'},
-        // Ветка вниз
-        {x: 5, y: 1, dir: 'down'},
-        {x: 5, y: 2, dir: 'down'},
-        {x: 5, y: 3, dir: 'right'},
-        {x: 6, y: 3, dir: 'right', type: 'end'},
+    // --- Настройки ---
+    const GRID_SIZE = 45;
+    const COLS = 9;
+    const ROWS = 9;
+    const OFFSET_X = (canvas.width - COLS * GRID_SIZE) / 2;
+    const OFFSET_Y = (canvas.height - ROWS * GRID_SIZE) / 2;
+    const ARROW_LENGTH = 3 * GRID_SIZE; // Длина стрелки
+    const SPEED = 8; // Скорость движения
+
+    let currentLevel = 0;
+    let arrows = [];
+    let animationId;
+    let isGameWon = false;
+
+    // --- Данные уровней (ручной набор) ---
+    // Координаты в клетках сетки (x: 0..8, y: 0..8)
+    const levels = [
+        // Уровень 1: Одна простая стрелка вправо
+        [
+            { points: [{x: 2, y: 4}, {x: 6, y: 4}], dir: 'right' }
+        ],
+        // Уровень 2: Две стрелки, одна блокирует другую
+        [
+            { points: [{x: 2, y: 2}, {x: 6, y: 2}], dir: 'right' },
+            { points: [{x: 4, y: 5}, {x: 4, y: 1}], dir: 'up' } // Эта стрелка мешает первой, её нужно нажать первой
+        ],
+        // Уровень 3: Г-образная стрелка
+        [
+            { points: [{x: 2, y: 2}, {x: 2, y: 6}, {x: 6, y: 6}], dir: 'right' }
+        ],
+        // Уровень 4: Две Г-образные стрелки
+        [
+            { points: [{x: 2, y: 2}, {x: 2, y: 6}, {x: 5, y: 6}], dir: 'right' },
+            { points: [{x: 6, y: 1}, {x: 6, y: 5}, {x: 3, y: 5}], dir: 'left' }
+        ]
     ];
 
-    let isDragging = false;
-    let path = []; // Текущий путь игрока
-    let solved = false;
-
-    // Преобразование координат сетки в пиксели
-    function getPos(x, y) {
-        return { px: x * gridSize + gridSize/2, py: y * gridSize + gridSize/2 };
-    }
-
-    // Поиск узла по координатам
-    function getNodeAt(px, py) {
-        const x = Math.floor(px / gridSize);
-        const y = Math.floor(py / gridSize);
-        return map.find(n => n.x === x && n.y === y);
-    }
-
-    // Проверка, можно ли перейти из точки A в точку B
-    function canMove(from, to) {
-        if (!from || !to) return false;
-        
-        // Проверяем расстояние (должны быть соседними клетками)
-        const dx = to.x - from.x;
-        const dy = to.y - from.y;
-        
-        if (Math.abs(dx) + Math.abs(dy) !== 1) return false; // Не соседние
-
-        // Проверяем направление
-        if (from.dir === 'right' && dx === 1 && dy === 0) return true;
-        if (from.dir === 'left' && dx === -1 && dy === 0) return true;
-        if (from.dir === 'down' && dx === 0 && dy === 1) return true;
-        if (from.dir === 'up' && dx === 0 && dy === -1) return true;
-
-        return false;
-    }
-
-    // Отрисовка
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Рисуем сетку (для наглядности)
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 1;
-        for (let i = 0; i <= cols; i++) {
-            ctx.beginPath();
-            ctx.moveTo(i * gridSize, 0);
-            ctx.lineTo(i * gridSize, canvas.height);
-            ctx.stroke();
-        }
-        for (let i = 0; i <= rows; i++) {
-            ctx.beginPath();
-            ctx.moveTo(0, i * gridSize);
-            ctx.lineTo(canvas.width, i * gridSize);
-            ctx.stroke();
-        }
-
-        // Рисуем статические линии и стрелки
-        map.forEach(node => {
-            const {px, py} = getPos(node.x, node.y);
+    // --- Класс Стрелки ---
+    class Arrow {
+        constructor(data) {
+            // Конвертируем координаты сетки в пиксели
+            this.points = data.points.map(p => ({
+                x: p.x * GRID_SIZE + OFFSET_X + GRID_SIZE / 2,
+                y: p.y * GRID_SIZE + OFFSET_Y + GRID_SIZE / 2
+            }));
             
-            // Рисуем узел
-            ctx.beginPath();
-            ctx.arc(px, py, 8, 0, Math.PI * 2);
-            if (node.type === 'start') ctx.fillStyle = '#3498db';
-            else if (node.type === 'end') ctx.fillStyle = '#2ecc71';
-            else ctx.fillStyle = '#555';
-            ctx.fill();
-
-            // Рисуем стрелку направления
-            ctx.save();
-            ctx.translate(px, py);
-            ctx.fillStyle = '#aaa';
-            ctx.font = '16px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+            this.segments = [];
+            this.totalLength = 0;
+            this.traveled = 0;
+            this.state = 'idle'; // idle, moving, cleared
+            this.isHovered = false;
             
-            // Смещение стрелки в зависимости от направления
-            let offset = 15;
-            if (node.dir === 'right') { ctx.translate(offset, 0); ctx.fillText('→', 0, 0); }
-            if (node.dir === 'left') { ctx.translate(-offset, 0); ctx.fillText('←', 0, 0); }
-            if (node.dir === 'down') { ctx.translate(0, offset); ctx.fillText('↓', 0, 0); }
-            if (node.dir === 'up') { ctx.translate(0, -offset); ctx.fillText('↑', 0, 0); }
-            ctx.restore();
-        });
-
-        // Рисуем путь игрока (красная линия)
-        if (path.length > 0) {
-            ctx.beginPath();
-            ctx.strokeStyle = '#e74c3c';
-            ctx.lineWidth = 5;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            const startPos = getPos(path[0].x, path[0].y);
-            ctx.moveTo(startPos.px, startPos.py);
-
-            for (let i = 1; i < path.length; i++) {
-                const pos = getPos(path[i].x, path[i].y);
-                ctx.lineTo(pos.px, pos.py);
+            // Строим сегменты для расчета длины
+            for (let i = 0; i < this.points.length - 1; i++) {
+                const p1 = this.points[i];
+                const p2 = this.points[i + 1];
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const length = Math.hypot(dx, dy);
+                const angle = Math.atan2(dy, dx);
+                this.segments.push({ x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, length, angle });
+                this.totalLength += length;
             }
-            ctx.stroke();
+            
+            this.headPos = this.getPointAtDistance(0);
         }
 
-        // Проверка победы
-        if (path.length > 0) {
-            const lastNode = path[path.length - 1];
-            if (lastNode.type === 'end') {
-                ctx.fillStyle = 'rgba(46, 204, 113, 0.3)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = 'white';
-                ctx.font = '30px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('УРОВЕНЬ ПРОЙДЕН!', canvas.width/2, canvas.height/2);
+        // Получить точку на расстоянии dist от начала
+        getPointAtDistance(dist) {
+            if (dist <= 0) {
+                const seg = this.segments[0];
+                return { x: seg.x1, y: seg.y1, angle: seg.angle };
+            }
+            if (dist >= this.totalLength) {
+                const lastSeg = this.segments[this.segments.length - 1];
+                const extra = dist - this.totalLength;
+                return {
+                    x: lastSeg.x2 + Math.cos(lastSeg.angle) * extra,
+                    y: lastSeg.y2 + Math.sin(lastSeg.angle) * extra,
+                    angle: lastSeg.angle
+                };
+            }
+            
+            let currentDist = 0;
+            for (let seg of this.segments) {
+                if (currentDist + seg.length >= dist) {
+                    const t = (dist - currentDist) / seg.length;
+                    return {
+                        x: seg.x1 + (seg.x2 - seg.x1) * t,
+                        y: seg.y1 + (seg.y2 - seg.y1) * t,
+                        angle: seg.angle
+                    };
+                }
+                currentDist += seg.length;
             }
         }
-    }
 
-    // Обработка нажатия мыши
-    canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        
-        const node = getNodeAt(mouseX, mouseY);
-        
-        // Начинаем путь только со стартовой точки
-        if (node && node.type === 'start') {
-            isDragging = true;
-            path = [node];
-            draw();
-        }
-    });
-
-    // Обработка движения мыши
-    canvas.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        
-        const hoverNode = getNodeAt(mouseX, mouseY);
-        
-        if (hoverNode) {
-            const lastNode = path[path.length - 1];
+        // Получить массив точек для отрисовки тела
+        getBodyPoints() {
+            const tailDist = this.traveled - ARROW_LENGTH;
+            const headDist = this.traveled;
             
-            // Если навели на ту же точку, ничего не делаем
-            if (hoverNode.x === lastNode.x && hoverNode.y === lastNode.y) return;
+            let result = [];
+            let startDist = Math.max(0, tailDist);
+            let endDist = Math.min(this.totalLength, headDist);
 
-            // Если пытаемся вернуться назад (отменяем шаг)
-            if (path.length > 1 && hoverNode.x === path[path.length - 2].x && hoverNode.y === path[path.length - 2].y) {
-                path.pop();
-                draw();
+            // Если хвост еще не дошел до конца пути
+            if (startDist < endDist) {
+                result.push(this.getPointAtDistance(startDist));
+                
+                let currentDist = 0;
+                for (let seg of this.segments) {
+                    if (currentDist + seg.length > startDist && currentDist < endDist) {
+                        let segStart = Math.max(startDist, currentDist);
+                        let segEnd = Math.min(endDist, currentDist + seg.length);
+                        
+                        let t1 = (segStart - currentDist) / seg.length;
+                        let t2 = (segEnd - currentDist) / seg.length;
+                        
+                        result.push({
+                            x: seg.x1 + (seg.x2 - seg.x1) * t1,
+                            y: seg.y1 + (seg.y2 - seg.y1) * t1
+                        });
+                        result.push({
+                            x: seg.x1 + (seg.x2 - seg.x1) * t2,
+                            y: seg.y1 + (seg.y2 - seg.y1) * t2
+                        });
+                    }
+                    currentDist += seg.length;
+                    if (currentDist > endDist) break;
+                }
+            }
+
+            // Если голова ушла дальше конца пути
+            if (headDist > this.totalLength) {
+                result.push(this.getPointAtDistance(this.totalLength));
+                result.push(this.getPointAtDistance(headDist));
+            }
+
+            return result;
+        }
+
+        update() {
+            if (this.state !== 'moving') return;
+
+            this.traveled += SPEED;
+            this.headPos = this.getPointAtDistance(this.traveled);
+
+            // Проверка на вылет за экран
+            if (this.headPos.x < -100 || this.headPos.x > canvas.width + 100 ||
+                this.headPos.y < -100 || this.headPos.y > canvas.height + 100) {
+                this.state = 'cleared';
                 return;
             }
 
-            // Проверяем, можно ли сделать ход
-            if (canMove(lastNode, hoverNode)) {
-                // Проверяем, не проходили ли мы уже здесь (для простоты запретим циклы)
-                const alreadyVisited = path.some(n => n.x === hoverNode.x && n.y === hoverNode.y);
-                if (!alreadyVisited) {
-                    path.push(hoverNode);
-                    draw();
+            // Проверка столкновений с другими стрелками
+            for (let other of arrows) {
+                if (other === this || other.state === 'cleared') continue;
+                
+                // Проверяем, не попала ли голова в тело другой стрелки
+                const dist = this.pointToArrowDistance(this.headPos, other);
+                if (dist < 12) {
+                    // Столкновение! Откатываем назад
+                    this.traveled -= SPEED;
+                    this.headPos = this.getPointAtDistance(this.traveled);
+                    this.state = 'idle';
+                    break;
                 }
+            }
+        }
+
+        pointToArrowDistance(pt, otherArrow) {
+            let minDist = Infinity;
+            for (let seg of otherArrow.segments) {
+                const dist = this.pointToSegmentDistance(pt.x, pt.y, seg.x1, seg.y1, seg.x2, seg.y2);
+                if (dist < minDist) minDist = dist;
+            }
+            return minDist;
+        }
+
+        pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+            const A = px - x1;
+            const B = py - y1;
+            const C = x2 - x1;
+            const D = y2 - y1;
+            const dot = A * C + B * D;
+            const len_sq = C * C + D * D;
+            let param = -1;
+            if (len_sq != 0) param = dot / len_sq;
+            let xx, yy;
+            if (param < 0) { xx = x1; yy = y1; }
+            else if (param > 1) { xx = x2; yy = y2; }
+            else { xx = x1 + param * C; yy = y1 + param * D; }
+            const dx = px - xx;
+            const dy = py - yy;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        draw() {
+            if (this.state === 'cleared') return;
+
+            const bodyPoints = this.getBodyPoints();
+            if (bodyPoints.length < 2) return;
+
+            // Рисуем тело
+            ctx.beginPath();
+            ctx.strokeStyle = this.isHovered ? '#A0522D' : '#8B4513';
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.moveTo(bodyPoints[0].x, bodyPoints[0].y);
+            for (let i = 1; i < bodyPoints.length; i++) {
+                ctx.lineTo(bodyPoints[i].x, bodyPoints[i].y);
+            }
+            ctx.stroke();
+
+            // Рисуем голову (стрелку)
+            if (this.state === 'idle' || this.state === 'moving') {
+                this.drawArrowHead(this.headPos.x, this.headPos.y, this.headPos.angle);
+            }
+        }
+
+        drawArrowHead(x, y, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-18, -10);
+            ctx.lineTo(-18, 10);
+            ctx.closePath();
+            ctx.fillStyle = this.isHovered ? '#A0522D' : '#8B4513';
+            ctx.fill();
+            ctx.restore();
+        }
+
+        isClicked(mx, my) {
+            if (this.state !== 'idle') return false;
+            const dist = Math.hypot(mx - this.headPos.x, my - this.headPos.y);
+            return dist < 30;
+        }
+
+        checkHover(mx, my) {
+            if (this.state !== 'idle') return false;
+            const dist = Math.hypot(mx - this.headPos.x, my - this.headPos.y);
+            this.isHovered = dist < 30;
+            return this.isHovered;
+        }
+    }
+
+    // --- Игровой цикл и логика ---
+
+    function initLevel(index) {
+        currentLevel = index;
+        levelTitle.textContent = `Уровень ${index + 1}`;
+        
+        // Создаем стрелки из данных уровня
+        arrows = levels[index].map(data => new Arrow(data));
+        
+        isGameWon = false;
+        winMessage.style.display = 'none';
+        nextBtn.style.display = 'none';
+        
+        if (animationId) cancelAnimationFrame(animationId);
+        gameLoop();
+    }
+
+    function drawGrid() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < COLS; i++) {
+            for (let j = 0; j < ROWS; j++) {
+                const x = i * GRID_SIZE + OFFSET_X + GRID_SIZE / 2;
+                const y = j * GRID_SIZE + OFFSET_Y + GRID_SIZE / 2;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#D2B48C';
+                ctx.fill();
+            }
+        }
+    }
+
+    function checkWin() {
+        const allCleared = arrows.every(a => a.state === 'cleared');
+        if (allCleared && !isGameWon) {
+            isGameWon = true;
+            winMessage.style.display = 'block';
+            
+            // Если есть следующий уровень, показываем кнопку
+            if (currentLevel < levels.length - 1) {
+                nextBtn.style.display = 'inline-block';
+            } else {
+                levelTitle.textContent = 'Все уровни пройдены!';
+            }
+        }
+    }
+
+    function gameLoop() {
+        drawGrid();
+        
+        arrows.forEach(a => {
+            a.update();
+            a.draw();
+        });
+
+        checkWin();
+        animationId = requestAnimationFrame(gameLoop);
+    }
+
+    // --- Управление ---
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (isGameWon) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        let cursorChanged = false;
+        arrows.forEach(a => {
+            if (a.checkHover(mx, my)) cursorChanged = true;
+        });
+        canvas.style.cursor = cursorChanged ? 'pointer' : 'crosshair';
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (isGameWon) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        // Ищем стрелку, по которой кликнули (с конца массива, чтобы верхние были в приоритете)
+        for (let i = arrows.length - 1; i >= 0; i--) {
+            const arrow = arrows[i];
+            if (arrow.isClicked(mx, my)) {
+                arrow.state = 'moving';
+                break;
             }
         }
     });
 
-    // Обработка отпускания мыши
-    canvas.addEventListener('mouseup', () => {
-        isDragging = false;
+    // Кнопки
+    restartBtn.addEventListener('click', () => {
+        initLevel(currentLevel);
     });
 
-    // Запуск отрисовки
-    draw();
-</script>
+    nextBtn.addEventListener('click', () => {
+        if (currentLevel < levels.length - 1) {
+            initLevel(currentLevel + 1);
+        }
+    });
 
+    // Запуск первого уровня
+    initLevel(0);
+
+</script>
 </body>
 </html>
