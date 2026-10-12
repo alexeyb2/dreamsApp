@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Arrow Maze Game</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        canvas {
+            background-color: #2a2a2a;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            cursor: crosshair;
+        }
+        .info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="info">
+    <b>Как играть:</b><br>
+    1. Начните с синей точки.<br>
+    2. Зажмите ЛКМ и ведите по стрелкам.<br>
+    3. Нельзя идти против стрелок!<br>
+    4. Дойдите до зеленой точки.
+</div>
+
+<canvas id="gameCanvas" width="600" height="600"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gridSize = 60; // Размер клетки
+    const cols = 10;
+    const rows = 10;
+
+    // Сетка: 0 - пусто, 1 - линия, 2 - старт, 3 - финиш
+    // directions: 'up', 'down', 'left', 'right' - направление движения по линии
+    // Для простоты примера сделаем несколько линий с направлениями
+    const map = [
+        // x, y, direction, type
+        {x: 1, y: 1, dir: 'right', type: 'start'},
+        {x: 2, y: 1, dir: 'right'},
+        {x: 3, y: 1, dir: 'down'},
+        {x: 3, y: 2, dir: 'down'},
+        {x: 3, y: 3, dir: 'left'},
+        {x: 2, y: 3, dir: 'left'},
+        {x: 1, y: 3, dir: 'up'},
+        {x: 1, y: 2, dir: 'up'},
+        // Ветка вниз
+        {x: 5, y: 1, dir: 'down'},
+        {x: 5, y: 2, dir: 'down'},
+        {x: 5, y: 3, dir: 'right'},
+        {x: 6, y: 3, dir: 'right', type: 'end'},
+    ];
+
+    let isDragging = false;
+    let path = []; // Текущий путь игрока
+    let solved = false;
+
+    // Преобразование координат сетки в пиксели
+    function getPos(x, y) {
+        return { px: x * gridSize + gridSize/2, py: y * gridSize + gridSize/2 };
+    }
+
+    // Поиск узла по координатам
+    function getNodeAt(px, py) {
+        const x = Math.floor(px / gridSize);
+        const y = Math.floor(py / gridSize);
+        return map.find(n => n.x === x && n.y === y);
+    }
+
+    // Проверка, можно ли перейти из точки A в точку B
+    function canMove(from, to) {
+        if (!from || !to) return false;
+        
+        // Проверяем расстояние (должны быть соседними клетками)
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        
+        if (Math.abs(dx) + Math.abs(dy) !== 1) return false; // Не соседние
+
+        // Проверяем направление
+        if (from.dir === 'right' && dx === 1 && dy === 0) return true;
+        if (from.dir === 'left' && dx === -1 && dy === 0) return true;
+        if (from.dir === 'down' && dx === 0 && dy === 1) return true;
+        if (from.dir === 'up' && dx === 0 && dy === -1) return true;
+
+        return false;
+    }
+
+    // Отрисовка
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Рисуем сетку (для наглядности)
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= cols; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * gridSize, 0);
+            ctx.lineTo(i * gridSize, canvas.height);
+            ctx.stroke();
+        }
+        for (let i = 0; i <= rows; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, i * gridSize);
+            ctx.lineTo(canvas.width, i * gridSize);
+            ctx.stroke();
+        }
+
+        // Рисуем статические линии и стрелки
+        map.forEach(node => {
+            const {px, py} = getPos(node.x, node.y);
+            
+            // Рисуем узел
+            ctx.beginPath();
+            ctx.arc(px, py, 8, 0, Math.PI * 2);
+            if (node.type === 'start') ctx.fillStyle = '#3498db';
+            else if (node.type === 'end') ctx.fillStyle = '#2ecc71';
+            else ctx.fillStyle = '#555';
+            ctx.fill();
+
+            // Рисуем стрелку направления
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.fillStyle = '#aaa';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Смещение стрелки в зависимости от направления
+            let offset = 15;
+            if (node.dir === 'right') { ctx.translate(offset, 0); ctx.fillText('→', 0, 0); }
+            if (node.dir === 'left') { ctx.translate(-offset, 0); ctx.fillText('←', 0, 0); }
+            if (node.dir === 'down') { ctx.translate(0, offset); ctx.fillText('↓', 0, 0); }
+            if (node.dir === 'up') { ctx.translate(0, -offset); ctx.fillText('↑', 0, 0); }
+            ctx.restore();
+        });
+
+        // Рисуем путь игрока (красная линия)
+        if (path.length > 0) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const startPos = getPos(path[0].x, path[0].y);
+            ctx.moveTo(startPos.px, startPos.py);
+
+            for (let i = 1; i < path.length; i++) {
+                const pos = getPos(path[i].x, path[i].y);
+                ctx.lineTo(pos.px, pos.py);
+            }
+            ctx.stroke();
+        }
+
+        // Проверка победы
+        if (path.length > 0) {
+            const lastNode = path[path.length - 1];
+            if (lastNode.type === 'end') {
+                ctx.fillStyle = 'rgba(46, 204, 113, 0.3)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('УРОВЕНЬ ПРОЙДЕН!', canvas.width/2, canvas.height/2);
+            }
+        }
+    }
+
+    // Обработка нажатия мыши
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        const node = getNodeAt(mouseX, mouseY);
+        
+        // Начинаем путь только со стартовой точки
+        if (node && node.type === 'start') {
+            isDragging = true;
+            path = [node];
+            draw();
+        }
+    });
+
+    // Обработка движения мыши
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        const hoverNode = getNodeAt(mouseX, mouseY);
+        
+        if (hoverNode) {
+            const lastNode = path[path.length - 1];
+            
+            // Если навели на ту же точку, ничего не делаем
+            if (hoverNode.x === lastNode.x && hoverNode.y === lastNode.y) return;
+
+            // Если пытаемся вернуться назад (отменяем шаг)
+            if (path.length > 1 && hoverNode.x === path[path.length - 2].x && hoverNode.y === path[path.length - 2].y) {
+                path.pop();
+                draw();
+                return;
+            }
+
+            // Проверяем, можно ли сделать ход
+            if (canMove(lastNode, hoverNode)) {
+                // Проверяем, не проходили ли мы уже здесь (для простоты запретим циклы)
+                const alreadyVisited = path.some(n => n.x === hoverNode.x && n.y === hoverNode.y);
+                if (!alreadyVisited) {
+                    path.push(hoverNode);
+                    draw();
+                }
+            }
+        }
+    });
+
+    // Обработка отпускания мыши
+    canvas.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    // Запуск отрисовки
+    draw();
+</script>
+
+</body>
+</html>
