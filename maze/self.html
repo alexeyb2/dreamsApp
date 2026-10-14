@@ -25,598 +25,361 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
   html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background: var(--bg);
-    color: var(--fg);
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--fg);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.45;
+    font-size: 16px; line-height: 1.45;
     overscroll-behavior: none;
   }
-
   body { overflow: hidden; }
+  button { font-family: inherit; font-size: inherit; color: inherit; background: none; border: none; cursor: pointer; padding: 0; }
+  input, textarea { font-family: inherit; font-size: inherit; color: inherit; }
 
-  button {
-    font-family: inherit;
-    font-size: inherit;
-    color: inherit;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-  }
-
-  input, textarea {
-    font-family: inherit;
-    font-size: inherit;
-    color: inherit;
-  }
-
-  #app {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-  }
+  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
 
   .screen {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+    flex: 1; min-height: 0; display: flex; flex-direction: column;
     animation: fadeIn .22s ease both;
   }
-
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: none; }
   }
 
   .hdr {
-    flex: none;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    flex: none; display: flex; align-items: center; gap: 6px;
     padding: calc(var(--safe-top) + 10px) var(--pad) 8px;
   }
-
   .hdr-title {
-    flex: 1;
-    font-size: 15px;
-    font-weight: 600;
-    opacity: .82;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 1; font-size: 15px; font-weight: 600; opacity: .82;
+    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-
   .hdr-title.left { text-align: left; }
 
   .icon-btn {
-    flex: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 17px;
-    transition: background .15s;
+    flex: none; width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; transition: background .15s;
   }
-
   .icon-btn:active { background: rgba(255,255,255,.08); }
 
   .body {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 0 var(--pad) calc(var(--safe-bottom) + 24px);
   }
+  .footer { flex: none; padding: 12px var(--pad) calc(var(--safe-bottom) + 16px); }
 
-  .footer {
-    flex: none;
-    padding: 12px var(--pad) calc(var(--safe-bottom) + 16px);
-  }
-
+  /* ==== who ==== */
   .who {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 44px;
-    padding: 24px;
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 44px; padding: 24px;
   }
-
-  .who h1 {
-    margin: 0;
-    font-size: 26px;
-    font-weight: 600;
-    letter-spacing: -.02em;
-  }
-
+  .who h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
   .emoji-row { display: flex; gap: 22px; }
-
   .big-emoji-btn {
-    width: 104px;
-    height: 104px;
-    border-radius: 28px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    font-size: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 104px; height: 104px; border-radius: 28px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 52px; display: flex; align-items: center; justify-content: center;
     transition: transform .15s, border-color .15s;
   }
-
   .big-emoji-btn:active { transform: scale(.94); border-color: var(--accent); }
 
+  /* ==== forms ==== */
   .field-label {
-    font-size: 12px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    margin: 18px 0 8px;
+    font-size: 12px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .07em; margin: 18px 0 8px;
   }
-
   .big-input {
-    width: 100%;
-    min-height: 116px;
-    resize: none;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    padding: 14px 16px;
-    outline: none;
-    line-height: 1.5;
-    transition: border-color .15s;
+    width: 100%; min-height: 116px; resize: none;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 14px 16px; outline: none;
+    line-height: 1.5; transition: border-color .15s;
   }
-
   .big-input:focus { border-color: var(--accent); }
 
   .preview {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    padding: 14px 16px;
-    min-height: 78px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-size: 17px;
-    line-height: 1.6;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 14px 16px; min-height: 78px;
+    white-space: pre-wrap; word-break: break-word;
+    font-size: 17px; line-height: 1.6;
   }
+  .preview.empty::before { content: 'Здесь появится текст…'; color: var(--muted); }
 
-  .preview.empty::before {
-    content: 'Здесь появится текст…';
-    color: var(--muted);
-  }
-
-  .tok {
-    border-radius: 6px;
-    padding: 1px 3px;
-    margin: 0 -1px;
-    transition: background .15s;
-    cursor: pointer;
-  }
-
+  .tok { border-radius: 6px; padding: 1px 3px; margin: 0 -1px; transition: background .15s; cursor: pointer; }
   .tok-existing { color: var(--accent); background: rgba(111,168,255,.13); }
   .tok-new      { color: var(--new);    background: rgba(255,180,111,.13); }
-  .tok-stop     { color: var(--muted); }
+  .tok-stop     { color:-size var(--:muted); }
 
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
+   .chips { display: flex;14 flex-wrap: wrappx; gap: 8px; }
   .chip {
-    padding: 7px 13px;
-    border-radius: 999px;
-    background: rgba(255,180,111,.12);
-    color: var(--new);
-    border: 1px solid rgba(255,180,111,.25);
-    font-size: 14px;
+    padding: 7px 13px; border-radius: 999px;
+    background: rgba(255,180,111,.12); color: var(--new);
+    border: 1px solid rgba(255,180,111,.25); font;
     transition: background .15s;
   }
-
   .chip:active { background: rgba(255,180,111,.22); }
 
+  /* ==== buttons ==== */
   .btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 15px 22px;
-    border-radius: var(--r);
-    font-size: 16px;
-    font-weight: 600;
-    width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 15px 22px; border-radius: var(--r);
+    font-size: 16px; font-weight: 600; width: 100%;
     transition: transform .12s, opacity .15s;
   }
-
   .btn:active { transform: scale(.98); }
   .btn-primary { background: var(--accent); color: #06111f; }
   .btn-ghost { background: var(--surface); color: var(--fg); border: 1px solid var(--border); }
-
   .btn-row { display: flex; gap: 10px; }
   .btn-row .btn { flex: 1; }
 
-  .sphere-wrap {
-    display: flex;
-    justify-content: center;
-    padding: 6px 0 24px;
-  }
-
+  /* ==== hub ==== */
+  .sphere-wrap { display: flex; justify-content: center; padding: 6px 0 24px; }
   .sphere {
-    width: 132px;
-    height: 132px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 132px; height: 132px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
     font-size: 62px;
     background: radial-gradient(circle at 35% 30%, #2b3a5c, #12131c 70%);
     border: 1px solid rgba(111,168,255,.3);
-    animation: pulse 3s infinite;
-    cursor: pointer;
+    animation: pulse 3s infinite; cursor: pointer;
   }
-
   @keyframes pulse {
     0%   { box-shadow: 0 0 0 0 rgba(111,168,255,.35); }
     70%  { box-shadow: 0 0 0 26px rgba(111,168,255,0); }
     100% { box-shadow: 0 0 0 0 rgba(111,168,255,0); }
   }
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .tile {
-    position: relative;
-    aspect-ratio: 1 / 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    position: relative; aspect-ratio: 1 / 1;
+    background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--r);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px 8px 16px;
-    text-align: center;
-    overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 10px 8px 16px; text-align: center; overflow: hidden;
     transition: transform .12s, border-color .15s, background .15s;
   }
-
   .tile:active { transform: scale(.95); border-color: var(--accent); background: var(--surface-2); }
-
-  /* маленькая подсказка «нажми» — уголок */
   .tile::after {
-    content: '';
-    position: absolute;
-    right: 8px;
-    bottom: 8px;
-    width: 6px;
-    height: 6px;
-    border-right: 2px solid var(--muted);
-    border-bottom: 2px solid var(--muted);
-    transform: rotate(-45deg);
-    opacity: .45;
+    content: ''; position: absolute; right: 8px; bottom: 8px;
+    width: 6px; height: 6px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(-45deg); opacity: .45;
   }
-
   .tile-emoji { font-size: 30px; line-height: 1; }
   .tile-word {
-    font-size: 12px;
-    line-height: 1.2;
-    opacity: .9;
-    word-break: break-word;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: 12px; line-height: 1.2; opacity: .9; word-break: break-word;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
   }
   .tile-add { font-size: 28px; color: var(--muted); }
   .tile-add::after { content: none; }
   .tile-draft .tile-emoji { opacity: .4; }
 
+  /* ==== belief card ==== */
   .card-emoji { font-size: 72px; text-align: center; padding: 4px 0 2px; }
-
   .card-word {
-    font-size: 24px;
-    font-weight: 600;
-    text-align: center;
-    margin: 0 0 18px;
-    letter-spacing: -.01em;
-    word-break: break-word;
+    font-size: 24px; font-weight: 600; text-align: center;
+    margin: 0 0 18px; letter-spacing: -.01em; word-break: break-word;
   }
-
   .block {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    padding: 14px 16px;
-    margin-bottom: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 14px 16px; margin-bottom: 12px;
   }
-
   .block-title {
-    font-size: 12px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    margin-bottom: 10px;
+    font-size: 12px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .07em; margin-bottom: 10px;
   }
-
-  .block-text {
-    white-space: pre-wrap;
-    word-break: break-word;
-    line-height: 1.6;
-  }
-
+  .block-text { white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
   .block-text.empty::before { content: '—'; color: var(--muted); }
 
   .ref-list { display: flex; flex-direction: column; gap: 2px; }
-
   .ref-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 8px;
-    border-radius: var(--r-sm);
-    width: 100%;
-    text-align: left;
-    transition: background .15s;
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 8px; border-radius: var(--r-sm);
+    width: 100%; text-align: left; transition: background .15s;
   }
-
   .ref-item:active { background: rgba(255,255,255,.06); }
   .ref-emoji { font-size: 22px; width: 28px; text-align: center; }
   .ref-word { flex: 1; font-size: 15px; word-break: break-word; }
 
   .empty-note { color: var(--muted); font-size: 14px; }
 
+  /* ==== pick ==== */
   .pick-list { display: flex; flex-direction: column; gap: 8px; }
-
   .pick-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r); padding: 12px 14px;
   }
-
   .pick-row input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 22px;
-    height: 22px;
-    flex: none;
-    border: 2px solid var(--border);
-    border-radius: 7px;
-    background: transparent;
-    position: relative;
+    appearance: none; -webkit-appearance: none;
+    width: 22px; height: 22px; flex: none;
+    border: 2px solid var(--border); border-radius: 7px;
+    background: transparent; position: relative;
     transition: background .15s, border-color .15s;
   }
+  .pick-row input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+  .pick-row input[type="checkbox"]:checked::after {
+    content: ''; position: absolute; left: 6px; top: 2px;
+    width: 6px; height: 11px;
+    border: solid #06111f; border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .pick-name {
+    flex: 1; text-align: left; font-size: 16px; padding: 4px 0;
+    overflow: hidden; text-overflow: ellipsis;
+    border-bottom: 1px dashed transparent;
+  }
+  .pick-name:active { border-bottom-color: var(--muted); }
+  .pick-name-input {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 8px 10px; outline: none; min-width: 0;
+  }
+  .pick-emoji {
+    width: 42px; height: 42px; flex: none; border-radius: 12px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 20px; display: flex; align-items: center; justify-content: center;
+  }
 
-  .pick-row input[type="checkbox"]:checked {
-    background: var(--accent);
+  /* ==== timeline ==== */
+  .tl { display: flex; flex-direction: column; }
+  .tl-item {
+    position: relative; padding: 0 0 20px 24px;
+    border-left: 1px solid var(--border); margin-left: 6px;
+  }
+  .tl-item:last-child { border-left-color: transparent; padding-bottom: 4px; }
+  .tl-dot {
+    position: absolute; left: -5px; top: 5px;
+    width: 9px; height: 9px; border-radius: 50%; background: var(--accent);
+  }
+  .tl-date { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .tl-reason {
+    display: inline-block; font-size: 11px; color: var(--accent);
+    background: rgba(111,168,255,.12); border-radius: 6px;
+    padding: 2px 7px; margin-bottom: 6px;
+  }
+  .tl-body { font-size: 15px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+
+  /* ==== diary (memory bubbles) ==== */
+  .diary-intro {
+    font-size: 13px; color: var(--muted); text-align: center;
+    padding: 4px 0 20px; line-height: 1.5;
+  }
+  .diary { display: flex; flex-direction: column; gap: 20px; }
+
+  .memory {
+    position: relative;
+    background: radial-gradient(circle at 28% 18%, #1e2536, #111219 78%);
+    border: 1px solid rgba(111,168,255,.18);
+    border-radius: 26px;
+    padding: 16px 16px 14px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);
+    animation: float 7s ease-in-out infinite;
+    will-change: transform;
+  }
+  .memory:nth-child(2n) { animation-delay: -2s; }
+  .memory:nth-child(3n) { animation-delay: -4s; }
+
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-5px); }
+  }
+
+  .memory-date {
+    font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--accent); opacity: .85;
+    margin-bottom: 12px; padding-left: 2px;
+  }
+
+  .memory-rows { display: flex; flex-direction: column; gap: 6px; }
+
+  .memory-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(255,255,255,.04);
+    text-align: left; width: 100%;
+    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+  }
+  .memory-row:active {
+    background: rgba(111,168,255,.16);
+    border-color: rgba(111,168,255,.4);
+  }
+  .memory-row.falling {
+    transform: scale(1.08);
+    background: rgba(111,168,255,.28);
     border-color: var(--accent);
   }
 
-  .pick-row input[type="checkbox"]:checked::after {
-    content: '';
-    position: absolute;
-    left: 6px;
-    top: 2px;
-    width: 6px;
-    height: 11px;
-    border: solid #06111f;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+  .memory-emoji { font-size: 26px; line-height: 1; flex: none; }
+  .memory-eq { color: var(--muted); font-size: 15px; flex: none; }
+  .memory-word { flex: 1; font-size: 15px; line-height: 1.3; word-break: break-word; }
+  .memory-arrow { color: var(--muted); font-size: 13px; flex: none; opacity: .6; }
+
+  /* «проваливание» в карточку из дневника */
+  @keyframes fallIn {
+    from { opacity: 0; transform: scale(1.06); }
+    to   { opacity: 1; transform: scale(1); }
   }
+  .screen.fall { animation: fallIn .32s cubic-bezier(.22, 1, .36, 1) both; }
 
-  .pick-name {
-    flex: 1;
-    text-align: left;
-    font-size: 16px;
-    padding: 4px 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    border-bottom: 1px dashed transparent;
-  }
-
-  .pick-name:active { border-bottom-color: var(--muted); }
-
-  .pick-name-input {
-    flex: 1;
-    background: var(--surface-2);
-    border: 1px solid var(--accent);
-    border-radius: 10px;
-    padding: 8px 10px;
-    outline: none;
-    min-width: 0;
-  }
-
-  .pick-emoji {
-    width: 42px;
-    height: 42px;
-    flex: none;
-    border-radius: 12px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .tl { display: flex; flex-direction: column; }
-
-  .tl-item {
-    position: relative;
-    padding: 0 0 20px 24px;
-    border-left: 1px solid var(--border);
-    margin-left: 6px;
-  }
-
-  .tl-item:last-child {
-    border-left-color: transparent;
-    padding-bottom: 4px;
-  }
-
-  .tl-dot {
-    position: absolute;
-    left: -5px;
-    top: 5px;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--accent);
-  }
-
-  .tl-date { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-
-  .tl-reason {
-    display: inline-block;
-    font-size: 11px;
-    color: var(--accent);
-    background: rgba(111,168,255,.12);
-    border-radius: 6px;
-    padding: 2px 7px;
-    margin-bottom: 6px;
-  }
-
-  .tl-body {
-    font-size: 15px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
+  /* ==== bottom sheet ==== */
   .backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.62);
-    opacity: 0;
-    transition: opacity .25s;
+    position: fixed; inset: 0; background: rgba(0,0,0,.62);
+    opacity: 0; transition: opacity .25s;
   }
-
   .backdrop.show { opacity: 1; }
-
   .sheet {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: fixed; left: 0; right: 0; bottom: 0;
     background: var(--surface-2);
     border-radius: 24px 24px 0 0;
     padding: 8px var(--pad) calc(var(--safe-bottom) + 20px);
     transform: translateY(102%);
     transition: transform .28s cubic-bezier(.22, 1, .36, 1);
     max-height: 88vh;
-    display: flex;
-    flex-direction: column;
+    display: flex; flex-direction: column;
     box-shadow: 0 -10px 40px rgba(0,0,0,.55);
   }
-
   .sheet.show { transform: translateY(0); }
-
   .sheet-handle {
-    flex: none;
-    width: 40px;
-    height: 4px;
-    border-radius: 2px;
-    background: #35354a;
-    margin: 6px auto 14px;
+    flex: none; width: 40px; height: 4px; border-radius: 2px;
+    background: #35354a; margin: 6px auto 14px;
   }
-
-  .sheet-body {
-    overflow-y: auto;
-    min-height: 0;
-    -webkit-overflow-scrolling: touch;
-  }
-
+  .sheet-body { overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
   .sheet-title { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
 
-  .emoji-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-  }
-
+  .emoji-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
   .emoji-cell {
-    aspect-ratio: 1 / 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 23px;
-    border-radius: 10px;
-    transition: background .15s;
+    aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
+    font-size: 23px; border-radius: 10px; transition: background .15s;
   }
-
   .emoji-cell:active { background: rgba(255,255,255,.1); }
   .emoji-cell.sel { background: rgba(111,168,255,.24); }
 
   .form-row { margin-bottom: 14px; }
-
   .form-label {
-    display: block;
-    font-size: 12px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    margin-bottom: 7px;
+    display: block; font-size: 12px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px;
   }
-
   .text-input {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    padding: 12px 14px;
-    outline: none;
-    resize: none;
-    transition: border-color .15s;
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-sm); padding: 12px 14px; outline: none;
+    resize: none; transition: border-color .15s;
   }
-
   .text-input:focus { border-color: var(--accent); }
-
   .emoji-select {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    font-size: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 64px; height: 64px; border-radius: 18px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 30px; display: flex; align-items: center; justify-content: center;
   }
 
   .toast {
-    position: fixed;
-    left: 50%;
-    bottom: calc(var(--safe-bottom) + 24px);
-    transform: translate(-50%, 20px);
-    z-index: 500;
-    background: #22222f;
-    border: 1px solid var(--border);
-    padding: 11px 18px;
-    border-radius: 999px;
-    font-size: 14px;
-    opacity: 0;
-    transition: opacity .22s, transform .22s;
-    pointer-events: none;
-    max-width: 86vw;
-    text-align: center;
+    position: fixed; left: 50%; bottom: calc(var(--safe-bottom) + 24px);
+    transform: translate(-50%, 20px); z-index: 500;
+    background: #22222f; border: 1px solid var(--border);
+    padding: 11px 18px; border-radius: 999px; font-size: 14px;
+    opacity: 0; transition: opacity .22s, transform .22s;
+    pointer-events: none; max-width: 86vw; text-align: center;
   }
-
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
 </style>
 </head>
@@ -636,6 +399,12 @@
   const MAX_NGRAM = 3;
   const SHEET_ANIM_MS = 300;
   const TOAST_MS = 2200;
+  const FALL_DELAY = 190;
+
+  const MONTHS = [
+    'января','февраля','марта','апреля','мая','июня',
+    'июля','августа','сентября','октября','ноября','декабря'
+  ];
 
   const STOP_WORDS = new Set([
     'и','а','но','да','нет','не','ни','в','во','на','с','со','к','ко','по','о','об','обо',
@@ -663,11 +432,11 @@
     '🙁','😮','😲','😳','🥺','😢','😭','😱','😖','😞','😩','😤','😡','🤯','😈','🤖','💀','🤡',
     '👻','👽',
     '👦','👧','🧑','👨','👩','👴','👵','👶','🧒','🧔','👱','👳','👲','🧕','👮','🕵️','💂','👷',
-    '🤴','👸','👰','🤵','🦸','🦹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','💃','🕺',
+    '🤴','👸','👰','🤵','🦸','🦹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','💃','🕺','🕺🏼','💃🏼',
     '👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🖖','👋',
     '🤝','🙏','✊','👊','🤛','🤜','👏','🙌','👐','🤲','💪','🦵','🦶','🧠','👀','👁️','👄','🦷',
     '🦴',
-    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','💕','💞','💓','💗','💖','💘','💝','💟',
+    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','❤️‍🔥','💔','💕','💞','💓','💗','💖','💘','💝','💟',
     '❣️',
     '🌟','⭐','✨','⚡','🔥','💥','💫','💦','💨','🌈','☀️','⛅','☁️','🌧️','⛈️','❄️','⛄','💧',
     '🌊','🌙','🌞','🌻','🌹','🌷','🌸','💐','🌿','🍀','🍁','🍂','🌱','🌲','🌳','🌴','🌵','🍄',
@@ -695,14 +464,10 @@
     if (text != null) node.textContent = text;
     return node;
   }
-
   function uid() {
     return 'b_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
   }
-
-  function nowIso() {
-    return new Date().toISOString();
-  }
+  function nowIso() { return new Date().toISOString(); }
 
   function normalize(text) {
     return String(text == null ? '' : text)
@@ -720,6 +485,17 @@
       ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
+  function formatDayLong(isoDate) {
+    const parts = String(isoDate || '').split('-');
+    if (parts.length !== 3) return String(isoDate || '');
+    const y = Number(parts[0]);
+    const m = Number(parts[1]);
+    const d = Number(parts[2]);
+    if (!y || !m || !d) return isoDate;
+    const monthName = MONTHS[m - 1] || '';
+    return d + ' ' + monthName + ' ' + y;
+  }
+
   /* =========================================================
      ХРАНИЛИЩЕ
      ========================================================= */
@@ -732,38 +508,20 @@
     }
 
     function read() {
-      try {
-        return window.localStorage.getItem(STORAGE_KEY);
-      } catch (e) {
-        storageOk = false;
-        return null;
-      }
+      try { return window.localStorage.getItem(STORAGE_KEY); }
+      catch (e) { storageOk = false; return null; }
     }
-
     function write(value) {
-      try {
-        window.localStorage.setItem(STORAGE_KEY, value);
-      } catch (e) {
-        storageOk = false;
-      }
+      try { window.localStorage.setItem(STORAGE_KEY, value); }
+      catch (e) { storageOk = false; }
     }
-
     function load() {
       const raw = read();
-      if (!raw) {
-        state = emptyState();
-        return;
-      }
+      if (!raw) { state = emptyState(); return; }
       let parsed = null;
-      try {
-        parsed = JSON.parse(raw);
-      } catch (e) {
-        parsed = null;
-      }
-      if (!parsed || typeof parsed !== 'object') {
-        state = emptyState();
-        return;
-      }
+      try { parsed = JSON.parse(raw); }
+      catch (e) { parsed = null; }
+      if (!parsed || typeof parsed !== 'object') { state = emptyState(); return; }
       state = {
         beliefs: Array.isArray(parsed.beliefs) ? parsed.beliefs : [],
         links: Array.isArray(parsed.links) ? parsed.links : [],
@@ -771,18 +529,9 @@
         events: Array.isArray(parsed.events) ? parsed.events : []
       };
     }
-
-    function save() {
-      write(JSON.stringify(state));
-    }
-
-    function get() {
-      return state;
-    }
-
-    function isOk() {
-      return storageOk;
-    }
+    function save() { write(JSON.stringify(state)); }
+    function get() { return state; }
+    function isOk() { return storageOk; }
 
     return { load: load, save: save, get: get, isOk: isOk };
   })();
@@ -860,8 +609,7 @@
     for (let i = 0; i < links.length; i++) {
       const l = links[i];
       if (l.from === parentId && l.to === childId && l.type === LINK_TYPE) {
-        exists = true;
-        break;
+        exists = true; break;
       }
     }
     if (!exists) {
@@ -871,11 +619,6 @@
     Store.save();
   }
 
-  /**
-   * Создаёт убеждение. Если название состоит из нескольких слов —
-   * автоматически раскладывает фразу на дочерние убеждения.
-   * Пример: «успешный мужчина» → дети «успешный» и «мужчина».
-   */
   function createBelief(opts) {
     const word = String(opts.word || '').trim();
     const key = normalize(word);
@@ -901,14 +644,11 @@
     Store.get().beliefs.push(belief);
     addVersion(belief.id, belief.definition, 'создание');
     addEvent({
-      type: 'created',
-      belief_id: belief.id,
-      word: belief.word,
-      emoji: belief.emoji
+      type: 'created', belief_id: belief.id,
+      word: belief.word, emoji: belief.emoji
     });
     if (opts.parentId) linkBeliefs(opts.parentId, belief.id);
 
-    // Если фраза — раскладываем на составляющие
     if (word.indexOf(' ') !== -1 || word.indexOf('\t') !== -1) {
       decomposePhrase(belief.id);
     }
@@ -917,15 +657,9 @@
     return { belief: belief, created: true };
   }
 
-  /**
-   * Раскладывает фразу на отдельные слова.
-   * Каждое слово: находим существующее убеждение или создаём draft,
-   * затем связываем как ребёнка.
-   */
   function decomposePhrase(beliefId) {
     const belief = getBelief(beliefId);
     if (!belief) return;
-
     const parts = belief.word.split(/\s+/).filter(Boolean);
     if (parts.length < 2) return;
 
@@ -942,35 +676,19 @@
       }
 
       const child = {
-        id: uid(),
-        emoji: null,
-        word: part,
-        definition: '',
-        children: [],
-        parents: [],
-        status: 'draft',
-        created: nowIso()
+        id: uid(), emoji: null, word: part, definition: '',
+        children: [], parents: [], status: 'draft', created: nowIso()
       };
       Store.get().beliefs.push(child);
       addVersion(child.id, '', 'создание');
-      addEvent({
-        type: 'created',
-        belief_id: child.id,
-        word: child.word,
-        emoji: null
-      });
+      addEvent({ type: 'created', belief_id: child.id, word: child.word, emoji: null });
       linkBeliefs(belief.id, child.id);
     });
   }
 
-  /**
-   * При правке определения: все новые (не стоп) слова
-   * становятся детьми этого убеждения.
-   */
   function ensureDefinitionChildren(beliefId) {
     const belief = getBelief(beliefId);
     if (!belief || !belief.definition) return;
-
     const tokens = tokenize(belief.definition, buildIndex());
     const newWords = collectNewWords(tokens);
     if (!newWords.length) return;
@@ -984,14 +702,8 @@
         return;
       }
       const child = {
-        id: uid(),
-        emoji: null,
-        word: w.text,
-        definition: '',
-        children: [],
-        parents: [],
-        status: 'draft',
-        created: nowIso()
+        id: uid(), emoji: null, word: w.text, definition: '',
+        children: [], parents: [], status: 'draft', created: nowIso()
       };
       Store.get().beliefs.push(child);
       addVersion(child.id, '', 'создание');
@@ -1028,16 +740,9 @@
     for (let i = 0; i < src.length; i++) {
       const ch = src[i];
       const m = classifyChar(ch);
-      if (mode === null) {
-        mode = m;
-        buf = ch;
-      } else if (m === mode) {
-        buf += ch;
-      } else {
-        pieces.push({ text: buf, kind: mode });
-        buf = ch;
-        mode = m;
-      }
+      if (mode === null) { mode = m; buf = ch; }
+      else if (m === mode) { buf += ch; }
+      else { pieces.push({ text: buf, kind: mode }); buf = ch; mode = m; }
     }
     if (buf) pieces.push({ text: buf, kind: mode });
     return pieces;
@@ -1080,28 +785,20 @@
         if (belief) {
           for (let k = 0; k < n; k++) {
             assignments[wi + k] = {
-              group: k === 0,
-              size: n,
-              kind: 'existing',
-              beliefId: belief.id
+              group: k === 0, size: n, kind: 'existing', beliefId: belief.id
             };
           }
-          wi += n;
-          handled = true;
-          break;
+          wi += n; handled = true; break;
         }
 
         if (n === 1) {
           const isStop = STOP_WORDS.has(phrase) || !/[\p{L}]/u.test(phrase);
           assignments[wi] = {
-            group: true,
-            size: 1,
+            group: true, size: 1,
             kind: isStop ? 'stop' : 'new',
             normalized: phrase
           };
-          wi += 1;
-          handled = true;
-          break;
+          wi += 1; handled = true; break;
         }
       }
 
@@ -1126,19 +823,14 @@
         continue;
       }
       const a = assignments[cursor];
-      if (!a || !a.group) {
-        cursor += 1;
-        continue;
-      }
+      if (!a || !a.group) { cursor += 1; continue; }
       const lastPiece = wordPieces[cursor + a.size - 1];
       let text = '';
       for (let k = pi; k <= lastPiece; k++) text += pieces[k].text;
 
       tokens.push({
-        type: a.kind,
-        text: text,
-        beliefId: a.beliefId,
-        normalized: a.normalized
+        type: a.kind, text: text,
+        beliefId: a.beliefId, normalized: a.normalized
       });
 
       pi = lastPiece;
@@ -1167,10 +859,7 @@
     container.textContent = '';
     container.classList.remove('empty');
 
-    if (!tokens.length) {
-      container.classList.add('empty');
-      return;
-    }
+    if (!tokens.length) { container.classList.add('empty'); return; }
 
     tokens.forEach(function (t) {
       if (t.type === 'raw') {
@@ -1193,16 +882,13 @@
 
   let toastEl = null;
   let toastTimer = null;
-
   function toast(message) {
     if (!toastEl) {
       toastEl = el('div', 'toast');
       document.body.appendChild(toastEl);
     }
     toastEl.textContent = message;
-    requestAnimationFrame(function () {
-      toastEl.classList.add('show');
-    });
+    requestAnimationFrame(function () { toastEl.classList.add('show'); });
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () {
       toastEl.classList.remove('show');
@@ -1210,42 +896,24 @@
   }
 
   let sheetZ = 200;
-
   function openSheet(content) {
-    const z = sheetZ;
-    sheetZ += 2;
-
-    const backdrop = el('div', 'backdrop');
-    backdrop.style.zIndex = String(z);
-
-    const sheet = el('div', 'sheet');
-    sheet.style.zIndex = String(z + 1);
+    const z = sheetZ; sheetZ += 2;
+    const backdrop = el('div', 'backdrop'); backdrop.style.zIndex = String(z);
+    const sheet = el('div', 'sheet'); sheet.style.zIndex = String(z + 1);
     sheet.appendChild(el('div', 'sheet-handle'));
-
-    const body = el('div', 'sheet-body');
-    body.appendChild(content);
+    const body = el('div', 'sheet-body'); body.appendChild(content);
     sheet.appendChild(body);
-
     document.body.appendChild(backdrop);
     document.body.appendChild(sheet);
-
     requestAnimationFrame(function () {
-      backdrop.classList.add('show');
-      sheet.classList.add('show');
+      backdrop.classList.add('show'); sheet.classList.add('show');
     });
-
     let closed = false;
     function close() {
-      if (closed) return;
-      closed = true;
-      backdrop.classList.remove('show');
-      sheet.classList.remove('show');
-      setTimeout(function () {
-        backdrop.remove();
-        sheet.remove();
-      }, SHEET_ANIM_MS);
+      if (closed) return; closed = true;
+      backdrop.classList.remove('show'); sheet.classList.remove('show');
+      setTimeout(function () { backdrop.remove(); sheet.remove(); }, SHEET_ANIM_MS);
     }
-
     backdrop.addEventListener('click', close);
     return { close: close };
   }
@@ -1256,18 +924,13 @@
   function openEmojiPicker(current, onPick) {
     const wrap = el('div');
     wrap.appendChild(el('div', 'sheet-title', 'Выбери смайлик'));
-
     const grid = el('div', 'emoji-grid');
     EMOJIS.forEach(function (e) {
       const cell = el('button', 'emoji-cell' + (e === current ? ' sel' : ''), e);
-      cell.addEventListener('click', function () {
-        onPick(e);
-        sheet.close();
-      });
+      cell.addEventListener('click', function () { onPick(e); sheet.close(); });
       grid.appendChild(cell);
     });
     wrap.appendChild(grid);
-
     const sheet = openSheet(wrap);
   }
 
@@ -1287,8 +950,7 @@
     const emojiBtn = el('button', 'emoji-select', emoji || '＋');
     emojiBtn.addEventListener('click', function () {
       openEmojiPicker(emoji, function (picked) {
-        emoji = picked;
-        emojiBtn.textContent = picked;
+        emoji = picked; emojiBtn.textContent = picked;
       });
     });
     emojiRow.appendChild(emojiBtn);
@@ -1323,23 +985,14 @@
 
     const sheet = openSheet(form);
 
-    cancelBtn.addEventListener('click', function () {
-      sheet.close();
-    });
-
+    cancelBtn.addEventListener('click', function () { sheet.close(); });
     addBtn.addEventListener('click', function () {
       const word = wordInput.value.trim();
-      if (!word) {
-        toast('Введите название');
-        return;
-      }
+      if (!word) { toast('Введите название'); return; }
       const result = createBelief({
-        emoji: emoji,
-        word: word,
-        definition: defInput.value,
-        parentId: parentId
+        emoji: emoji, word: word,
+        definition: defInput.value, parentId: parentId
       });
-      // Слова из определения тоже связываем
       if (result.belief && defInput.value.trim()) {
         ensureDefinitionChildren(result.belief.id);
       }
@@ -1348,9 +1001,7 @@
       render();
     });
 
-    setTimeout(function () {
-      wordInput.focus();
-    }, 320);
+    setTimeout(function () { wordInput.focus(); }, 320);
   }
 
   /* =========================================================
@@ -1362,14 +1013,9 @@
     navStack.push({ name: name, params: params || {} });
     render();
   }
-
   function back() {
-    if (navStack.length > 1) {
-      navStack.pop();
-      render();
-    }
+    if (navStack.length > 1) { navStack.pop(); render(); }
   }
-
   function reset(name, params) {
     navStack = [{ name: name, params: params || {} }];
     render();
@@ -1382,14 +1028,15 @@
 
     let screen = null;
     switch (current.name) {
-      case 'who': screen = screenWho(); break;
+      case 'who':      screen = screenWho(); break;
       case 'describe': screen = screenDescribe(); break;
-      case 'pick': screen = screenPick(); break;
-      case 'hub': screen = screenHub(); break;
-      case 'belief': screen = screenBelief(current.params); break;
-      case 'edit': screen = screenEdit(current.params); break;
-      case 'history': screen = screenHistory(current.params); break;
-      case 'events': screen = screenEvents(); break;
+      case 'pick':     screen = screenPick(); break;
+      case 'hub':      screen = screenHub(); break;
+      case 'belief':   screen = screenBelief(current.params); break;
+      case 'edit':     screen = screenEdit(current.params); break;
+      case 'history':  screen = screenHistory(current.params); break;
+      case 'events':   screen = screenEvents(); break;
+      case 'diary':    screen = screenDiary(); break;
       default: screen = screenHub();
     }
     if (screen) app.appendChild(screen);
@@ -1417,16 +1064,12 @@
     const wrap = el('div', 'screen');
     const inner = el('div', 'who');
     inner.appendChild(el('h1', '', 'Кто ты?'));
-
     const row = el('div', 'emoji-row');
     ['👦', '👧'].forEach(function (e) {
       const btn = el('button', 'big-emoji-btn', e);
-      btn.addEventListener('click', function () {
-        startJourney(e);
-      });
+      btn.addEventListener('click', function () { startJourney(e); });
       row.appendChild(btn);
     });
-
     inner.appendChild(row);
     wrap.appendChild(inner);
     return wrap;
@@ -1450,7 +1093,6 @@
     wrap.appendChild(makeHeader('Опиши себя', false));
 
     const body = el('div', 'body');
-
     const ta = document.createElement('textarea');
     ta.className = 'big-input';
     ta.placeholder = 'Например: я успешный мужчина, зарабатываю деньги…';
@@ -1482,12 +1124,10 @@
       renderTokens(preview, tokens, { parentId: self ? self.id : null });
       renderChips(chips, collectNewWords(tokens), self ? self.id : null);
     }
-
     ta.addEventListener('input', function () {
       describeDraft = ta.value;
       refresh();
     });
-
     refresh();
     return wrap;
   }
@@ -1514,10 +1154,7 @@
 
   function screenPick() {
     const self = findSelf();
-    if (!self) {
-      reset('who');
-      return el('div');
-    }
+    if (!self) { reset('who'); return el('div'); }
 
     const tokens = tokenize(self.definition, buildIndex());
     const newWords = collectNewWords(tokens);
@@ -1539,18 +1176,14 @@
     if (!keys.length) {
       list.appendChild(el('div', 'empty-note', 'Новых слов не найдено. Добавить убеждения можно позже.'));
     } else {
-      keys.forEach(function (key) {
-        list.appendChild(buildPickRow(key));
-      });
+      keys.forEach(function (key) { list.appendChild(buildPickRow(key)); });
     }
     body.appendChild(list);
     wrap.appendChild(body);
 
     const footer = el('div', 'footer');
     const doneBtn = el('button', 'btn btn-primary', 'Готово');
-    doneBtn.addEventListener('click', function () {
-      commitPick(self.id);
-    });
+    doneBtn.addEventListener('click', function () { commitPick(self.id); });
     footer.appendChild(doneBtn);
     wrap.appendChild(footer);
 
@@ -1564,22 +1197,17 @@
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.checked = item.checked;
-    cb.addEventListener('change', function () {
-      item.checked = cb.checked;
-    });
+    cb.addEventListener('change', function () { item.checked = cb.checked; });
     row.appendChild(cb);
 
     const nameBtn = el('button', 'pick-name', item.name);
-    nameBtn.addEventListener('click', function () {
-      startRename(row, nameBtn, item);
-    });
+    nameBtn.addEventListener('click', function () { startRename(row, nameBtn, item); });
     row.appendChild(nameBtn);
 
     const emojiBtn = el('button', 'pick-emoji', item.emoji || '＋');
     emojiBtn.addEventListener('click', function () {
       openEmojiPicker(item.emoji, function (picked) {
-        item.emoji = picked;
-        emojiBtn.textContent = picked;
+        item.emoji = picked; emojiBtn.textContent = picked;
       });
     });
     row.appendChild(emojiBtn);
@@ -1593,19 +1221,16 @@
     input.type = 'text';
     input.value = item.name;
     row.replaceChild(input, nameBtn);
-    input.focus();
-    input.select();
+    input.focus(); input.select();
 
     let done = false;
     function commit() {
-      if (done) return;
-      done = true;
+      if (done) return; done = true;
       const value = input.value.trim() || item.name;
       item.name = value;
       nameBtn.textContent = value;
       if (input.parentNode === row) row.replaceChild(nameBtn, input);
     }
-
     input.addEventListener('blur', commit);
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') input.blur();
@@ -1618,7 +1243,6 @@
       if (!item || !item.checked) return;
       const word = String(item.name || '').trim();
       if (!word) return;
-      // createBelief сам разложит фразу на составляющие
       createBelief({ emoji: item.emoji, word: word, definition: '', parentId: selfId });
     });
     pickState = null;
@@ -1635,12 +1259,10 @@
     const hdr = el('div', 'hdr');
     hdr.appendChild(el('div', 'hdr-title left', 'Твой мир'));
 
-    const eventsBtn = el('button', 'icon-btn', '📜');
-    eventsBtn.setAttribute('aria-label', 'Лента событий');
-    eventsBtn.addEventListener('click', function () {
-      go('events');
-    });
-    hdr.appendChild(eventsBtn);
+    const diaryBtn = el('button', 'icon-btn', '📖');
+    diaryBtn.setAttribute('aria-label', 'Дневник');
+    diaryBtn.addEventListener('click', function () { go('diary'); });
+    hdr.appendChild(diaryBtn);
 
     const exportBtn = el('button', 'icon-btn', '📤');
     exportBtn.setAttribute('aria-label', 'Экспорт JSON');
@@ -1660,9 +1282,7 @@
 
     const grid = el('div', 'grid');
     const children = self ? self.children.map(getBelief).filter(Boolean) : [];
-    children.forEach(function (child) {
-      grid.appendChild(buildTile(child));
-    });
+    children.forEach(function (child) { grid.appendChild(buildTile(child)); });
     grid.appendChild(buildAddTile(self ? self.id : null));
     body.appendChild(grid);
 
@@ -1674,9 +1294,7 @@
     const tile = el('button', 'tile' + (belief.emoji ? '' : ' tile-draft'));
     tile.appendChild(el('div', 'tile-emoji', belief.emoji || '◌'));
     tile.appendChild(el('div', 'tile-word', belief.word));
-    tile.addEventListener('click', function () {
-      go('belief', { id: belief.id });
-    });
+    tile.addEventListener('click', function () { go('belief', { id: belief.id }); });
     return tile;
   }
 
@@ -1697,14 +1315,116 @@
       const a = document.createElement('a');
       a.href = url;
       a.download = 'tvoi_ubezhdeniya.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
       toast('Файл сохранён');
-    } catch (e) {
-      toast('Не удалось выгрузить');
+    } catch (e) { toast('Не удалось выгрузить'); }
+  }
+
+  /* =========================================================
+     ЭКРАН: ДНЕВНИК (пузыри-воспоминания)
+     ========================================================= */
+  function groupEventsByDay() {
+    const events = Store.get().events;
+    const map = new Map();
+    events.forEach(function (ev) {
+      const day = String(ev.date || '').slice(0, 10);
+      if (!day) return;
+      if (!map.has(day)) map.set(day, []);
+      map.get(day).push(ev);
+    });
+    const days = [];
+    map.forEach(function (list, day) { days.push({ day: day, events: list }); });
+    days.sort(function (a, b) { return b.day.localeCompare(a.day); });
+    return days;
+  }
+
+  function dayBeliefs(events) {
+    const seen = new Set();
+    const result = [];
+    events.forEach(function (ev) {
+      if (ev.type !== 'created' && ev.type !== 'edited') return;
+      const id = ev.belief_id;
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      const b = getBelief(id);
+      if (!b) return;
+      result.push(b);
+    });
+    return result;
+  }
+
+  function screenDiary() {
+    const wrap = el('div', 'screen');
+
+    // шапка с кнопкой «сырой список» событий
+    const hdr = el('div', 'hdr');
+    const backBtn = el('button', 'icon-btn', '←');
+    backBtn.setAttribute('aria-label', 'Назад');
+    backBtn.addEventListener('click', back);
+    hdr.appendChild(backBtn);
+    hdr.appendChild(el('div', 'hdr-title', 'Дневник'));
+    const rawBtn = el('button', 'icon-btn', '📜');
+    rawBtn.setAttribute('aria-label', 'Все события');
+    rawBtn.addEventListener('click', function () { go('events'); });
+    hdr.appendChild(rawBtn);
+    wrap.appendChild(hdr);
+
+    const body = el('div', 'body');
+    const days = groupEventsByDay();
+
+    if (!days.length) {
+      body.appendChild(el('div', 'diary-intro',
+        'Здесь появятся пузыри-воспоминания. Каждый день, когда ты создаёшь или меняешь убеждение, оставляет свой след.'));
+      body.appendChild(el('div', 'empty-note', 'Пока пусто.'));
+      wrap.appendChild(body);
+      return wrap;
     }
+
+    body.appendChild(el('div', 'diary-intro',
+      'Каждый пузырь — это день твоих слов. Нажми на пару, чтобы провалиться внутрь.'));
+
+    const diary = el('div', 'diary');
+    days.forEach(function (d) { diary.appendChild(buildMemory(d)); });
+    body.appendChild(diary);
+
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  function buildMemory(dayEntry) {
+    const bubble = el('div', 'memory');
+    bubble.appendChild(el('div', 'memory-date', formatDayLong(dayEntry.day)));
+
+    const beliefs = dayBeliefs(dayEntry.events);
+    const rows = el('div', 'memory-rows');
+
+    if (!beliefs.length) {
+      // был день, но только служебные связи
+      const note = el('div', 'empty-note', 'только связи');
+      rows.appendChild(note);
+    } else {
+      beliefs.forEach(function (b) { rows.appendChild(buildMemoryRow(b)); });
+    }
+
+    bubble.appendChild(rows);
+    return bubble;
+  }
+
+  function buildMemoryRow(belief) {
+    const row = el('button', 'memory-row');
+    row.appendChild(el('span', 'memory-emoji', belief.emoji || '◌'));
+    row.appendChild(el('span', 'memory-eq', '='));
+    row.appendChild(el('span', 'memory-word', belief.word || '—'));
+    row.appendChild(el('span', 'memory-arrow', '→'));
+
+    row.addEventListener('click', function () {
+      row.classList.add('falling');
+      setTimeout(function () {
+        go('belief', { id: belief.id, fall: true });
+      }, FALL_DELAY);
+    });
+    return row;
   }
 
   /* =========================================================
@@ -1712,12 +1432,9 @@
      ========================================================= */
   function screenBelief(params) {
     const belief = getBelief(params.id);
-    if (!belief) {
-      reset('hub');
-      return el('div');
-    }
+    if (!belief) { reset('hub'); return el('div'); }
 
-    const wrap = el('div', 'screen');
+    const wrap = el('div', 'screen' + (params.fall ? ' fall' : ''));
     wrap.appendChild(makeHeader('Убеждение', true));
 
     const body = el('div', 'body');
@@ -1787,9 +1504,7 @@
       const btn = el('button', 'ref-item');
       btn.appendChild(el('span', 'ref-emoji', item.emoji || '◌'));
       btn.appendChild(el('span', 'ref-word', item.word));
-      btn.addEventListener('click', function () {
-        go('belief', { id: item.id });
-      });
+      btn.addEventListener('click', function () { go('belief', { id: item.id }); });
       list.appendChild(btn);
     });
     block.appendChild(list);
@@ -1805,10 +1520,7 @@
 
   function screenEdit(params) {
     const belief = getBelief(params.id);
-    if (!belief) {
-      reset('hub');
-      return el('div');
-    }
+    if (!belief) { reset('hub'); return el('div'); }
 
     if (editId !== belief.id) {
       editId = belief.id;
@@ -1826,8 +1538,7 @@
     const emojiBtn = el('button', 'emoji-select', editEmoji || '＋');
     emojiBtn.addEventListener('click', function () {
       openEmojiPicker(editEmoji, function (picked) {
-        editEmoji = picked;
-        emojiBtn.textContent = picked;
+        editEmoji = picked; emojiBtn.textContent = picked;
       });
     });
     emojiRow.appendChild(emojiBtn);
@@ -1847,10 +1558,8 @@
     function refresh() {
       renderTokens(preview, tokenize(editDraft, buildIndex()), { parentId: belief.id });
     }
-
     ta.addEventListener('input', function () {
-      editDraft = ta.value;
-      refresh();
+      editDraft = ta.value; refresh();
     });
     refresh();
 
@@ -1858,9 +1567,7 @@
 
     const footer = el('div', 'footer');
     const saveBtn = el('button', 'btn btn-primary', 'Сохранить');
-    saveBtn.addEventListener('click', function () {
-      saveEdit(belief.id);
-    });
+    saveBtn.addEventListener('click', function () { saveEdit(belief.id); });
     footer.appendChild(saveBtn);
     wrap.appendChild(footer);
 
@@ -1869,10 +1576,7 @@
 
   function saveEdit(beliefId) {
     const belief = getBelief(beliefId);
-    if (!belief) {
-      back();
-      return;
-    }
+    if (!belief) { back(); return; }
 
     if (belief.emoji !== editEmoji) {
       belief.emoji = editEmoji;
@@ -1887,8 +1591,6 @@
     }
 
     Store.save();
-
-    // Авто-связывание новых слов из определения
     ensureDefinitionChildren(beliefId);
 
     editId = null;
@@ -1903,7 +1605,6 @@
     wrap.appendChild(makeHeader('История', true));
 
     const body = el('div', 'body');
-
     const versions = Store.get().versions
       .filter(function (v) { return v.belief_id === params.id; })
       .sort(function (a, b) { return b.number - a.number; });
@@ -1981,11 +1682,8 @@
       toast('Хранилище недоступно — данные не сохранятся');
     }
     const self = findSelf();
-    if (!self) {
-      reset('who');
-    } else {
-      reset('hub');
-    }
+    if (!self) { reset('who'); }
+    else { reset('hub'); }
   }
 
   init();
