@@ -13,8 +13,6 @@
     min-height: 100%; min-height: 100dvh;
     overflow-x: hidden;
   }
-  body { padding: 0; }
-
   .screen {
     display: none;
     min-height: 100dvh;
@@ -27,178 +25,172 @@
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
   }
-
-  h1 {
-    font-size: 26px; font-weight: 300;
-    letter-spacing: 0.5px; margin: 0 0 10px;
-    line-height: 1.3;
-  }
-  h2 {
-    font-size: 13px; font-weight: 400;
-    letter-spacing: 3px; text-transform: uppercase;
-    color: rgba(232,232,240,0.4);
-    margin: 0 0 18px;
-  }
-  p.sub {
-    font-size: 15px; line-height: 1.5;
-    color: rgba(232,232,240,0.6);
-    margin: 0 0 28px;
-    font-weight: 300;
-  }
+  h1 { font-size: 26px; font-weight: 300; letter-spacing: 0.5px;
+    margin: 0 0 10px; line-height: 1.3; }
+  h2 { font-size: 13px; font-weight: 400; letter-spacing: 3px;
+    text-transform: uppercase; color: rgba(232,232,240,0.4);
+    margin: 0 0 18px; }
+  p.sub { font-size: 15px; line-height: 1.5; color: rgba(232,232,240,0.6);
+    margin: 0 0 22px; font-weight: 300; }
 
   .center-screen {
-    justify-content: center;
-    text-align: center;
-    align-items: center;
+    justify-content: center; text-align: center; align-items: center;
   }
   .center-screen h1 { margin-bottom: 40px; }
 
-  /* === Пара смайликов для "Кто ты?" === */
-  .pair {
-    display: flex; gap: 32px; justify-content: center;
-    margin: 20px 0 30px;
-  }
+  .pair { display: flex; gap: 32px; justify-content: center; margin: 20px 0 30px; }
   .pair button {
-    background: transparent;
-    border: 1px solid rgba(232,232,240,0.1);
-    border-radius: 28px;
-    width: 130px; height: 160px;
-    font-size: 72px;
-    cursor: pointer;
-    transition: all 0.25s;
-    color: inherit;
-    font-family: inherit;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
+    background: transparent; border: 1px solid rgba(232,232,240,0.1);
+    border-radius: 28px; width: 130px; height: 160px; font-size: 72px;
+    cursor: pointer; transition: all 0.25s; color: inherit;
+    font-family: inherit; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
   }
   .pair button .label {
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: rgba(232,232,240,0.4);
-    font-weight: 400;
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(232,232,240,0.4); font-weight: 400;
   }
-  .pair button:hover,
-  .pair button:active {
+  .pair button:hover, .pair button:active {
     border-color: rgba(111,168,255,0.6);
     background: rgba(111,168,255,0.06);
     transform: translateY(-2px);
   }
 
-  /* === Поле ввода текста === */
   textarea, input[type=text] {
-    width: 100%;
-    background: rgba(255,255,255,0.03);
+    width: 100%; background: rgba(255,255,255,0.03);
     border: 1px solid rgba(232,232,240,0.1);
-    border-radius: 16px;
-    color: #e8e8f0;
-    font-size: 16px;
-    font-family: inherit;
-    padding: 16px 18px;
-    line-height: 1.5;
-    resize: none;
-    outline: none;
-    transition: border-color 0.2s;
+    border-radius: 16px; color: #e8e8f0; font-size: 16px;
+    font-family: inherit; padding: 16px 18px; line-height: 1.5;
+    resize: none; outline: none; transition: border-color 0.2s;
   }
   textarea:focus, input[type=text]:focus {
     border-color: rgba(111,168,255,0.5);
   }
   textarea { min-height: 130px; }
 
-  /* === Кнопки === */
   .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 14px 24px;
-    border-radius: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 14px 24px; border-radius: 14px;
     border: 1px solid rgba(111,168,255,0.4);
     background: rgba(111,168,255,0.08);
-    color: #cfe1ff;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-top: 16px;
+    color: #cfe1ff; font-size: 14px; font-weight: 500;
+    letter-spacing: 0.5px; font-family: inherit; cursor: pointer;
+    transition: all 0.2s; margin-top: 16px;
   }
   .btn:hover, .btn:active {
     background: rgba(111,168,255,0.15);
     border-color: rgba(111,168,255,0.7);
   }
   .btn.ghost {
-    background: transparent;
-    border-color: rgba(232,232,240,0.12);
+    background: transparent; border-color: rgba(232,232,240,0.12);
     color: rgba(232,232,240,0.6);
   }
-  .btn.ghost:hover {
-    border-color: rgba(232,232,240,0.4);
-    color: #e8e8f0;
-  }
-  .btn.danger {
-    border-color: rgba(255,138,111,0.3);
-    color: rgba(255,180,160,0.8);
-    background: transparent;
-  }
+  .btn.ghost:hover { border-color: rgba(232,232,240,0.4); color: #e8e8f0; }
+  .btn.small { padding: 8px 14px; font-size: 12px; margin-top: 0; }
   .btn.full { width: 100%; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .actions {
-    margin-top: auto;
-    padding-top: 20px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+  .actions { margin-top: auto; padding-top: 20px;
+    display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* === Живой предпросмотр определений === */
+  .live-preview {
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(232,232,240,0.06);
+    border-radius: 14px;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 52px;
+    color: rgba(232,232,240,0.9);
+  }
+  .live-preview .linked {
+    color: #6fa8ff;
+    border-bottom: 1px dotted rgba(111,168,255,0.5);
+    cursor: pointer;
+    padding-bottom: 1px;
+  }
+  .live-preview .linked:active {
+    background: rgba(111,168,255,0.15);
+  }
+  .live-preview .new-word {
+    color: #ffb46f;
+    border-bottom: 1px dashed rgba(255,180,111,0.5);
+    cursor: pointer;
+    padding-bottom: 1px;
+  }
+  .live-preview .new-word:active {
+    background: rgba(255,180,111,0.15);
   }
 
-  /* === Список слов === */
+  .preview-label {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(232,232,240,0.35); margin: 20px 0 8px;
+  }
+
+  /* === Список новых слов под редактором === */
+  .new-words {
+    margin-top: 14px;
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .new-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 20px;
+    background: rgba(255,180,111,0.06);
+    border: 1px solid rgba(255,180,111,0.25);
+    color: #ffb46f;
+    font-size: 13px; cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .new-chip:hover, .new-chip:active {
+    background: rgba(255,180,111,0.15);
+    border-color: rgba(255,180,111,0.5);
+  }
+  .new-chip .plus { font-size: 14px; opacity: 0.7; }
+
+  /* === Список слов (онбординг) === */
   .word-list { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
   .word-item {
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(232,232,240,0.08);
-    border-radius: 14px;
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    border-radius: 14px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
     transition: all 0.2s;
   }
   .word-item.picked {
     border-color: rgba(111,168,255,0.5);
     background: rgba(111,168,255,0.06);
   }
-  .word-item .wtext {
-    flex: 1;
-    font-size: 15px;
-    font-weight: 400;
+  .word-item.existing {
+    border-color: rgba(111,168,255,0.3);
+    background: rgba(111,168,255,0.04);
+    opacity: 0.85;
+  }
+  .word-item .wtext { flex: 1; font-size: 15px; font-weight: 400; }
+  .word-item .wbadge {
+    font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(111,168,255,0.7);
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: rgba(111,168,255,0.1);
   }
   .word-item .wemoji {
-    font-size: 28px;
-    width: 40px; height: 40px;
+    font-size: 28px; width: 40px; height: 40px;
     display: flex; align-items: center; justify-content: center;
     background: rgba(255,255,255,0.04);
-    border-radius: 10px;
-    cursor: pointer;
-    border: none;
-    color: inherit;
-    font-family: inherit;
-    transition: all 0.2s;
+    border-radius: 10px; cursor: pointer; border: none;
+    color: inherit; font-family: inherit; transition: all 0.2s;
   }
   .word-item .wemoji:active { transform: scale(0.92); }
   .word-item .wcheck {
-    width: 32px; height: 32px;
-    border-radius: 10px;
+    width: 32px; height: 32px; border-radius: 10px;
     border: 1px solid rgba(232,232,240,0.15);
-    background: transparent;
-    color: rgba(232,232,240,0.4);
-    font-size: 16px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center;
+    background: transparent; color: rgba(232,232,240,0.4);
+    font-size: 16px; cursor: pointer; font-family: inherit;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center;
   }
   .word-item.picked .wcheck {
     background: rgba(111,168,255,0.2);
@@ -210,258 +202,220 @@
   .picker {
     position: fixed; left: 0; right: 0; bottom: 0;
     background: #12121a;
-    border-top-left-radius: 22px;
-    border-top-right-radius: 22px;
-    padding: 20px 16px 28px;
-    z-index: 100;
+    border-top-left-radius: 22px; border-top-right-radius: 22px;
+    padding: 20px 16px 28px; z-index: 100;
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(.4,.1,.2,1);
-    max-height: 70vh;
-    display: flex;
-    flex-direction: column;
+    max-height: 70vh; display: flex; flex-direction: column;
     box-shadow: 0 -20px 40px rgba(0,0,0,0.5);
   }
   .picker.open { transform: translateY(0); }
   .picker-head {
     display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 14px;
-    padding: 0 4px;
+    margin-bottom: 14px; padding: 0 4px;
   }
   .picker-head .title {
     font-size: 12px; letter-spacing: 2px;
-    text-transform: uppercase;
-    color: rgba(232,232,240,0.5);
+    text-transform: uppercase; color: rgba(232,232,240,0.5);
   }
   .picker-head button {
     background: transparent; border: none;
-    color: rgba(232,232,240,0.5);
-    font-size: 22px; cursor: pointer;
-    padding: 4px 8px;
-    font-family: inherit;
+    color: rgba(232,232,240,0.5); font-size: 22px;
+    cursor: pointer; padding: 4px 8px; font-family: inherit;
   }
   .picker-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
-    overflow-y: auto;
-    padding-bottom: 10px;
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 8px; overflow-y: auto; padding-bottom: 10px;
   }
   .picker-grid button {
-    aspect-ratio: 1;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid transparent;
-    border-radius: 12px;
-    font-size: 26px;
-    cursor: pointer;
-    font-family: inherit;
-    color: inherit;
-    transition: all 0.15s;
-    padding: 0;
+    aspect-ratio: 1; background: rgba(255,255,255,0.03);
+    border: 1px solid transparent; border-radius: 12px;
+    font-size: 26px; cursor: pointer; font-family: inherit;
+    color: inherit; transition: all 0.15s; padding: 0;
   }
-  .picker-grid button:hover,
-  .picker-grid button:active {
+  .picker-grid button:hover, .picker-grid button:active {
     background: rgba(111,168,255,0.12);
     border-color: rgba(111,168,255,0.4);
   }
 
-  /* === Карточка убеждения === */
+  /* === Карточка === */
   .belief-head {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    margin-bottom: 28px;
-    padding-top: 8px;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center; margin-bottom: 28px; padding-top: 8px;
   }
   .belief-head .big-emoji {
-    font-size: 76px;
-    line-height: 1;
-    margin-bottom: 14px;
+    font-size: 76px; line-height: 1; margin-bottom: 14px;
     filter: drop-shadow(0 0 20px rgba(111,168,255,0.3));
   }
   .belief-head .word {
-    font-size: 22px;
-    font-weight: 400;
-    letter-spacing: 0.5px;
+    font-size: 22px; font-weight: 400; letter-spacing: 0.5px;
   }
 
-  .section {
-    margin-bottom: 24px;
-  }
+  .section { margin-bottom: 24px; }
   .section-label {
-    font-size: 11px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: rgba(232,232,240,0.35);
+    font-size: 11px; letter-spacing: 3px;
+    text-transform: uppercase; color: rgba(232,232,240,0.35);
     margin-bottom: 10px;
   }
   .definition-text {
-    font-size: 16px;
-    line-height: 1.6;
+    font-size: 16px; line-height: 1.6;
     color: rgba(232,232,240,0.9);
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(232,232,240,0.08);
-    border-radius: 14px;
-    padding: 16px 18px;
-    min-height: 60px;
+    border-radius: 14px; padding: 16px 18px; min-height: 60px;
   }
   .definition-text.empty {
-    color: rgba(232,232,240,0.3);
-    font-style: italic;
+    color: rgba(232,232,240,0.3); font-style: italic;
   }
   .definition-text .linked {
     color: #6fa8ff;
     border-bottom: 1px dotted rgba(111,168,255,0.5);
-    cursor: pointer;
-    padding-bottom: 1px;
+    cursor: pointer; padding-bottom: 1px;
   }
   .definition-text .linked:active {
     background: rgba(111,168,255,0.15);
   }
 
-  .chip-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    display: inline-flex; align-items: center; gap: 8px;
     padding: 8px 14px 8px 10px;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(232,232,240,0.1);
-    border-radius: 20px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: inherit;
-    font-family: inherit;
+    border-radius: 20px; font-size: 13px; cursor: pointer;
+    transition: all 0.2s; color: inherit; font-family: inherit;
   }
   .chip:hover, .chip:active {
     border-color: rgba(111,168,255,0.5);
     background: rgba(111,168,255,0.06);
   }
-  .chip .chip-emoji {
-    font-size: 18px;
-    line-height: 1;
-  }
+  .chip .chip-emoji { font-size: 18px; line-height: 1; }
   .chip.empty {
-    color: rgba(232,232,240,0.3);
-    font-style: italic;
-    cursor: default;
+    color: rgba(232,232,240,0.3); font-style: italic; cursor: default;
   }
 
   .nav-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    min-height: 40px;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; min-height: 40px;
   }
   .nav-top .back {
-    background: transparent;
-    border: none;
-    color: rgba(232,232,240,0.6);
-    font-size: 22px;
-    cursor: pointer;
-    font-family: inherit;
-    padding: 4px 10px 4px 0;
-    transition: color 0.2s;
+    background: transparent; border: none;
+    color: rgba(232,232,240,0.6); font-size: 22px;
+    cursor: pointer; font-family: inherit;
+    padding: 4px 10px 4px 0; transition: color 0.2s;
   }
   .nav-top .back:hover { color: #e8e8f0; }
-  .nav-top .right-actions {
-    display: flex; gap: 8px;
-  }
+  .nav-top .right-actions { display: flex; gap: 8px; }
   .nav-top .right-actions button {
     background: transparent;
     border: 1px solid rgba(232,232,240,0.12);
     color: rgba(232,232,240,0.6);
-    border-radius: 16px;
-    padding: 7px 14px;
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.2s;
+    border-radius: 16px; padding: 7px 14px;
+    font-size: 11px; letter-spacing: 2px;
+    text-transform: uppercase; cursor: pointer;
+    font-family: inherit; transition: all 0.2s;
   }
   .nav-top .right-actions button:hover {
-    border-color: rgba(232,232,240,0.4);
-    color: #e8e8f0;
+    border-color: rgba(232,232,240,0.4); color: #e8e8f0;
   }
 
-  /* === История / Лента === */
   .timeline {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    position: relative;
-    padding-left: 22px;
+    display: flex; flex-direction: column; gap: 0;
+    position: relative; padding-left: 22px;
   }
   .timeline::before {
-    content: '';
-    position: absolute;
+    content: ''; position: absolute;
     left: 6px; top: 6px; bottom: 6px;
-    width: 1px;
-    background: rgba(232,232,240,0.1);
+    width: 1px; background: rgba(232,232,240,0.1);
   }
-  .tl-item {
-    position: relative;
-    padding: 12px 0 12px 8px;
-  }
+  .tl-item { position: relative; padding: 12px 0 12px 8px; }
   .tl-item::before {
-    content: '';
-    position: absolute;
+    content: ''; position: absolute;
     left: -22px; top: 20px;
-    width: 7px; height: 7px;
-    border-radius: 50%;
+    width: 7px; height: 7px; border-radius: 50%;
     background: rgba(111,168,255,0.7);
     box-shadow: 0 0 8px rgba(111,168,255,0.5);
   }
   .tl-item .tl-date {
-    font-size: 11px;
-    letter-spacing: 2px;
+    font-size: 11px; letter-spacing: 2px;
     text-transform: uppercase;
-    color: rgba(232,232,240,0.35);
-    margin-bottom: 4px;
+    color: rgba(232,232,240,0.35); margin-bottom: 4px;
   }
   .tl-item .tl-text {
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 14px; line-height: 1.5;
     color: rgba(232,232,240,0.85);
   }
   .tl-item .tl-text.dim {
-    color: rgba(232,232,240,0.4);
-    font-style: italic;
+    color: rgba(232,232,240,0.4); font-style: italic;
   }
 
-  /* === Тост === */
   .toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
+    position: fixed; bottom: 30px; left: 50%;
     transform: translateX(-50%) translateY(80px);
     background: rgba(111,168,255,0.15);
     border: 1px solid rgba(111,168,255,0.4);
-    color: #cfe1ff;
-    padding: 12px 22px;
-    border-radius: 20px;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-    z-index: 200;
+    color: #cfe1ff; padding: 12px 22px;
+    border-radius: 20px; font-size: 13px;
+    letter-spacing: 0.5px; z-index: 200;
     transition: transform 0.35s cubic-bezier(.4,.1,.2,1), opacity 0.3s;
-    opacity: 0;
-    pointer-events: none;
-    max-width: 85vw;
-    text-align: center;
+    opacity: 0; pointer-events: none;
+    max-width: 85vw; text-align: center;
   }
   .toast.show {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
+    transform: translateX(-50%) translateY(0); opacity: 1;
   }
 
-  /* === Скрытие === */
+  /* === Модалка "Добавить слово" === */
+  .modal-back {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 150; display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-back.open { display: flex; }
+  .modal {
+    background: #12121a;
+    border-radius: 22px; padding: 24px;
+    width: 100%; max-width: 400px;
+    max-height: 85vh; overflow-y: auto;
+    animation: fadeIn 0.25s ease;
+  }
+  .modal h3 {
+    font-size: 18px; font-weight: 400;
+    margin: 0 0 6px; letter-spacing: 0.5px;
+  }
+  .modal .modal-sub {
+    font-size: 13px; color: rgba(232,232,240,0.5);
+    margin: 0 0 20px;
+  }
+  .modal .field { margin-bottom: 16px; }
+  .modal .field-label {
+    font-size: 11px; letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(232,232,240,0.4); margin-bottom: 8px;
+  }
+  .modal .emoji-pick {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .modal .emoji-big {
+    font-size: 40px; width: 64px; height: 64px;
+    background: rgba(255,255,255,0.04);
+    border: 1px dashed rgba(232,232,240,0.2);
+    border-radius: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-family: inherit; color: inherit;
+  }
+  .modal .emoji-big:hover {
+    border-color: rgba(111,168,255,0.5);
+    background: rgba(111,168,255,0.06);
+  }
+  .modal-actions {
+    display: flex; gap: 10px; margin-top: 20px;
+  }
+  .modal-actions .btn { margin-top: 0; flex: 1; }
+
   .hidden { display: none !important; }
 </style>
 </head>
@@ -473,12 +427,10 @@
   <p class="sub">Начни с одного. Всё остальное появится потом.</p>
   <div class="pair">
     <button data-emoji="👦" data-word="Я">
-      <span>👦</span>
-      <span class="label">Он</span>
+      <span>👦</span><span class="label">Он</span>
     </button>
     <button data-emoji="👧" data-word="Я">
-      <span>👧</span>
-      <span class="label">Она</span>
+      <span>👧</span><span class="label">Она</span>
     </button>
   </div>
 </div>
@@ -487,8 +439,17 @@
 <div id="screen-describe" class="screen">
   <h2>Шаг 2</h2>
   <h1>Опиши себя</h1>
-  <p class="sub">Несколько слов о том, кто ты сейчас. Через запятую или пробел. Можно писать свободно.</p>
-  <textarea id="describe-text" placeholder="например: успешный мужчина, зарабатываю деньги, люблю спорт"></textarea>
+  <p class="sub">Несколько слов о том, кто ты сейчас. Можно писать свободно. Слова, которых ещё нет в твоём мире, — станут новыми убеждениями.</p>
+  <textarea id="describe-text" placeholder="например: я успешный мужчина, зарабатываю деньги, люблю спорт"></textarea>
+
+  <div class="preview-label">Что видит система</div>
+  <div class="live-preview" id="describe-preview">
+    <span style="color: rgba(232,232,240,0.3); font-style: italic;">начни печатать…</span>
+  </div>
+
+  <div class="preview-label">Новые слова — станут убеждениями</div>
+  <div class="new-words" id="describe-new-words"></div>
+
   <div class="actions">
     <button class="btn full" id="btn-describe-next">Дальше</button>
   </div>
@@ -505,7 +466,7 @@
   </div>
 </div>
 
-<!-- ============= ЭКРАН 4: КАРТОЧКА УБЕЖДЕНИЯ ============= -->
+<!-- ============= ЭКРАН 4: КАРТОЧКА ============= -->
 <div id="screen-belief" class="screen">
   <div class="nav-top">
     <button class="back" id="btn-back">←</button>
@@ -535,7 +496,7 @@
   </div>
 
   <div class="actions">
-    <button class="btn ghost" id="btn-feed">Лента событий</button>
+    <button class="btn ghost" id="btn-feed">Лента</button>
     <button class="btn ghost" id="btn-export">Экспорт JSON</button>
   </div>
 </div>
@@ -556,6 +517,15 @@
     <div class="section-label">Определение</div>
     <textarea id="edit-definition" placeholder="Опиши, что это для тебя значит..."></textarea>
   </div>
+
+  <div class="preview-label">Что видит система</div>
+  <div class="live-preview" id="edit-preview">
+    <span style="color: rgba(232,232,240,0.3); font-style: italic;">начни печатать…</span>
+  </div>
+
+  <div class="preview-label">Новые слова — станут убеждениями</div>
+  <div class="new-words" id="edit-new-words"></div>
+
   <div class="actions">
     <button class="btn full" id="btn-edit-save">Сохранить</button>
   </div>
@@ -588,6 +558,37 @@
   <div class="picker-grid" id="picker-grid"></div>
 </div>
 
+<!-- ============= МОДАЛКА "ДОБАВИТЬ СЛОВО" ============= -->
+<div class="modal-back" id="modal-back">
+  <div class="modal">
+    <h3 id="modal-title">Новое слово</h3>
+    <p class="modal-sub" id="modal-sub">Слово ещё не в твоём мире. Добавим?</p>
+
+    <div class="field">
+      <div class="field-label">Слово</div>
+      <div id="modal-word" style="font-size: 18px; color: #ffb46f;">—</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Смайлик</div>
+      <div class="emoji-pick">
+        <button class="emoji-big" id="modal-emoji-btn">＋</button>
+        <span style="color: rgba(232,232,240,0.4); font-size: 13px;">нажми, чтобы выбрать</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Что это для тебя?</div>
+      <textarea id="modal-def" placeholder="коротко, своими словами..." style="min-height: 80px;"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="modal-cancel">Отмена</button>
+      <button class="btn" id="modal-save">Добавить</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============= ТОСТ ============= -->
 <div class="toast" id="toast"></div>
 
@@ -596,20 +597,15 @@
   // ==========================================================
   //  ДАННЫЕ
   // ==========================================================
-  const STORAGE_KEY = 'tvoi_ubezhdeniya_v1';
+  const STORAGE_KEY = 'tvoi_ubezhdeniya_v2';
 
-  let db = {
-    beliefs: [],
-    links: [],
-    versions: [],
-    events: [],
-  };
-
-  let currentId = null;    // открытое убеждение
-  let navStack = [];        // стек навигации
-  let editingId = null;     // какое убеждение сейчас правим
-  let emojiTarget = null;   // callback для пикера
-  let pendingWords = [];    // кандидаты из "Опиши себя"
+  let db = { beliefs: [], links: [], versions: [], events: [] };
+  let currentId = null;
+  let navStack = [];
+  let editingId = null;
+  let emojiTarget = null;
+  let pendingWords = [];
+  let pendingLinkTarget = null; // id, к которому привязываем новое слово
 
   const EMOJI_PALETTE = [
     '😀','😊','🙂','😌','😎','🤗','🥰','😐','🤔','😶',
@@ -617,7 +613,18 @@
     '💪','🕺','💃','🧠','❤️','💧','🔥','⭐','🌙','☀️',
     '💰','💎','🏆','🎯','📚','🎨','🎵','🏃','🧘','🌱',
     '🍀','🌊','🏔️','🛤️','🕊️','⚡','💫','✨','🌀','♾️',
+    '🍀','🌸','🌺','🌻','🐦','🐟','🏠','🚗','✈️','🎁',
   ];
+
+  const STOP_WORDS = new Set([
+    'и','в','на','с','к','по','от','до','из','у','о','об','за','для',
+    'не','но','а','или','что','как','это','то','так','же','бы','ли',
+    'я','ты','он','она','оно','мы','вы','они','мой','твой','его','её',
+    'был','была','было','были','есть','быть','уже','ещё','еще','вот',
+    'весь','вся','всё','все','сам','сама','само','сами','этот','эта',
+    'тот','та','те','меня','тебя','нас','вас','них','мне','тебе',
+    'нам','вам','им','их','ему','ей','который','которая','которое',
+  ]);
 
   // ==========================================================
   //  ХРАНИЛИЩЕ
@@ -631,7 +638,6 @@
       }
     } catch (e) {
       console.error('load error', e);
-      db = { beliefs: [], links: [], versions: [], events: [] };
     }
   }
 
@@ -644,8 +650,8 @@
     }
   }
 
-  function uid(prefix = 'b') {
-    return prefix + '_' + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
+  function uid() {
+    return 'b_' + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
   }
 
   function now() {
@@ -659,22 +665,27 @@
     return db.beliefs.find(b => b.id === id) || null;
   }
 
-  function findBeliefByWord(word) {
-    const w = word.toLowerCase().trim();
-    return db.beliefs.find(b => b.word.toLowerCase() === w) || null;
+  function normalizeWord(w) {
+    return String(w).toLowerCase().trim().replace(/[.,;:!?()"«»]/g, '');
   }
 
-  function addBelief({ emoji, word, definition = '', children = [], parents = [] }) {
+  function findBeliefByWord(word) {
+    const w = normalizeWord(word);
+    if (!w) return null;
+    return db.beliefs.find(b => normalizeWord(b.word) === w) || null;
+  }
+
+  function addBelief({ emoji, word, definition = '' }) {
     const existing = findBeliefByWord(word);
-    if (existing) return existing;
+    if (existing) return { belief: existing, created: false };
 
     const belief = {
       id: uid(),
       emoji: emoji || null,
       word: word.trim(),
       definition: definition.trim(),
-      children: [...children],
-      parents: [...parents],
+      children: [],
+      parents: [],
       status: emoji ? 'active' : 'draft',
       state: 'active',
       created: now(),
@@ -699,7 +710,7 @@
       date: now(),
     });
 
-    return belief;
+    return { belief, created: true };
   }
 
   function addLink(fromId, toId, type = 'состоит_из', weight = 8) {
@@ -729,13 +740,11 @@
     if (b.definition === newDef.trim()) return;
 
     b.definition = newDef.trim();
-
     const versions = db.versions.filter(v => v.belief_id === id);
-    const nextNum = versions.length + 1;
 
     db.versions.push({
       belief_id: id,
-      number: nextNum,
+      number: versions.length + 1,
       definition: newDef.trim(),
       date: now(),
       reason: '',
@@ -754,7 +763,6 @@
     if (!b) return;
     b.emoji = emoji;
     if (b.status === 'draft') b.status = 'active';
-
     db.events.push({
       type: 'edited',
       belief_id: id,
@@ -762,6 +770,168 @@
       date: now(),
     });
   }
+
+  // ==========================================================
+  //  ТОКЕНИЗАЦИЯ И КЛАССИФИКАЦИЯ
+  // ==========================================================
+  function tokenize(text) {
+    // Возвращаем массив {word, isSpace}
+    const out = [];
+    const raw = text.split(/(\s+)/);
+    for (const chunk of raw) {
+      if (/^\s+$/.test(chunk)) out.push({ word: chunk, isSpace: true });
+      else out.push({ word: chunk, isSpace: false });
+    }
+    return out;
+  }
+
+  function classifyTokens(text) {
+    // Возвращаем: [{word, clean, type: 'existing'|'new'|'stop'|'space', belief?}]
+    const tokens = tokenize(text);
+    const result = [];
+
+    for (const t of tokens) {
+      if (t.isSpace) {
+        result.push({ word: t.word, type: 'space' });
+        continue;
+      }
+      const clean = normalizeWord(t.word);
+      if (!clean || clean.length < 2 || STOP_WORDS.has(clean)) {
+        result.push({ word: t.word, clean, type: 'stop' });
+        continue;
+      }
+      const belief = findBeliefByWord(clean);
+      if (belief) {
+        result.push({ word: t.word, clean, type: 'existing', belief });
+      } else {
+        result.push({ word: t.word, clean, type: 'new' });
+      }
+    }
+    return result;
+  }
+
+  function renderLivePreview(text, containerEl, newWordsEl, linkTargetId) {
+    const tokens = classifyTokens(text);
+
+    if (!text.trim()) {
+      containerEl.innerHTML = '<span style="color: rgba(232,232,240,0.3); font-style: italic;">начни печатать…</span>';
+      newWordsEl.innerHTML = '';
+      return;
+    }
+
+    const parts = [];
+    const newSet = new Map(); // clean -> word (уникально)
+
+    for (const t of tokens) {
+      if (t.type === 'space' || t.type === 'stop') {
+        parts.push(escapeHtml(t.word));
+      } else if (t.type === 'existing') {
+        parts.push(
+          '<span class="linked" data-id="' + t.belief.id + '">' +
+          escapeHtml(t.word) +
+          '</span>'
+        );
+      } else if (t.type === 'new') {
+        parts.push(
+          '<span class="new-word" data-clean="' + escapeHtml(t.clean) + '">' +
+          escapeHtml(t.word) +
+          '</span>'
+        );
+        if (!newSet.has(t.clean)) newSet.set(t.clean, t.word);
+      }
+    }
+
+    containerEl.innerHTML = parts.join('');
+
+    // клик по существующему — перейти
+    containerEl.querySelectorAll('.linked').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.id;
+        if (id) openBelief(id);
+      });
+    });
+
+    // клик по новому слову — открыть модалку добавления
+    containerEl.querySelectorAll('.new-word').forEach(el => {
+      el.addEventListener('click', () => {
+        openAddModal(el.dataset.clean, linkTargetId);
+      });
+    });
+
+    // чипы новых слов
+    newWordsEl.innerHTML = '';
+    for (const [clean, word] of newSet) {
+      const chip = document.createElement('button');
+      chip.className = 'new-chip';
+      chip.innerHTML = '<span class="plus">＋</span><span>' + escapeHtml(word) + '</span>';
+      chip.addEventListener('click', () => openAddModal(clean, linkTargetId));
+      newWordsEl.appendChild(chip);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ==========================================================
+  //  МОДАЛКА ДОБАВЛЕНИЯ НОВОГО СЛОВА
+  // ==========================================================
+  let modalState = { clean: '', word: '', emoji: null, linkTo: null };
+
+  function openAddModal(clean, linkToId) {
+    modalState = { clean, word: clean, emoji: null, linkTo: linkToId };
+
+    document.getElementById('modal-title').textContent = 'Новое слово';
+    document.getElementById('modal-sub').textContent = '«' + clean + '» ещё не в твоём мире. Добавим как убеждение?';
+    document.getElementById('modal-word').textContent = clean;
+    document.getElementById('modal-emoji-btn').textContent = '＋';
+    document.getElementById('modal-def').value = '';
+
+    document.getElementById('modal-back').classList.add('open');
+  }
+
+  function closeAddModal() {
+    document.getElementById('modal-back').classList.remove('open');
+    modalState = { clean: '', word: '', emoji: null, linkTo: null };
+  }
+
+  document.getElementById('modal-cancel').addEventListener('click', closeAddModal);
+  document.getElementById('modal-back').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-back') closeAddModal();
+  });
+
+  document.getElementById('modal-emoji-btn').addEventListener('click', () => {
+    openPicker('Смайлик для «' + modalState.clean + '»', (picked) => {
+      modalState.emoji = picked;
+      document.getElementById('modal-emoji-btn').textContent = picked;
+    });
+  });
+
+  document.getElementById('modal-save').addEventListener('click', () => {
+    const def = document.getElementById('modal-def').value.trim();
+
+    const { belief, created } = addBelief({
+      emoji: modalState.emoji,
+      word: modalState.clean,
+      definition: def,
+    });
+
+    if (created && modalState.linkTo) {
+      addLink(modalState.linkTo, belief.id, 'состоит_из', 8);
+    }
+
+    save();
+
+    // обновляем превью в текущем редакторе
+    refreshCurrentPreview();
+
+    closeAddModal();
+    toast(created ? 'Добавлено: ' + modalState.clean : 'Уже было: ' + modalState.clean);
+  });
 
   // ==========================================================
   //  ЭКРАНЫ
@@ -778,51 +948,53 @@
   // ==========================================================
   document.querySelectorAll('#screen-who .pair button').forEach(btn => {
     btn.addEventListener('click', () => {
-      const emoji = btn.dataset.emoji;
-      const word  = btn.dataset.word;
-
-      const belief = addBelief({
-        emoji,
-        word,
+      const { belief } = addBelief({
+        emoji: btn.dataset.emoji,
+        word: btn.dataset.word,
         definition: '',
       });
       currentId = belief.id;
       save();
-      goToDescribe();
+      show('screen-describe');
+      document.getElementById('describe-text').value = '';
+      updateDescribePreview();
     });
   });
-
-  function goToDescribe() {
-    show('screen-describe');
-    document.getElementById('describe-text').value = '';
-  }
 
   // ==========================================================
   //  ЭКРАН 2: ОПИШИ СЕБЯ
   // ==========================================================
+  const describeText = document.getElementById('describe-text');
+  const describePreview = document.getElementById('describe-preview');
+  const describeNewWords = document.getElementById('describe-new-words');
+
+  function updateDescribePreview() {
+    renderLivePreview(
+      describeText.value,
+      describePreview,
+      describeNewWords,
+      currentId
+    );
+  }
+
+  describeText.addEventListener('input', updateDescribePreview);
+
   document.getElementById('btn-describe-next').addEventListener('click', () => {
-    const text = document.getElementById('describe-text').value.trim();
+    const text = describeText.value.trim();
     if (!text) {
       toast('Напиши хотя бы пару слов');
       return;
     }
 
-    // токенизация
-    const raw = text
-      .toLowerCase()
-      .replace(/[.,;:!?()"«»\n\r]/g, ' ')
-      .split(/\s+/)
-      .filter(w => w.length >= 3);
-
-    // убираем дубли
+    // собираем новые слова (кроме стоп-слов и уже существующих)
+    const tokens = classifyTokens(text);
     const seen = new Set();
     pendingWords = [];
-    for (const w of raw) {
-      if (seen.has(w)) continue;
-      seen.add(w);
-      // если такое убеждение уже есть — не показываем как кандидата
-      if (findBeliefByWord(w)) continue;
-      pendingWords.push({ word: w, picked: false, emoji: null });
+    for (const t of tokens) {
+      if (t.type !== 'new') continue;
+      if (seen.has(t.clean)) continue;
+      seen.add(t.clean);
+      pendingWords.push({ word: t.clean, picked: false, emoji: null });
     }
 
     renderWordList();
@@ -841,7 +1013,7 @@
       return;
     }
 
-    pendingWords.forEach((w, idx) => {
+    pendingWords.forEach((w) => {
       const item = document.createElement('div');
       item.className = 'word-item' + (w.picked ? ' picked' : '');
 
@@ -881,22 +1053,19 @@
     let created = 0;
     for (const w of pendingWords) {
       if (!w.picked) continue;
-      const belief = addBelief({
+      const { belief, created: isNew } = addBelief({
         emoji: w.emoji,
         word: w.word,
         definition: '',
       });
-      addLink(currentId, belief.id, 'состоит_из', 8);
-      created++;
+      if (isNew) {
+        addLink(currentId, belief.id, 'состоит_из', 8);
+        created++;
+      }
     }
-
     save();
-
-    // Переходим в карточку #Я
     openBelief(currentId, { push: false });
-    if (created > 0) {
-      setTimeout(() => toast('Создано: ' + created), 300);
-    }
+    if (created > 0) setTimeout(() => toast('Создано: ' + created), 300);
   });
 
   // ==========================================================
@@ -906,15 +1075,12 @@
     const b = findBelief(id);
     if (!b) { toast('Не найдено'); return; }
 
-    if (push && currentId && currentId !== id) {
-      navStack.push(currentId);
-    }
+    if (push && currentId && currentId !== id) navStack.push(currentId);
     currentId = id;
 
     document.getElementById('b-emoji').textContent = b.emoji || '·';
     document.getElementById('b-word').textContent = b.word;
 
-    // определение с автоссылками
     const defEl = document.getElementById('b-definition');
     if (b.definition) {
       defEl.classList.remove('empty');
@@ -930,7 +1096,13 @@
       defEl.textContent = 'Определения пока нет. Нажми «Править».';
     }
 
-    // дети
+    renderChildren(b);
+    renderParents(b);
+
+    show('screen-belief');
+  }
+
+  function renderChildren(b) {
     const childEl = document.getElementById('b-children');
     childEl.innerHTML = '';
     if (b.children.length === 0) {
@@ -938,19 +1110,20 @@
       empty.className = 'chip empty';
       empty.textContent = 'пока пусто';
       childEl.appendChild(empty);
-    } else {
-      b.children.forEach(cid => {
-        const child = findBelief(cid);
-        if (!child) return;
-        const chip = document.createElement('button');
-        chip.className = 'chip';
-        chip.innerHTML = '<span class="chip-emoji">' + (child.emoji || '·') + '</span><span>' + escapeHtml(child.word) + '</span>';
-        chip.addEventListener('click', () => openBelief(child.id));
-        childEl.appendChild(chip);
-      });
+      return;
     }
+    b.children.forEach(cid => {
+      const child = findBelief(cid);
+      if (!child) return;
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.innerHTML = '<span class="chip-emoji">' + (child.emoji || '·') + '</span><span>' + escapeHtml(child.word) + '</span>';
+      chip.addEventListener('click', () => openBelief(child.id));
+      childEl.appendChild(chip);
+    });
+  }
 
-    // родители
+  function renderParents(b) {
     const parEl = document.getElementById('b-parents');
     parEl.innerHTML = '';
     if (b.parents.length === 0) {
@@ -958,74 +1131,74 @@
       empty.className = 'chip empty';
       empty.textContent = 'сам по себе';
       parEl.appendChild(empty);
-    } else {
-      b.parents.forEach(pid => {
-        const parent = findBelief(pid);
-        if (!parent) return;
-        const chip = document.createElement('button');
-        chip.className = 'chip';
-        chip.innerHTML = '<span class="chip-emoji">' + (parent.emoji || '·') + '</span><span>' + escapeHtml(parent.word) + '</span>';
-        chip.addEventListener('click', () => openBelief(parent.id));
-        parEl.appendChild(chip);
-      });
+      return;
     }
-
-    show('screen-belief');
+    b.parents.forEach(pid => {
+      const parent = findBelief(pid);
+      if (!parent) return;
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.innerHTML = '<span class="chip-emoji">' + (parent.emoji || '·') + '</span><span>' + escapeHtml(parent.word) + '</span>';
+      chip.addEventListener('click', () => openBelief(parent.id));
+      parEl.appendChild(chip);
+    });
   }
 
   function renderDefinitionWithLinks(text) {
-    // разбиваем на слова, ищем совпадения с убеждениями
-    const tokens = text.split(/(\s+)/);
-    const result = [];
-
-    for (const token of tokens) {
-      if (/^\s+$/.test(token)) {
-        result.push(token);
-        continue;
-      }
-      // чистим слово
-      const clean = token.toLowerCase().replace(/[.,;:!?()"«»]/g, '');
-      const belief = findBeliefByWord(clean);
-      if (belief && belief.id !== currentId) {
-        result.push(
-          '<span class="linked" data-id="' + belief.id + '">' + escapeHtml(token) + '</span>'
-        );
+    const tokens = classifyTokens(text);
+    const parts = [];
+    for (const t of tokens) {
+      if (t.type === 'space' || t.type === 'stop') {
+        parts.push(escapeHtml(t.word));
+      } else if (t.type === 'existing' && t.belief.id !== currentId) {
+        parts.push('<span class="linked" data-id="' + t.belief.id + '">' + escapeHtml(t.word) + '</span>');
       } else {
-        result.push(escapeHtml(token));
+        parts.push(escapeHtml(t.word));
       }
     }
-    return result.join('');
+    return parts.join('');
   }
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  // Кнопка "назад"
   document.getElementById('btn-back').addEventListener('click', () => {
     if (navStack.length > 0) {
       const prev = navStack.pop();
       openBelief(prev, { push: false });
     } else {
-      show('screen-belief'); // остаёмся на месте
+      show('screen-belief');
     }
   });
 
   // ==========================================================
   //  ЭКРАН 5: ПРАВКА
   // ==========================================================
+  const editDefEl = document.getElementById('edit-definition');
+  const editPreviewEl = document.getElementById('edit-preview');
+  const editNewWordsEl = document.getElementById('edit-new-words');
+
+  function refreshCurrentPreview() {
+    // если мы на экране describe — обновим его
+    if (document.getElementById('screen-describe').classList.contains('active')) {
+      updateDescribePreview();
+    }
+    // если на экране edit — обновим его
+    if (document.getElementById('screen-edit').classList.contains('active')) {
+      renderLivePreview(editDefEl.value, editPreviewEl, editNewWordsEl, editingId);
+    }
+  }
+
   document.getElementById('btn-edit').addEventListener('click', () => {
     const b = findBelief(currentId);
     if (!b) return;
     editingId = currentId;
 
     document.getElementById('edit-emoji-preview').textContent = b.emoji || '＋';
-    document.getElementById('edit-definition').value = b.definition || '';
+    editDefEl.value = b.definition || '';
+    renderLivePreview(editDefEl.value, editPreviewEl, editNewWordsEl, editingId);
     show('screen-edit');
+  });
+
+  editDefEl.addEventListener('input', () => {
+    renderLivePreview(editDefEl.value, editPreviewEl, editNewWordsEl, editingId);
   });
 
   document.getElementById('btn-edit-emoji').addEventListener('click', () => {
@@ -1036,7 +1209,7 @@
 
   document.getElementById('btn-edit-save').addEventListener('click', () => {
     if (!editingId) return;
-    const newDef = document.getElementById('edit-definition').value;
+    const newDef = editDefEl.value;
     const newEmoji = document.getElementById('edit-emoji-preview').textContent;
 
     updateDefinition(editingId, newDef);
@@ -1082,7 +1255,6 @@
         tl.appendChild(item);
       }
     }
-
     show('screen-history');
   });
 
@@ -1095,14 +1267,12 @@
   // ==========================================================
   document.getElementById('btn-feed').addEventListener('click', () => {
     const events = [...db.events].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-
     const tl = document.getElementById('feed-timeline');
     tl.innerHTML = '';
-
     if (events.length === 0) {
       tl.innerHTML = '<p class="sub">Событий пока нет.</p>';
     } else {
-      for (const ev of events.slice(0, 200)) {
+      for (const ev of events.slice(0, 300)) {
         const item = document.createElement('div');
         item.className = 'tl-item';
         const date = document.createElement('div');
@@ -1116,7 +1286,6 @@
         tl.appendChild(item);
       }
     }
-
     show('screen-feed');
   });
 
@@ -1126,16 +1295,11 @@
 
   function describeEvent(ev) {
     switch (ev.type) {
-      case 'created':
-        return 'Создано: ' + (ev.emoji || '·') + ' ' + (ev.word || '');
-      case 'edited':
-        return 'Изменено: ' + (ev.word || '');
-      case 'linked':
-        return 'Связь: ' + (ev.word || '') + ' → входит';
-      case 'archived':
-        return 'Архив: ' + (ev.word || '');
-      default:
-        return ev.type;
+      case 'created': return 'Создано: ' + (ev.emoji || '·') + ' ' + (ev.word || '');
+      case 'edited':  return 'Изменено: ' + (ev.word || '');
+      case 'linked':  return 'Связь: ' + (ev.word || '') + ' → входит';
+      case 'archived': return 'Архив: ' + (ev.word || '');
+      default: return ev.type;
     }
   }
 
@@ -1163,7 +1327,8 @@
 
   function buildPickerGrid() {
     pickerGrid.innerHTML = '';
-    for (const e of EMOJI_PALETTE) {
+    const uniq = [...new Set(EMOJI_PALETTE)];
+    for (const e of uniq) {
       const btn = document.createElement('button');
       btn.textContent = e;
       btn.addEventListener('click', () => {
@@ -1208,9 +1373,7 @@
   // ==========================================================
   function boot() {
     load();
-
-    // если уже есть #Я — открываем карточку, онбординг не нужен
-    const root = db.beliefs.find(b => b.word === 'Я');
+    const root = db.beliefs.find(b => normalizeWord(b.word) === 'я');
     if (root) {
       currentId = root.id;
       openBelief(root.id, { push: false });
