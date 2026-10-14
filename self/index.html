@@ -7,9 +7,8 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
   html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
-  #app { display:flex; flex-direction:column; height:100dvh; max-width:600px; margin:0 auto; position:relative; }
+  #app { display:flex; flex-direction:column; height:100dvh; width:100%; position:relative; }
 
-  /* ===== шапка ===== */
   .top-bar { display:flex; align-items:center; gap:8px; padding:10px 12px; background:#14141c; border-bottom:1px solid #262633; flex-shrink:0; z-index:20; }
   .crumbs { flex:1; display:flex; align-items:center; gap:6px; overflow-x:auto; scrollbar-width:none; min-width:0; }
   .crumbs::-webkit-scrollbar { display:none; }
@@ -19,12 +18,7 @@
   .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; }
   .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
 
-  /* ===== поле ===== */
-  .field {
-    flex:1; position:relative; overflow:hidden;
-    background: radial-gradient(ellipse at center, rgba(111,168,255,.04), transparent 70%);
-    touch-action:none;
-  }
+  .field { flex:1; position:relative; overflow:hidden; background: radial-gradient(ellipse at center, rgba(111,168,255,.04), transparent 70%); touch-action:none; }
   .center-mark { position:absolute; left:50%; top:50%; width:16px; height:16px; transform:translate(-50%,-50%); pointer-events:none; opacity:.35; }
   .center-mark::before, .center-mark::after { content:''; position:absolute; background:#6fa8ff; }
   .center-mark::before { left:50%; top:0; width:1px; height:100%; transform:translateX(-50%); }
@@ -32,83 +26,43 @@
   .axis-label { position:absolute; font-size:9px; color:rgba(111,168,255,.4); font-weight:700; letter-spacing:.08em; pointer-events:none; }
   .axis-x { left:calc(50% + 14px); top:50%; transform:translateY(-50%); }
   .axis-y { left:50%; top:calc(50% - 22px); transform:translateX(-50%); }
+  .edge-glow { position:absolute; inset:0; pointer-events:none; z-index:1; box-shadow: inset 0 0 40px rgba(111,168,255,.04); }
 
-  /* ===== ПРЯМОУГОЛЬНИК УБЕЖДЕНИЯ ===== */
-  .belief {
-    position:absolute;
-    cursor:grab;
-    will-change: transform, left, top;
-    touch-action:none;
-    transition: filter .15s;
-    max-width: 260px;
-  }
+  .belief { position:absolute; cursor:grab; will-change: left, top, transform; touch-action:none; transition: filter .15s; max-width: min(280px, calc(100vw - 24px)); }
   .belief:active { cursor:grabbing; }
-
   .belief-inner {
+    position:relative;
     display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
-    gap:3px;
-    padding:10px 12px;
-    border-radius:16px;
+    gap:3px; padding:10px 12px; border-radius:16px;
     background: radial-gradient(circle at 32% 28%, #232c45, #12131c 75%);
     border:1px solid rgba(111,168,255,.35);
     box-shadow: 0 10px 28px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
-    min-width: 52px;
-    min-height: 44px;
-    overflow:hidden;
-    transition: box-shadow .15s, filter .15s;
+    min-width: 52px; min-height: 44px; overflow:hidden;
+    transition: box-shadow .15s;
   }
-  .belief.empty .belief-inner {
-    border-style:dashed; border-color:#3a3a4a;
-    color:#6b6b7b; font-size:22px;
-    min-width:52px; min-height:52px;
-  }
+  .belief.empty .belief-inner { border-style:dashed; border-color:#3a3a4a; color:#6b6b7b; font-size:22px; min-width:52px; min-height:52px; }
   .belief.dragging { z-index:100 !important; filter:brightness(1.2); }
-  .belief.dragging .belief-inner {
-    box-shadow: 0 24px 60px rgba(111,168,255,.5);
-    border-color:#6fa8ff;
-  }
+  .belief.dragging .belief-inner { box-shadow: 0 24px 60px rgba(111,168,255,.5); border-color:#6fa8ff; }
+
+  .clamp-stripe { position:absolute; background: #ffb46f; box-shadow: 0 0 10px rgba(255,180,111,.9); border-radius: 3px; pointer-events:none; z-index: 4; }
+  .clamp-left   { left: -2px; top: 8px; bottom: 8px; width: 4px; }
+  .clamp-right  { right: -2px; top: 8px; bottom: 8px; width: 4px; }
+  .clamp-top    { top: -2px; left: 8px; right: 8px; height: 4px; }
+  .clamp-bottom { bottom: -2px; left: 8px; right: 8px; height: 4px; }
 
   .belief-symbols {
     display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
-    gap:2px;
-    font-size: var(--belief-font, 22px);
-    line-height:1.15;
-    letter-spacing:1px;
-    pointer-events:none;
-    text-align:center;
+    gap:2px; font-size: var(--belief-font, 22px); line-height:1.15;
+    letter-spacing:1px; pointer-events:none; text-align:center;
   }
   .belief-symbols .w { font-size: var(--belief-wfont, 11px); color:#8890a0; }
   .belief-symbols .new-w { font-size: var(--belief-wfont, 11px); color:#ffb46f; }
 
-  .belief-weight {
-    position:absolute; left:-4px; bottom:-4px;
-    min-width:22px; height:22px; padding:0 6px;
-    border-radius:11px; background:#ffb46f; color:#2a1a05;
-    font-size:11px; font-weight:800;
-    display:flex; align-items:center; justify-content:center;
-    z-index:3; border:2px solid #0a0a0f;
-  }
-  .belief-z {
-    position:absolute; right:-4px; bottom:-4px;
-    min-width:24px; height:22px; padding:0 6px;
-    border-radius:11px; background:#6fa8ff; color:#06111f;
-    font-size:10px; font-weight:800;
-    display:flex; align-items:center; justify-content:center;
-    z-index:3; border:2px solid #0a0a0f;
-  }
+  .belief-weight { position:absolute; left:-4px; bottom:-4px; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:#ffb46f; color:#2a1a05; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; z-index:3; border:2px solid #0a0a0f; }
+  .belief-z { position:absolute; right:-4px; bottom:-4px; min-width:24px; height:22px; padding:0 6px; border-radius:11px; background:#6fa8ff; color:#06111f; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; z-index:3; border:2px solid #0a0a0f; }
 
-  .drag-ghost {
-    position:fixed; z-index:9999; pointer-events:none;
-    opacity:.9;
-    border:2px solid #6fa8ff; border-radius:16px;
-    background:#14141c;
-    box-shadow:0 24px 60px rgba(111,168,255,.5);
-    display:flex; align-items:center; justify-content:center;
-    padding:8px 10px; font-size:22px; gap:3px;
-    max-width: 260px;
-  }
+  .drag-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:.9; border:2px solid #6fa8ff; border-radius:16px; background:#14141c; box-shadow:0 24px 60px rgba(111,168,255,.5); display:flex; align-items:center; justify-content:center; padding:8px 10px; font-size:22px; gap:3px; max-width: min(280px, calc(100vw - 24px)); }
 
-  /* ===== редактор ===== */
   .editor-view { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 12px 100px; display:flex; flex-direction:column; gap:12px; }
   .editor-view::-webkit-scrollbar { display:none; }
 
@@ -117,8 +71,17 @@
     font-size:11px; color:#6b6b7b; text-transform:uppercase;
     letter-spacing:.08em; margin-bottom:10px;
     display:flex; justify-content:space-between; align-items:center;
+    gap:8px;
   }
-  .sec-label .meta { font-size:11px; color:#6b6b7b; letter-spacing:0; text-transform:none; opacity:.7; }
+  .sec-label .meta { font-size:11px; color:#6b6b7b; letter-spacing:0; text-transform:none; opacity:.7; display:flex; align-items:center; gap:8px; }
+
+  .mini-btn {
+    background:transparent; border:1px solid #262633; border-radius:8px;
+    color:#8890a0; font-size:11px; padding:3px 8px; cursor:pointer;
+    font-family:inherit; letter-spacing:.02em;
+  }
+  .mini-btn:active { background:#22222e; }
+  .mini-btn.on { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.4); color:#6fa8ff; }
 
   .editor {
     width:100%; min-height:100px; resize:none;
@@ -132,18 +95,11 @@
 
   .preview {
     font-size:20px; line-height:2; word-break:break-word;
-    white-space:pre-wrap;
     min-height:52px;
     display:flex; flex-wrap:wrap; align-items:center; gap:2px;
   }
   .preview .empty { color:#6b6b7b; font-size:14px; font-style:italic; }
 
-  .editor-tip {
-    margin-top:10px; font-size:11px; color:#4a4a58;
-    line-height:1.5; text-align:center;
-  }
-
-  /* чипы в preview */
   .chip {
     display:inline-flex; align-items:center; gap:3px;
     padding:4px 8px;
@@ -170,6 +126,9 @@
     box-shadow:0 0 0 3px rgba(111,168,255,.35);
     transform:scale(1.08);
   }
+
+  .chip.group { padding-right:16px; }
+
   .chip.group::after {
     content:attr(data-count);
     position:absolute; top:-6px; right:-6px;
@@ -180,13 +139,30 @@
     border:2px solid #14141c;
   }
 
+  /* раскрытая группа: внутри чипа видны дети */
+  .chip.group.expanded {
+    padding:4px 10px 4px 8px;
+    background:rgba(111,168,255,.20);
+    border-color:rgba(111,168,255,.5);
+  }
+  .children-inline {
+    display:flex; align-items:center; gap:2px;
+    margin-left:4px; padding:2px 6px;
+    border-left:1px solid rgba(111,168,255,.35);
+    font-size:18px;
+    opacity:.9;
+  }
+  .children-inline .child {
+    display:inline-block;
+    line-height:1;
+  }
+
   .gap-marker {
     width:3px; height:36px; border-radius:2px;
     background:#ffb46f; box-shadow:0 0 8px rgba(255,180,111,.7);
     flex-shrink:0; align-self:center;
   }
 
-  /* свойства */
   .prop-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .prop-row:last-child { margin-bottom:0; }
   .prop-label { font-size:13px; color:#6b6b7b; width:40px; flex-shrink:0; }
@@ -195,10 +171,8 @@
   .prop-slider::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:#6fa8ff; cursor:pointer; border:none; }
   .prop-value { min-width:52px; text-align:right; font-size:14px; font-weight:700; color:#6fa8ff; font-variant-numeric:tabular-nums; }
 
-  /* ===== нижняя панель ===== */
   .bottom-panel {
-    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-    width:100%; max-width:600px;
+    position:fixed; bottom:0; left:0; right:0;
     background:#14141c; border-top:1px solid #262633;
     padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
     display:flex; gap:8px; z-index:50;
@@ -219,7 +193,6 @@
   .bottom-btn.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
   .bottom-btn.on { background:#6fa8ff; color:#06111f; border-color:transparent; }
 
-  /* ===== модалки ===== */
   .modal-overlay {
     position:fixed; inset:0; background:rgba(0,0,0,.75);
     backdrop-filter:blur(8px); z-index:100;
@@ -293,15 +266,14 @@
     <button class="icon-btn" id="exportBtn" title="Экспорт">📤</button>
   </header>
 
-  <!-- ПРОСТРАНСТВО -->
   <div class="field hidden" id="fieldView">
     <div class="center-mark"></div>
     <div class="axis-label axis-x">+X</div>
     <div class="axis-label axis-y">+Y</div>
+    <div class="edge-glow"></div>
     <div id="beliefsLayer"></div>
   </div>
 
-  <!-- РЕДАКТОР -->
   <div class="editor-view hidden" id="editorView">
     <div class="sec">
       <div class="sec-label">
@@ -314,12 +286,16 @@
     <div class="sec">
       <div class="sec-label">
         <span>Предпросмотр</span>
-        <span class="meta" id="editorMeta">0 символов</span>
+        <span class="meta">
+          <button id="expandGroupsBtn" class="mini-btn" type="button">⊞ развернуть</button>
+          <span id="editorMeta">0 символов</span>
+        </span>
       </div>
       <div class="preview" id="editorPreview"></div>
-      <div class="editor-tip" id="editorTip">
+      <div class="hint" style="margin-top:10px;text-align:center;font-size:11px;color:#4a4a58;line-height:1.5;">
         Тащи смайл на смайл — объединишь в группу.<br>
-        Тащи в промежуток — переставишь.
+        Тащи в промежуток — переставишь.<br>
+        Тап — карточка символа.
       </div>
     </div>
 
@@ -348,7 +324,6 @@
     </div>
   </div>
 
-  <!-- НИЖНЯЯ ПАНЕЛЬ -->
   <div class="bottom-panel" id="bottomPanel">
     <div id="rowSpace" class="bp-row">
       <button class="bottom-btn primary" id="addBeliefBtn">+ Убеждение</button>
@@ -362,7 +337,6 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА: символ -->
   <div id="symModal" class="modal-overlay hidden">
     <div class="modal">
       <h3 id="symTitle">Новый символ</h3>
@@ -377,7 +351,6 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА: карточка символа -->
   <div id="cardModal" class="modal-overlay hidden">
     <div class="modal">
       <div style="text-align:center;">
@@ -395,7 +368,6 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА: объединение в группу -->
   <div id="mergeModal" class="modal-overlay hidden">
     <div class="modal">
       <h3>Объединить в группу</h3>
@@ -411,7 +383,6 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА: словарь -->
   <div id="dictModal" class="modal-overlay hidden">
     <div class="modal">
       <h3>📖 Словарь символов</h3>
@@ -422,7 +393,6 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА: пикер состава -->
   <div id="pickerModal" class="modal-overlay hidden">
     <div class="modal">
       <h3>Что входит в состав</h3>
@@ -433,7 +403,6 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА: подтверждение -->
   <div id="confirmModal" class="modal-overlay hidden">
     <div class="modal">
       <h3 id="confirmTitle">Удалить?</h3>
@@ -450,13 +419,14 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'ubezhdeniya_v10';
+  const STORAGE_KEY = 'ubezhdeniya_v12';
   const TOAST_MS = 2200;
   const MAX_NGRAM = 3;
   const DRAG_THRESHOLD = 6;
+  const EDGE_PAD = 8;
+  const CLAMP_EPS = 0.98;
   const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
-  /* ===== утилиты ===== */
   function uid() { return 'x_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
   function nowIso() { return new Date().toISOString(); }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -495,7 +465,6 @@
       ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
-  /* ===== toast / confirm ===== */
   let toastEl = null, toastTimer = null;
   function toast(msg) {
     if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
@@ -518,7 +487,6 @@
     cancel.addEventListener('click', hCancel);
   }
 
-  /* ===== store ===== */
   const Store = (function () {
     let state = null;
     let ok = true;
@@ -542,7 +510,6 @@
     return { load, save, get, isOk };
   })();
 
-  /* ===== символы ===== */
   function findAllSymbols() { return Store.get().symbols; }
   function findSymbolById(id) { return Store.get().symbols.find(s => s.id === id) || null; }
   function findSymbolByChar(ch) {
@@ -577,10 +544,9 @@
   }
   function isGroup(s) { return s && Array.isArray(s.children) && s.children.length > 0; }
 
-  /* ===== убеждения ===== */
   function getBelief(id) { return Store.get().beliefs.find(b => b.id === id) || null; }
   function createBelief() {
-    const b = { id: uid(), text: '', weight: 1, x: (Math.random()-0.5)*0.4, y: (Math.random()-0.5)*0.4, z: 0, created: nowIso() };
+    const b = { id: uid(), text: '', weight: 1, x: 0, y: 0, z: 0, created: nowIso() };
     Store.get().beliefs.unshift(b);
     Store.save();
     return b;
@@ -588,7 +554,6 @@
   function deleteBelief(id) { Store.get().beliefs = Store.get().beliefs.filter(b => b.id !== id); Store.save(); }
   function updateBelief(id, patch) { const b = getBelief(id); if (!b) return; Object.assign(b, patch); Store.save(); }
 
-  /* ===== tokenize ===== */
   function extractUnits(text) {
     const graphemes = splitGraphemes(text);
     const units = [];
@@ -662,23 +627,22 @@
       const lastSig = sigIdx[sc + a.size - 1];
       let raw = '';
       for (let k = i; k <= lastSig; k++) raw += units[k].text;
-      tokens.push(Object.assign({}, a.out, { text: raw, sigIndex: sc, sigSize: a.size }));
+      tokens.push(Object.assign({}, a.out, { text: raw }));
       i = lastSig + 1;
       sc += a.size;
     }
     return tokens;
   }
 
-  /* ===== состояние ===== */
   const NAV = { view: 'space', beliefId: null };
   let wordsMode = false;
+  let groupsExpanded = false;
   let currentBeliefId = null;
   let beliefDrag = null;
   let chipDrag = null;
   let editingSym = null;
   let pickerParent = null;
 
-  /* ===== DOM ===== */
   const fieldView = document.getElementById('fieldView');
   const editorView = document.getElementById('editorView');
   const beliefsLayer = document.getElementById('beliefsLayer');
@@ -689,8 +653,8 @@
   const editorPreview = document.getElementById('editorPreview');
   const editorDate = document.getElementById('editorDate');
   const editorMeta = document.getElementById('editorMeta');
+  const expandGroupsBtn = document.getElementById('expandGroupsBtn');
 
-  /* ===== рендер ===== */
   function render() {
     renderCrumbs();
     if (NAV.view === 'space') {
@@ -722,8 +686,8 @@
       c.addEventListener('click', closeEditor);
       crumbs.appendChild(c);
       const sep = document.createElement('span');
-      sep.className = 'crumb-icon'; sep.textContent = '/';
       sep.style.cssText = 'color:#3a3a48;font-size:14px;';
+      sep.textContent = '/';
       crumbs.appendChild(sep);
       const b = getBelief(NAV.beliefId);
       const c2 = document.createElement('div');
@@ -735,7 +699,6 @@
 
   function shortText(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n-1) + '…' : s; }
 
-  /* ===== поле ===== */
   function renderField() {
     beliefsLayer.innerHTML = '';
     const beliefs = Store.get().beliefs;
@@ -743,12 +706,52 @@
     if (!beliefs.length) {
       const e = document.createElement('div');
       e.className = 'empty-note';
-      e.textContent = 'Пока нет убеждений.\nНажми «+ Убеждение», чтобы создать первое.';
+      e.textContent = 'Пока нет убеждений.\nНажми «+ Убеждение», чтобы создать первое.\n\nТащи их по экрану.\nВозле края прилипают — покажем полоской.';
       beliefsLayer.appendChild(e);
       return;
     }
 
-    beliefs.forEach(b => beliefsLayer.appendChild(buildBeliefEl(b)));
+    beliefs.forEach(b => {
+      const el = buildBeliefEl(b);
+      el.style.visibility = 'hidden';
+      beliefsLayer.appendChild(el);
+      positionBelief(el, b);
+      el.style.visibility = '';
+    });
+  }
+
+  function positionBelief(el, b) {
+    const fW = fieldView.clientWidth;
+    const fH = fieldView.clientHeight;
+    const halfW = el.offsetWidth / 2;
+    const halfH = el.offsetHeight / 2;
+    const maxX = Math.max(0, fW / 2 - halfW - EDGE_PAD);
+    const maxY = Math.max(0, fH / 2 - halfH - EDGE_PAD);
+
+    const cx = fW / 2 + b.x * maxX;
+    const cy = fH / 2 - b.y * maxY;
+
+    el.style.left = cx + 'px';
+    el.style.top = cy + 'px';
+    const z = b.z || 0;
+    el.style.transform = `translate(-50%, -50%) scale(${1 + z * 0.4})`;
+    el.style.zIndex = String(Math.round(50 + z * 40));
+
+    const inner = el.querySelector('.belief-inner');
+    if (!inner) return;
+    inner.querySelectorAll('.clamp-stripe').forEach(s => s.remove());
+
+    const clamped = [];
+    if (maxX > 0 && b.x <= -CLAMP_EPS) clamped.push('left');
+    if (maxX > 0 && b.x >=  CLAMP_EPS) clamped.push('right');
+    if (maxY > 0 && b.y <= -CLAMP_EPS) clamped.push('bottom');
+    if (maxY > 0 && b.y >=  CLAMP_EPS) clamped.push('top');
+
+    clamped.forEach(side => {
+      const s = document.createElement('div');
+      s.className = 'clamp-stripe clamp-' + side;
+      inner.appendChild(s);
+    });
   }
 
   function buildBeliefEl(b) {
@@ -760,18 +763,8 @@
     if (!hasContent) el.classList.add('empty');
 
     const weight = b.weight || 1;
-    // размер шрифта от веса
-    const fontSize = 18 + weight * 1.6;   // 19.6..34
+    const fontSize = 18 + weight * 1.6;
     const wordFontSize = 9 + weight * 0.4;
-
-    // позиция
-    const leftPct = 50 + b.x * 45;
-    const topPct = 50 - b.y * 45;
-    el.style.left = leftPct + '%';
-    el.style.top = topPct + '%';
-    el.style.zIndex = String(Math.round(50 + (b.z || 0) * 40));
-    const scale = 1 + (b.z || 0) * 0.4;
-    el.style.transform = `translate(-50%, -50%) scale(${scale})`;
 
     const inner = document.createElement('div');
     inner.className = 'belief-inner';
@@ -831,11 +824,9 @@
     el.appendChild(inner);
 
     el.addEventListener('pointerdown', e => onBeliefPointerDown(e, b, el));
-
     return el;
   }
 
-  /* ===== drag убеждения ===== */
   function onBeliefPointerDown(e, belief, el) {
     if (beliefDrag) return;
     if (e.button && e.button !== 0) return;
@@ -848,7 +839,6 @@
     ghost.style.left = rect.left + 'px';
     ghost.style.top = rect.top + 'px';
     ghost.style.transform = 'none';
-    ghost.style.maxWidth = '260px';
     document.body.appendChild(ghost);
     el.classList.add('dragging');
 
@@ -889,19 +879,23 @@
     if (!st.moved) { openEditor(st.belief.id); return; }
 
     const fRect = fieldView.getBoundingClientRect();
-    const nodeCenterX = e.clientX - st.offsetX + st.el.offsetWidth / 2;
-    const nodeCenterY = e.clientY - st.offsetY + st.el.offsetHeight / 2;
-    const cx = fRect.left + fRect.width / 2;
-    const cy = fRect.top + fRect.height / 2;
-    let nx = (nodeCenterX - cx) / (fRect.width * 0.45);
-    let ny = -(nodeCenterY - cy) / (fRect.height * 0.45);
-    nx = clamp(nx, -1.1, 1.1);
-    ny = clamp(ny, -1.1, 1.1);
+    const fW = fRect.width, fH = fRect.height;
+    const halfW = st.el.offsetWidth / 2;
+    const halfH = st.el.offsetHeight / 2;
+    const maxX = Math.max(0.001, fW / 2 - halfW - EDGE_PAD);
+    const maxY = Math.max(0.001, fH / 2 - halfH - EDGE_PAD);
+
+    const realCenterX = e.clientX - fRect.left - st.offsetX + halfW;
+    const realCenterY = e.clientY - fRect.top - st.offsetY + halfH;
+
+    let nx = (realCenterX - fW / 2) / maxX;
+    let ny = (fH / 2 - realCenterY) / maxY;
+    nx = clamp(nx, -1, 1);
+    ny = clamp(ny, -1, 1);
     updateBelief(st.belief.id, { x: Number(nx.toFixed(3)), y: Number(ny.toFixed(3)) });
     renderField();
   }
 
-  /* ===== редактор ===== */
   function openEditor(beliefId) { NAV.view = 'editor'; NAV.beliefId = beliefId; currentBeliefId = beliefId; render(); }
   function closeEditor() { NAV.view = 'space'; NAV.beliefId = null; currentBeliefId = null; render(); }
 
@@ -965,7 +959,6 @@
         if (t.type === 'new-emoji') openSymModal({ kind: 'emoji', char: t.char });
         else openSymModal({ kind: 'word', word: t.word });
       });
-      // можно перетаскивать
       c.addEventListener('pointerdown', e => onChipPointerDown(e, c, t, tokens));
       return c;
     }
@@ -973,17 +966,34 @@
       const sym = findSymbolById(t.symbolId);
       if (!sym) { const s = document.createElement('span'); s.textContent = t.text; return s; }
       const c = document.createElement('span');
-      c.className = 'chip sym' + (sym.word ? ' has-word' : '') + (isGroup(sym) ? ' group' : '');
-      if (isGroup(sym)) c.dataset.count = String(sym.children.length);
+      const isGrp = isGroup(sym);
+      c.className = 'chip sym' + (sym.word ? ' has-word' : '') + (isGrp ? ' group' : '');
+      if (isGrp) {
+        c.dataset.count = String(sym.children.length);
+        if (groupsExpanded) c.classList.add('expanded');
+      }
       const ch = document.createElement('span'); ch.textContent = sym.char || '◌';
       c.appendChild(ch);
       if (sym.word) {
         const w = document.createElement('span'); w.className = 'w'; w.textContent = sym.word;
         c.appendChild(w);
       }
+      // если группа раскрыта — рисуем её детей inline
+      if (isGrp && groupsExpanded) {
+        const inline = document.createElement('span');
+        inline.className = 'children-inline';
+        sym.children.forEach(cid => {
+          const k = findSymbolById(cid);
+          if (!k) return;
+          const ic = document.createElement('span');
+          ic.className = 'child';
+          ic.textContent = k.char || '◌';
+          inline.appendChild(ic);
+        });
+        c.appendChild(inline);
+      }
       c.dataset.symbolId = sym.id;
       c.dataset.tokenText = t.text;
-
       c.addEventListener('click', () => {
         if (chipDrag && chipDrag.moved) return;
         openCardModal(sym.id);
@@ -1020,7 +1030,7 @@
   });
 
   /* =========================================================
-     DRAG & DROP ЧИПОВ В ПРЕДПРОСМОТРЕ
+     DRAG & DROP ЧИПОВ — ИСПРАВЛЕННАЯ ПЕРЕСТАНОВКА
      ========================================================= */
   function onChipPointerDown(e, chipEl, token, tokens) {
     if (chipDrag) return;
@@ -1045,13 +1055,18 @@
         dragging = true;
         const rect = chipEl.getBoundingClientRect();
         ghost = chipEl.cloneNode(true);
-        ghost.classList.add('drag-ghost');
+        ghost.style.position = 'fixed';
+        ghost.style.zIndex = '9999';
+        ghost.style.pointerEvents = 'none';
+        ghost.style.opacity = '.9';
+        ghost.style.transform = 'scale(1.08)';
+        ghost.style.boxShadow = '0 12px 32px rgba(0,0,0,.7), 0 0 0 2px #6fa8ff';
+        ghost.style.borderRadius = '12px';
+        ghost.style.background = '#14141c';
         ghost.style.width = rect.width + 'px';
         ghost.style.height = rect.height + 'px';
         ghost.style.left = rect.left + 'px';
         ghost.style.top = rect.top + 'px';
-        ghost.style.position = 'fixed';
-        ghost.style.zIndex = '9999';
         document.body.appendChild(ghost);
         chipEl.classList.add('dragging');
         chipEl._offX = startX - rect.left;
@@ -1063,8 +1078,6 @@
       ghost.style.left = (ev.clientX - chipEl._offX) + 'px';
       ghost.style.top = (ev.clientY - chipEl._offY) + 'px';
 
-      // ищем чип под пальцем
-      ghost.style.pointerEvents = 'none';
       const under = document.elementFromPoint(ev.clientX, ev.clientY);
       const tgt = under ? under.closest('.chip') : null;
 
@@ -1079,14 +1092,12 @@
         }
       } else {
         if (dropTarget) { dropTarget.classList.remove('drop-target'); dropTarget = null; }
-        // gap
         const gapIdx = findGapIndex(editorPreview, ev.clientX, ev.clientY, chipEl);
         if (gapIdx !== -1) {
           gapMarker = document.createElement('div');
           gapMarker.className = 'gap-marker';
           const chips = Array.from(editorPreview.querySelectorAll('.chip')).filter(c => c !== chipEl);
-          const sigChips = chips.filter(c => c.dataset.tokenText);
-          if (gapIdx < sigChips.length) editorPreview.insertBefore(gapMarker, sigChips[gapIdx]);
+          if (gapIdx < chips.length) editorPreview.insertBefore(gapMarker, chips[gapIdx]);
           else editorPreview.appendChild(gapMarker);
         }
       }
@@ -1099,10 +1110,7 @@
       document.removeEventListener('pointerup', onUp);
       document.removeEventListener('pointercancel', onUp);
 
-      if (!dragging) {
-        chipDrag = null;
-        return;
-      }
+      if (!dragging) { chipDrag = null; return; }
       if (ghost) ghost.remove();
       chipEl.classList.remove('dragging');
 
@@ -1111,22 +1119,27 @@
         const targetId = dropTarget.dataset.symbolId;
         const targetText = dropTarget.dataset.tokenText;
         if (targetText && targetText !== token.text) {
-          setTimeout(() => openMergeDialog(token, { text: targetText, symbolId: targetId, el: dropTarget }), 10);
+          setTimeout(() => openMergeDialog(token, { text: targetText, symbolId: targetId }), 10);
         }
-      } else if (gapMarker && gapMarker.parentNode) {
-        // перестановка
-        const targetIdx = Array.from(editorPreview.querySelectorAll('.chip')).filter(c => c !== chipEl).indexOf(gapMarker.nextElementSibling);
-        // проще: заново строим токены по позиции
-        const sigChips = Array.from(editorPreview.querySelectorAll('.chip'));
-        const myIdx = sigChips.indexOf(chipEl);
-        // считаем куда вставить
-        let insertBeforeIdx = -1;
-        const allAfter = Array.from(editorPreview.childNodes);
-        const markerIdx = allAfter.indexOf(gapMarker);
-        // соберём тексты чипов в новом порядке
-        gapMarker.remove();
-        reorderTokens(tokens, myIdx, markerIdx);
+        setTimeout(() => { chipDrag = null; }, 20);
+        return;
       }
+
+      if (gapMarker && gapMarker.parentNode) {
+        // КЛЮЧЕВОЕ: сначала физически перемещаем chipEl в DOM на место gapMarker
+        gapMarker.parentNode.replaceChild(chipEl, gapMarker);
+        // теперь собираем порядок из DOM
+        const chipEls = Array.from(editorPreview.querySelectorAll('.chip'));
+        const finalText = chipEls.map(c => c.dataset.tokenText).filter(Boolean).join(' ');
+        if (currentBeliefId) {
+          updateBelief(currentBeliefId, { text: finalText });
+          editorText.value = finalText;
+          renderPreview();
+        }
+        setTimeout(() => { chipDrag = null; }, 20);
+        return;
+      }
+
       setTimeout(() => { chipDrag = null; }, 20);
     }
 
@@ -1141,17 +1154,12 @@
     const contRect = container.getBoundingClientRect();
     if (clientY < contRect.top - 40 || clientY > contRect.bottom + 40) return -1;
 
-    let bestIdx = 0;
-    let bestDist = Infinity;
+    let bestIdx = 0, bestDist = Infinity;
     for (let i = 0; i <= chips.length; i++) {
       let gx, gy;
-      if (i === 0) {
-        const r = chips[0].getBoundingClientRect();
-        gx = r.left; gy = r.top + r.height/2;
-      } else if (i === chips.length) {
-        const r = chips[chips.length-1].getBoundingClientRect();
-        gx = r.right; gy = r.top + r.height/2;
-      } else {
+      if (i === 0) { const r = chips[0].getBoundingClientRect(); gx = r.left; gy = r.top + r.height/2; }
+      else if (i === chips.length) { const r = chips[chips.length-1].getBoundingClientRect(); gx = r.right; gy = r.top + r.height/2; }
+      else {
         const r1 = chips[i-1].getBoundingClientRect();
         const r2 = chips[i].getBoundingClientRect();
         gx = (r1.right + r2.left)/2;
@@ -1164,31 +1172,13 @@
     return bestIdx;
   }
 
-  /**
-   * Перестановка токенов. Собираем значимые токены в новом порядке, склеиваем пробелами.
-   */
-  function reorderTokens(tokens, fromIdx, insertBeforeGlobalIdx) {
-    const sigTokens = tokens.filter(t => t.type !== 'raw');
-    if (fromIdx < 0 || fromIdx >= sigTokens.length) return;
-
-    // индекс во вставку — маркерный узел из DOM
-    // грубо: считаем по позиции маркера среди дочерних
-    // Для упрощения: переставим токен на позицию, определяемую по маркеру
-    // markerIdx — индекс в childNodes. Найдём, какому sigToken соответствует
-    // Но проще: заново возьмём DOM-порядок чипов после удаления marker'а
-
-    // Пересобираем порядок из DOM сейчас (после удаления marker'а)
-    const chipEls = Array.from(editorPreview.querySelectorAll('.chip'));
-    const newOrderTexts = chipEls.map(c => c.dataset.tokenText).filter(Boolean);
-
-    // Формируем текст как последовательность значимых токенов в новом порядке
-    const finalText = newOrderTexts.join(' ');
-    if (currentBeliefId) {
-      updateBelief(currentBeliefId, { text: finalText });
-      editorText.value = finalText;
-      renderPreview();
-    }
-  }
+  /* ===== кнопка раскрытия групп ===== */
+  expandGroupsBtn.addEventListener('click', () => {
+    groupsExpanded = !groupsExpanded;
+    expandGroupsBtn.textContent = groupsExpanded ? '⊟ свернуть' : '⊞ развернуть';
+    expandGroupsBtn.classList.toggle('on', groupsExpanded);
+    renderPreview();
+  });
 
   /* ===== модалка: символ ===== */
   const symModal = document.getElementById('symModal');
@@ -1241,7 +1231,6 @@
     wordIn.disabled = false;
     symModal.classList.add('hidden');
     renderPreview();
-    if (NAV.view === 'space') renderField();
   }
 
   document.getElementById('symCancel').addEventListener('click', () => {
@@ -1259,7 +1248,7 @@
   document.getElementById('symChar').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveSym(); } });
   document.getElementById('symWord').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveSym(); } });
 
-  /* ===== модалка: объединение в группу ===== */
+  /* ===== модалка: объединение ===== */
   const mergeModal = document.getElementById('mergeModal');
   let mergeCtx = null;
 
@@ -1274,7 +1263,6 @@
     document.getElementById('mergeChar').value = '';
     document.getElementById('mergeErr').textContent = '';
 
-    // если оба существующие, можно предзаполнить слово
     if (a && b) {
       const aW = a.word || a.char;
       const bW = b.word || b.char;
@@ -1315,10 +1303,8 @@
       return;
     }
 
-    // слово по умолчанию
     let finalWord = word;
     if (!finalWord) {
-      // объединяем слова или символы
       const a = mergeCtx.aSymbolId ? findSymbolById(mergeCtx.aSymbolId) : null;
       const b = mergeCtx.bSymbolId ? findSymbolById(mergeCtx.bSymbolId) : null;
       const aW = a ? (a.word || a.char) : mergeCtx.aText;
@@ -1326,39 +1312,27 @@
       finalWord = (aW + ' ' + bW).trim();
     }
 
-    // создаём группу
-    const group = {
-      id: uid(),
-      char: char,
-      word: finalWord,
-      children: [],
-      created: nowIso()
-    };
-    // дети — существующие символы (если есть)
+    const group = { id: uid(), char: char, word: finalWord, children: [], created: nowIso() };
     if (mergeCtx.aSymbolId) group.children.push(mergeCtx.aSymbolId);
     if (mergeCtx.bSymbolId) group.children.push(mergeCtx.bSymbolId);
     Store.get().symbols.push(group);
 
-    // Если char задан — заменим в тексте обе последовательности на этот char
+    // заменяем в тексте
+    let text = editorText.value;
+    const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(escRe(mergeCtx.aText) + '\\s+' + escRe(mergeCtx.bText) + '|' + escRe(mergeCtx.bText) + '\\s+' + escRe(mergeCtx.aText));
     if (char) {
-      let text = editorText.value;
-      // Заменим точные токены
-      const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const reA = new RegExp(escRe(mergeCtx.aText));
-      const reB = new RegExp(escRe(mergeCtx.bText));
-      // порядок может быть a..b или b..a — заменим на char, если они рядом
-      const pattern = new RegExp(escRe(mergeCtx.aText) + '\\s+' + escRe(mergeCtx.bText) + '|' + escRe(mergeCtx.bText) + '\\s+' + escRe(mergeCtx.aText));
-      if (pattern.test(text)) {
-        text = text.replace(pattern, char);
-      } else {
-        // не рядом — просто вставим символ после
-        text = text.replace(reA, '').replace(reB, '').trim() + ' ' + char;
-        text = text.trim();
-      }
-      if (currentBeliefId) {
-        updateBelief(currentBeliefId, { text: text.trim() });
-        editorText.value = text.trim();
-      }
+      if (pattern.test(text)) text = text.replace(pattern, char);
+      else text = text.replace(new RegExp(escRe(mergeCtx.aText)), '').replace(new RegExp(escRe(mergeCtx.bText)), '').trim() + ' ' + char;
+    } else {
+      // без смайла группы — оставляем как есть, но у группы нет char — такую группу покажем как ⋯
+      // всё равно заменим в тексте — пусть группа будет со словом
+      if (pattern.test(text)) text = text.replace(pattern, finalWord || '⋯');
+    }
+
+    if (currentBeliefId) {
+      updateBelief(currentBeliefId, { text: text.trim() });
+      editorText.value = text.trim();
     }
 
     Store.save();
@@ -1369,7 +1343,6 @@
   });
 
   /* ===== словарь ===== */
-  const dictModal = document.getElementById('dictModal');
   document.getElementById('dictBtn').addEventListener('click', () => {
     const list = document.getElementById('dictList');
     list.innerHTML = '';
@@ -1397,15 +1370,15 @@
           chip.appendChild(cnt);
         }
         chip.addEventListener('click', () => {
-          dictModal.classList.add('hidden');
+          document.getElementById('dictModal').classList.add('hidden');
           setTimeout(() => openCardModal(s.id), 60);
         });
         list.appendChild(chip);
       });
     }
-    dictModal.classList.remove('hidden');
+    document.getElementById('dictModal').classList.remove('hidden');
   });
-  document.getElementById('dictClose').addEventListener('click', () => dictModal.classList.add('hidden'));
+  document.getElementById('dictClose').addEventListener('click', () => document.getElementById('dictModal').classList.add('hidden'));
 
   /* ===== карточка символа ===== */
   const cardModal = document.getElementById('cardModal');
@@ -1473,7 +1446,6 @@
     askConfirm('Удалить символ?', s.char + (s.word ? ' : ' + s.word : '') + ' будет удалён из базы.', () => {
       deleteSymbol(s.id);
       renderPreview();
-      if (NAV.view === 'space') renderField();
       toast('Удалено');
     });
   });
@@ -1550,7 +1522,6 @@
   document.getElementById('wordsBtn').addEventListener('click', toggleWords);
   document.getElementById('editorWordsBtn').addEventListener('click', toggleWords);
 
-  /* ===== экспорт ===== */
   document.getElementById('exportBtn').addEventListener('click', () => {
     try {
       const data = JSON.stringify(Store.get(), null, 2);
@@ -1563,7 +1534,16 @@
     } catch (e) { toast('Ошибка'); }
   });
 
-  /* ===== старт ===== */
+  let resizeTimer = null;
+  function onResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (NAV.view === 'space') renderField();
+    }, 120);
+  }
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', () => setTimeout(onResize, 300));
+
   Store.load();
   if (!Store.isOk()) toast('Хранилище недоступно');
   render();
