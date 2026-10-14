@@ -29,16 +29,42 @@
   .belief.tapped { border-color:#6fa8ff; box-shadow: 0 0 0 2px #6fa8ff, 0 12px 40px rgba(111,168,255,.5); }
   .belief-weight { position:absolute; top:8px; left:8px; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px; background:#ffb46f; color:#2a1a05; pointer-events:none; z-index:5; letter-spacing:.02em; box-shadow: 0 2px 8px rgba(255,180,111,.4); }
   .belief-z { position:absolute; top:8px; right:8px; font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; background:rgba(111,168,255,.22); color:#6fa8ff; border:1px solid rgba(111,168,255,.4); pointer-events:none; z-index:5; letter-spacing:.04em; }
-  .belief-body { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:3px 6px; font-size: var(--bfont, 42px); line-height:1.05; letter-spacing:1px; text-align:center; padding: 30px 18px 18px; max-width:100%; max-height:100%; overflow:hidden; word-break:break-word; pointer-events:none; }
+
+  /* Поле смайлов — сжал отступы, чтобы дать больше места смайлам */
+  .belief-body {
+    display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+    gap:2px 6px;
+    font-size: var(--bfont, 42px);
+    line-height:1.05;
+    letter-spacing:1px;
+    text-align:center;
+    padding: 20px 12px 10px;
+    max-width:100%; max-height:100%;
+    overflow:visible;
+    word-break:break-word;
+    pointer-events:none;
+  }
+
   .belief-sym { position:relative; display:inline-block; padding:0 2px; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
-  .belief-sym .badge { position:absolute; top:-10%; right:-18%; min-width:18px; height:18px; padding:0 4px; background:#6fa8ff; color:#06111f; font-size:10px; font-weight:800; border-radius:9px; display:flex; align-items:center; justify-content:center; border:2px solid #12131c; text-shadow:none; }
-  .belief-sym .word { display:block; font-size:0.3em; color:#8890a0; letter-spacing:0; margin-top:2px; line-height:1.1; text-shadow:none; }
+  /* Бейдж-счётчик масштабируется вместе со смайлом */
+  .belief-sym .badge {
+    position:absolute;
+    top:-0.06em; right:-0.28em;
+    min-width:0.4em; height:0.4em; padding:0 0.1em;
+    background:#6fa8ff; color:#06111f;
+    font-size:0.24em; font-weight:800;
+    border-radius:0.2em;
+    display:flex; align-items:center; justify-content:center;
+    border:0.05em solid #12131c;
+    text-shadow:none;
+    box-shadow: 0 0.04em 0.12em rgba(0,0,0,.5);
+    line-height:1;
+    box-sizing:border-box;
+  }
+  .belief-sym .word { display:block; font-size:0.28em; color:#8890a0; letter-spacing:0; margin-top:2px; line-height:1.1; text-shadow:none; }
   .belief-sym .word.new { color:#ffb46f; }
-  /* ВАЖНО: все существующие смайлы в карточке кликабельны — тап ведёт внутрь */
   .belief-sym.existing { pointer-events:auto; cursor:pointer; }
   .belief-sym.existing:active { transform:scale(.95); }
-  /* group — бейдж+пунктирная подсветка уже была, оставляем */
-  .belief-sym.group { }
   .belief-empty-text { font-size:14px; color:#6b6b7b; text-align:center; padding: 0 20%; line-height:1.5; pointer-events:none; }
   .field-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; color:#6b6b7b; font-size:14px; line-height:1.7; white-space:pre-line; padding:0 40px; pointer-events:none; }
 
@@ -836,10 +862,27 @@
       body.className = 'belief-body';
       const tokens = resolveTokens(b.text);
       const visible = tokens.filter(t => t.type !== 'raw');
-      let fontSize = Math.min(width, height) * 0.35;
-      if (visible.length > 1) fontSize = fontSize / Math.sqrt(visible.length) * 1.4;
-      fontSize = clamp(fontSize, 14, 140);
+
+      // === Расчёт размера смайлов: занимают большую часть карточки ===
+      // Полезная площадь — за вычетом верхних бейджей (вес/z) и паддингов.
+      const usableW = width - 24;
+      const usableH = height - 44; // верхний бейдж + отступы
+      const base = Math.min(usableW, usableH);
+      let fontSize;
+      if (visible.length === 0) {
+        fontSize = 24;
+      } else if (visible.length === 1) {
+        // Один смайл — занимает почти всю карточку
+        fontSize = base * 0.62;
+      } else {
+        // Несколько — делим по корню из количества, но не так сильно
+        fontSize = base * 0.55 / Math.sqrt(visible.length);
+        // Но для двух смайлов хочется крупнее
+        if (visible.length === 2) fontSize = base * 0.45;
+      }
+      fontSize = clamp(fontSize, 20, Math.max(60, base * 0.75));
       body.style.setProperty('--bfont', fontSize + 'px');
+
       visible.forEach(t => {
         if (t.type === 'existing') {
           const sym = findSymbolById(t.symbolId);
@@ -901,7 +944,6 @@
     if (e.button && e.button !== 0) return;
     e.preventDefault();
 
-    // Запоминаем элемент под пальцем ДО pointer capture
     const startTarget = e.target;
 
     const canDrag = weight < 0.99;
@@ -956,13 +998,10 @@
         return;
       }
 
-      // ТАП. Проверяем, попал ли палец на существующий символ внутри карточки.
-      // Сначала — через startTarget (до capture).
       let symEl = null;
       if (startTarget && startTarget.closest) {
         symEl = startTarget.closest('.belief-sym.existing');
       }
-      // Страховка — elementFromPoint на момент отпускания
       if (!symEl) {
         const under = document.elementFromPoint(ev.clientX, ev.clientY);
         if (under && under.closest) symEl = under.closest('.belief-sym.existing');
@@ -973,17 +1012,14 @@
         const sym = findSymbolById(sid);
         if (sym) {
           if (isGroup(sym)) {
-            // группа — проваливаемся
             enterGroup(sym.id);
           } else {
-            // обычный символ — открываем его карточку
             openCardModal(sym.id);
           }
           return;
         }
       }
 
-      // Ни на смайл, ни на группу — открываем редактор убеждения
       el.classList.add('tapped');
       setTimeout(() => el.classList.remove('tapped'), 180);
       openEditor(belief.id);
