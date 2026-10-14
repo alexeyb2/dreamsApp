@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Настройка убеждений</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
+  #app { display:flex; flex-direction:column; height:100dvh; width:100%; max-width:600px; margin:0 auto; position:relative; overflow:hidden; }
+
+  .top-bar { display:flex; align-items:center; gap:8px; padding:12px 14px; background:#14141c; border-bottom:1px solid #262633; flex-shrink:0; z-index:20; }
+  .top-title { flex:1; font-size:18px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; text-decoration:none; }
+  .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
+
+  .content { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px 120px; }
+  .content::-webkit-scrollbar { display:none; }
+
+  /* список */
+  .belief-item { display:flex; align-items:center; gap:12px; padding:14px; background:#14141c; border:1px solid #262633; border-radius:16px; margin-bottom:10px; cursor:pointer; transition:.15s; }
+  .belief-item:active { background:#1a1a24; border-color:rgba(111,168,255,.4); }
+  .belief-cover { width:52px; height:52px; display:flex; align-items:center; justify-content:center; font-size:30px; background: linear-gradient(160deg, #2a3554 0%, #161824 100%); border:1px solid rgba(111,168,255,.35); border-radius:14px; flex-shrink:0; }
+  .belief-cover.empty { color:#4a4a58; font-size:20px; border-style:dashed; }
+  .belief-info { flex:1; min-width:0; }
+  .belief-name { font-size:16px; font-weight:600; color:#e8e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .belief-name.empty { color:#6b6b7b; font-style:italic; font-weight:400; }
+  .belief-meta { font-size:11px; color:#6b6b7b; margin-top:3px; display:flex; gap:10px; }
+  .belief-meta b { color:#ffb46f; font-weight:700; }
+  .belief-meta i { color:#6fa8ff; font-style:normal; font-weight:700; }
+  .belief-actions { display:flex; gap:6px; flex-shrink:0; }
+  .icon-mini { width:34px; height:34px; border-radius:10px; border:1px solid #262633; background:#1a1a24; color:#8890a0; display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer; font-family:inherit; transition:.15s; }
+  .icon-mini:active { transform:scale(.94); background:#22222e; }
+  .icon-mini.danger { color:#ff8f8f; }
+  .icon-mini.danger:active { background:rgba(255,90,90,.15); }
+  .empty-note { text-align:center; color:#6b6b7b; font-size:14px; line-height:1.7; white-space:pre-line; padding:60px 30px; }
+
+  /* редактор */
+  .editor-section { margin-bottom:14px; }
+  .editor-section-label { display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+  .editor-section-label .meta { text-transform:none; letter-spacing:0; }
+  .input-field { width:100%; padding:14px 16px; background:#14141c; border:1px solid #262633; border-radius:14px; color:#e8e8f0; font-family:inherit; font-size:16px; outline:none; transition:border-color .15s; }
+  .input-field:focus { border-color:#6fa8ff; }
+  .input-field.emoji-big { font-size:44px; text-align:center; letter-spacing:8px; min-height:80px; }
+  .input-field.error { border-color:#ff3b30; animation:shake .3s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+  .input-hint { font-size:11px; color:#6b6b7b; margin-top:6px; line-height:1.4; }
+  .input-err { font-size:12px; color:#ff8f8f; min-height:14px; margin-top:4px; }
+  .prop-row { display:flex; align-items:center; gap:10px; }
+  .prop-slider { flex:1; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:#262633; outline:none; }
+  .prop-slider::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#6fa8ff; cursor:pointer; }
+  .prop-slider::-moz-range-thumb { width:22px; height:22px; border-radius:50%; background:#6fa8ff; cursor:pointer; border:none; }
+  .prop-value { min-width:56px; text-align:right; font-size:15px; font-weight:700; color:#6fa8ff; font-variant-numeric:tabular-nums; }
+
+  .items-box { display:flex; flex-wrap:wrap; gap:8px; min-height:60px; padding:10px; background:#0f0f15; border:1px dashed #262633; border-radius:14px; }
+  .items-box.empty::before { content: 'Пусто — добавь символ'; color:#3a3a48; font-size:13px; font-style:italic; padding:8px; width:100%; text-align:center; }
+  .item-chip { display:inline-flex; flex-direction:column; align-items:center; padding:8px 10px; min-width:54px; max-width:90px; background:rgba(111,168,255,.12); border:1px solid rgba(111,168,255,.35); border-radius:12px; cursor:pointer; position:relative; font-family:inherit; color:#e8e8f0; text-align:center; transition:.15s; }
+  .item-chip:active { background:rgba(111,168,255,.25); transform:scale(.96); }
+  .item-chip-char { font-size:26px; line-height:1; position:relative; }
+  .item-chip-char .badge { position:absolute; top:-8px; right:-10px; min-width:16px; height:16px; padding:0 4px; background:#6fa8ff; color:#06111f; font-size:9px; font-weight:800; border-radius:8px; display:flex; align-items:center; justify-content:center; border:2px solid #0f0f15; }
+  .item-chip-word { font-size:10px; color:#8890a0; margin-top:4px; word-break:break-word; line-height:1.15; max-width:100%; }
+  .item-chip-x { position:absolute; top:-4px; right:-4px; width:18px; height:18px; border-radius:50%; background:#ff3b30; color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; border:2px solid #0f0f15; cursor:pointer; z-index:2; }
+  .item-chip-x:active { transform:scale(.9); }
+  .add-item-btn { display:inline-flex; align-items:center; justify-content:center; min-width:54px; min-height:54px; padding:8px 12px; background:transparent; border:1px dashed #3a3a4a; border-radius:12px; color:#6b6b7b; font-size:14px; cursor:pointer; font-family:inherit; transition:.15s; }
+  .add-item-btn:active { border-color:#6fa8ff; color:#6fa8ff; }
+
+  /* нижняя панель */
+  .bottom-panel { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:600px; background:#14141c; border-top:1px solid #262633; padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); display:flex; gap:8px; z-index:50; }
+  .bottom-btn { flex:1; height:48px; border-radius:14px; border:1px solid #262633; background:#1a1a24; font-size:14px; font-weight:600; color:#e8e8f0; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:5px; font-family:inherit; }
+  .bottom-btn:active { transform:scale(.97); }
+  .bottom-btn.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .bottom-btn.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
+
+  /* модалки */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.78); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .modal { background:#1e1e2a; border:1px solid #262633; border-radius:22px; padding:20px; width:100%; max-width:400px; max-height:85vh; display:flex; flex-direction:column; gap:12px; }
+  .modal h3 { font-size:17px; font-weight:600; color:#e8e8f0; }
+  .modal-scroll { overflow-y:auto; min-height:0; display:flex; flex-direction:column; gap:12px; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  .modal-actions button { padding:11px 18px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .modal-actions button.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .modal-actions button.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
+  .modal-actions button.ghost { background:transparent; }
+
+  .picker-list { display:flex; flex-direction:column; gap:6px; max-height:60vh; overflow-y:auto; }
+  .picker-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:#14141c; border:1px solid #262633; cursor:pointer; text-align:left; width:100%; transition:.15s; font-family:inherit; color:#e8e8f0; }
+  .picker-row:active { background:#22222e; border-color:#6fa8ff; }
+  .picker-row.create { background:rgba(111,168,255,.14); border-color:rgba(111,168,255,.4); }
+  .picker-sym { font-size:26px; flex:none; min-width:40px; text-align:center; }
+  .picker-sym.plus { color:#6fa8ff; font-weight:700; }
+  .picker-name { flex:1; font-size:14px; }
+  .picker-name.empty { color:#6b6b7b; font-style:italic; }
+  .picker-name.highlight { color:#6fa8ff; font-weight:600; }
+
+  .hidden { display:none !important; }
+  .toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 80px); transform:translate(-50%, 20px); z-index:500; background:#22222f; border:1px solid #262633; padding:11px 18px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .22s, transform .22s; pointer-events:none; max-width:86vw; text-align:center; }
+  .toast.show { opacity:1; transform:translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top-bar">
+    <div class="top-title" id="topTitle">Настройка убеждений</div>
+    <a class="icon-btn" id="viewBtn" title="Смотреть" href="./">👁</a>
+  </header>
+
+  <main class="content" id="content"></main>
+
+  <div class="bottom-panel" id="bottomPanel">
+    <div id="rowList" style="display:flex; gap:8px; flex:1;">
+      <button class="bottom-btn primary" id="addBeliefBtn">+ Убеждение</button>
+      <button class="bottom-btn" id="dictBtn">📖 Словарь</button>
+    </div>
+    <div id="rowEditor" style="display:none; gap:8px; flex:1;">
+      <button class="bottom-btn" id="cancelEditBtn">Отмена</button>
+      <button class="bottom-btn primary" id="saveEditBtn">Сохранить</button>
+    </div>
+  </div>
+
+  <div id="symModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Новый символ</h3>
+      <div class="modal-scroll">
+        <input id="symChar" class="input-field emoji-big" placeholder="😀" autocomplete="off" spellcheck="false">
+        <div class="input-hint">Только смайл, со своей клавиатуры.</div>
+        <input id="symWord" class="input-field" placeholder="Значение" autocomplete="off">
+        <div class="input-err" id="symErr"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="symCancel" class="ghost">Отмена</button>
+        <button id="symSave" class="primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pickerModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="pickerTitle">Добавить символ</h3>
+      <div class="picker-list" id="pickerList"></div>
+      <div class="modal-actions">
+        <button id="pickerCancel" class="ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dictModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>📖 Словарь символов</h3>
+      <div class="picker-list" id="dictList"></div>
+      <div class="modal-actions">
+        <button id="dictClose" class="ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="cardModal" class="modal-overlay hidden">
+    <div class="modal" id="cardBody"></div>
+  </div>
+
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="confirmTitle">Удалить?</h3>
+      <div style="font-size:14px;color:#8890a0;line-height:1.5;" id="confirmText"></div>
+      <div class="modal-actions">
+        <button id="confirmCancel" class="ghost">Отмена</button>
+        <button id="confirmOk" class="danger">Удалить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'ubezhdeniya_v1';
+
+  function uid() { return 'x_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
+  function nowIso() { return new Date().toISOString(); }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  function splitGraphemes(str) {
+    const s = String(str == null ? '' : str);
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      try {
+        const seg = new Intl.Segmenter('ru', { granularity: 'grapheme' });
+        const out = [];
+        for (const piece of seg.segment(s)) out.push(piece.segment);
+        return out;
+      } catch (e) {}
+    }
+    return Array.from(s);
+  }
+  function isEmojiGrapheme(g) {
+    if (!g) return false;
+    if (/^\s+$/u.test(g)) return false;
+    if (/[\p{L}\p{N}]/u.test(g)) return false;
+    if (/^[!"#$%&'()*+,\-.\/:;<=>?@\[\\\]^_`{|}~«»„""…–—]+$/u.test(g) && g.length <= 3) return false;
+    return true;
+  }
+  function isEmojiOnly(text) {
+    const s = String(text == null ? '' : text).trim();
+    if (!s) return false;
+    const g = splitGraphemes(s);
+    for (let i = 0; i < g.length; i++) if (!isEmojiGrapheme(g[i])) return false;
+    return true;
+  }
+
+  let toastEl = null, toastTimer = null;
+  function toast(msg) {
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+    toastEl.textContent = msg;
+    requestAnimationFrame(() => toastEl.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  }
+  function askConfirm(title, text, onOk) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = text;
+    const m = document.getElementById('confirmModal');
+    m.classList.remove('hidden');
+    const ok = document.getElementById('confirmOk');
+    const cancel = document.getElementById('confirmCancel');
+    function cleanup() { m.classList.add('hidden'); ok.removeEventListener('click', hOk); cancel.removeEventListener('click', hCancel); }
+    function hOk() { cleanup(); onOk(); }
+    function hCancel() { cleanup(); }
+    ok.addEventListener('click', hOk);
+    cancel.addEventListener('click', hCancel);
+  }
+
+  /* ===== STORE ===== */
+  const Store = {
+    state: { symbols: [], beliefs: [] },
+    load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const p = JSON.parse(raw);
+        this.state = {
+          symbols: Array.isArray(p.symbols) ? p.symbols : [],
+          beliefs: Array.isArray(p.beliefs) ? p.beliefs : []
+        };
+      } catch (e) {}
+    },
+    save() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state)); } catch (e) {}
+    }
+  };
+
+  /* ===== SYMBOLS ===== */
+  function findSymbolById(id) { return Store.state.symbols.find(s => s.id === id) || null; }
+  function findSymbolByChar(ch) {
+    const c = String(ch || '').trim();
+    if (!c) return null;
+    return Store.state.symbols.find(s => s.char === c) || null;
+  }
+  function findSymbolByWord(w) {
+    const k = String(w || '').trim().toLowerCase();
+    if (!k) return null;
+    return Store.state.symbols.find(s => (s.word || '').toLowerCase() === k) || null;
+  }
+  function addSymbol(char, word) {
+    char = String(char || '').trim();
+    word = String(word || '').trim();
+    if (!char && !word) return null;
+    if (char && !isEmojiOnly(char)) return null;
+    if (char) {
+      const byChar = findSymbolByChar(char);
+      if (byChar) { if (word && !byChar.word) { byChar.word = word; Store.save(); } return byChar; }
+    }
+    if (word) {
+      const byWord = findSymbolByWord(word);
+      if (byWord) { if (char) { byWord.char = char; Store.save(); } return byWord; }
+    }
+    const s = { id: uid(), char, word, children: [], created: nowIso() };
+    Store.state.symbols.push(s);
+    Store.save();
+    return s;
+  }
+  function deleteSymbol(id) {
+    Store.state.symbols.forEach(s => {
+      s.children = (s.children || []).filter(cid => cid !== id);
+    });
+    Store.state.symbols = Store.state.symbols.filter(s => s.id !== id);
+    Store.state.beliefs.forEach(b => {
+      b.items = (b.items || []).filter(sid => sid !== id);
+    });
+    Store.save();
+  }
+  function isGroup(s) { return s && Array.isArray(s.children) && s.children.length > 0; }
+
+  /* ===== BELIEFS ===== */
+  function getBelief(id) { return Store.state.beliefs.find(b => b.id === id) || null; }
+  function getBeliefsSum(excludeId) {
+    let sum = 0;
+    Store.state.beliefs.forEach(b => {
+      if (excludeId && b.id === excludeId) return;
+      sum += (b.weight || 0.5);
+    });
+    return sum;
+  }
+  function deleteBelief(id) {
+    Store.state.beliefs = Store.state.beliefs.filter(b => b.id !== id);
+    Store.save();
+  }
+
+  /* ===== NAV / STATE ===== */
+  const NAV = { view: 'list', beliefId: null };
+  let draftBelief = null;
+  let draftIsNew = false;
+  let pickerCtx = null;
+
+  const content = document.getElementById('content');
+  const topTitle = document.getElementById('topTitle');
+  const rowList = document.getElementById('rowList');
+  const rowEditor = document.getElementById('rowEditor');
+
+  function render() {
+    content.innerHTML = '';
+    if (NAV.view === 'list') {
+      topTitle.textContent = 'Настройка убеждений';
+      rowList.style.display = 'flex';
+      rowEditor.style.display = 'none';
+      renderList();
+    } else {
+      topTitle.textContent = draftIsNew ? 'Новое убеждение' : 'Правка';
+      rowList.style.display = 'none';
+      rowEditor.style.display = 'flex';
+      renderEditorView();
+    }
+  }
+
+  /* ===== LIST ===== */
+  function renderList() {
+    if (!Store.state.beliefs.length) {
+      const e = document.createElement('div');
+      e.className = 'empty-note';
+      e.textContent = 'Пока нет убеждений.\n\nНажми «+ Убеждение», чтобы создать первое.\n\nКаждое убеждение — треугольник на экране.\nВнутри него — смайлы-символы.';
+      content.appendChild(e);
+      return;
+    }
+    Store.state.beliefs.forEach(b => content.appendChild(buildBeliefItem(b)));
+  }
+
+  function buildBeliefItem(b) {
+    const item = document.createElement('div');
+    item.className = 'belief-item';
+
+    const cover = document.createElement('div');
+    cover.className = 'belief-cover' + (b.emoji ? '' : ' empty');
+    cover.textContent = b.emoji || '·';
+    item.appendChild(cover);
+
+    const info = document.createElement('div');
+    info.className = 'belief-info';
+    const name = document.createElement('div');
+    name.className = 'belief-name' + (b.word ? '' : ' empty');
+    name.textContent = b.word || 'без названия';
+    info.appendChild(name);
+    const meta = document.createElement('div');
+    meta.className = 'belief-meta';
+    meta.innerHTML =
+      '<span>вес <b>' + (b.weight || 0).toFixed(2) + '</b></span>' +
+      '<span>z <i>' + (b.z || 0).toFixed(2) + '</i></span>' +
+      '<span>' + (b.items ? b.items.length : 0) + ' симв.</span>';
+    info.appendChild(meta);
+    item.appendChild(info);
+
+    const actions = document.createElement('div');
+    actions.className = 'belief-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'icon-mini';
+    editBtn.textContent = '✎';
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditorFor(b.id); });
+    actions.appendChild(editBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-mini danger';
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      askConfirm('Удалить убеждение?', 'Символы останутся в словаре.', () => {
+        deleteBelief(b.id);
+        render();
+        toast('Удалено');
+      });
+    });
+    actions.appendChild(delBtn);
+
+    item.appendChild(actions);
+    item.addEventListener('click', () => openEditorFor(b.id));
+    return item;
+  }
+
+  /* ===== EDITOR ===== */
+  function openEditorFor(id) {
+    const b = getBelief(id);
+    if (!b) return;
+    draftBelief = JSON.parse(JSON.stringify(b));
+    if (!draftBelief.items) draftBelief.items = [];
+    draftIsNew = false;
+    NAV.view = 'editor';
+    NAV.beliefId = id;
+    render();
+  }
+
+  function startNewBelief() {
+    const sum = getBeliefsSum();
+    const remaining = 1 - sum;
+    if (remaining < 0.15) { toast('Освободи место — нет свободного места'); return; }
+    const w = sum === 0 ? 0.5 : Math.max(0.15, Math.min(0.5, remaining));
+    draftBelief = {
+      id: uid(),
+      emoji: '', word: '',
+      items: [],
+      weight: w,
+      x: 0.5, y: 0.5, z: 1,
+      created: nowIso()
+    };
+    draftIsNew = true;
+    NAV.view = 'editor';
+    NAV.beliefId = draftBelief.id;
+    render();
+  }
+
+  function renderEditorView() {
+    const b = draftBelief;
+    if (!b) { NAV.view = 'list'; render(); return; }
+
+    // обложка
+    const s1 = document.createElement('div');
+    s1.className = 'editor-section';
+    s1.innerHTML = '<div class="editor-section-label"><span>Смайл-обложка</span></div>';
+    const emojiIn = document.createElement('input');
+    emojiIn.type = 'text';
+    emojiIn.className = 'input-field emoji-big';
+    emojiIn.placeholder = '🕺🏼';
+    emojiIn.autocomplete = 'off';
+    emojiIn.spellcheck = false;
+    emojiIn.value = b.emoji || '';
+    s1.appendChild(emojiIn);
+    const hint1 = document.createElement('div');
+    hint1.className = 'input-hint';
+    hint1.textContent = 'Что будет видно на треугольнике.';
+    s1.appendChild(hint1);
+    const err1 = document.createElement('div');
+    err1.className = 'input-err';
+    s1.appendChild(err1);
+    content.appendChild(s1);
+
+    emojiIn.addEventListener('input', () => {
+      b.emoji = emojiIn.value.trim();
+      if (!emojiIn.value.trim()) { err1.textContent = ''; return; }
+      err1.textContent = isEmojiOnly(emojiIn.value) ? '' : 'Только смайлы';
+    });
+
+    // название
+    const s2 = document.createElement('div');
+    s2.className = 'editor-section';
+    s2.innerHTML = '<div class="editor-section-label"><span>Название</span></div>';
+    const wordIn = document.createElement('input');
+    wordIn.type = 'text';
+    wordIn.className = 'input-field';
+    wordIn.placeholder = 'мужчина';
+    wordIn.autocomplete = 'off';
+    wordIn.value = b.word || '';
+    s2.appendChild(wordIn);
+    content.appendChild(s2);
+    wordIn.addEventListener('input', () => { b.word = wordIn.value.trim(); });
+
+    // вес
+    const s3 = document.createElement('div');
+    s3.className = 'editor-section';
+    const otherSum = getBeliefsSum(NAV.beliefId);
+    const maxW = Math.max(0.1, Math.min(1, 1 - otherSum));
+    s3.innerHTML = '<div class="editor-section-label"><span>Вес</span><span class="meta">макс ' + maxW.toFixed(2) + '</span></div>';
+    const propRow = document.createElement('div');
+    propRow.className = 'prop-row';
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'prop-slider';
+    slider.min = '0.1';
+    slider.max = String(maxW.toFixed(2));
+    slider.step = '0.05';
+    const initW = clamp(b.weight || 0.5, 0.1, maxW);
+    slider.value = String(initW);
+    propRow.appendChild(slider);
+    const valSpan = document.createElement('span');
+    valSpan.className = 'prop-value';
+    valSpan.textContent = initW.toFixed(2);
+    propRow.appendChild(valSpan);
+    s3.appendChild(propRow);
+    const hint3 = document.createElement('div');
+    hint3.className = 'input-hint';
+    hint3.textContent = '1.00 — всё поле. Меньше — можно таскать.';
+    s3.appendChild(hint3);
+    content.appendChild(s3);
+    slider.addEventListener('input', () => {
+      b.weight = parseFloat(slider.value);
+      valSpan.textContent = b.weight.toFixed(2);
+    });
+
+    // символы внутри
+    const s4 = document.createElement('div');
+    s4.className = 'editor-section';
+    const l4 = document.createElement('div');
+    l4.className = 'editor-section-label';
+    l4.innerHTML = '<span>Символы внутри</span><span class="meta" id="itemsCount">' + b.items.length + '</span>';
+    s4.appendChild(l4);
+
+    const box = document.createElement('div');
+    box.className = 'items-box' + (b.items.length ? '' : ' empty');
+    s4.appendChild(box);
+
+    function refreshItems() {
+      box.innerHTML = '';
+      if (!b.items.length) box.classList.add('empty');
+      else box.classList.remove('empty');
+      b.items.forEach(sid => {
+        const sym = findSymbolById(sid);
+        if (!sym) return;
+        const chip = document.createElement('div');
+        chip.className = 'item-chip';
+        const charWrap = document.createElement('div');
+        charWrap.className = 'item-chip-char';
+        charWrap.textContent = sym.char || '◌';
+        if (isGroup(sym)) {
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.textContent = String(sym.children.length);
+          charWrap.appendChild(badge);
+        }
+        chip.appendChild(charWrap);
+        const wordEl = document.createElement('div');
+        wordEl.className = 'item-chip-word';
+        wordEl.textContent = sym.word || '';
+        if (!sym.word) wordEl.style.opacity = '0.4';
+        chip.appendChild(wordEl);
+        const x = document.createElement('div');
+        x.className = 'item-chip-x';
+        x.textContent = '×';
+        x.addEventListener('click', (e) => {
+          e.stopPropagation();
+          b.items = b.items.filter(y => y !== sid);
+          refreshItems();
+          document.getElementById('itemsCount').textContent = b.items.length;
+        });
+        chip.appendChild(x);
+        chip.addEventListener('click', (e) => { e.stopPropagation(); openCardModal(sym.id); });
+        box.appendChild(chip);
+      });
+      const addBtn = document.createElement('button');
+      addBtn.className = 'add-item-btn';
+      addBtn.textContent = '+ символ';
+      addBtn.addEventListener('click', () => openPicker({ type: 'belief', target: b }));
+      box.appendChild(addBtn);
+    }
+    refreshItems();
+    content.appendChild(s4);
+  }
+
+  /* ===== SAVE / CANCEL ===== */
+  document.getElementById('saveEditBtn').addEventListener('click', () => {
+    if (!draftBelief) return;
+    const emoji = draftBelief.emoji || '';
+    if (emoji && !isEmojiOnly(emoji)) { toast('Смайл-обложка — только эмодзи'); return; }
+
+    if (draftIsNew) {
+      Store.state.beliefs.forEach(x => { x.z = Math.max(0.15, (x.z || 0.5) - 0.1); });
+      Store.state.beliefs.unshift(draftBelief);
+    } else {
+      const idx = Store.state.beliefs.findIndex(b => b.id === draftBelief.id);
+      if (idx !== -1) Store.state.beliefs[idx] = draftBelief;
+      else Store.state.beliefs.unshift(draftBelief);
+    }
+    Store.save();
+    toast('Сохранено');
+    draftBelief = null;
+    draftIsNew = false;
+    NAV.view = 'list';
+    NAV.beliefId = null;
+    render();
+  });
+
+  document.getElementById('cancelEditBtn').addEventListener('click', () => {
+    draftBelief = null;
+    draftIsNew = false;
+    NAV.view = 'list';
+    NAV.beliefId = null;
+    render();
+  });
+
+  document.getElementById('addBeliefBtn').addEventListener('click', startNewBelief);
+
+  /* ===== SYMBOL MODAL ===== */
+  const symModal = document.getElementById('symModal');
+
+  function openSymModal() {
+    document.getElementById('symErr').textContent = '';
+    const charIn = document.getElementById('symChar');
+    const wordIn = document.getElementById('symWord');
+    charIn.value = '';
+    wordIn.value = '';
+    charIn.classList.remove('error');
+    symModal.classList.remove('hidden');
+    setTimeout(() => charIn.focus(), 200);
+  }
+
+  document.getElementById('symCancel').addEventListener('click', () => symModal.classList.add('hidden'));
+
+  document.getElementById('symSave').addEventListener('click', () => {
+    const charIn = document.getElementById('symChar');
+    const wordIn = document.getElementById('symWord');
+    const err = document.getElementById('symErr');
+    const char = charIn.value.trim();
+    const word = wordIn.value.trim();
+
+    if (!char && !word) { err.textContent = 'Хотя бы смайл или слово'; return; }
+    if (char && !isEmojiOnly(char)) {
+      err.textContent = 'Смайл — только эмодзи';
+      charIn.classList.add('error');
+      setTimeout(() => charIn.classList.remove('error'), 400);
+      return;
+    }
+    const created = addSymbol(char, word);
+    if (!created) { err.textContent = 'Не удалось'; return; }
+
+    if (pickerCtx) {
+      if (pickerCtx.type === 'belief') {
+        if (!pickerCtx.target.items) pickerCtx.target.items = [];
+        if (pickerCtx.target.items.indexOf(created.id) === -1) pickerCtx.target.items.push(created.id);
+      } else if (pickerCtx.type === 'symbol') {
+        if (!pickerCtx.target.children) pickerCtx.target.children = [];
+        if (pickerCtx.target.children.indexOf(created.id) === -1) pickerCtx.target.children.push(created.id);
+      }
+    }
+
+    symModal.classList.add('hidden');
+    toast('Символ создан');
+  });
+
+  /* ===== PICKER ===== */
+  const pickerModal = document.getElementById('pickerModal');
+
+  function openPicker(ctx) {
+    pickerCtx = ctx;
+    document.getElementById('pickerTitle').textContent = ctx.type === 'belief' ? 'Добавить в убеждение' : 'Добавить в состав';
+    const list = document.getElementById('pickerList');
+    list.innerHTML = '';
+
+    const createRow = document.createElement('button');
+    createRow.className = 'picker-row create';
+    const plusSym = document.createElement('span');
+    plusSym.className = 'picker-sym plus';
+    plusSym.textContent = '＋';
+    createRow.appendChild(plusSym);
+    const createName = document.createElement('span');
+    createName.className = 'picker-name highlight';
+    createName.textContent = 'Создать новый символ';
+    createRow.appendChild(createName);
+    createRow.addEventListener('click', () => {
+      pickerModal.classList.add('hidden');
+      setTimeout(openSymModal, 60);
+    });
+    list.appendChild(createRow);
+
+    const syms = Store.state.symbols.slice().sort((a, b) => String(b.created).localeCompare(String(a.created)));
+    if (!syms.length) {
+      const n = document.createElement('div');
+      n.style.cssText = 'color:#6b6b7b;font-size:13px;padding:14px 0;text-align:center;font-style:italic;';
+      n.textContent = 'В словаре пусто';
+      list.appendChild(n);
+    } else {
+      // исключить саму себя и потомков для symbol
+      const excl = new Set();
+      if (ctx.type === 'symbol') {
+        excl.add(ctx.target.id);
+        const q = [ctx.target.id];
+        while (q.length) {
+          const cur = findSymbolById(q.shift());
+          if (!cur) continue;
+          (cur.children || []).forEach(cid => { if (!excl.has(cid)) { excl.add(cid); q.push(cid); } });
+        }
+      }
+      syms.forEach(s => {
+        if (excl.has(s.id)) return;
+        const row = document.createElement('button');
+        row.className = 'picker-row';
+        const sym = document.createElement('span');
+        sym.className = 'picker-sym';
+        sym.textContent = s.char || '◌';
+        row.appendChild(sym);
+        const nm = document.createElement('span');
+        nm.className = 'picker-name' + (s.word ? '' : ' empty');
+        nm.textContent = s.word || '—';
+        row.appendChild(nm);
+        row.addEventListener('click', () => {
+          if (ctx.type === 'belief') {
+            if (!ctx.target.items) ctx.target.items = [];
+            if (ctx.target.items.indexOf(s.id) === -1) ctx.target.items.push(s.id);
+          } else {
+            if (!ctx.target.children) ctx.target.children = [];
+            if (ctx.target.children.indexOf(s.id) === -1) ctx.target.children.push(s.id);
+          }
+          Store.save();
+          pickerModal.classList.add('hidden');
+          render();
+        });
+        list.appendChild(row);
+      });
+    }
+    pickerModal.classList.remove('hidden');
+  }
+  document.getElementById('pickerCancel').addEventListener('click', () => pickerModal.classList.add('hidden'));
+
+  /* ===== DICT ===== */
+  document.getElementById('dictBtn').addEventListener('click', () => {
+    const list = document.getElementById('dictList');
+    list.innerHTML = '';
+    const syms = Store.state.symbols.slice().sort((a, b) => String(b.created).localeCompare(String(a.created)));
+    if (!syms.length) {
+      const n = document.createElement('div');
+      n.style.cssText = 'color:#6b6b7b;font-size:14px;padding:14px 0;text-align:center;font-style:italic;';
+      n.textContent = 'Словарь пуст';
+      list.appendChild(n);
+    } else {
+      syms.forEach(s => {
+        const row = document.createElement('button');
+        row.className = 'picker-row';
+        const sym = document.createElement('span');
+        sym.className = 'picker-sym';
+        sym.textContent = s.char || '◌';
+        row.appendChild(sym);
+        const nm = document.createElement('span');
+        nm.className = 'picker-name' + (s.word ? '' : ' empty');
+        nm.textContent = s.word || '—';
+        if (isGroup(s)) nm.textContent += ' · ' + s.children.length;
+        row.appendChild(nm);
+        row.addEventListener('click', () => {
+          document.getElementById('dictModal').classList.add('hidden');
+          setTimeout(() => openCardModal(s.id), 60);
+        });
+        list.appendChild(row);
+      });
+    }
+    document.getElementById('dictModal').classList.remove('hidden');
+  });
+  document.getElementById('dictClose').addEventListener('click', () => document.getElementById('dictModal').classList.add('hidden'));
+
+  /* ===== CARD ===== */
+  function openCardModal(symbolId) {
+    const s = findSymbolById(symbolId);
+    if (!s) return;
+    const body = document.getElementById('cardBody');
+    body.innerHTML = '';
+
+    const hero = document.createElement('div');
+    hero.style.cssText = 'text-align:center;padding:6px 0 4px;';
+    const em = document.createElement('div');
+    em.style.cssText = 'font-size:60px;line-height:1.1;letter-spacing:4px;';
+    em.textContent = s.char || '◌';
+    hero.appendChild(em);
+    body.appendChild(hero);
+
+    const wIn = document.createElement('input');
+    wIn.className = 'input-field';
+    wIn.placeholder = 'Значение';
+    wIn.value = s.word || '';
+    body.appendChild(wIn);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'editor-section-label';
+    lbl.style.marginTop = '4px';
+    lbl.innerHTML = '<span>Из чего состоит</span>';
+    body.appendChild(lbl);
+
+    const chips = document.createElement('div');
+    chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;min-height:40px;padding:8px;background:#0f0f15;border-radius:12px;border:1px dashed #262633;';
+    body.appendChild(chips);
+
+    function renderKids() {
+      chips.innerHTML = '';
+      const kids = (s.children || []).map(findSymbolById).filter(Boolean);
+      if (!kids.length) {
+        chips.textContent = '—';
+        chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;min-height:40px;padding:12px;background:#0f0f15;border-radius:12px;border:1px dashed #262633;color:#3a3a48;font-style:italic;font-size:13px;justify-content:center;';
+      } else {
+        chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;min-height:40px;padding:8px;background:#0f0f15;border-radius:12px;border:1px dashed #262633;';
+        kids.forEach(k => {
+          const chip = document.createElement('button');
+          chip.style.cssText = 'padding:6px 10px;border-radius:10px;background:rgba(111,168,255,.14);border:1px solid rgba(111,168,255,.35);color:#e8e8f0;cursor:pointer;font-family:inherit;font-size:20px;display:flex;align-items:center;gap:6px;';
+          chip.textContent = k.char || '◌';
+          const x = document.createElement('span');
+          x.textContent = '×';
+          x.style.cssText = 'font-size:12px;color:#ff8f8f;';
+          x.addEventListener('click', (e) => {
+            e.stopPropagation();
+            s.children = s.children.filter(cid => cid !== k.id);
+            Store.save();
+            renderKids();
+          });
+          chip.appendChild(x);
+          chip.addEventListener('click', () => {
+            document.getElementById('cardModal').classList.add('hidden');
+            setTimeout(() => openCardModal(k.id), 60);
+          });
+          chips.appendChild(chip);
+        });
+      }
+      const addChip = document.createElement('button');
+      addChip.style.cssText = 'padding:6px 12px;border-radius:10px;background:transparent;border:1px dashed #3a3a4a;color:#6b6b7b;cursor:pointer;font-family:inherit;font-size:13px;';
+      addChip.textContent = '+';
+      addChip.addEventListener('click', () => {
+        document.getElementById('cardModal').classList.add('hidden');
+        setTimeout(() => openPicker({ type: 'symbol', target: s }), 60);
+      });
+      chips.appendChild(addChip);
+    }
+    renderKids();
+
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'danger';
+    delBtn.textContent = 'Удалить';
+    delBtn.addEventListener('click', () => {
+      document.getElementById('cardModal').classList.add('hidden');
+      askConfirm('Удалить символ?', (s.char || '◌') + (s.word ? ' : ' + s.word : ''), () => {
+        deleteSymbol(s.id);
+        render();
+        toast('Удалено');
+      });
+    });
+    actions.appendChild(delBtn);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'ghost';
+    closeBtn.textContent = 'Закрыть';
+    closeBtn.addEventListener('click', () => document.getElementById('cardModal').classList.add('hidden'));
+    actions.appendChild(closeBtn);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'primary';
+    saveBtn.textContent = 'Сохранить';
+    saveBtn.addEventListener('click', () => {
+      s.word = wIn.value.trim();
+      Store.save();
+      document.getElementById('cardModal').classList.add('hidden');
+      render();
+    });
+    actions.appendChild(saveBtn);
+    body.appendChild(actions);
+
+    document.getElementById('cardModal').classList.remove('hidden');
+  }
+
+  /* ===== INIT ===== */
+  Store.load();
+  render();
+})();
+</script>
+</body>
+</html>
