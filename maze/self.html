@@ -1,476 +1,186 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0a0a0f">
-<title>Твои убеждения</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>👁:Убеждения</title>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --fg: #e8e8f0;
-    --accent: #6fa8ff;
-    --warn: #ffb46f;
-    --danger: #ff8f8f;
-    --muted: #6b6b7b;
-    --surface: #14141c;
-    --surface-2: #1e1e2a;
-    --border: #262633;
-    --r: 18px;
-    --r-sm: 12px;
-    --pad: 16px;
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: var(--bg); color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 16px; line-height: 1.5;
-    overscroll-behavior: none;
-  }
-  body { overflow: hidden; }
-  button { font-family: inherit; font-size: inherit; color: inherit; background: none; border: none; cursor: pointer; padding: 0; }
-  input, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
+  #app { display:flex; flex-direction:column; height:100dvh; max-width:600px; margin:0 auto; position:relative; }
 
-  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  .top-bar { display:flex; align-items:center; gap:8px; padding:10px 12px; background:#14141c; border-bottom:1px solid #262633; flex-shrink:0; }
+  .crumbs { flex:1; display:flex; align-items:center; gap:6px; overflow-x:auto; scrollbar-width:none; min-width:0; }
+  .crumbs::-webkit-scrollbar { display:none; }
+  .crumb { flex:none; padding:7px 14px; border-radius:999px; background:#1a1a24; border:1px solid #262633; font-size:14px; color:#e8e8f0; cursor:pointer; transition:.15s; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:inherit; }
+  .crumb:active { background:#22222e; }
+  .crumb.current { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.4); color:#6fa8ff; font-weight:600; }
+  .crumb-sep { flex:none; color:#6b6b7b; font-size:13px; }
+  .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; }
+  .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
 
-  /* ==== шапка ==== */
-  .hdr {
-    flex: none;
-    display: flex; align-items: center; gap: 8px;
-    padding: calc(var(--safe-top) + 14px) var(--pad) 12px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg);
-    z-index: 5;
-  }
-  .hdr-title {
-    flex: 1;
-    font-size: 22px; font-weight: 700;
-    letter-spacing: -.02em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .hdr-title .colon { color: var(--accent); }
+  .main { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 12px 100px; }
 
-  .icon-btn {
-    flex: none; width: 38px; height: 38px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 17px; transition: background .15s;
-  }
-  .icon-btn:active { background: rgba(255,255,255,.08); }
+  /* ===== дни ===== */
+  .day-card { position:relative; background:#14141c; border:1px solid #262633; border-radius:18px; padding:14px; margin-bottom:10px; cursor:pointer; transition:.15s; }
+  .day-card:active { background:#1a1a24; border-color:#6fa8ff; }
+  .day-date { font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#6fa8ff; opacity:.9; margin-bottom:10px; }
+  .day-preview { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:26px; line-height:1.2; letter-spacing:1px; min-height:30px; word-break:break-word; }
+  .day-preview .empty { color:#6b6b7b; font-size:13px; font-style:italic; letter-spacing:0; }
+  .day-meta { margin-top:8px; font-size:12px; color:#6b6b7b; }
+  .day-del { position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:50%; background:rgba(255,90,90,.12); border:1px solid rgba(255,90,90,.28); color:#ff8f8f; font-size:15px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-family:inherit; }
+  .day-del:active { background:rgba(255,90,90,.35); }
 
-  /* ==== лента ==== */
-  .feed {
-    flex: 1; min-height: 0;
-    overflow-y: auto; -webkit-overflow-scrolling: touch;
-    padding: 14px var(--pad) 20px;
-  }
+  /* ===== редактор ===== */
+  .editor-wrap { background:#14141c; border:1px solid #262633; border-radius:16px; padding:12px 14px; margin-bottom:12px; }
+  .editor { width:100%; min-height:110px; resize:none; background:transparent; border:none; outline:none; color:#e8e8f0; font-size:17px; line-height:1.7; font-family:inherit; -webkit-user-select:text; user-select:text; padding:0; }
+  .editor::placeholder { color:#6b6b7b; }
 
-  .msg {
-    position: relative;
-    margin-bottom: 12px;
-    padding: 14px 14px 10px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    animation: msgIn .25s ease both;
-  }
-  @keyframes msgIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: none; }
-  }
+  .preview-wrap { background:#14141c; border:1px solid #262633; border-radius:16px; padding:14px; margin-bottom:12px; min-height:80px; }
+  .preview-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; }
+  .preview-text { font-size:22px; line-height:2.2; word-break:break-word; white-space:pre-wrap; }
+  .preview-text .empty { color:#6b6b7b; font-size:14px; font-style:italic; }
 
-  .msg.selecting {
-    border-color: rgba(111,168,255,.4);
-    box-shadow: 0 0 0 2px rgba(111,168,255,.14);
-  }
+  /* чип */
+  .chip { display:inline-flex; align-items:baseline; gap:3px; vertical-align:middle; margin:2px 3px; padding:4px 10px 5px; border-radius:10px; transition:.15s; cursor:pointer; user-select:none; font-size:22px; line-height:1; }
+  .chip:active { transform:scale(.95); }
+  .chip .word { display:none; font-size:14px; color:#6b6b7b; margin-left:2px; }
+  body.words-mode .chip .word { display:inline; }
 
-  .msg-body {
-    font-size: 17px;
-    line-height: 2;
-    word-break: break-word;
-  }
+  .chip.sym { background:rgba(111,168,255,.16); color:#6fa8ff; border:1px solid rgba(111,168,255,.28); }
+  .chip.sym.has-word .word { color:#6fa8ff; opacity:.8; }
+  .chip.sym.has-word .word::before { content:':'; margin-right:1px; }
 
-  /* смайл-чип */
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    vertical-align: middle;
-    margin: 0 1px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 22px;
-    line-height: 1.2;
-    min-width: 30px;
-    transition: background .15s, transform .12s, border-color .15s, box-shadow .15s;
-    cursor: pointer;
-    background: rgba(111,168,255,.14);
-    color: var(--accent);
-    user-select: none;
-  }
-  .chip:active { transform: scale(.94); }
+  .chip.new { background:rgba(255,180,111,.16); color:#ffb46f; border:1px dashed rgba(255,180,111,.55); }
+  .chip.new .word { color:#ffb46f; opacity:.95; display:inline; margin-left:0; }
+  .chip.new .q { font-size:16px; font-weight:700; margin-right:3px; opacity:.9; }
 
-  .chip.word {
-    font-size: 15px;
-    padding: 3px 10px;
-    font-weight: 500;
-    letter-spacing: .01em;
-  }
-  .chip.empty-emoji {
-    background: transparent;
-    border: 1px dashed var(--border);
-    color: var(--muted);
-  }
-  .chip.empty-emoji::after {
-    content: '+';
-    font-size: 10px;
-    margin-left: 3px;
-    opacity: .8;
-  }
-  .chip.group {
-    position: relative;
-    padding-right: 22px;
-    background: rgba(111,168,255,.22);
-  }
-  .chip.group::after {
-    content: attr(data-count);
-    position: absolute;
-    right: 3px;
-    top: 50%;
-    transform: translateY(-50%) translateY(-1px);
-    background: var(--accent);
-    color: #06111f;
-    font-size: 10px;
-    font-weight: 700;
-    min-width: 15px;
-    height: 15px;
-    line-height: 15px;
-    padding: 0 3px;
-    border-radius: 8px;
-    text-align: center;
-    letter-spacing: 0;
-  }
-  .chip.selected {
-    background: rgba(111,168,255,.45);
-    color: #fff;
-    box-shadow: 0 0 0 2px rgba(111,168,255,.5);
-  }
-  .chip.selectable { cursor: pointer; }
-  .chip.selectable:active { transform: scale(.94); }
+  /* ===== нижняя панель ===== */
+  .bottom-panel { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:600px; background:#14141c; border-top:1px solid #262633; padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); display:flex; flex-direction:column; gap:8px; z-index:50; }
+  .bottom-row { display:flex; gap:8px; align-items:center; }
+  .bottom-btn { flex:1; height:44px; border-radius:14px; border:1px solid #262633; background:#1a1a24; font-size:14px; font-weight:600; color:#e8e8f0; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:5px; font-family:inherit; }
+  .bottom-btn:active { transform:scale(.96); background:#22222e; }
+  .bottom-btn.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .bottom-btn.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
+  .bottom-btn.on { background:#6fa8ff; color:#06111f; border-color:transparent; }
 
-  .raw {
-    display: inline;
-    vertical-align: middle;
-    line-height: inherit;
-  }
+  /* ===== модалки ===== */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .modal { background:#1e1e2a; border:1px solid #262633; border-radius:22px; padding:20px; width:100%; max-width:380px; display:flex; flex-direction:column; gap:12px; }
+  .modal h3 { font-size:17px; font-weight:600; color:#e8e8f0; }
+  .modal .hint { font-size:12px; color:#6b6b7b; line-height:1.4; }
+  .modal .err { color:#ff8f8f; font-size:12px; min-height:16px; }
 
-  /* действия сообщения */
-  .msg-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 6px;
-    margin-top: 6px;
-    min-height: 30px;
-  }
-  .msg-btn {
-    padding: 5px 10px;
-    border-radius: 8px;
-    font-size: 12px;
-    color: var(--muted);
-    transition: background .15s, color .15s;
-  }
-  .msg-btn:active { background: rgba(255,255,255,.06); color: var(--fg); }
-  .msg-btn.primary {
-    color: var(--accent);
-    background: rgba(111,168,255,.14);
-  }
-  .msg-btn.primary:active { background: rgba(111,168,255,.28); }
-  .msg-btn:disabled { opacity: .35; }
+  .token-preview { display:flex; align-items:center; justify-content:center; gap:10px; padding:16px 0; flex-wrap:wrap; }
+  .token-preview .big { font-size:56px; letter-spacing:4px; line-height:1; }
+  .token-preview .eq { color:#6b6b7b; font-size:22px; }
+  .token-preview .label { color:#e8e8f0; font-size:20px; max-width:200px; text-align:center; word-break:break-word; }
 
-  .feed-empty {
-    text-align: center;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.7;
-    padding: 60px 20px;
-    white-space: pre-line;
-  }
+  .emoji-input { padding:14px; border:1px solid #262633; border-radius:14px; font-size:32px; outline:none; background:#14141c; color:#e8e8f0; text-align:center; letter-spacing:6px; min-height:62px; font-family:inherit; }
+  .emoji-input:focus { border-color:#6fa8ff; }
+  .emoji-input.error { border-color:#ff3b30; animation:shake .3s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
 
-  /* ==== композер ==== */
-  .composer {
-    flex: none;
-    background: var(--bg);
-    border-top: 1px solid var(--border);
-    padding: 10px var(--pad) calc(var(--safe-bottom) + 12px);
-  }
+  .text-input { padding:12px 14px; border:1px solid #262633; border-radius:14px; font-size:15px; outline:none; background:#14141c; color:#e8e8f0; font-family:inherit; }
+  .text-input:focus { border-color:#6fa8ff; }
 
-  .draft {
-    display: none;
-    flex-wrap: wrap;
-    gap: 2px;
-    align-items: center;
-    padding: 8px 10px;
-    margin-bottom: 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    font-size: 17px;
-    line-height: 2;
-    min-height: 42px;
-  }
-  .draft.visible { display: flex; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; }
+  .modal-actions button { padding:10px 18px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .modal-actions button.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
 
-  .composer-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
+  .hidden { display:none !important; }
 
-  .composer-input {
-    flex: 1;
-    min-width: 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 13px 16px;
-    outline: none;
-    font-size: 16px;
-    transition: border-color .15s;
-  }
-  .composer-input:focus { border-color: var(--accent); }
+  .toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 90px); transform:translate(-50%, 20px); z-index:500; background:#22222f; border:1px solid #262633; padding:11px 18px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .22s, transform .22s; pointer-events:none; max-width:86vw; text-align:center; color:#e8e8f0; }
+  .toast.show { opacity:1; transform:translate(-50%, 0); }
 
-  .send-btn {
-    flex: none;
-    width: 48px; height: 48px;
-    border-radius: 14px;
-    background: var(--accent);
-    color: #06111f;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; font-weight: 700;
-    transition: transform .12s, opacity .15s;
-  }
-  .send-btn:active { transform: scale(.94); }
-  .send-btn:disabled { opacity: .35; }
+  .empty-note { text-align:center; color:#6b6b7b; font-size:14px; padding:60px 20px; line-height:1.7; white-space:pre-line; }
 
-  /* ==== sheet ==== */
-  .backdrop {
-    position: fixed; inset: 0; background: rgba(0,0,0,.62);
-    opacity: 0; transition: opacity .25s;
-  }
-  .backdrop.show { opacity: 1; }
-  .sheet {
-    position: fixed; left: 0; right: 0; bottom: 0;
-    background: var(--surface-2);
-    border-radius: 24px 24px 0 0;
-    padding: 8px var(--pad) calc(var(--safe-bottom) + 20px);
-    transform: translateY(102%);
-    transition: transform .28s cubic-bezier(.22, 1, .36, 1);
-    max-height: 90vh;
-    display: flex; flex-direction: column;
-    box-shadow: 0 -10px 40px rgba(0,0,0,.55);
-  }
-  .sheet.show { transform: translateY(0); }
-  .sheet-handle {
-    flex: none; width: 40px; height: 4px; border-radius: 2px;
-    background: #35354a; margin: 6px auto 14px;
-  }
-  .sheet-body { overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
-  .sheet-title { font-size: 17px; font-weight: 600; margin: 0 0 14px; }
-  .sheet-text { font-size: 15px; line-height: 1.5; opacity: .85; margin: 0 0 18px; }
-
-  /* hero карточки символа */
-  .sym-hero {
-    text-align: center;
-    padding: 6px 0 16px;
-  }
-  .sym-hero .big {
-    display: inline-block;
-    padding: 8px 22px;
-    font-size: 52px;
-    line-height: 1.2;
-    background: rgba(111,168,255,.14);
-    border-radius: 20px;
-    font-weight: 600;
-    word-break: break-word;
-    letter-spacing: 2px;
-    min-width: 80px;
-  }
-  .sym-hero .big.word {
-    font-size: 24px;
-    letter-spacing: 0;
-    padding: 12px 22px;
-  }
-  .sym-hero .big.empty {
-    background: transparent;
-    border: 1px dashed var(--border);
-    color: var(--muted);
-    font-size: 24px;
-    padding: 12px 22px;
-  }
-
-  .form-row { margin-bottom: 14px; }
-  .form-label {
-    display: block; font-size: 12px; color: var(--muted);
-    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px;
-  }
-  .text-input {
-    width: 100%; background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r-sm); padding: 12px 14px; outline: none;
-    resize: none; transition: border-color .15s;
-  }
-  .text-input:focus { border-color: var(--accent); }
-  .text-input.emoji-input {
-    font-size: 26px;
-    letter-spacing: 3px;
-    min-height: 56px;
-  }
-
-  .block-title {
-    font-size: 12px; color: var(--muted); text-transform: uppercase;
-    letter-spacing: .07em; margin: 18px 0 10px;
-  }
-
-  .chips-line {
-    display: flex; flex-wrap: wrap; gap: 6px;
-  }
-
-  .mini-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 10px 6px 12px;
-    border-radius: 999px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    font-size: 15px;
-    transition: background .15s, border-color .15s;
-  }
-  .mini-chip:active { background: var(--surface-2); border-color: var(--accent); }
-  .mini-chip.emoji { font-size: 20px; padding: 4px 10px; }
-  .mini-chip .x {
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-    color: var(--muted);
-    background: rgba(255,255,255,.05);
-    transition: background .15s, color .15s;
-  }
-  .mini-chip .x:active { background: rgba(255,90,90,.2); color: var(--danger); }
-
-  .occ-list { display: flex; flex-direction: column; gap: 6px; }
-  .occ-item {
-    padding: 10px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    font-size: 14px;
-    line-height: 1.45;
-    color: var(--fg);
-    opacity: .9;
-    text-align: left;
-    word-break: break-word;
-  }
-  .occ-item .mark {
-    color: var(--accent);
-    font-weight: 600;
-    background: rgba(111,168,255,.14);
-    padding: 1px 6px;
-    border-radius: 6px;
-  }
-  .occ-empty {
-    color: var(--muted);
-    font-size: 13px;
-    font-style: italic;
-    padding: 4px 0;
-  }
-
-  .hint {
-    font-size: 12px; color: var(--muted);
-    margin-top: 6px; line-height: 1.4;
-  }
-
-  .btn {
-    display: flex; align-items: center; justify-content: center;
-    padding: 15px 22px; border-radius: var(--r);
-    font-size: 16px; font-weight: 600; width: 100%;
-    transition: transform .12s;
-  }
-  .btn:active { transform: scale(.98); }
-  .btn-primary { background: var(--accent); color: #06111f; }
-  .btn-ghost { background: var(--surface); color: var(--fg); border: 1px solid var(--border); }
-  .btn-danger { background: rgba(255,90,90,.14); color: var(--danger); border: 1px solid rgba(255,90,90,.3); }
-  .btn-row { display: flex; gap: 10px; }
-  .btn-row .btn { flex: 1; }
-
-  .group-preview {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-    gap: 6px; padding: 14px;
-    background: var(--surface);
-    border: 1px dashed var(--border);
-    border-radius: 14px;
-    margin-bottom: 16px;
-    font-size: 24px;
-  }
-  .group-preview .plus {
-    color: var(--muted);
-    font-size: 18px;
-    margin: 0 2px;
-  }
-
-  .space-12 { height: 12px; }
-
-  .toast {
-    position: fixed; left: 50%; bottom: calc(var(--safe-bottom) + 96px);
-    transform: translate(-50%, 20px); z-index: 500;
-    background: #22222f; border: 1px solid var(--border);
-    padding: 11px 18px; border-radius: 999px; font-size: 14px;
-    opacity: 0; transition: opacity .22s, transform .22s;
-    pointer-events: none; max-width: 86vw; text-align: center;
-  }
-  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  /* словарь */
+  .dict-chip { display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; background:#14141c; border:1px solid #262633; font-size:22px; cursor:pointer; font-family:inherit; color:#e8e8f0; transition:.15s; }
+  .dict-chip:active { background:#22222e; border-color:#6fa8ff; }
+  .dict-chip .w { font-size:13px; color:#6fa8ff; }
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app">
+  <header class="top-bar">
+    <div class="crumbs" id="crumbs"></div>
+    <button class="icon-btn" id="exportBtn" title="Экспорт">📤</button>
+  </header>
+
+  <div class="main" id="daysView"></div>
+
+  <div class="main hidden" id="dayView">
+    <div class="editor-wrap">
+      <textarea id="editor" class="editor" placeholder="Пиши слова или смайлы…"></textarea>
+    </div>
+    <div class="preview-wrap">
+      <div class="preview-label">Предпросмотр</div>
+      <div class="preview-text" id="previewText"></div>
+    </div>
+  </div>
+
+  <div class="bottom-panel" id="bottomPanel">
+    <div class="bottom-row" id="rowDays">
+      <button class="bottom-btn primary" id="addDayBtn">+ День</button>
+      <button class="bottom-btn danger" id="clearBtn" style="flex:0 0 auto; padding:0 20px;">🗑</button>
+    </div>
+    <div class="bottom-row hidden" id="rowEditor">
+      <button class="bottom-btn" id="wordsModeBtn">📝 Слова</button>
+      <button class="bottom-btn" id="dictionaryBtn">📖 Словарь</button>
+    </div>
+  </div>
+
+  <div id="symModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="symModalTitle">Добавить</h3>
+      <div class="token-preview" id="tokenPreview"></div>
+      <input id="symWordInput" class="text-input" placeholder="Что это значит" autocomplete="off">
+      <input id="symCharInput" class="emoji-input hidden" placeholder="😀" autocomplete="off" spellcheck="false">
+      <div class="hint" id="symHint"></div>
+      <div class="err" id="symErr"></div>
+      <div class="modal-actions">
+        <button id="symCancelBtn">Отмена</button>
+        <button id="symSaveBtn" class="primary">Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dictModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>📖 Словарь</h3>
+      <div class="hint">Все символы. Тап — удалить.</div>
+      <div id="dictList" style="max-height:50vh; overflow-y:auto; display:flex; flex-wrap:wrap; gap:6px;"></div>
+      <div class="modal-actions">
+        <button id="dictCloseBtn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="confirmTitle">Удалить?</h3>
+      <div class="hint" id="confirmText"></div>
+      <div class="modal-actions">
+        <button id="confirmCancelBtn">Отмена</button>
+        <button id="confirmOkBtn" class="primary" style="background:rgba(255,90,90,.85); color:#fff;">Удалить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   'use strict';
 
-  /* =========================================================
-     КОНСТАНТЫ
-     ========================================================= */
-  const STORAGE_KEY = 'tvoi_ubezhdeniya_v4';
-  const SHEET_ANIM_MS = 300;
+  const STORAGE_KEY = 'ubezhdeniya_v7';
   const TOAST_MS = 2200;
+  const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const MAX_NGRAM = 3;
 
-  /* =========================================================
-     УТИЛИТЫ
-     ========================================================= */
-  function el(tag, cls, text) {
-    const n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  }
-  function uid() {
-    return 'x_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
-  }
+  /* ===== утилиты ===== */
+  function uid() { return 'x_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
   function nowIso() { return new Date().toISOString(); }
-
-  function normalizeKey(s) {
-    return String(s == null ? '' : s).trim().toLowerCase();
-  }
-
-  function isEmojiLike(g) {
-    if (!g) return false;
-    if (/[\p{L}\p{N}]/u.test(g)) return false;
-    if (/^\s+$/u.test(g)) return false;
-    // пунктуация — не эмодзи
-    if (/^[!"#$%&'()*+,\-.\/:;<=>?@\[\\\]^_`{|}~«»„""…–—]+$/u.test(g) && g.length <= 3) return false;
-    return true;
-  }
 
   function splitGraphemes(str) {
     const s = String(str == null ? '' : str);
@@ -485,912 +195,605 @@
     return Array.from(s);
   }
 
-  /**
-   * Токенизация. Возвращает массив:
-   * { type: 'word'|'emoji'|'space'|'punct', text }
-   */
-  function tokenize(text) {
-    const graphemes = splitGraphemes(text);
-    const tokens = [];
-    let wordBuf = '';
-    function flushWord() {
-      if (wordBuf) { tokens.push({ type: 'word', text: wordBuf }); wordBuf = ''; }
-    }
-    for (let i = 0; i < graphemes.length; i++) {
-      const g = graphemes[i];
-      if (/^\s+$/u.test(g)) {
-        flushWord();
-        tokens.push({ type: 'space', text: g });
-      } else if (/^[\p{L}\p{N}#@_]+$/u.test(g)) {
-        wordBuf += g;
-      } else if (isEmojiLike(g)) {
-        flushWord();
-        tokens.push({ type: 'emoji', text: g });
-      } else {
-        flushWord();
-        tokens.push({ type: 'punct', text: g });
-      }
-    }
-    flushWord();
-    return tokens;
+  function isEmojiGrapheme(g) {
+    if (!g) return false;
+    if (/^\s+$/u.test(g)) return false;
+    if (/[\p{L}\p{N}]/u.test(g)) return false;
+    if (/^[!"#$%&'()*+,\-.\/:;<=>?@\[\\\]^_`{|}~«»„""…–—]+$/u.test(g) && g.length <= 3) return false;
+    return true;
   }
 
-  /* =========================================================
-     ХРАНИЛИЩЕ
-     ========================================================= */
+  function isEmojiOnly(text) {
+    const s = String(text == null ? '' : text).trim();
+    if (!s) return false;
+    const g = splitGraphemes(s);
+    for (let i = 0; i < g.length; i++) if (!isEmojiGrapheme(g[i])) return false;
+    return true;
+  }
+
+  function formatDate(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso || '');
+    const pad = n => String(n).padStart(2, '0');
+    return pad(d.getDate()) + ' ' + (MONTHS[d.getMonth()] || '') + ' ' + d.getFullYear() +
+      ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  /* ===== toast ===== */
+  let toastEl = null, toastTimer = null;
+  function toast(msg) {
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+    toastEl.textContent = msg;
+    requestAnimationFrame(() => toastEl.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), TOAST_MS);
+  }
+
+  /* ===== confirm ===== */
+  function askConfirm(title, text, onOk) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = text;
+    const m = document.getElementById('confirmModal');
+    m.classList.remove('hidden');
+    const ok = document.getElementById('confirmOkBtn');
+    const cancel = document.getElementById('confirmCancelBtn');
+    function cleanup() { m.classList.add('hidden'); ok.removeEventListener('click', onOkH); cancel.removeEventListener('click', onCancelH); }
+    function onOkH() { cleanup(); onOk(); }
+    function onCancelH() { cleanup(); }
+    ok.addEventListener('click', onOkH);
+    cancel.addEventListener('click', onCancelH);
+  }
+
+  /* ===== store ===== */
   const Store = (function () {
     let state = null;
-    let storageOk = true;
-
-    function emptyState() { return { symbols: [], messages: [] }; }
-
-    function read() {
-      try { return window.localStorage.getItem(STORAGE_KEY); }
-      catch (e) { storageOk = false; return null; }
-    }
-    function write(v) {
-      try { window.localStorage.setItem(STORAGE_KEY, v); }
-      catch (e) { storageOk = false; }
-    }
+    let ok = true;
+    function empty() { return { symbols: [], days: [] }; }
+    function read() { try { return localStorage.getItem(STORAGE_KEY); } catch (e) { ok = false; return null; } }
+    function write(v) { try { localStorage.setItem(STORAGE_KEY, v); } catch (e) { ok = false; } }
     function load() {
       const raw = read();
-      if (!raw) { state = emptyState(); return; }
-      let parsed = null;
-      try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
-      if (!parsed || typeof parsed !== 'object') { state = emptyState(); return; }
-      state = {
-        symbols: Array.isArray(parsed.symbols) ? parsed.symbols : [],
-        messages: Array.isArray(parsed.messages) ? parsed.messages : []
-      };
+      if (!raw) { state = empty(); return; }
+      try {
+        const p = JSON.parse(raw);
+        state = {
+          symbols: Array.isArray(p.symbols) ? p.symbols : [],
+          days: Array.isArray(p.days) ? p.days : []
+        };
+      } catch (e) { state = empty(); }
     }
     function save() { write(JSON.stringify(state)); }
     function get() { return state; }
-    function isOk() { return storageOk; }
+    function isOk() { return ok; }
     return { load, save, get, isOk };
   })();
 
-  /* =========================================================
-     СИМВОЛЫ
-     ========================================================= */
-  function getSymbol(id) {
+  /* ===== symbols DB ===== */
+  function findByChar(ch) {
+    const c = String(ch || '').trim();
+    if (!c) return null;
     const list = Store.get().symbols;
-    for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    for (let i = 0; i < list.length; i++) if (list[i].char === c) return list[i];
     return null;
   }
-
-  function findSymbolByWord(word) {
-    const key = normalizeKey(word);
-    if (!key) return null;
+  function findByWord(w) {
+    const k = String(w || '').trim().toLowerCase();
+    if (!k) return null;
     const list = Store.get().symbols;
-    for (let i = 0; i < list.length; i++) {
-      if (normalizeKey(list[i].word) === key) return list[i];
+    for (let i = 0; i < list.length; i++) if ((list[i].word || '').toLowerCase() === k) return list[i];
+    return null;
+  }
+  function getSymbolById(id) {
+    return Store.get().symbols.find(s => s.id === id) || null;
+  }
+  function addSymbol(char, word) {
+    char = String(char || '').trim();
+    word = String(word || '').trim();
+    if (!char) return null;
+    const byChar = findByChar(char);
+    if (byChar) {
+      if (word && !byChar.word) byChar.word = word;
+      Store.save();
+      return byChar;
     }
-    return null;
-  }
-
-  function findSymbolByEmoji(emoji) {
-    const e = String(emoji || '').trim();
-    if (!e) return null;
-    const list = Store.get().symbols;
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].emoji === e) return list[i];
+    const byWord = word ? findByWord(word) : null;
+    if (byWord) {
+      byWord.char = char;
+      Store.save();
+      return byWord;
     }
-    return null;
-  }
-
-  function createSymbol(opts) {
-    const s = {
-      id: uid(),
-      emoji: String(opts.emoji || '').trim(),
-      word: String(opts.word || '').trim(),
-      definition: String(opts.definition || ''),
-      children: [],
-      parents: [],
-      created: nowIso()
-    };
+    const s = { id: uid(), char, word, created: nowIso() };
     Store.get().symbols.push(s);
-    return s;
-  }
-
-  /**
-   * Находит или создаёт символ для токена.
-   * Если токен — слово и уже есть символ с таким словом → возвращает его.
-   * Если токен — эмодзи и уже есть символ с таким эмодзи → возвращает его.
-   * Иначе — создаёт новый с этим полем.
-   */
-  function resolveTokenSymbol(token) {
-    if (token.type === 'word') {
-      const byWord = findSymbolByWord(token.text);
-      if (byWord) return byWord;
-      // на всякий случай — вдруг кто-то ввёл эмодзи как "слово" (не бывает, но)
-      const created = createSymbol({ word: token.text });
-      return created;
-    }
-    if (token.type === 'emoji') {
-      const byEmoji = findSymbolByEmoji(token.text);
-      if (byEmoji) return byEmoji;
-      const created = createSymbol({ emoji: token.text });
-      return created;
-    }
-    return null;
-  }
-
-  function updateSymbol(id, patch) {
-    const s = getSymbol(id);
-    if (!s) return null;
-    if (patch.emoji !== undefined) s.emoji = String(patch.emoji || '').trim();
-    if (patch.word !== undefined) s.word = String(patch.word || '').trim();
-    if (patch.definition !== undefined) s.definition = String(patch.definition || '');
     Store.save();
     return s;
   }
-
   function deleteSymbol(id) {
-    // отвязать от родителей и детей
-    const s = getSymbol(id);
-    if (!s) return;
-    s.parents.slice().forEach(function (pid) {
-      const p = getSymbol(pid);
-      if (p) {
-        const i = p.children.indexOf(id);
-        if (i !== -1) p.children.splice(i, 1);
-      }
-    });
-    s.children.slice().forEach(function (cid) {
-      const c = getSymbol(cid);
-      if (c) {
-        const i = c.parents.indexOf(id);
-        if (i !== -1) c.parents.splice(i, 1);
-      }
-    });
-    // удалить из сообщений
-    Store.get().messages.forEach(function (m) {
-      m.itemIds = m.itemIds.filter(function (x) { return x !== id; });
-    });
-    // удалить символ
-    const list = Store.get().symbols;
-    for (let i = list.length - 1; i >= 0; i--) {
-      if (list[i].id === id) list.splice(i, 1);
-    }
-    // удалить пустые сообщения
-    Store.get().messages = Store.get().messages.filter(function (m) { return m.itemIds.length > 0; });
+    Store.get().symbols = Store.get().symbols.filter(s => s.id !== id);
     Store.save();
   }
 
-  function linkChild(parentId, childId) {
-    if (!parentId || !childId || parentId === childId) return;
-    const p = getSymbol(parentId), c = getSymbol(childId);
-    if (!p || !c) return;
-    if (p.children.indexOf(childId) === -1) p.children.push(childId);
-    if (c.parents.indexOf(parentId) === -1) c.parents.push(parentId);
-  }
-
-  function unlinkChild(parentId, childId) {
-    const p = getSymbol(parentId), c = getSymbol(childId);
-    if (p) {
-      const i = p.children.indexOf(childId);
-      if (i !== -1) p.children.splice(i, 1);
-    }
-    if (c) {
-      const i = c.parents.indexOf(parentId);
-      if (i !== -1) c.parents.splice(i, 1);
-    }
-  }
-
-  function getChildren(sym) {
-    if (!sym) return [];
-    return sym.children.map(getSymbol).filter(Boolean);
-  }
-
-  function getParents(sym) {
-    if (!sym) return [];
-    return sym.parents.map(getSymbol).filter(Boolean);
-  }
-
-  /* =========================================================
-     СООБЩЕНИЯ
-     ========================================================= */
-  function createMessage(text) {
-    const t = String(text || '').trim();
-    if (!t) return null;
-    const tokens = tokenize(t);
-    const itemIds = [];
-    tokens.forEach(function (tok) {
-      if (tok.type === 'word' || tok.type === 'emoji') {
-        const s = resolveTokenSymbol(tok);
-        if (s) itemIds.push(s.id);
-      }
-    });
-    if (!itemIds.length) return null;
-    const msg = { id: uid(), itemIds: itemIds, created: nowIso() };
-    Store.get().messages.push(msg);
+  /* ===== days ===== */
+  function createDay() {
+    const day = { id: uid(), created: nowIso(), text: '' };
+    Store.get().days.unshift(day);
     Store.save();
-    return msg;
+    return day;
+  }
+  function getDay(id) { return Store.get().days.find(d => d.id === id) || null; }
+  function updateDayText(id, text) {
+    const d = getDay(id);
+    if (!d) return;
+    d.text = text;
+    Store.save();
+  }
+  function deleteDay(id) {
+    Store.get().days = Store.get().days.filter(d => d.id !== id);
+    Store.save();
   }
 
-  function getMessage(id) {
-    const list = Store.get().messages;
-    for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
-    return null;
-  }
-
-  function deleteMessage(id) {
-    const list = Store.get().messages;
-    for (let i = list.length - 1; i >= 0; i--) {
-      if (list[i].id === id) { list.splice(i, 1); Store.save(); return true; }
+  /* ===== tokenize ===== */
+  function extractUnits(text) {
+    const graphemes = splitGraphemes(text);
+    const units = [];
+    let wordBuf = '';
+    function flush() { if (wordBuf) { units.push({ type: 'word', text: wordBuf }); wordBuf = ''; } }
+    for (let i = 0; i < graphemes.length; i++) {
+      const g = graphemes[i];
+      if (/^\s+$/u.test(g)) { flush(); units.push({ type: 'space', text: g }); }
+      else if (/^[\p{L}\p{N}#@_]+$/u.test(g)) wordBuf += g;
+      else if (isEmojiGrapheme(g)) { flush(); units.push({ type: 'emoji', text: g }); }
+      else { flush(); units.push({ type: 'punct', text: g }); }
     }
-    return false;
+    flush();
+    return units;
   }
 
   /**
-   * Собирает сообщение обратно в текст (для отображения в списке «где встречается»).
+   * Возвращает токены с полем `type`:
+   *  {type:'raw', text}
+   *  {type:'new-emoji', char}
+   *  {type:'new-word', word}
+   *  {type:'existing', symbolId, fallbackText}
    */
-  function messageToText(msg) {
-    if (!msg) return '';
-    const parts = [];
-    msg.itemIds.forEach(function (id) {
-      const s = getSymbol(id);
-      if (!s) return;
-      parts.push(s.emoji || s.word || '·');
-    });
-    return parts.join(' ');
-  }
+  function resolveTokens(text) {
+    const units = extractUnits(text);
+    const sigIdx = [];
+    units.forEach((u, i) => { if (u.type === 'word' || u.type === 'emoji') sigIdx.push(i); });
 
-  function findOccurrences(symId) {
-    const result = [];
-    Store.get().messages.forEach(function (m) {
-      if (m.itemIds.indexOf(symId) !== -1) result.push(m);
-    });
-    return result;
-  }
+    const assignments = new Array(sigIdx.length).fill(null);
+    let si = 0;
 
-  /* =========================================================
-     UI: TOAST, SHEET
-     ========================================================= */
-  let toastEl = null, toastTimer = null;
-  function toast(msg) {
-    if (!toastEl) { toastEl = el('div', 'toast'); document.body.appendChild(toastEl); }
-    toastEl.textContent = msg;
-    requestAnimationFrame(function () { toastEl.classList.add('show'); });
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, TOAST_MS);
-  }
-
-  let sheetZ = 200;
-  function openSheet(content) {
-    const z = sheetZ; sheetZ += 2;
-    const backdrop = el('div', 'backdrop'); backdrop.style.zIndex = String(z);
-    const sheet = el('div', 'sheet'); sheet.style.zIndex = String(z + 1);
-    sheet.appendChild(el('div', 'sheet-handle'));
-    const body = el('div', 'sheet-body'); body.appendChild(content);
-    sheet.appendChild(body);
-    document.body.appendChild(backdrop);
-    document.body.appendChild(sheet);
-    requestAnimationFrame(function () {
-      backdrop.classList.add('show'); sheet.classList.add('show');
-    });
-    let closed = false;
-    function close() {
-      if (closed) return; closed = true;
-      backdrop.classList.remove('show'); sheet.classList.remove('show');
-      setTimeout(function () { backdrop.remove(); sheet.remove(); }, SHEET_ANIM_MS);
-    }
-    backdrop.addEventListener('click', close);
-    return { close };
-  }
-
-  function openConfirm(opts) {
-    const form = el('div');
-    form.appendChild(el('div', 'sheet-title', opts.title || 'Удалить?'));
-    form.appendChild(el('div', 'sheet-text', opts.text || ''));
-    const btnRow = el('div', 'btn-row');
-    const cancelBtn = el('button', 'btn btn-ghost', 'Отмена');
-    const okBtn = el('button', 'btn btn-danger', opts.okText || 'Удалить');
-    btnRow.appendChild(cancelBtn); btnRow.appendChild(okBtn);
-    form.appendChild(btnRow);
-    const sheet = openSheet(form);
-    cancelBtn.addEventListener('click', function () { sheet.close(); });
-    okBtn.addEventListener('click', function () {
-      sheet.close();
-      if (typeof opts.onOk === 'function') opts.onOk();
-    });
-  }
-
-  /* =========================================================
-     СОСТОЯНИЕ
-     ========================================================= */
-  const STATE = {
-    selection: {}   // { [messageId]: Set<index> } — присутствие ключа = режим выбора
-  };
-
-  /* =========================================================
-     КАРТОЧКА СИМВОЛА
-     ========================================================= */
-  function openSymbolCard(symId) {
-    const sym = getSymbol(symId);
-    if (!sym) return;
-
-    const form = el('div');
-
-    // hero
-    const hero = el('div', 'sym-hero');
-    const big = el('span', 'big');
-    if (sym.emoji) {
-      big.textContent = sym.emoji;
-    } else if (sym.word) {
-      big.classList.add('word');
-      big.textContent = sym.word;
-    } else {
-      big.classList.add('empty');
-      big.textContent = '·';
-    }
-    hero.appendChild(big);
-    form.appendChild(hero);
-
-    // emoji
-    const emRow = el('div', 'form-row');
-    emRow.appendChild(el('div', 'form-label', 'Смайл'));
-    const emInput = document.createElement('input');
-    emInput.type = 'text';
-    emInput.className = 'text-input emoji-input';
-    emInput.placeholder = '😀';
-    emInput.autocomplete = 'off';
-    emInput.spellcheck = false;
-    emInput.value = sym.emoji;
-    emRow.appendChild(emInput);
-    emRow.appendChild(el('div', 'hint', 'Набери или вставь смайл со своей клавиатуры.'));
-    form.appendChild(emRow);
-
-    // word
-    const wordRow = el('div', 'form-row');
-    wordRow.appendChild(el('div', 'form-label', 'Слово'));
-    const wordInput = document.createElement('input');
-    wordInput.type = 'text';
-    wordInput.className = 'text-input';
-    wordInput.placeholder = 'что это значит';
-    wordInput.autocomplete = 'off';
-    wordInput.value = sym.word;
-    wordRow.appendChild(wordInput);
-    form.appendChild(wordRow);
-
-    // definition
-    const defRow = el('div', 'form-row');
-    defRow.appendChild(el('div', 'form-label', 'Описание'));
-    const defInput = document.createElement('textarea');
-    defInput.className = 'text-input';
-    defInput.rows = 3;
-    defInput.placeholder = 'необязательно';
-    defInput.value = sym.definition;
-    defRow.appendChild(defInput);
-    form.appendChild(defRow);
-
-    // children
-    form.appendChild(el('div', 'block-title', 'Из чего состоит'));
-    const childrenLine = el('div', 'chips-line');
-    form.appendChild(childrenLine);
-
-    function refreshChildren() {
-      childrenLine.textContent = '';
-      const kids = getChildren(sym);
-      kids.forEach(function (k) {
-        const chip = el('button', 'mini-chip' + (k.emoji ? ' emoji' : ''));
-        chip.appendChild(el('span', '', k.emoji || k.word || '·'));
-        const x = el('span', 'x', '×');
-        x.addEventListener('click', function (e) {
-          e.stopPropagation();
-          unlinkChild(sym.id, k.id);
-          Store.save();
-          refreshChildren();
-          render();
-        });
-        chip.appendChild(x);
-        chip.addEventListener('click', function () {
-          sheet.close();
-          setTimeout(function () { openSymbolCard(k.id); }, 60);
-        });
-        childrenLine.appendChild(chip);
-      });
-      const addBtn = el('button', 'mini-chip');
-      addBtn.appendChild(el('span', '', '+ добавить'));
-      addBtn.addEventListener('click', function () {
-        sheet.close();
-        setTimeout(function () { openSymbolPicker(sym.id); }, 60);
-      });
-      childrenLine.appendChild(addBtn);
-    }
-    refreshChildren();
-
-    // parents
-    const parents = getParents(sym);
-    if (parents.length) {
-      form.appendChild(el('div', 'block-title', 'Входит в'));
-      const pc = el('div', 'chips-line');
-      parents.forEach(function (p) {
-        const chip = el('button', 'mini-chip' + (p.emoji ? ' emoji' : ''));
-        chip.appendChild(el('span', '', p.emoji || p.word || '·'));
-        chip.addEventListener('click', function () {
-          sheet.close();
-          setTimeout(function () { openSymbolCard(p.id); }, 60);
-        });
-        pc.appendChild(chip);
-      });
-      form.appendChild(pc);
-    }
-
-    // occurrences
-    const occ = findOccurrences(sym.id);
-    form.appendChild(el('div', 'block-title', 'Где встречается (' + occ.length + ')'));
-    if (!occ.length) {
-      form.appendChild(el('div', 'occ-empty', 'Пока нигде не встречается.'));
-    } else {
-      const list = el('div', 'occ-list');
-      occ.slice(0, 15).forEach(function (m) {
-        const item = el('div', 'occ-item');
-        m.itemIds.forEach(function (id, i) {
-          if (i > 0) item.appendChild(document.createTextNode(' '));
-          const s = getSymbol(id);
-          if (!s) return;
-          const display = s.emoji || s.word || '·';
-          if (s.id === sym.id) {
-            item.appendChild(el('span', 'mark', display));
-          } else {
-            item.appendChild(document.createTextNode(display));
-          }
-        });
-        list.appendChild(item);
-      });
-      form.appendChild(list);
-    }
-
-    // save + delete
-    const saveWrap = el('div');
-    saveWrap.style.marginTop = '20px';
-    const saveBtn = el('button', 'btn btn-primary', 'Сохранить');
-    saveBtn.addEventListener('click', function () {
-      updateSymbol(sym.id, {
-        emoji: emInput.value,
-        word: wordInput.value,
-        definition: defInput.value
-      });
-      Store.save();
-      sheet.close();
-      render();
-      toast('Сохранено');
-    });
-    saveWrap.appendChild(saveBtn);
-    form.appendChild(saveWrap);
-
-    const delWrap = el('div');
-    delWrap.style.marginTop = '10px';
-    const delBtn = el('button', 'btn btn-danger', 'Удалить символ');
-    delBtn.addEventListener('click', function () {
-      sheet.close();
-      openConfirm({
-        title: 'Удалить символ?',
-        text: '«' + (sym.emoji || sym.word || '·') + '» будет удалён из базы и всех сообщений.',
-        okText: 'Удалить',
-        onOk: function () { deleteSymbol(sym.id); render(); toast('Удалено'); }
-      });
-    });
-    delWrap.appendChild(delBtn);
-    form.appendChild(delWrap);
-
-    const sheet = openSheet(form);
-    setTimeout(function () { emInput.focus(); }, 320);
-  }
-
-  /* =========================================================
-     ПИКЕР СИМВОЛОВ
-     ========================================================= */
-  function openSymbolPicker(targetSymId) {
-    const target = getSymbol(targetSymId);
-    if (!target) return;
-
-    const form = el('div');
-    form.appendChild(el('div', 'sheet-title', 'Добавить в «' + (target.emoji || target.word || '·') + '»'));
-
-    // Исключаем target и его потомков
-    const excluded = new Set([targetSymId]);
-    const queue = [targetSymId];
-    while (queue.length) {
-      const cur = queue.shift();
-      const s = getSymbol(cur);
-      if (!s) continue;
-      s.children.forEach(function (cid) {
-        if (!excluded.has(cid)) { excluded.add(cid); queue.push(cid); }
-      });
-    }
-
-    const all = Store.get().symbols.filter(function (s) { return !excluded.has(s.id); });
-
-    if (!all.length) {
-      form.appendChild(el('div', 'occ-empty', 'Нет других символов. Напиши сообщение с ними.'));
-    } else {
-      const list = el('div', 'chips-line');
-      list.style.flexDirection = 'column';
-      list.style.gap = '6px';
-      all.forEach(function (s) {
-        const row = el('button', 'mini-chip');
-        row.style.width = '100%';
-        row.style.justifyContent = 'flex-start';
-        row.style.padding = '12px 14px';
-        row.style.borderRadius = '12px';
-        const sym = el('span', '', s.emoji || s.word || '·');
-        sym.style.fontSize = s.emoji ? '22px' : '15px';
-        sym.style.marginRight = '10px';
-        row.appendChild(sym);
-        if (s.word && s.emoji) {
-          row.appendChild(el('span', '', s.word));
-          row.lastChild.style.color = 'var(--muted)';
-          row.lastChild.style.fontSize = '14px';
+    while (si < sigIdx.length) {
+      let handled = false;
+      for (let n = MAX_NGRAM; n >= 1; n--) {
+        if (si + n > sigIdx.length) continue;
+        let ok = true;
+        for (let k = sigIdx[si] + 1; k < sigIdx[si + n - 1]; k++) {
+          if (units[k].type !== 'space') { ok = false; break; }
         }
-        row.addEventListener('click', function () {
-          linkChild(targetSymId, s.id);
-          Store.save();
-          sheet.close();
-          render();
-          setTimeout(function () { openSymbolCard(targetSymId); }, 60);
-        });
-        list.appendChild(row);
-      });
-      form.appendChild(list);
+        if (!ok) continue;
+
+        const parts = [];
+        for (let k = 0; k < n; k++) parts.push(units[sigIdx[si + k]].text);
+
+        if (n > 1) {
+          const phrase = parts.join(' ');
+          const byPhrase = findByWord(phrase);
+          if (byPhrase) {
+            assignments[si] = { size: n, out: { type: 'existing', symbolId: byPhrase.id } };
+            for (let k = 1; k < n; k++) assignments[si + k] = { skip: true };
+            si += n; handled = true; break;
+          }
+        }
+
+        if (n === 1) {
+          const tok = units[sigIdx[si]];
+          if (tok.type === 'emoji') {
+            const byChar = findByChar(tok.text);
+            if (byChar) assignments[si] = { size: 1, out: { type: 'existing', symbolId: byChar.id } };
+            else assignments[si] = { size: 1, out: { type: 'new-emoji', char: tok.text } };
+          } else {
+            const byWord = findByWord(tok.text);
+            if (byWord) assignments[si] = { size: 1, out: { type: 'existing', symbolId: byWord.id } };
+            else assignments[si] = { size: 1, out: { type: 'new-word', word: tok.text } };
+          }
+          si += 1; handled = true; break;
+        }
+      }
+      if (!handled) si += 1;
     }
 
-    const sheet = openSheet(form);
-  }
-
-  /* =========================================================
-     ДИАЛОГ ГРУППЫ
-     ========================================================= */
-  function openGroupDialog(messageId, indices) {
-    const msg = getMessage(messageId);
-    if (!msg) return;
-    const sorted = indices.slice().sort(function (a, b) { return a - b; });
-    const selectedSymbols = sorted.map(function (i) { return getSymbol(msg.itemIds[i]); }).filter(Boolean);
-
-    const form = el('div');
-    form.appendChild(el('div', 'sheet-title', 'Новая группа'));
-
-    // preview
-    const preview = el('div', 'group-preview');
-    selectedSymbols.forEach(function (s, i) {
-      if (i > 0) preview.appendChild(el('span', 'plus', '+'));
-      preview.appendChild(el('span', '', s.emoji || s.word || '·'));
-    });
-    preview.appendChild(el('span', 'plus', '→'));
-    const resultSpan = el('span', '', '🆕');
-    resultSpan.style.opacity = '.5';
-    preview.appendChild(resultSpan);
-    form.appendChild(preview);
-
-    // emoji
-    const emRow = el('div', 'form-row');
-    emRow.appendChild(el('div', 'form-label', 'Смайл группы'));
-    const emInput = document.createElement('input');
-    emInput.type = 'text';
-    emInput.className = 'text-input emoji-input';
-    emInput.placeholder = '🕺';
-    emInput.autocomplete = 'off';
-    emInput.spellcheck = false;
-    emInput.addEventListener('input', function () {
-      resultSpan.textContent = emInput.value.trim() || '🆕';
-      resultSpan.style.opacity = emInput.value.trim() ? '1' : '.5';
-    });
-    emRow.appendChild(emInput);
-    form.appendChild(emRow);
-
-    // word
-    const wordRow = el('div', 'form-row');
-    wordRow.appendChild(el('div', 'form-label', 'Слово / название'));
-    const wordInput = document.createElement('input');
-    wordInput.type = 'text';
-    wordInput.className = 'text-input';
-    wordInput.placeholder = 'успешный мужчина';
-    wordInput.autocomplete = 'off';
-    wordRow.appendChild(wordInput);
-    form.appendChild(wordRow);
-
-    // buttons
-    const btnRow = el('div', 'btn-row');
-    const cancelBtn = el('button', 'btn btn-ghost', 'Отмена');
-    const okBtn = el('button', 'btn btn-primary', 'Создать');
-    btnRow.appendChild(cancelBtn); btnRow.appendChild(okBtn);
-    form.appendChild(btnRow);
-
-    const sheet = openSheet(form);
-    setTimeout(function () { emInput.focus(); }, 320);
-
-    cancelBtn.addEventListener('click', function () {
-      sheet.close();
-      delete STATE.selection[messageId];
-      render();
-    });
-
-    okBtn.addEventListener('click', function () {
-      const emoji = emInput.value.trim();
-      const word = wordInput.value.trim();
-      if (!emoji && !word) { toast('Нужен смайл или слово'); return; }
-
-      // Создаём группу
-      const group = createSymbol({ emoji: emoji, word: word });
-      selectedSymbols.forEach(function (s) { linkChild(group.id, s.id); });
-
-      // Заменяем в сообщении
-      const insertAt = sorted[0];
-      // удаляем выбранные индексы (с конца)
-      for (let i = sorted.length - 1; i >= 0; i--) {
-        msg.itemIds.splice(sorted[i], 1);
+    const tokens = [];
+    let i = 0, sc = 0;
+    while (i < units.length) {
+      const u = units[i];
+      if (u.type === 'space' || u.type === 'punct') {
+        tokens.push({ type: 'raw', text: u.text });
+        i++; continue;
       }
-      msg.itemIds.splice(insertAt, 0, group.id);
-
-      Store.save();
-      delete STATE.selection[messageId];
-      sheet.close();
-      render();
-      toast('Группа создана');
-    });
+      const a = assignments[sc];
+      if (!a) { sc++; i++; continue; }
+      if (a.skip) { sc++; i++; continue; }
+      const lastSig = sigIdx[sc + a.size - 1];
+      let raw = '';
+      for (let k = i; k <= lastSig; k++) raw += units[k].text;
+      const out = Object.assign({}, a.out);
+      out.text = raw;
+      tokens.push(out);
+      i = lastSig + 1;
+      sc += a.size;
+    }
+    return tokens;
   }
 
-  /* =========================================================
-     РЕНДЕР
-     ========================================================= */
+  /* ===== UI refs ===== */
+  const daysView = document.getElementById('daysView');
+  const dayView = document.getElementById('dayView');
+  const editorEl = document.getElementById('editor');
+  const previewEl = document.getElementById('previewText');
+  const crumbs = document.getElementById('crumbs');
+  const rowDays = document.getElementById('rowDays');
+  const rowEditor = document.getElementById('rowEditor');
+  const wordsModeBtn = document.getElementById('wordsModeBtn');
+
+  /* ===== state ===== */
+  const NAV = { dayId: null };
+  let wordsMode = false;
+
+  /* ===== render ===== */
   function render() {
-    const app = document.getElementById('app');
-    app.textContent = '';
-
-    // hdr
-    const hdr = el('div', 'hdr');
-    const title = el('div', 'hdr-title');
-    title.appendChild(document.createTextNode('Твои убеждения'));
-    title.appendChild(el('span', 'colon', ':'));
-    hdr.appendChild(title);
-
-    const exportBtn = el('button', 'icon-btn', '📤');
-    exportBtn.setAttribute('aria-label', 'Экспорт');
-    exportBtn.addEventListener('click', exportJson);
-    hdr.appendChild(exportBtn);
-    app.appendChild(hdr);
-
-    // feed
-    const feed = el('div', 'feed');
-    const messages = Store.get().messages;
-
-    if (!messages.length) {
-      feed.appendChild(el('div', 'feed-empty',
-        'Напиши первое сообщение.\n\nКаждое слово превратится в смайл.\nСмайлы можно таскать и объединять в группы.'));
+    renderCrumbs();
+    if (!NAV.dayId) {
+      daysView.classList.remove('hidden');
+      dayView.classList.add('hidden');
+      rowDays.classList.remove('hidden');
+      rowEditor.classList.add('hidden');
+      renderDays();
     } else {
-      messages.slice().reverse().forEach(function (m) {
-        feed.appendChild(buildMessageEl(m));
-      });
+      daysView.classList.add('hidden');
+      dayView.classList.remove('hidden');
+      rowDays.classList.add('hidden');
+      rowEditor.classList.remove('hidden');
+      renderDay();
     }
-    app.appendChild(feed);
-
-    // composer
-    app.appendChild(buildComposer());
   }
 
-  function buildComposer() {
-    const wrap = el('div', 'composer');
-
-    const draft = el('div', 'draft');
-    wrap.appendChild(draft);
-
-    const row = el('div', 'composer-row');
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'composer-input';
-    input.placeholder = 'Напиши сообщение…';
-    input.autocomplete = 'off';
-    row.appendChild(input);
-
-    const send = el('button', 'send-btn', '→');
-    send.setAttribute('aria-label', 'Отправить');
-    send.disabled = true;
-    row.appendChild(send);
-    wrap.appendChild(row);
-
-    function refresh() {
-      const v = input.value.trim();
-      send.disabled = !v;
-      if (!v) {
-        draft.classList.remove('visible');
-        draft.textContent = '';
-        return;
+  function renderCrumbs() {
+    crumbs.innerHTML = '';
+    const home = document.createElement('button');
+    home.className = 'crumb' + (NAV.dayId === null ? ' current' : '');
+    home.textContent = NAV.dayId === null ? 'Твои убеждения:' : 'Убеждения';
+    home.addEventListener('click', () => { NAV.dayId = null; render(); });
+    crumbs.appendChild(home);
+    if (NAV.dayId) {
+      const d = getDay(NAV.dayId);
+      if (d) {
+        const sep = document.createElement('span');
+        sep.className = 'crumb-sep'; sep.textContent = '/';
+        crumbs.appendChild(sep);
+        const c = document.createElement('button');
+        c.className = 'crumb current';
+        c.textContent = formatDate(d.created).split(',')[0];
+        crumbs.appendChild(c);
       }
-      draft.classList.add('visible');
-      draft.textContent = '';
-      const tokens = tokenize(input.value);
-      tokens.forEach(function (tok) {
-        if (tok.type === 'word' || tok.type === 'emoji') {
-          const chip = buildPreviewChip(tok);
-          draft.appendChild(chip);
-        } else {
-          draft.appendChild(document.createTextNode(tok.text));
-        }
-      });
     }
-
-    input.addEventListener('input', refresh);
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (!send.disabled) send.click();
-      }
-    });
-
-    send.addEventListener('click', function () {
-      const v = input.value.trim();
-      if (!v) return;
-      createMessage(v);
-      input.value = '';
-      refresh();
-      render();
-      const newFeed = document.querySelector('.feed');
-      if (newFeed) newFeed.scrollTop = 0;
-    });
-
-    return wrap;
   }
 
-  function buildPreviewChip(tok) {
-    const chip = el('span', 'chip');
-    if (tok.type === 'emoji') {
-      const existing = findSymbolByEmoji(tok.text);
-      chip.textContent = tok.text;
-      if (!existing) {
-        chip.classList.add('empty-emoji');
-      }
-    } else {
-      // word
-      const existing = findSymbolByWord(tok.text);
-      if (existing && existing.emoji) {
-        chip.textContent = existing.emoji;
-      } else if (existing && !existing.emoji) {
-        chip.classList.add('word', 'empty-emoji');
-        chip.textContent = existing.word;
+  function renderDays() {
+    daysView.innerHTML = '';
+    const days = Store.get().days;
+    if (!days.length) {
+      const n = document.createElement('div');
+      n.className = 'empty-note';
+      n.textContent = 'Пока пусто.\nНажми «+ День», чтобы начать.';
+      daysView.appendChild(n);
+      return;
+    }
+    days.forEach(day => {
+      const card = document.createElement('div');
+      card.className = 'day-card';
+
+      const dt = document.createElement('div');
+      dt.className = 'day-date';
+      dt.textContent = formatDate(day.created);
+      card.appendChild(dt);
+
+      const prev = document.createElement('div');
+      prev.className = 'day-preview';
+      if (!day.text || !day.text.trim()) {
+        const e = document.createElement('span');
+        e.className = 'empty'; e.textContent = 'пусто — открой и напиши';
+        prev.appendChild(e);
       } else {
-        chip.classList.add('word', 'empty-emoji');
-        chip.textContent = tok.text;
-      }
-    }
-    return chip;
-  }
-
-  function buildMessageEl(msg) {
-    const wrap = el('div', 'msg');
-    const selecting = !!STATE.selection[msg.id];
-    if (selecting) wrap.classList.add('selecting');
-
-    const body = el('div', 'msg-body');
-    msg.itemIds.forEach(function (symId, idx) {
-      const s = getSymbol(symId);
-      if (!s) return;
-      const chip = buildSymbolChip(s, {
-        selectable: selecting,
-        selected: selecting && STATE.selection[msg.id].has(idx),
-        onTap: function () {
-          if (selecting) {
-            toggleSelection(msg.id, idx);
-            render();
-          } else {
-            openSymbolCard(s.id);
+        const tokens = resolveTokens(day.text);
+        let shownAny = false;
+        tokens.forEach(t => {
+          if (t.type === 'existing') {
+            const s = getSymbolById(t.symbolId);
+            if (s) { const sp = document.createElement('span'); sp.textContent = s.char; prev.appendChild(sp); shownAny = true; }
+          } else if (t.type === 'new-emoji') {
+            const sp = document.createElement('span'); sp.textContent = t.char; prev.appendChild(sp); shownAny = true;
+          } else if (t.type === 'new-word') {
+            const sp = document.createElement('span');
+            sp.textContent = t.word;
+            sp.style.fontSize = '13px'; sp.style.color = '#ffb46f';
+            prev.appendChild(sp); shownAny = true;
           }
+        });
+        if (!shownAny) {
+          const e = document.createElement('span');
+          e.className = 'empty'; e.textContent = 'пусто';
+          prev.appendChild(e);
         }
-      });
-      body.appendChild(chip);
-    });
-    wrap.appendChild(body);
-
-    // actions
-    const actions = el('div', 'msg-actions');
-
-    if (selecting) {
-      const n = STATE.selection[msg.id].size;
-      const cancelBtn = el('button', 'msg-btn', 'Отмена');
-      cancelBtn.addEventListener('click', function () {
-        delete STATE.selection[msg.id];
-        render();
-      });
-      actions.appendChild(cancelBtn);
-
-      const groupBtn = el('button', 'msg-btn primary', 'Объединить (' + n + ')');
-      groupBtn.disabled = n < 2;
-      groupBtn.addEventListener('click', function () {
-        if (n < 2) return;
-        const indices = Array.from(STATE.selection[msg.id]);
-        openGroupDialog(msg.id, indices);
-      });
-      actions.appendChild(groupBtn);
-    } else {
-      if (msg.itemIds.length > 1) {
-        const grp = el('button', 'msg-btn', '⊞ Группа');
-        grp.addEventListener('click', function () {
-          STATE.selection[msg.id] = new Set();
-          render();
-        });
-        actions.appendChild(grp);
       }
-      const del = el('button', 'msg-btn', '×');
-      del.setAttribute('aria-label', 'Удалить сообщение');
-      del.addEventListener('click', function () {
-        openConfirm({
-          title: 'Удалить сообщение?',
-          text: 'Сами символы останутся в базе.',
-          okText: 'Удалить',
-          onOk: function () { deleteMessage(msg.id); render(); }
+      card.appendChild(prev);
+
+      const meta = document.createElement('div');
+      meta.className = 'day-meta';
+      const chars = (day.text || '').replace(/\s+/g, '');
+      meta.textContent = chars ? chars.length + ' символов' : '—';
+      card.appendChild(meta);
+
+      const del = document.createElement('button');
+      del.className = 'day-del'; del.textContent = '×';
+      del.addEventListener('click', e => {
+        e.stopPropagation();
+        askConfirm('Удалить день?', formatDate(day.created), () => {
+          deleteDay(day.id); render(); toast('Удалено');
         });
       });
-      actions.appendChild(del);
+      card.appendChild(del);
+
+      card.addEventListener('click', () => { NAV.dayId = day.id; render(); });
+      daysView.appendChild(card);
+    });
+  }
+
+  function renderDay() {
+    const d = getDay(NAV.dayId);
+    if (!d) { NAV.dayId = null; render(); return; }
+    editorEl.value = d.text || '';
+    renderPreview();
+  }
+
+  function renderPreview() {
+    previewEl.innerHTML = '';
+    const text = editorEl.value;
+    if (!text.trim()) {
+      const e = document.createElement('span');
+      e.className = 'empty'; e.textContent = 'Здесь появятся символы…';
+      previewEl.appendChild(e);
+      return;
+    }
+    const tokens = resolveTokens(text);
+    tokens.forEach(t => previewEl.appendChild(buildTokenEl(t)));
+  }
+
+  function buildTokenEl(t) {
+    // сырой текст
+    if (t.type === 'raw') {
+      const span = document.createElement('span');
+      span.textContent = t.text;
+      return span;
     }
 
-    wrap.appendChild(actions);
-    return wrap;
+    // новый эмодзи
+    if (t.type === 'new-emoji') {
+      const chip = document.createElement('span');
+      chip.className = 'chip new';
+      const ch = document.createElement('span');
+      ch.textContent = t.char;
+      chip.appendChild(ch);
+      const q = document.createElement('span');
+      q.className = 'q'; q.textContent = '?';
+      chip.appendChild(q);
+      chip.title = 'Новый смайл — добавь значение';
+      chip.addEventListener('click', () => openSymModal({ kind: 'emoji', char: t.char }));
+      return chip;
+    }
+
+    // новое слово
+    if (t.type === 'new-word') {
+      const chip = document.createElement('span');
+      chip.className = 'chip new';
+      const q = document.createElement('span');
+      q.className = 'q'; q.textContent = '?';
+      chip.appendChild(q);
+      const w = document.createElement('span');
+      w.className = 'word'; w.textContent = t.word;
+      chip.appendChild(w);
+      chip.title = 'Новое слово — добавь смайл';
+      chip.addEventListener('click', () => openSymModal({ kind: 'word', word: t.word }));
+      return chip;
+    }
+
+    // существующий символ
+    if (t.type === 'existing') {
+      const s = getSymbolById(t.symbolId);
+      if (!s) {
+        const span = document.createElement('span');
+        span.textContent = t.text;
+        return span;
+      }
+      const chip = document.createElement('span');
+      chip.className = 'chip sym' + (s.word ? ' has-word' : '');
+      const ch = document.createElement('span');
+      ch.textContent = s.char;
+      chip.appendChild(ch);
+      if (s.word) {
+        const w = document.createElement('span');
+        w.className = 'word'; w.textContent = s.word;
+        chip.appendChild(w);
+      }
+      return chip;
+    }
+
+    // fallback
+    const span = document.createElement('span');
+    span.textContent = t.text || '';
+    return span;
   }
 
-  function toggleSelection(msgId, idx) {
-    const set = STATE.selection[msgId];
-    if (!set) return;
-    if (set.has(idx)) set.delete(idx);
-    else set.add(idx);
+  /* ===== editor ===== */
+  editorEl.addEventListener('input', () => {
+    if (!NAV.dayId) return;
+    updateDayText(NAV.dayId, editorEl.value);
+    renderPreview();
+  });
+
+  /* ===== modal: symbol ===== */
+  const symModal = document.getElementById('symModal');
+  let symContext = null;
+
+  function openSymModal(ctx) {
+    symContext = ctx;
+    const err = document.getElementById('symErr');
+    err.textContent = '';
+    const charIn = document.getElementById('symCharInput');
+    const wordIn = document.getElementById('symWordInput');
+    const preview = document.getElementById('tokenPreview');
+    const title = document.getElementById('symModalTitle');
+    const hint = document.getElementById('symHint');
+
+    preview.innerHTML = '';
+    charIn.classList.remove('error');
+
+    if (ctx.kind === 'emoji') {
+      title.textContent = 'Новый смайл';
+      hint.textContent = 'Смайла нет в словаре. Что он значит?';
+      charIn.classList.add('hidden');
+      wordIn.classList.remove('hidden');
+      wordIn.value = '';
+      wordIn.placeholder = 'что это значит';
+      preview.innerHTML = '<span class="big">' + ctx.char + '</span><span class="eq">=</span><span class="label" id="previewLabel">?</span>';
+      const label = preview.querySelector('#previewLabel');
+      wordIn.oninput = () => { label.textContent = wordIn.value.trim() || '?'; };
+      setTimeout(() => wordIn.focus(), 100);
+    } else if (ctx.kind === 'word') {
+      title.textContent = 'Новое слово';
+      hint.textContent = 'Слова нет в словаре. Какой смайл ему соответствует?';
+      charIn.classList.remove('hidden');
+      wordIn.classList.add('hidden');
+      charIn.value = '';
+      preview.innerHTML = '<span class="label">' + ctx.word + '</span><span class="eq">=</span><span class="big" id="previewLabel">?</span>';
+      const label = preview.querySelector('#previewLabel');
+      charIn.oninput = () => { label.textContent = charIn.value.trim() || '?'; };
+      setTimeout(() => charIn.focus(), 100);
+    }
+    symModal.classList.remove('hidden');
   }
 
-  function buildSymbolChip(sym, opts) {
-    const hasChildren = sym.children && sym.children.length > 0;
-    const hasEmoji = !!sym.emoji;
-    const hasWord = !!sym.word;
+  function saveSym() {
+    if (!symContext) return;
+    const err = document.getElementById('symErr');
+    const charIn = document.getElementById('symCharInput');
+    const wordIn = document.getElementById('symWordInput');
 
-    const chip = el('span', 'chip');
+    if (symContext.kind === 'emoji') {
+      const word = wordIn.value.trim();
+      addSymbol(symContext.char, word);
+    } else if (symContext.kind === 'word') {
+      const char = charIn.value.trim();
+      if (!char) { err.textContent = 'Нужен смайл'; charIn.classList.add('error'); setTimeout(() => charIn.classList.remove('error'), 400); return; }
+      if (!isEmojiOnly(char)) { err.textContent = 'Только смайлы'; charIn.classList.add('error'); setTimeout(() => charIn.classList.remove('error'), 400); return; }
+      addSymbol(char, symContext.word);
+    }
+    symModal.classList.add('hidden');
+    renderPreview();
+  }
 
-    if (hasEmoji) {
-      chip.textContent = sym.emoji;
-    } else if (hasWord) {
-      chip.classList.add('word');
-      chip.textContent = sym.word;
+  document.getElementById('symCancelBtn').addEventListener('click', () => symModal.classList.add('hidden'));
+  document.getElementById('symSaveBtn').addEventListener('click', saveSym);
+  document.getElementById('symCharInput').addEventListener('input', function () {
+    const err = document.getElementById('symErr');
+    if (!this.value.trim()) { err.textContent = ''; return; }
+    err.textContent = isEmojiOnly(this.value) ? '' : 'Только смайлы';
+  });
+  document.getElementById('symCharInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveSym(); }
+  });
+  document.getElementById('symWordInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); saveSym(); }
+  });
+
+  /* ===== режим слов ===== */
+  wordsModeBtn.addEventListener('click', () => {
+    wordsMode = !wordsMode;
+    document.body.classList.toggle('words-mode', wordsMode);
+    wordsModeBtn.classList.toggle('on', wordsMode);
+  });
+
+  /* ===== словарь ===== */
+  const dictModal = document.getElementById('dictModal');
+  document.getElementById('dictionaryBtn').addEventListener('click', () => {
+    const list = document.getElementById('dictList');
+    list.innerHTML = '';
+    const syms = Store.get().symbols.slice().sort((a, b) => String(b.created).localeCompare(String(a.created)));
+    if (!syms.length) {
+      const n = document.createElement('div');
+      n.style.cssText = 'color:#6b6b7b;font-size:14px;padding:10px 0;';
+      n.textContent = 'Словарь пуст. Пиши слова или смайлы в редакторе.';
+      list.appendChild(n);
     } else {
-      chip.classList.add('word', 'empty-emoji');
-      chip.textContent = '·';
+      syms.forEach(s => {
+        const chip = document.createElement('button');
+        chip.className = 'dict-chip';
+        chip.textContent = s.char;
+        if (s.word) {
+          const w = document.createElement('span');
+          w.className = 'w'; w.textContent = ':' + s.word;
+          chip.appendChild(w);
+        }
+        chip.addEventListener('click', () => {
+          askConfirm('Удалить символ?', s.char + (s.word ? ' : ' + s.word : ''), () => {
+            deleteSymbol(s.id);
+            dictModal.classList.add('hidden');
+            if (NAV.dayId) renderPreview(); else renderDays();
+            toast('Удалено');
+          });
+        });
+        list.appendChild(chip);
+      });
     }
+    dictModal.classList.remove('hidden');
+  });
+  document.getElementById('dictCloseBtn').addEventListener('click', () => dictModal.classList.add('hidden'));
 
-    if (!hasEmoji && hasWord) chip.classList.add('empty-emoji');
+  /* ===== дни ===== */
+  document.getElementById('addDayBtn').addEventListener('click', () => {
+    const d = createDay();
+    NAV.dayId = d.id;
+    render();
+    setTimeout(() => editorEl.focus(), 100);
+  });
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    askConfirm('Очистить всё?', 'Все дни и все символы будут удалены.', () => {
+      Store.get().days = [];
+      Store.get().symbols = [];
+      NAV.dayId = null;
+      Store.save();
+      render();
+      toast('Очищено');
+    });
+  });
 
-    if (hasChildren) {
-      chip.classList.add('group');
-      chip.dataset.count = String(sym.children.length);
-    }
-
-    if (opts.selectable) chip.classList.add('selectable');
-    if (opts.selected) chip.classList.add('selected');
-
-    chip.addEventListener('click', opts.onTap);
-    return chip;
-  }
-
-  /* =========================================================
-     ЭКСПОРТ
-     ========================================================= */
-  function exportJson() {
+  /* ===== экспорт ===== */
+  document.getElementById('exportBtn').addEventListener('click', () => {
     try {
       const data = JSON.stringify(Store.get(), null, 2);
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'tvoi_ubezhdeniya.json';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-      toast('Файл сохранён');
-    } catch (e) { toast('Не удалось выгрузить'); }
-  }
+      a.href = url; a.download = 'ubezhdeniya.json'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('Сохранено');
+    } catch (e) { toast('Ошибка'); }
+  });
 
-  /* =========================================================
-     СТАРТ
-     ========================================================= */
-  function init() {
-    Store.load();
-    if (!Store.isOk()) toast('Хранилище недоступно');
-    render();
-  }
-  init();
+  /* ===== старт ===== */
+  Store.load();
+  if (!Store.isOk()) toast('Хранилище недоступно');
+  render();
 })();
 </script>
 </body>
