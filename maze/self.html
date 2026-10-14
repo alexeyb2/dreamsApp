@@ -45,6 +45,11 @@
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: none; }
   }
+  @keyframes fallIn {
+    from { opacity: 0; transform: scale(1.06); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .screen.fall { animation: fallIn .32s cubic-bezier(.22, 1, .36, 1) both; }
 
   .hdr {
     flex: none; display: flex; align-items: center; gap: 6px;
@@ -108,13 +113,13 @@
   .tok { border-radius: 6px; padding: 1px 3px; margin: 0 -1px; transition: background .15s; cursor: pointer; }
   .tok-existing { color: var(--accent); background: rgba(111,168,255,.13); }
   .tok-new      { color: var(--new);    background: rgba(255,180,111,.13); }
-  .tok-stop     { color:-size var(--:muted); }
+  .tok-stop     { color: var(--muted); }
 
-   .chips { display: flex;14 flex-wrap: wrappx; gap: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
     padding: 7px 13px; border-radius: 999px;
     background: rgba(255,180,111,.12); color: var(--new);
-    border: 1px solid rgba(255,180,111,.25); font;
+    border: 1px solid rgba(255,180,111,.25); font-size: 14px;
     transition: background .15s;
   }
   .chip:active { background: rgba(255,180,111,.22); }
@@ -132,46 +137,111 @@
   .btn-row { display: flex; gap: 10px; }
   .btn-row .btn { flex: 1; }
 
-  /* ==== hub ==== */
-  .sphere-wrap { display: flex; justify-content: center; padding: 6px 0 24px; }
-  .sphere {
-    width: 132px; height: 132px; border-radius: 50%;
+  /* ==== рабочий стол (хаб) ==== */
+  .desk-current {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; padding: 8px 0 22px;
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  .desk-current:active { transform: scale(.97); }
+
+  .desk-sphere {
+    width: 108px; height: 108px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 62px;
+    font-size: 52px;
     background: radial-gradient(circle at 35% 30%, #2b3a5c, #12131c 70%);
-    border: 1px solid rgba(111,168,255,.3);
-    animation: pulse 3s infinite; cursor: pointer;
+    border: 1px solid rgba(111,168,255,.32);
+    animation: pulse 3.4s infinite;
   }
   @keyframes pulse {
     0%   { box-shadow: 0 0 0 0 rgba(111,168,255,.35); }
-    70%  { box-shadow: 0 0 0 26px rgba(111,168,255,0); }
+    70%  { box-shadow: 0 0 0 22px rgba(111,168,255,0); }
     100% { box-shadow: 0 0 0 0 rgba(111,168,255,0); }
   }
 
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .tile {
-    position: relative; aspect-ratio: 1 / 1;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 6px; padding: 10px 8px 16px; text-align: center; overflow: hidden;
-    transition: transform .12s, border-color .15s, background .15s;
+  .desk-word {
+    font-size: 19px; font-weight: 600; letter-spacing: -.01em;
+    text-align: center; max-width: 90%; word-break: break-word;
   }
-  .tile:active { transform: scale(.95); border-color: var(--accent); background: var(--surface-2); }
-  .tile::after {
-    content: ''; position: absolute; right: 8px; bottom: 8px;
-    width: 6px; height: 6px;
-    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
-    transform: rotate(-45deg); opacity: .45;
+
+  .desk-hint {
+    font-size: 12px; color: var(--muted);
+    text-align: center; padding: 4px 0 14px;
+    letter-spacing: .05em; text-transform: uppercase;
   }
-  .tile-emoji { font-size: 30px; line-height: 1; }
-  .tile-word {
-    font-size: 12px; line-height: 1.2; opacity: .9; word-break: break-word;
-    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+
+  .desktop {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 14px; padding: 4px 2px 20px;
   }
-  .tile-add { font-size: 28px; color: var(--muted); }
-  .tile-add::after { content: none; }
-  .tile-draft .tile-emoji { opacity: .4; }
+
+  .bubble {
+    width: 84px; height: 84px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    background: radial-gradient(circle at 32% 28%, rgba(111,168,255,.24), rgba(20,20,28,.95) 72%);
+    border: 1px solid rgba(111,168,255,.28);
+    box-shadow: 0 8px 24px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.07);
+    animation: bubbleFloat 6s ease-in-out infinite;
+    will-change: transform;
+  }
+  .bubble:active { animation: none; transform: scale(.9); filter: brightness(1.25); }
+  .bubble:nth-child(2n) { animation-delay: -2s; }
+  .bubble:nth-child(3n) { animation-delay: -4s; }
+  .bubble:nth-child(4n) { animation-delay: -1s; }
+  .bubble:nth-child(5n) { animation-delay: -3s; }
+
+  @keyframes bubbleFloat {
+    0%,100% { transform: translateY(0) scale(1); }
+    50%     { transform: translateY(-6px) scale(1.02); }
+  }
+
+  .bubble-draft { opacity: .55; font-size: 30px; }
+  .bubble-add {
+    font-size: 28px; color: var(--muted);
+    background: rgba(255,255,255,.025);
+    border: 1px dashed var(--border);
+    box-shadow: none;
+    animation: none;
+  }
+
+  /* ==== экран «Воспоминание» ==== */
+  .memory-pair {
+    display: flex; justify-content: center; align-items: flex-start;
+    gap: 26px; padding: 26px 0 30px;
+  }
+
+  .memory-cell {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px; max-width: 140px;
+    transition: transform .15s;
+  }
+  .memory-cell:active { transform: scale(.94); }
+
+  .memory-emoji {
+    width: 118px; height: 118px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 58px;
+    background: radial-gradient(circle at 32% 28%, rgba(111,168,255,.26), rgba(20,20,28,.96) 72%);
+    border: 1px solid rgba(111,168,255,.34);
+    box-shadow: 0 14px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
+    animation: bubbleFloat 6s ease-in-out infinite;
+  }
+  .memory-cell:nth-child(2) .memory-emoji { animation-delay: -2s; }
+
+  .memory-caption {
+    font-size: 13px; line-height: 1.3;
+    color: var(--fg); opacity: .88;
+    text-align: center; word-break: break-word;
+  }
+  .memory-caption.empty { opacity: .4; }
+
+  .memory-note {
+    font-size: 13px; color: var(--muted);
+    text-align: center; padding: 8px 0;
+    line-height: 1.5;
+  }
 
   /* ==== belief card ==== */
   .card-emoji { font-size: 72px; text-align: center; padding: 4px 0 2px; }
@@ -258,47 +328,36 @@
   }
   .tl-body { font-size: 15px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 
-  /* ==== diary (memory bubbles) ==== */
+  /* ==== diary (лента по дням) ==== */
   .diary-intro {
     font-size: 13px; color: var(--muted); text-align: center;
     padding: 4px 0 20px; line-height: 1.5;
   }
   .diary { display: flex; flex-direction: column; gap: 20px; }
-
   .memory {
     position: relative;
     background: radial-gradient(circle at 28% 18%, #1e2536, #111219 78%);
     border: 1px solid rgba(111,168,255,.18);
-    border-radius: 26px;
-    padding: 16px 16px 14px;
+    border-radius: 26px; padding: 16px 16px 14px;
     box-shadow: 0 12px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);
-    animation: float 7s ease-in-out infinite;
-    will-change: transform;
+    animation: bubbleFloat 7s ease-in-out infinite;
   }
   .memory:nth-child(2n) { animation-delay: -2s; }
   .memory:nth-child(3n) { animation-delay: -4s; }
-
-  @keyframes float {
-    0%,100% { transform: translateY(0); }
-    50%     { transform: translateY(-5px); }
-  }
 
   .memory-date {
     font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
     color: var(--accent); opacity: .85;
     margin-bottom: 12px; padding-left: 2px;
   }
-
   .memory-rows { display: flex; flex-direction: column; gap: 6px; }
-
   .memory-row {
     display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px;
-    border-radius: 14px;
+    padding: 10px 12px; border-radius: 14px;
     background: rgba(255,255,255,.035);
     border: 1px solid rgba(255,255,255,.04);
     text-align: left; width: 100%;
-    transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    transition: transform .18s, background .18s, border-color .18s;
   }
   .memory-row:active {
     background: rgba(111,168,255,.16);
@@ -309,18 +368,10 @@
     background: rgba(111,168,255,.28);
     border-color: var(--accent);
   }
-
-  .memory-emoji { font-size: 26px; line-height: 1; flex: none; }
+  .memory-emoji-sm { font-size: 26px; line-height: 1; flex: none; }
   .memory-eq { color: var(--muted); font-size: 15px; flex: none; }
   .memory-word { flex: 1; font-size: 15px; line-height: 1.3; word-break: break-word; }
   .memory-arrow { color: var(--muted); font-size: 13px; flex: none; opacity: .6; }
-
-  /* «проваливание» в карточку из дневника */
-  @keyframes fallIn {
-    from { opacity: 0; transform: scale(1.06); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  .screen.fall { animation: fallIn .32s cubic-bezier(.22, 1, .36, 1) both; }
 
   /* ==== bottom sheet ==== */
   .backdrop {
@@ -476,7 +527,6 @@
       .replace(/\s+/g, ' ')
       .trim();
   }
-
   function formatDate(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return String(iso || '');
@@ -484,16 +534,12 @@
     return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() +
       ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
-
   function formatDayLong(isoDate) {
     const parts = String(isoDate || '').split('-');
     if (parts.length !== 3) return String(isoDate || '');
-    const y = Number(parts[0]);
-    const m = Number(parts[1]);
-    const d = Number(parts[2]);
+    const y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2]);
     if (!y || !m || !d) return isoDate;
-    const monthName = MONTHS[m - 1] || '';
-    return d + ' ' + monthName + ' ' + y;
+    return d + ' ' + (MONTHS[m - 1] || '') + ' ' + y;
   }
 
   /* =========================================================
@@ -503,9 +549,7 @@
     let state = null;
     let storageOk = true;
 
-    function emptyState() {
-      return { beliefs: [], links: [], versions: [], events: [] };
-    }
+    function emptyState() { return { beliefs: [], links: [], versions: [], events: [] }; }
 
     function read() {
       try { return window.localStorage.getItem(STORAGE_KEY); }
@@ -519,8 +563,7 @@
       const raw = read();
       if (!raw) { state = emptyState(); return; }
       let parsed = null;
-      try { parsed = JSON.parse(raw); }
-      catch (e) { parsed = null; }
+      try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
       if (!parsed || typeof parsed !== 'object') { state = emptyState(); return; }
       state = {
         beliefs: Array.isArray(parsed.beliefs) ? parsed.beliefs : [],
@@ -541,12 +584,9 @@
      ========================================================= */
   function getBelief(id) {
     const list = Store.get().beliefs;
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].id === id) return list[i];
-    }
+    for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
     return null;
   }
-
   function findBeliefByKey(key) {
     const list = Store.get().beliefs;
     for (let i = 0; i < list.length; i++) {
@@ -555,17 +595,13 @@
     }
     return null;
   }
-
   function findSelf() {
     const list = Store.get().beliefs;
     for (let i = 0; i < list.length; i++) {
-      if (list[i].status !== 'archived' && normalize(list[i].word) === SELF_KEY) {
-        return list[i];
-      }
+      if (list[i].status !== 'archived' && normalize(list[i].word) === SELF_KEY) return list[i];
     }
     return null;
   }
-
   function buildIndex() {
     const map = new Map();
     Store.get().beliefs.forEach(function (b) {
@@ -575,27 +611,19 @@
     });
     return map;
   }
-
   function addVersion(beliefId, definition, reason) {
     const versions = Store.get().versions;
     let count = 0;
-    for (let i = 0; i < versions.length; i++) {
-      if (versions[i].belief_id === beliefId) count++;
-    }
+    for (let i = 0; i < versions.length; i++) if (versions[i].belief_id === beliefId) count++;
     versions.push({
-      belief_id: beliefId,
-      number: count + 1,
-      definition: definition || '',
-      date: nowIso(),
-      reason: reason || ''
+      belief_id: beliefId, number: count + 1,
+      definition: definition || '', date: nowIso(), reason: reason || ''
     });
   }
-
   function addEvent(ev) {
     const event = Object.assign({ date: nowIso() }, ev);
     Store.get().events.push(event);
   }
-
   function linkBeliefs(parentId, childId) {
     if (!parentId || !childId || parentId === childId) return;
     const parent = getBelief(parentId);
@@ -603,22 +631,16 @@
     if (!parent || !child) return;
     if (parent.children.indexOf(childId) === -1) parent.children.push(childId);
     if (child.parents.indexOf(parentId) === -1) child.parents.push(parentId);
-
     const links = Store.get().links;
     let exists = false;
     for (let i = 0; i < links.length; i++) {
       const l = links[i];
-      if (l.from === parentId && l.to === childId && l.type === LINK_TYPE) {
-        exists = true; break;
-      }
+      if (l.from === parentId && l.to === childId && l.type === LINK_TYPE) { exists = true; break; }
     }
-    if (!exists) {
-      links.push({ from: parentId, to: childId, type: LINK_TYPE, weight: LINK_WEIGHT });
-    }
+    if (!exists) links.push({ from: parentId, to: childId, type: LINK_TYPE, weight: LINK_WEIGHT });
     addEvent({ type: 'linked', from: parentId, to: childId });
     Store.save();
   }
-
   function createBelief(opts) {
     const word = String(opts.word || '').trim();
     const key = normalize(word);
@@ -632,49 +654,35 @@
 
     const emoji = opts.emoji || null;
     const belief = {
-      id: uid(),
-      emoji: emoji,
-      word: word,
+      id: uid(), emoji: emoji, word: word,
       definition: opts.definition || '',
-      children: [],
-      parents: [],
+      children: [], parents: [],
       status: emoji ? 'active' : 'draft',
       created: nowIso()
     };
     Store.get().beliefs.push(belief);
     addVersion(belief.id, belief.definition, 'создание');
-    addEvent({
-      type: 'created', belief_id: belief.id,
-      word: belief.word, emoji: belief.emoji
-    });
+    addEvent({ type: 'created', belief_id: belief.id, word: belief.word, emoji: belief.emoji });
     if (opts.parentId) linkBeliefs(opts.parentId, belief.id);
-
-    if (word.indexOf(' ') !== -1 || word.indexOf('\t') !== -1) {
-      decomposePhrase(belief.id);
-    }
-
+    if (word.indexOf(' ') !== -1 || word.indexOf('\t') !== -1) decomposePhrase(belief.id);
     Store.save();
     return { belief: belief, created: true };
   }
-
   function decomposePhrase(beliefId) {
     const belief = getBelief(beliefId);
     if (!belief) return;
     const parts = belief.word.split(/\s+/).filter(Boolean);
     if (parts.length < 2) return;
-
     const seen = new Set();
     parts.forEach(function (part) {
       const key = normalize(part);
       if (!key || seen.has(key)) return;
       seen.add(key);
-
       const existing = findBeliefByKey(key);
       if (existing) {
         if (existing.id !== belief.id) linkBeliefs(belief.id, existing.id);
         return;
       }
-
       const child = {
         id: uid(), emoji: null, word: part, definition: '',
         children: [], parents: [], status: 'draft', created: nowIso()
@@ -685,14 +693,12 @@
       linkBeliefs(belief.id, child.id);
     });
   }
-
   function ensureDefinitionChildren(beliefId) {
     const belief = getBelief(beliefId);
     if (!belief || !belief.definition) return;
     const tokens = tokenize(belief.definition, buildIndex());
     const newWords = collectNewWords(tokens);
     if (!newWords.length) return;
-
     newWords.forEach(function (w) {
       const key = w.normalized;
       if (!key) return;
@@ -711,7 +717,6 @@
       linkBeliefs(belief.id, child.id);
     });
   }
-
   function updateDefinition(beliefId, definition, reason) {
     const belief = getBelief(beliefId);
     if (!belief) return;
@@ -730,13 +735,11 @@
     if (/\s/.test(ch)) return 'space';
     return 'punct';
   }
-
   function splitPieces(text) {
     const pieces = [];
     let buf = '';
     let mode = null;
     const src = String(text == null ? '' : text);
-
     for (let i = 0; i < src.length; i++) {
       const ch = src[i];
       const m = classifyChar(ch);
@@ -747,40 +750,27 @@
     if (buf) pieces.push({ text: buf, kind: mode });
     return pieces;
   }
-
   function spaceOnlyBetween(pieces, a, b) {
-    for (let k = a + 1; k < b; k++) {
-      if (pieces[k].kind !== 'space') return false;
-    }
+    for (let k = a + 1; k < b; k++) if (pieces[k].kind !== 'space') return false;
     return true;
   }
-
   function tokenize(text, index) {
     const pieces = splitPieces(text);
     const wordPieces = [];
-    pieces.forEach(function (p, i) {
-      if (p.kind === 'word') wordPieces.push(i);
-    });
-
+    pieces.forEach(function (p, i) { if (p.kind === 'word') wordPieces.push(i); });
     const assignments = new Array(wordPieces.length).fill(null);
     let wi = 0;
-
     while (wi < wordPieces.length) {
       let handled = false;
-
       for (let n = MAX_NGRAM; n >= 1; n--) {
         if (wi + n > wordPieces.length) continue;
         const startPiece = wordPieces[wi];
         const endPiece = wordPieces[wi + n - 1];
         if (n > 1 && !spaceOnlyBetween(pieces, startPiece, endPiece)) continue;
-
         const words = [];
-        for (let k = 0; k < n; k++) {
-          words.push(normalize(pieces[wordPieces[wi + k]].text));
-        }
+        for (let k = 0; k < n; k++) words.push(normalize(pieces[wordPieces[wi + k]].text));
         const phrase = words.join(' ');
         if (!phrase) continue;
-
         const belief = index.get(phrase);
         if (belief) {
           for (let k = 0; k < n; k++) {
@@ -790,32 +780,25 @@
           }
           wi += n; handled = true; break;
         }
-
         if (n === 1) {
           const isStop = STOP_WORDS.has(phrase) || !/[\p{L}]/u.test(phrase);
           assignments[wi] = {
-            group: true, size: 1,
-            kind: isStop ? 'stop' : 'new',
-            normalized: phrase
+            group: true, size: 1, kind: isStop ? 'stop' : 'new', normalized: phrase
           };
           wi += 1; handled = true; break;
         }
       }
-
       if (!handled) {
         const w = normalize(pieces[wordPieces[wi]].text);
         assignments[wi] = { group: true, size: 1, kind: 'new', normalized: w };
         wi += 1;
       }
     }
-
     return buildTokens(pieces, wordPieces, assignments);
   }
-
   function buildTokens(pieces, wordPieces, assignments) {
     const tokens = [];
     let cursor = 0;
-
     for (let pi = 0; pi < pieces.length; pi++) {
       const piece = pieces[pi];
       if (piece.kind !== 'word') {
@@ -827,18 +810,12 @@
       const lastPiece = wordPieces[cursor + a.size - 1];
       let text = '';
       for (let k = pi; k <= lastPiece; k++) text += pieces[k].text;
-
-      tokens.push({
-        type: a.kind, text: text,
-        beliefId: a.beliefId, normalized: a.normalized
-      });
-
+      tokens.push({ type: a.kind, text: text, beliefId: a.beliefId, normalized: a.normalized });
       pi = lastPiece;
       cursor += a.size;
     }
     return tokens;
   }
-
   function collectNewWords(tokens) {
     const seen = new Map();
     tokens.forEach(function (t) {
@@ -846,9 +823,7 @@
       if (!seen.has(t.normalized)) seen.set(t.normalized, t.text);
     });
     const result = [];
-    seen.forEach(function (text, key) {
-      result.push({ normalized: key, text: text });
-    });
+    seen.forEach(function (text, key) { result.push({ normalized: key, text: text }); });
     return result;
   }
 
@@ -858,9 +833,7 @@
   function renderTokens(container, tokens, opts) {
     container.textContent = '';
     container.classList.remove('empty');
-
     if (!tokens.length) { container.classList.add('empty'); return; }
-
     tokens.forEach(function (t) {
       if (t.type === 'raw') {
         container.appendChild(document.createTextNode(t.text));
@@ -868,9 +841,7 @@
       }
       const span = el('span', 'tok tok-' + t.type, t.text);
       if (t.type === 'existing' && t.beliefId) {
-        span.addEventListener('click', function () {
-          go('belief', { id: t.beliefId });
-        });
+        span.addEventListener('click', function () { go('belief', { id: t.beliefId }); });
       } else if (t.type === 'new') {
         span.addEventListener('click', function () {
           openCreateModal({ word: t.text, parentId: opts && opts.parentId });
@@ -880,8 +851,7 @@
     });
   }
 
-  let toastEl = null;
-  let toastTimer = null;
+  let toastEl = null, toastTimer = null;
   function toast(message) {
     if (!toastEl) {
       toastEl = el('div', 'toast');
@@ -890,9 +860,7 @@
     toastEl.textContent = message;
     requestAnimationFrame(function () { toastEl.classList.add('show'); });
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () {
-      toastEl.classList.remove('show');
-    }, TOAST_MS);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, TOAST_MS);
   }
 
   let sheetZ = 200;
@@ -918,9 +886,6 @@
     return { close: close };
   }
 
-  /* =========================================================
-     МОДАЛКА: ВЫБОР СМАЙЛИКА
-     ========================================================= */
   function openEmojiPicker(current, onPick) {
     const wrap = el('div');
     wrap.appendChild(el('div', 'sheet-title', 'Выбери смайлик'));
@@ -934,24 +899,19 @@
     const sheet = openSheet(wrap);
   }
 
-  /* =========================================================
-     МОДАЛКА: СОЗДАНИЕ УБЕЖДЕНИЯ
-     ========================================================= */
   function openCreateModal(opts) {
     const options = opts || {};
     let emoji = options.emoji || null;
     const parentId = options.parentId || null;
 
     const form = el('div');
-    form.appendChild(el('div', 'sheet-title', 'Новое убеждение'));
+    form.appendChild(el('div', 'sheet-title', 'Новое воспоминание'));
 
     const emojiRow = el('div', 'form-row');
     emojiRow.appendChild(el('label', 'form-label', 'Смайлик'));
     const emojiBtn = el('button', 'emoji-select', emoji || '＋');
     emojiBtn.addEventListener('click', function () {
-      openEmojiPicker(emoji, function (picked) {
-        emoji = picked; emojiBtn.textContent = picked;
-      });
+      openEmojiPicker(emoji, function (picked) { emoji = picked; emojiBtn.textContent = picked; });
     });
     emojiRow.appendChild(emojiBtn);
     form.appendChild(emojiRow);
@@ -967,7 +927,7 @@
     form.appendChild(wordRow);
 
     const defRow = el('div', 'form-row');
-    defRow.appendChild(el('label', 'form-label', 'Определение'));
+    defRow.appendChild(el('label', 'form-label', 'Что это значит'));
     const defInput = document.createElement('textarea');
     defInput.className = 'text-input';
     defInput.rows = 3;
@@ -990,12 +950,9 @@
       const word = wordInput.value.trim();
       if (!word) { toast('Введите название'); return; }
       const result = createBelief({
-        emoji: emoji, word: word,
-        definition: defInput.value, parentId: parentId
+        emoji: emoji, word: word, definition: defInput.value, parentId: parentId
       });
-      if (result.belief && defInput.value.trim()) {
-        ensureDefinitionChildren(result.belief.id);
-      }
+      if (result.belief && defInput.value.trim()) ensureDefinitionChildren(result.belief.id);
       sheet.close();
       if (!result.created) toast('Уже есть в мире');
       render();
@@ -1008,7 +965,6 @@
      НАВИГАЦИЯ
      ========================================================= */
   let navStack = [];
-
   function go(name, params) {
     navStack.push({ name: name, params: params || {} });
     render();
@@ -1025,13 +981,13 @@
     const app = document.getElementById('app');
     const current = navStack[navStack.length - 1] || { name: 'hub', params: {} };
     app.textContent = '';
-
     let screen = null;
     switch (current.name) {
       case 'who':      screen = screenWho(); break;
       case 'describe': screen = screenDescribe(); break;
       case 'pick':     screen = screenPick(); break;
       case 'hub':      screen = screenHub(); break;
+      case 'memory':   screen = screenMemory(current.params); break;
       case 'belief':   screen = screenBelief(current.params); break;
       case 'edit':     screen = screenEdit(current.params); break;
       case 'history':  screen = screenHistory(current.params); break;
@@ -1124,10 +1080,7 @@
       renderTokens(preview, tokens, { parentId: self ? self.id : null });
       renderChips(chips, collectNewWords(tokens), self ? self.id : null);
     }
-    ta.addEventListener('input', function () {
-      describeDraft = ta.value;
-      refresh();
-    });
+    ta.addEventListener('input', function () { describeDraft = ta.value; refresh(); });
     refresh();
     return wrap;
   }
@@ -1174,7 +1127,7 @@
     const keys = Object.keys(pickState);
 
     if (!keys.length) {
-      list.appendChild(el('div', 'empty-note', 'Новых слов не найдено. Добавить убеждения можно позже.'));
+      list.appendChild(el('div', 'empty-note', 'Новых слов не найдено. Добавить воспоминания можно позже.'));
     } else {
       keys.forEach(function (key) { list.appendChild(buildPickRow(key)); });
     }
@@ -1211,7 +1164,6 @@
       });
     });
     row.appendChild(emojiBtn);
-
     return row;
   }
 
@@ -1222,7 +1174,6 @@
     input.value = item.name;
     row.replaceChild(input, nameBtn);
     input.focus(); input.select();
-
     let done = false;
     function commit() {
       if (done) return; done = true;
@@ -1232,9 +1183,7 @@
       if (input.parentNode === row) row.replaceChild(nameBtn, input);
     }
     input.addEventListener('blur', commit);
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') input.blur();
-    });
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') input.blur(); });
   }
 
   function commitPick(selfId) {
@@ -1250,14 +1199,14 @@
   }
 
   /* =========================================================
-     ЭКРАН 4: ГЛАВНЫЙ ЭКРАН (ХАБ)
+     ЭКРАН 4: РАБОЧИЙ СТОЛ
      ========================================================= */
   function screenHub() {
     const self = findSelf();
     const wrap = el('div', 'screen');
 
     const hdr = el('div', 'hdr');
-    hdr.appendChild(el('div', 'hdr-title left', 'Твой мир'));
+    hdr.appendChild(el('div', 'hdr-title left', 'Рабочий стол'));
 
     const diaryBtn = el('button', 'icon-btn', '📖');
     diaryBtn.setAttribute('aria-label', 'Дневник');
@@ -1272,39 +1221,47 @@
 
     const body = el('div', 'body');
 
-    const sphereWrap = el('div', 'sphere-wrap');
-    const sphere = el('div', 'sphere', self && self.emoji ? self.emoji : '🙂');
-    sphere.addEventListener('click', function () {
-      if (self) go('belief', { id: self.id });
-    });
-    sphereWrap.appendChild(sphere);
-    body.appendChild(sphereWrap);
+    if (!self) {
+      body.appendChild(el('div', 'empty-note', 'Нет главного убеждения. Начни с начала.'));
+      wrap.appendChild(body);
+      return wrap;
+    }
 
-    const grid = el('div', 'grid');
-    const children = self ? self.children.map(getBelief).filter(Boolean) : [];
-    children.forEach(function (child) { grid.appendChild(buildTile(child)); });
-    grid.appendChild(buildAddTile(self ? self.id : null));
-    body.appendChild(grid);
+    // Текущее убеждение (крупно сверху)
+    const current = el('div', 'desk-current');
+    current.appendChild(el('div', 'desk-sphere', self.emoji || '🙂'));
+    current.appendChild(el('div', 'desk-word', self.word || 'Я'));
+    current.addEventListener('click', function () { go('belief', { id: self.id }); });
+    body.appendChild(current);
+
+    // Пузырьки
+    body.appendChild(el('div', 'desk-hint', 'Твои воспоминания'));
+    const desktop = el('div', 'desktop');
+    const children = self.children.map(getBelief).filter(Boolean);
+    children.forEach(function (child) { desktop.appendChild(buildBubble(child)); });
+    desktop.appendChild(buildAddBubble(self.id));
+    body.appendChild(desktop);
 
     wrap.appendChild(body);
     return wrap;
   }
 
-  function buildTile(belief) {
-    const tile = el('button', 'tile' + (belief.emoji ? '' : ' tile-draft'));
-    tile.appendChild(el('div', 'tile-emoji', belief.emoji || '◌'));
-    tile.appendChild(el('div', 'tile-word', belief.word));
-    tile.addEventListener('click', function () { go('belief', { id: belief.id }); });
-    return tile;
+  function buildBubble(belief) {
+    const b = el('button', 'bubble' + (belief.emoji ? '' : ' bubble-draft'));
+    b.textContent = belief.emoji || '◌';
+    b.addEventListener('click', function () {
+      go('memory', { id: belief.id, fall: true });
+    });
+    return b;
   }
 
-  function buildAddTile(parentId) {
-    const tile = el('button', 'tile tile-add');
-    tile.appendChild(el('div', 'tile-add', '＋'));
-    tile.addEventListener('click', function () {
+  function buildAddBubble(parentId) {
+    const b = el('button', 'bubble bubble-add');
+    b.textContent = '＋';
+    b.addEventListener('click', function () {
       openCreateModal({ parentId: parentId });
     });
-    return tile;
+    return b;
   }
 
   function exportJson() {
@@ -1322,109 +1279,48 @@
   }
 
   /* =========================================================
-     ЭКРАН: ДНЕВНИК (пузыри-воспоминания)
+     ЭКРАН: ВОСПОМИНАНИЕ (2 смайлика)
      ========================================================= */
-  function groupEventsByDay() {
-    const events = Store.get().events;
-    const map = new Map();
-    events.forEach(function (ev) {
-      const day = String(ev.date || '').slice(0, 10);
-      if (!day) return;
-      if (!map.has(day)) map.set(day, []);
-      map.get(day).push(ev);
-    });
-    const days = [];
-    map.forEach(function (list, day) { days.push({ day: day, events: list }); });
-    days.sort(function (a, b) { return b.day.localeCompare(a.day); });
-    return days;
-  }
+  function screenMemory(params) {
+    const belief = getBelief(params.id);
+    if (!belief) { reset('hub'); return el('div'); }
 
-  function dayBeliefs(events) {
-    const seen = new Set();
-    const result = [];
-    events.forEach(function (ev) {
-      if (ev.type !== 'created' && ev.type !== 'edited') return;
-      const id = ev.belief_id;
-      if (!id || seen.has(id)) return;
-      seen.add(id);
-      const b = getBelief(id);
-      if (!b) return;
-      result.push(b);
-    });
-    return result;
-  }
-
-  function screenDiary() {
-    const wrap = el('div', 'screen');
-
-    // шапка с кнопкой «сырой список» событий
-    const hdr = el('div', 'hdr');
-    const backBtn = el('button', 'icon-btn', '←');
-    backBtn.setAttribute('aria-label', 'Назад');
-    backBtn.addEventListener('click', back);
-    hdr.appendChild(backBtn);
-    hdr.appendChild(el('div', 'hdr-title', 'Дневник'));
-    const rawBtn = el('button', 'icon-btn', '📜');
-    rawBtn.setAttribute('aria-label', 'Все события');
-    rawBtn.addEventListener('click', function () { go('events'); });
-    hdr.appendChild(rawBtn);
-    wrap.appendChild(hdr);
+    const wrap = el('div', 'screen' + (params.fall ? ' fall' : ''));
+    wrap.appendChild(makeHeader('Воспоминание', true));
 
     const body = el('div', 'body');
-    const days = groupEventsByDay();
 
-    if (!days.length) {
-      body.appendChild(el('div', 'diary-intro',
-        'Здесь появятся пузыри-воспоминания. Каждый день, когда ты создаёшь или меняешь убеждение, оставляет свой след.'));
-      body.appendChild(el('div', 'empty-note', 'Пока пусто.'));
-      wrap.appendChild(body);
-      return wrap;
+    // Найдём «партнёра» — ребёнка, иначе родителя
+    let partner = null;
+    if (belief.children.length) partner = getBelief(belief.children[0]);
+    else if (belief.parents.length) partner = getBelief(belief.parents[0]);
+
+    const pair = el('div', 'memory-pair');
+    pair.appendChild(buildMemoryCell(belief));
+    if (partner) pair.appendChild(buildMemoryCell(partner));
+    body.appendChild(pair);
+
+    if (!partner) {
+      body.appendChild(el('div', 'memory-note',
+        'У этого воспоминания пока одна сторона. Добавь вторую — открой карточку и опиши, из чего оно состоит.'));
+    } else {
+      body.appendChild(el('div', 'memory-note',
+        'Нажми на любой смайлик — увидишь, что он значит.'));
     }
-
-    body.appendChild(el('div', 'diary-intro',
-      'Каждый пузырь — это день твоих слов. Нажми на пару, чтобы провалиться внутрь.'));
-
-    const diary = el('div', 'diary');
-    days.forEach(function (d) { diary.appendChild(buildMemory(d)); });
-    body.appendChild(diary);
 
     wrap.appendChild(body);
     return wrap;
   }
 
-  function buildMemory(dayEntry) {
-    const bubble = el('div', 'memory');
-    bubble.appendChild(el('div', 'memory-date', formatDayLong(dayEntry.day)));
-
-    const beliefs = dayBeliefs(dayEntry.events);
-    const rows = el('div', 'memory-rows');
-
-    if (!beliefs.length) {
-      // был день, но только служебные связи
-      const note = el('div', 'empty-note', 'только связи');
-      rows.appendChild(note);
-    } else {
-      beliefs.forEach(function (b) { rows.appendChild(buildMemoryRow(b)); });
-    }
-
-    bubble.appendChild(rows);
-    return bubble;
-  }
-
-  function buildMemoryRow(belief) {
-    const row = el('button', 'memory-row');
-    row.appendChild(el('span', 'memory-emoji', belief.emoji || '◌'));
-    row.appendChild(el('span', 'memory-eq', '='));
-    row.appendChild(el('span', 'memory-word', belief.word || '—'));
-    row.appendChild(el('span', 'memory-arrow', '→'));
-
-    row.addEventListener('click', function () {
-      row.classList.add('falling');
-      setTimeout(function () {
-        go('belief', { id: belief.id, fall: true });
-      }, FALL_DELAY);
+  function buildMemoryCell(belief) {
+    const cell = el('button', 'memory-cell');
+    cell.appendChild(el('div', 'memory-emoji', belief.emoji || '◌'));
+    cell.appendChild(el('div', 'memory-caption' + (belief.word ? '' : ' empty'),
+      belief.word || 'без названия'));
+    cell.addEventListener('click', function () {
+      go('belief', { id: belief.id, fall: true });
     });
-    return row;
+    return cell;
   }
 
   /* =========================================================
@@ -1435,7 +1331,7 @@
     if (!belief) { reset('hub'); return el('div'); }
 
     const wrap = el('div', 'screen' + (params.fall ? ' fall' : ''));
-    wrap.appendChild(makeHeader('Убеждение', true));
+    wrap.appendChild(makeHeader('Воспоминание', true));
 
     const body = el('div', 'body');
     body.appendChild(el('div', 'card-emoji', belief.emoji || '◌'));
@@ -1478,8 +1374,7 @@
 
   function buildDefinitionBlock(belief) {
     const block = el('div', 'block');
-    block.appendChild(el('div', 'block-title', 'Определение'));
-
+    block.appendChild(el('div', 'block-title', 'Что это значит'));
     const text = el('div', 'block-text');
     if (belief.definition) {
       renderTokens(text, tokenize(belief.definition, buildIndex()), { parentId: belief.id });
@@ -1493,18 +1388,16 @@
   function buildRefBlock(title, items, emptyText) {
     const block = el('div', 'block');
     block.appendChild(el('div', 'block-title', title));
-
     if (!items.length) {
       block.appendChild(el('div', 'empty-note', emptyText));
       return block;
     }
-
     const list = el('div', 'ref-list');
     items.forEach(function (item) {
       const btn = el('button', 'ref-item');
       btn.appendChild(el('span', 'ref-emoji', item.emoji || '◌'));
       btn.appendChild(el('span', 'ref-word', item.word));
-      btn.addEventListener('click', function () { go('belief', { id: item.id }); });
+      btn.addEventListener('click', function () { go('belief', { id: item.id, fall: true }); });
       list.appendChild(btn);
     });
     block.appendChild(list);
@@ -1512,7 +1405,7 @@
   }
 
   /* =========================================================
-     ЭКРАН 6: ПРАВКА УБЕЖДЕНИЯ
+     ЭКРАН 6: ПРАВКА
      ========================================================= */
   let editId = null;
   let editDraft = '';
@@ -1544,10 +1437,10 @@
     emojiRow.appendChild(emojiBtn);
     body.appendChild(emojiRow);
 
-    body.appendChild(el('div', 'form-label', 'Определение'));
+    body.appendChild(el('div', 'form-label', 'Что это значит'));
     const ta = document.createElement('textarea');
     ta.className = 'big-input';
-    ta.placeholder = 'Что это значит для тебя?';
+    ta.placeholder = 'Опиши словами, что это для тебя…';
     ta.value = editDraft;
     body.appendChild(ta);
 
@@ -1558,9 +1451,7 @@
     function refresh() {
       renderTokens(preview, tokenize(editDraft, buildIndex()), { parentId: belief.id });
     }
-    ta.addEventListener('input', function () {
-      editDraft = ta.value; refresh();
-    });
+    ta.addEventListener('input', function () { editDraft = ta.value; refresh(); });
     refresh();
 
     wrap.appendChild(body);
@@ -1674,16 +1565,111 @@
   }
 
   /* =========================================================
+     ЭКРАН: ДНЕВНИК (лента по дням)
+     ========================================================= */
+  function groupEventsByDay() {
+    const events = Store.get().events;
+    const map = new Map();
+    events.forEach(function (ev) {
+      const day = String(ev.date || '').slice(0, 10);
+      if (!day) return;
+      if (!map.has(day)) map.set(day, []);
+      map.get(day).push(ev);
+    });
+    const days = [];
+    map.forEach(function (list, day) { days.push({ day: day, events: list }); });
+    days.sort(function (a, b) { return b.day.localeCompare(a.day); });
+    return days;
+  }
+
+  function dayBeliefs(events) {
+    const seen = new Set();
+    const result = [];
+    events.forEach(function (ev) {
+      if (ev.type !== 'created' && ev.type !== 'edited') return;
+      const id = ev.belief_id;
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      const b = getBelief(id);
+      if (b) result.push(b);
+    });
+    return result;
+  }
+
+  function screenDiary() {
+    const wrap = el('div', 'screen');
+
+    const hdr = el('div', 'hdr');
+    const backBtn = el('button', 'icon-btn', '←');
+    backBtn.setAttribute('aria-label', 'Назад');
+    backBtn.addEventListener('click', back);
+    hdr.appendChild(backBtn);
+    hdr.appendChild(el('div', 'hdr-title', 'Дневник'));
+    const rawBtn = el('button', 'icon-btn', '📜');
+    rawBtn.setAttribute('aria-label', 'Все события');
+    rawBtn.addEventListener('click', function () { go('events'); });
+    hdr.appendChild(rawBtn);
+    wrap.appendChild(hdr);
+
+    const body = el('div', 'body');
+    const days = groupEventsByDay();
+
+    if (!days.length) {
+      body.appendChild(el('div', 'diary-intro',
+        'Здесь появятся пузыри-воспоминания по дням. Каждый день, когда ты создаёшь или меняешь воспоминание, оставляет след.'));
+      body.appendChild(el('div', 'empty-note', 'Пока пусто.'));
+      wrap.appendChild(body);
+      return wrap;
+    }
+
+    body.appendChild(el('div', 'diary-intro',
+      'Каждый пузырь — день твоих слов. Нажми на пару, чтобы провалиться.'));
+
+    const diary = el('div', 'diary');
+    days.forEach(function (d) { diary.appendChild(buildDayBubble(d)); });
+    body.appendChild(diary);
+
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  function buildDayBubble(dayEntry) {
+    const bubble = el('div', 'memory');
+    bubble.appendChild(el('div', 'memory-date', formatDayLong(dayEntry.day)));
+
+    const beliefs = dayBeliefs(dayEntry.events);
+    const rows = el('div', 'memory-rows');
+
+    if (!beliefs.length) {
+      rows.appendChild(el('div', 'empty-note', 'только связи'));
+    } else {
+      beliefs.forEach(function (b) {
+        const row = el('button', 'memory-row');
+        row.appendChild(el('span', 'memory-emoji-sm', b.emoji || '◌'));
+        row.appendChild(el('span', 'memory-eq', '='));
+        row.appendChild(el('span', 'memory-word', b.word || '—'));
+        row.appendChild(el('span', 'memory-arrow', '→'));
+        row.addEventListener('click', function () {
+          row.classList.add('falling');
+          setTimeout(function () { go('memory', { id: b.id, fall: true }); }, FALL_DELAY);
+        });
+        rows.appendChild(row);
+      });
+    }
+
+    bubble.appendChild(rows);
+    return bubble;
+  }
+
+  /* =========================================================
      ИНИЦИАЛИЗАЦИЯ
      ========================================================= */
   function init() {
     Store.load();
-    if (!Store.isOk()) {
-      toast('Хранилище недоступно — данные не сохранятся');
-    }
+    if (!Store.isOk()) toast('Хранилище недоступно — данные не сохранятся');
     const self = findSelf();
-    if (!self) { reset('who'); }
-    else { reset('hub'); }
+    if (!self) reset('who');
+    else reset('hub');
   }
 
   init();
