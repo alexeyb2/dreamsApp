@@ -7,7 +7,7 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
   html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
-  #app { display:flex; flex-direction:column; height:100dvh; width:100%; position:relative; }
+  #app { display:flex; flex-direction:column; height:100dvh; width:100%; position:relative; overflow:hidden; }
 
   .top-bar { display:flex; align-items:center; gap:8px; padding:10px 12px; background:#14141c; border-bottom:1px solid #262633; flex-shrink:0; z-index:20; }
   .crumbs { flex:1; display:flex; align-items:center; gap:6px; overflow-x:auto; scrollbar-width:none; min-width:0; }
@@ -15,91 +15,141 @@
   .crumb { flex:none; padding:7px 14px; border-radius:999px; background:#1a1a24; border:1px solid #262633; font-size:14px; color:#e8e8f0; cursor:pointer; transition:.15s; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:inherit; }
   .crumb:active { background:#22222e; }
   .crumb.current { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.4); color:#6fa8ff; font-weight:600; }
-  .crumb-usage { font-size:11px; color:#6b6b7b; padding:0 6px; letter-spacing:.04em; }
+  .crumb-usage { font-size:11px; color:#6b6b7b; padding:0 6px; letter-spacing:.04em; flex-shrink:0; }
   .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; }
   .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
 
-  /* ==== поле убеждений ==== */
-  .field { flex:1; position:relative; overflow-y:auto; overflow-x:hidden; padding:10px 10px calc(10px + env(safe-area-inset-bottom, 0px)); -webkit-overflow-scrolling:touch; }
-  .field::-webkit-scrollbar { display:none; }
-
-  .belief {
+  /* ===== поле ===== */
+  .field {
+    flex:1;
     position:relative;
-    display:flex; flex-direction:column;
-    border-radius:18px;
-    padding:12px;
-    margin-bottom:8px;
-    background: radial-gradient(circle at 30% 20%, #232c45, #12131c 75%);
-    border:1px solid rgba(111,168,255,.35);
-    box-shadow: 0 10px 28px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
-    cursor:pointer; transition:box-shadow .15s, border-color .15s, min-height .25s ease;
     overflow:hidden;
-    min-height:80px;
+    background:
+      radial-gradient(ellipse at center, rgba(111,168,255,.06), transparent 60%),
+      repeating-linear-gradient(0deg, transparent 0 39px, rgba(111,168,255,.03) 39px 40px),
+      repeating-linear-gradient(90deg, transparent 0 39px, rgba(111,168,255,.03) 39px 40px);
   }
-  .belief:last-child { margin-bottom:0; }
-  .belief:active { border-color:rgba(111,168,255,.7); }
-  .belief.empty { border-style:dashed; border-color:#3a3a4a; }
-  .belief.empty .belief-body { color:#4a4a58; font-size:14px; }
 
-  .belief-head {
-    position:absolute; top:6px; left:10px; right:10px;
-    display:flex; align-items:center; justify-content:space-between;
-    gap:6px; z-index:3;
-    pointer-events:none;
+  /* ===== убеждение ===== */
+  .belief {
+    position:absolute;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:20px;
+    background: linear-gradient(160deg, #1e2740 0%, #12131c 90%);
+    border:1.5px solid rgba(111,168,255,.4);
+    box-shadow:
+      0 12px 32px rgba(0,0,0,.55),
+      0 0 0 1px rgba(111,168,255,.08),
+      inset 0 1px 0 rgba(255,255,255,.08);
+    cursor:pointer;
+    overflow:hidden;
+    will-change: left, top, width, height, opacity, transform;
+    transition: box-shadow .2s ease, border-color .2s ease;
+    animation: beliefIn .32s cubic-bezier(.22,1,.36,1) both;
+    transform-origin: center center;
   }
+  @keyframes beliefIn {
+    from { opacity:0; }
+    to   { opacity: var(--target-opacity, 1); }
+  }
+
+  .belief.movable { cursor:grab; }
+  .belief.movable:active { cursor:grabbing; }
+  .belief.dragging {
+    z-index: 9999 !important;
+    box-shadow: 0 32px 80px rgba(111,168,255,.55), 0 0 0 2px #6fa8ff;
+    border-color:#6fa8ff;
+    transition: none;
+  }
+  .belief.empty {
+    border-style:dashed;
+    border-color: rgba(255,180,111,.4);
+    background: linear-gradient(160deg, #1a1e2c 0%, #0e0e16 90%);
+  }
+
+  /* вес — крупный, в углу */
   .belief-weight {
-    font-size:10px; font-weight:700;
-    padding:3px 8px; border-radius:999px;
+    position:absolute; top:8px; left:8px;
+    font-size:11px; font-weight:800;
+    padding:3px 9px;
+    border-radius:999px;
     background:#ffb46f; color:#2a1a05;
     pointer-events:none;
+    z-index:5;
     letter-spacing:.02em;
+    box-shadow: 0 2px 8px rgba(255,180,111,.4);
   }
-  .belief-del {
-    width:22px; height:22px; border-radius:50%; border:none;
-    background:rgba(255,90,90,.15); color:#ff8f8f;
-    font-size:12px; cursor:pointer; pointer-events:auto;
-    display:flex; align-items:center; justify-content:center;
-    transition:.15s;
+
+  /* z-индикатор */
+  .belief-z {
+    position:absolute; top:8px; right:8px;
+    font-size:10px; font-weight:700;
+    padding:3px 8px;
+    border-radius:999px;
+    background:rgba(111,168,255,.22);
+    color:#6fa8ff;
+    border:1px solid rgba(111,168,255,.4);
+    pointer-events:none;
+    z-index:5;
+    letter-spacing:.04em;
   }
-  .belief-del:active { background:rgba(255,90,90,.35); }
 
   .belief-body {
-    flex:1;
     display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
-    gap:2px 4px;
-    font-size:var(--belief-font, 32px); line-height:1.1;
+    gap:3px 6px;
+    font-size: var(--bfont, 42px); line-height:1.05;
     letter-spacing:1px;
     text-align:center;
-    padding:16px 6px 4px;
+    padding: 30px 18px 18px;
+    max-width:100%; max-height:100%;
     overflow:hidden;
     word-break:break-word;
-  }
-
-  .belief-body .w {
-    font-size:0.45em; color:#8890a0; margin-left:2px;
-  }
-  .belief-body .new-w {
-    font-size:0.45em; color:#ffb46f;
-    background:rgba(255,180,111,.12);
-    padding:1px 6px; border-radius:6px;
-    border:1px dashed rgba(255,180,111,.4);
+    pointer-events:none;
   }
 
   .belief-sym {
-    position:relative; display:inline-block;
+    position:relative;
+    display:inline-block;
     padding:0 2px;
+    text-shadow: 0 2px 12px rgba(0,0,0,.6);
   }
   .belief-sym .badge {
-    position:absolute; top:-6px; right:-8px;
-    min-width:14px; height:14px; padding:0 4px;
+    position:absolute; top:-10%; right:-18%;
+    min-width:18px; height:18px; padding:0 4px;
     background:#6fa8ff; color:#06111f;
-    font-size:8px; font-weight:700;
-    border-radius:7px;
+    font-size:10px; font-weight:800;
+    border-radius:9px;
     display:flex; align-items:center; justify-content:center;
-    border:1.5px solid #12131c;
+    border:2px solid #12131c;
+    text-shadow:none;
+  }
+  .belief-sym .word {
+    display:block;
+    font-size:0.3em;
+    color:#8890a0;
+    letter-spacing:0;
+    margin-top:2px;
+    line-height:1.1;
+    text-shadow:none;
+  }
+  .belief-sym .word.new { color:#ffb46f; }
+
+  .belief-empty-text {
+    font-size:14px; color:#6b6b7b; text-align:center;
+    padding: 0 20%;
+    line-height:1.5;
+    pointer-events:none;
   }
 
-  /* ==== редактор ==== */
+  .field-empty {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    text-align:center; color:#6b6b7b; font-size:14px;
+    line-height:1.7; white-space:pre-line; padding:0 40px;
+    pointer-events:none;
+  }
+
+  /* ===== редактор ===== */
   .editor-view { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 12px 120px; display:flex; flex-direction:column; gap:12px; }
   .editor-view::-webkit-scrollbar { display:none; }
 
@@ -107,8 +157,7 @@
   .sec-label {
     font-size:11px; color:#6b6b7b; text-transform:uppercase;
     letter-spacing:.08em; margin-bottom:10px;
-    display:flex; justify-content:space-between; align-items:center;
-    gap:8px;
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
   }
   .sec-label .meta { font-size:11px; color:#6b6b7b; letter-spacing:0; text-transform:none; opacity:.7; display:flex; align-items:center; gap:8px; }
 
@@ -134,17 +183,16 @@
     font-size:20px; line-height:2; word-break:break-word;
     min-height:52px;
     display:flex; flex-wrap:wrap; align-items:center; gap:2px;
+    touch-action:none;
   }
   .preview .empty { color:#6b6b7b; font-size:14px; font-style:italic; }
 
   .chip {
     display:inline-flex; align-items:center; gap:3px;
-    padding:4px 8px;
-    border-radius:9px;
+    padding:4px 8px; border-radius:9px;
     transition:.15s; cursor:pointer;
     font-size:22px; line-height:1.1;
-    touch-action:none;
-    position:relative;
+    touch-action:none; position:relative;
   }
   .chip:active { transform:scale(.95); }
   .chip .w { display:none; font-size:13px; color:#6b6b7b; margin-left:3px; }
@@ -192,16 +240,14 @@
     flex-shrink:0; align-self:center;
   }
 
-  /* вес */
   .prop-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .prop-row:last-child { margin-bottom:0; }
-  .prop-label { font-size:13px; color:#6b6b7b; width:80px; flex-shrink:0; }
+  .prop-label { font-size:13px; color:#6b6b7b; width:60px; flex-shrink:0; }
   .prop-slider { flex:1; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:#262633; outline:none; }
   .prop-slider::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:#6fa8ff; cursor:pointer; }
   .prop-slider::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:#6fa8ff; cursor:pointer; border:none; }
   .prop-value { min-width:52px; text-align:right; font-size:14px; font-weight:700; color:#6fa8ff; font-variant-numeric:tabular-nums; }
 
-  /* нижняя панель */
   .bottom-panel {
     position:fixed; bottom:0; left:0; right:0;
     background:#14141c; border-top:1px solid #262633;
@@ -223,8 +269,8 @@
   .bottom-btn.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
   .bottom-btn.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
   .bottom-btn.on { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .bottom-btn:disabled { opacity:.4; cursor:not-allowed; }
 
-  /* модалки */
   .modal-overlay {
     position:fixed; inset:0; background:rgba(0,0,0,.75);
     backdrop-filter:blur(8px); z-index:100;
@@ -281,11 +327,6 @@
     color:#e8e8f0;
   }
   .toast.show { opacity:1; transform:translate(-50%, 0); }
-
-  .empty-note {
-    text-align:center; color:#6b6b7b; font-size:14px;
-    line-height:1.7; white-space:pre-line; padding:80px 40px;
-  }
 </style>
 </head>
 <body>
@@ -296,9 +337,7 @@
     <button class="icon-btn" id="exportBtn" title="Экспорт">📤</button>
   </header>
 
-  <div class="field hidden" id="fieldView">
-    <div id="beliefsLayer"></div>
-  </div>
+  <div class="field hidden" id="fieldView"></div>
 
   <div class="editor-view hidden" id="editorView">
     <div class="sec">
@@ -326,14 +365,18 @@
     </div>
 
     <div class="sec">
-      <div class="sec-label"><span>Вес — сколько места на экране</span></div>
+      <div class="sec-label">
+        <span>Вес — сколько места занимает</span>
+        <span class="meta" id="weightLimitInfo"></span>
+      </div>
       <div class="prop-row">
         <span class="prop-label">Вес</span>
         <input type="range" class="prop-slider" id="propWeight" min="0.1" max="1" step="0.05" value="1">
         <span class="prop-value" id="propWeightVal">1.00</span>
       </div>
       <div class="hint" style="margin-top:8px;font-size:11px;color:#6b6b7b;line-height:1.5;">
-        1.00 — всё поле. 0.50 — половина, остальное останется для новых.
+        1.00 — всё поле (не двигается).<br>
+        Меньше 1.00 — можно таскать пальцем.
       </div>
     </div>
   </div>
@@ -433,11 +476,13 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'ubezhdeniya_v13';
-  const TOAST_MS = 2200;
+  const STORAGE_KEY = 'ubezhdeniya_v15';
+  const TOAST_MS = 2400;
   const MAX_NGRAM = 3;
   const DRAG_THRESHOLD = 6;
-  const GAP = 8;
+  const FIELD_PAD = 10;
+  const MIN_WEIGHT = 0.1;
+  const MIN_NEW_WEIGHT = 0.15;
   const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
   function uid() { return 'x_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
@@ -538,11 +583,16 @@
   function addSymbol(char, word) {
     char = String(char || '').trim();
     word = String(word || '').trim();
-    if (!char || !isEmojiOnly(char)) return null;
-    const byChar = findSymbolByChar(char);
-    if (byChar) { if (word && !byChar.word) byChar.word = word; Store.save(); return byChar; }
-    const byWord = word ? findSymbolByWord(word) : null;
-    if (byWord) { byWord.char = char; Store.save(); return byWord; }
+    if (!char && !word) return null;
+    if (char && !isEmojiOnly(char)) return null;
+    if (char) {
+      const byChar = findSymbolByChar(char);
+      if (byChar) { if (word && !byChar.word) byChar.word = word; Store.save(); return byChar; }
+    }
+    if (word) {
+      const byWord = findSymbolByWord(word);
+      if (byWord) { if (char) byWord.char = char; Store.save(); return byWord; }
+    }
     const s = { id: uid(), char, word, children: [], created: nowIso() };
     Store.get().symbols.push(s);
     Store.save();
@@ -558,14 +608,33 @@
   function isGroup(s) { return s && Array.isArray(s.children) && s.children.length > 0; }
 
   function getBelief(id) { return Store.get().beliefs.find(b => b.id === id) || null; }
-  function createBelief() {
-    const b = { id: uid(), text: '', weight: 1, created: nowIso() };
+  function getBeliefsSum(excludeId) {
+    let sum = 0;
+    Store.get().beliefs.forEach(b => {
+      if (excludeId && b.id === excludeId) return;
+      sum += (b.weight || 1);
+    });
+    return sum;
+  }
+  function createBelief(weight) {
+    const b = { id: uid(), text: '', weight: weight, x: 0.5, y: 0.5, created: nowIso() };
     Store.get().beliefs.unshift(b);
     Store.save();
     return b;
   }
   function deleteBelief(id) { Store.get().beliefs = Store.get().beliefs.filter(b => b.id !== id); Store.save(); }
   function updateBelief(id, patch) { const b = getBelief(id); if (!b) return; Object.assign(b, patch); Store.save(); }
+
+  /* =========================================================
+     ОСЬ Z: свежие ближе к зрителю
+     index 0 — самое свежее → z=1.0
+     index N-1 — самое старое → z≈0.3
+     ========================================================= */
+  function computeZ(index, total) {
+    if (total <= 1) return 1;
+    const step = 0.7 / (total - 1);
+    return Math.max(0.3, 1 - index * step);
+  }
 
   function extractUnits(text) {
     const graphemes = splitGraphemes(text);
@@ -653,13 +722,12 @@
   let currentBeliefId = null;
   let chipDrag = null;
   let cardSymbolId = null;
-  let pickerParent = null;
   let symContext = null;
   let mergeCtx = null;
+  let beliefDrag = null;
 
   const fieldView = document.getElementById('fieldView');
   const editorView = document.getElementById('editorView');
-  const beliefsLayer = document.getElementById('beliefsLayer');
   const crumbs = document.getElementById('crumbs');
   const usageIndicator = document.getElementById('usageIndicator');
   const rowSpace = document.getElementById('rowSpace');
@@ -669,6 +737,7 @@
   const editorDate = document.getElementById('editorDate');
   const editorMeta = document.getElementById('editorMeta');
   const expandGroupsBtn = document.getElementById('expandGroupsBtn');
+  const addBeliefBtn = document.getElementById('addBeliefBtn');
 
   function render() {
     renderCrumbs();
@@ -715,150 +784,265 @@
   function shortText(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n-1) + '…' : s; }
 
   /* =========================================================
-     РЕНДЕР ПОЛЯ — высота убеждения = вес × свободное место
+     РЕНДЕР ПОЛЯ
      ========================================================= */
   function renderField() {
-    beliefsLayer.innerHTML = '';
+    // очищаем всё, кроме служебных классов
+    fieldView.innerHTML = '';
+
     const beliefs = Store.get().beliefs;
+    const totalSum = beliefs.reduce((s, b) => s + (b.weight || 1), 0);
+    updateUsage(Math.round(totalSum * 100));
+
+    const remaining = 1 - totalSum;
+    if (remaining < MIN_NEW_WEIGHT) {
+      addBeliefBtn.disabled = true;
+      addBeliefBtn.textContent = '🚫 Нет места';
+    } else {
+      addBeliefBtn.disabled = false;
+      addBeliefBtn.textContent = '+ Убеждение';
+    }
 
     if (!beliefs.length) {
       const e = document.createElement('div');
-      e.className = 'empty-note';
-      e.textContent = 'Пока нет убеждений.\nНажми «+ Убеждение», чтобы создать первое.\n\nВес = сколько места занимает убеждение.\n1.0 — весь экран, 0.5 — половина.';
-      beliefsLayer.appendChild(e);
-      updateUsage(0);
+      e.className = 'field-empty';
+      e.textContent = 'Пока нет убеждений.\nНажми «+ Убеждение», чтобы создать первое.\n\nНовое всегда ближе к тебе (ось Z).\nВес 1.00 — весь экран. Меньше — можно таскать.';
+      fieldView.appendChild(e);
       return;
     }
 
-    const n = beliefs.length;
-    const totalGap = GAP * Math.max(0, n - 1);
-    const fieldH = fieldView.clientHeight;
-    const available = Math.max(60 * n, fieldH - totalGap - 20); // 20 = padding
+    const fW = fieldView.clientWidth;
+    const fH = fieldView.clientHeight;
+    const availW = fW - FIELD_PAD * 2;
+    const availH = fH - FIELD_PAD * 2;
 
-    let sumW = 0;
-    beliefs.forEach(b => { sumW += (b.weight || 1); });
-    const scale = sumW > 1 ? (1 / sumW) : 1;
+    // total для расчёта z
+    const total = beliefs.length;
 
-    beliefs.forEach(b => {
-      const w = b.weight || 1;
-      const h = Math.max(60, Math.round(available * w * scale));
-      const el = buildBeliefEl(b, h);
-      beliefsLayer.appendChild(el);
-      adjustFontSize(el);
+    // считаем z-scale первого убеждения для нормализации
+    beliefs.forEach((b, index) => {
+      const w = clamp(b.weight || 1, MIN_WEIGHT, 1);
+      const sq = Math.sqrt(w);
+      const width = Math.round(availW * sq);
+      const height = Math.round(availH * sq);
+      const maxX = Math.max(0, availW - width);
+      const maxY = Math.max(0, availH - height);
+      const x = clamp(b.x != null ? b.x : 0.5, 0, 1);
+      const y = clamp(b.y != null ? b.y : 0.5, 0, 1);
+      const left = FIELD_PAD + x * maxX;
+      const top = FIELD_PAD + y * maxY;
+
+      const z = computeZ(index, total);
+
+      const el = buildBeliefEl(b, width, height, w, z);
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.width = width + 'px';
+      el.style.height = height + 'px';
+      fieldView.appendChild(el);
     });
-
-    updateUsage(Math.round(sumW * 100));
   }
 
   function updateUsage(percent) {
     if (percent <= 0) { usageIndicator.textContent = ''; return; }
     usageIndicator.textContent = 'занято ' + percent + '%';
-    if (percent > 100) usageIndicator.style.color = '#ffb46f';
-    else usageIndicator.style.color = '#6b6b7b';
+    usageIndicator.style.color = percent > 100 ? '#ffb46f' : '#6b6b7b';
   }
 
-  function buildBeliefEl(b, heightPx) {
+  function buildBeliefEl(b, width, height, weight, z) {
     const el = document.createElement('div');
     el.className = 'belief';
     el.dataset.beliefId = b.id;
-    el.style.minHeight = heightPx + 'px';
-    el.style.height = heightPx + 'px';
+    el.dataset.z = String(z.toFixed(3));
+
+    const isFull = weight >= 0.99;
+    if (!isFull) el.classList.add('movable');
 
     const hasContent = b.text && b.text.trim();
     if (!hasContent) el.classList.add('empty');
 
-    // head с весом и удалением
-    const head = document.createElement('div');
-    head.className = 'belief-head';
+    // визуализация оси Z:
+    //   z-index: свежее поверх
+    //   opacity: дальнее полупрозрачно
+    //   scale:   дальнее чуть меньше
+    //   filter:  дальнее темнее/синее
+    const opacity = 0.55 + z * 0.45;
+    const scale = 0.94 + z * 0.06;
+    const brightness = 0.65 + z * 0.35;
+    const shadowBlur = 12 + z * 24;
+    const shadowY = 8 + z * 12;
+
+    el.style.zIndex = String(Math.round(z * 100));
+    el.style.opacity = String(opacity);
+    el.style.transform = 'scale(' + scale.toFixed(3) + ')';
+    el.style.filter = 'brightness(' + brightness.toFixed(2) + ')';
+    el.style.boxShadow =
+      '0 ' + shadowY.toFixed(0) + 'px ' + shadowBlur.toFixed(0) + 'px rgba(0,0,0,.55),' +
+      ' 0 0 0 1px rgba(111,168,255,' + (z * 0.25).toFixed(2) + '),' +
+      ' inset 0 1px 0 rgba(255,255,255,' + (0.04 + z * 0.08).toFixed(2) + ')';
+
+    // цель для анимации — сохраняем opacity как target
+    el.style.setProperty('--target-opacity', String(opacity));
+
+    // метка веса
     const wEl = document.createElement('div');
     wEl.className = 'belief-weight';
-    wEl.textContent = (b.weight || 1).toFixed(2);
-    head.appendChild(wEl);
+    wEl.textContent = weight.toFixed(2);
+    el.appendChild(wEl);
 
-    const delBtn = document.createElement('button');
-    delBtn.className = 'belief-del';
-    delBtn.textContent = '✕';
-    delBtn.setAttribute('aria-label', 'Удалить');
-    delBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      askConfirm('Удалить убеждение?', 'Его текст исчезнет.', () => {
-        deleteBelief(b.id);
-        render();
-        toast('Удалено');
-      });
-    });
-    head.appendChild(delBtn);
-    el.appendChild(head);
+    // z-метка
+    const zEl = document.createElement('div');
+    zEl.className = 'belief-z';
+    zEl.textContent = 'z' + z.toFixed(2);
+    el.appendChild(zEl);
 
-    // body
-    const body = document.createElement('div');
-    body.className = 'belief-body';
-
+    // контент
     if (!hasContent) {
-      body.textContent = 'пусто — открой и напиши';
+      const t = document.createElement('div');
+      t.className = 'belief-empty-text';
+      t.textContent = 'открой и напиши';
+      el.appendChild(t);
     } else {
+      const body = document.createElement('div');
+      body.className = 'belief-body';
       const tokens = resolveTokens(b.text);
-      tokens.forEach(t => {
-        if (t.type === 'raw') return;
+      const visible = tokens.filter(t => t.type !== 'raw');
+      let fontSize = Math.min(width, height) * 0.35;
+      if (visible.length > 1) {
+        fontSize = fontSize / Math.sqrt(visible.length) * 1.4;
+      }
+      fontSize = clamp(fontSize, 14, 140);
+      body.style.setProperty('--bfont', fontSize + 'px');
+
+      visible.forEach(t => {
         if (t.type === 'existing') {
           const sym = findSymbolById(t.symbolId);
           if (!sym) return;
-          const wrap = document.createElement('span');
-          wrap.className = 'belief-sym';
+          const s = document.createElement('span');
+          s.className = 'belief-sym';
           const ch = document.createElement('span');
           ch.textContent = sym.char || '◌';
-          wrap.appendChild(ch);
+          s.appendChild(ch);
           if (isGroup(sym)) {
             const badge = document.createElement('span');
             badge.className = 'badge';
             badge.textContent = String(sym.children.length);
-            wrap.appendChild(badge);
+            s.appendChild(badge);
           }
           if (wordsMode && sym.word) {
             const w = document.createElement('span');
-            w.className = 'w';
+            w.className = 'word';
             w.textContent = sym.word;
-            wrap.appendChild(w);
+            s.appendChild(w);
           }
-          body.appendChild(wrap);
+          body.appendChild(s);
         } else if (t.type === 'new-emoji') {
-          const sp = document.createElement('span');
-          sp.textContent = t.char;
-          sp.style.opacity = '.5';
-          body.appendChild(sp);
+          const s = document.createElement('span');
+          s.className = 'belief-sym';
+          s.textContent = t.char;
+          s.style.opacity = '.5';
+          body.appendChild(s);
         } else if (t.type === 'new-word') {
-          const sp = document.createElement('span');
-          sp.className = 'new-w';
-          sp.textContent = t.word;
-          body.appendChild(sp);
+          const s = document.createElement('span');
+          s.className = 'belief-sym';
+          const w = document.createElement('span');
+          w.className = 'word new';
+          w.style.fontSize = '0.6em';
+          w.style.display = 'inline-block';
+          w.textContent = t.word;
+          s.appendChild(w);
+          body.appendChild(s);
         }
       });
+      el.appendChild(body);
     }
-    el.appendChild(body);
 
-    el.addEventListener('click', () => openEditor(b.id));
+    el.addEventListener('pointerdown', e => onBeliefPointerDown(e, b, el, weight));
     return el;
   }
 
-  /**
-   * Устанавливает font-size для убеждения по размеру его контейнера.
-   * Чем больше контейнер — тем крупнее смайл.
-   */
-  function adjustFontSize(el) {
-    const body = el.querySelector('.belief-body');
-    if (!body) return;
-    const h = el.clientHeight;
-    const w = el.clientWidth;
-    const minDim = Math.min(h, w);
-    // базовый размер
-    let fontSize = clamp(minDim * 0.35, 20, 120);
-    // проверим сколько символов — если много, уменьшим
-    const symbolsCount = body.querySelectorAll('.belief-sym').length;
-    if (symbolsCount > 1) {
-      fontSize = fontSize / Math.sqrt(symbolsCount) * 1.3;
-      fontSize = clamp(fontSize, 16, 100);
+  /* =========================================================
+     DRAG убеждений (только если вес < 1)
+     ========================================================= */
+  function onBeliefPointerDown(e, belief, el, weight) {
+    if (beliefDrag) return;
+    if (e.button && e.button !== 0) return;
+    if (weight >= 0.99) return;
+
+    e.preventDefault();
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startLeft = parseFloat(el.style.left) || 0;
+    const startTop = parseFloat(el.style.top) || 0;
+    const pointerId = e.pointerId;
+    let dragging = false;
+
+    beliefDrag = { belief, el, startX, startY, startLeft, startTop, pointerId, moved: false };
+
+    function onMove(ev) {
+      if (ev.pointerId !== pointerId) return;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+
+      if (!dragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+        dragging = true;
+        el.classList.add('dragging');
+      }
+      if (!dragging) return;
+
+      const fW = fieldView.clientWidth;
+      const fH = fieldView.clientHeight;
+      const availW = fW - FIELD_PAD * 2;
+      const availH = fH - FIELD_PAD * 2;
+      const w2 = el.offsetWidth;
+      const h2 = el.offsetHeight;
+      const maxX = Math.max(0, availW - w2);
+      const maxY = Math.max(0, availH - h2);
+
+      let newLeft = startLeft + dx;
+      let newTop = startTop + dy;
+      newLeft = clamp(newLeft, FIELD_PAD, FIELD_PAD + maxX);
+      newTop = clamp(newTop, FIELD_PAD, FIELD_PAD + maxY);
+
+      el.style.left = newLeft + 'px';
+      el.style.top = newTop + 'px';
+      ev.preventDefault();
     }
-    body.style.setProperty('--belief-font', fontSize + 'px');
+
+    function onUp(ev) {
+      if (ev.pointerId !== pointerId) return;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      el.classList.remove('dragging');
+      beliefDrag = null;
+
+      if (dragging) {
+        const fW = fieldView.clientWidth;
+        const fH = fieldView.clientHeight;
+        const availW = fW - FIELD_PAD * 2;
+        const availH = fH - FIELD_PAD * 2;
+        const w2 = el.offsetWidth;
+        const h2 = el.offsetHeight;
+        const maxX = Math.max(1, availW - w2);
+        const maxY = Math.max(1, availH - h2);
+
+        const left = parseFloat(el.style.left) || 0;
+        const top = parseFloat(el.style.top) || 0;
+        const nx = clamp((left - FIELD_PAD) / maxX, 0, 1);
+        const ny = clamp((top - FIELD_PAD) / maxY, 0, 1);
+
+        updateBelief(belief.id, { x: Number(nx.toFixed(4)), y: Number(ny.toFixed(4)) });
+      } else {
+        openEditor(belief.id);
+      }
+    }
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
   }
 
   function openEditor(beliefId) { NAV.view = 'editor'; NAV.beliefId = beliefId; currentBeliefId = beliefId; render(); }
@@ -871,8 +1055,23 @@
     editorText.value = b.text || '';
     editorDate.textContent = formatDate(b.created);
 
-    document.getElementById('propWeight').value = String(b.weight || 1);
-    document.getElementById('propWeightVal').textContent = (b.weight || 1).toFixed(2);
+    const otherSum = getBeliefsSum(currentBeliefId);
+    const maxWeight = Math.max(MIN_WEIGHT, Math.min(1, 1 - otherSum));
+
+    const slider = document.getElementById('propWeight');
+    slider.max = String(maxWeight.toFixed(2));
+    slider.min = String(MIN_WEIGHT);
+
+    const curWeight = clamp(b.weight || 1, MIN_WEIGHT, maxWeight);
+    slider.value = String(curWeight);
+    document.getElementById('propWeightVal').textContent = curWeight.toFixed(2);
+
+    const info = document.getElementById('weightLimitInfo');
+    if (maxWeight < 1) {
+      info.textContent = 'макс ' + maxWeight.toFixed(2);
+    } else {
+      info.textContent = '';
+    }
 
     renderPreview();
   }
@@ -891,12 +1090,12 @@
     let count = 0;
     tokens.forEach(t => {
       if (t.type !== 'raw') count++;
-      editorPreview.appendChild(buildTokenEl(t, tokens));
+      editorPreview.appendChild(buildTokenEl(t));
     });
     editorMeta.textContent = count + ' символов';
   }
 
-  function buildTokenEl(t, tokens) {
+  function buildTokenEl(t) {
     if (t.type === 'raw') {
       const s = document.createElement('span');
       s.textContent = t.text;
@@ -1065,8 +1264,9 @@
       if (dropTarget) {
         dropTarget.classList.remove('drop-target');
         const targetText = dropTarget.dataset.tokenText;
+        const targetSymbolId = dropTarget.dataset.symbolId;
         if (targetText && targetText !== token.text) {
-          setTimeout(() => openMergeDialog(token, { text: targetText, symbolId: dropTarget.dataset.symbolId }), 10);
+          setTimeout(() => openMergeDialog(token, { text: targetText, symbolId: targetSymbolId }), 10);
         }
         setTimeout(() => { chipDrag = null; }, 20);
         return;
@@ -1133,18 +1333,18 @@
     const wordIn = document.getElementById('symWord');
     const title = document.getElementById('symTitle');
     charIn.classList.remove('error');
+    charIn.disabled = false;
+    wordIn.disabled = false;
 
     if (ctx.kind === 'emoji') {
       title.textContent = 'Новый смайл';
       charIn.value = ctx.char;
       charIn.disabled = true;
       wordIn.value = '';
-      wordIn.disabled = false;
       wordIn.focus();
     } else {
       title.textContent = 'Новое слово';
       charIn.value = '';
-      charIn.disabled = false;
       wordIn.value = ctx.word;
       wordIn.disabled = true;
       charIn.focus();
@@ -1195,19 +1395,33 @@
   const mergeModal = document.getElementById('mergeModal');
 
   function openMergeDialog(tokenA, tokenB) {
-    mergeCtx = { aText: tokenA.text, bText: tokenB.text, aSymbolId: tokenA.symbolId, bSymbolId: tokenB.symbolId };
     const a = tokenA.symbolId ? findSymbolById(tokenA.symbolId) : null;
     const b = tokenB.symbolId ? findSymbolById(tokenB.symbolId) : null;
-    const aDisp = a ? a.char : tokenA.text;
-    const bDisp = b ? b.char : tokenB.text;
-    document.getElementById('mergePreview').textContent = aDisp + ' + ' + bDisp + ' → 🆕';
+
+    const aChar = a ? (a.char || a.word || '·') : (tokenA.char || tokenA.word || tokenA.text);
+    const bChar = b ? (b.char || b.word || '·') : (tokenB.char || tokenB.word || tokenB.text);
+
+    mergeCtx = {
+      aText: tokenA.text,
+      bText: tokenB.text,
+      aSymbolId: tokenA.symbolId || null,
+      bSymbolId: tokenB.symbolId || null,
+      aType: tokenA.type,
+      bType: tokenB.type,
+      aChar: a ? a.char : tokenA.char,
+      bChar: b ? b.char : tokenB.char,
+      aWord: a ? a.word : tokenA.word,
+      bWord: b ? b.word : tokenB.word
+    };
+
+    document.getElementById('mergePreview').textContent = aChar + ' + ' + bChar + ' → 🆕';
     document.getElementById('mergeWord').value = '';
     document.getElementById('mergeChar').value = '';
     document.getElementById('mergeErr').textContent = '';
 
-    if (a && b) {
-      const aW = a.word || a.char;
-      const bW = b.word || b.char;
+    const aW = a ? (a.word || a.char) : (tokenA.word || tokenA.char || '');
+    const bW = b ? (b.word || b.char) : (tokenB.word || tokenB.char || '');
+    if (aW && bW) {
       document.getElementById('mergeWord').value = (aW + ' ' + bW).trim();
     }
 
@@ -1222,49 +1436,102 @@
 
   document.getElementById('mergeChar').addEventListener('input', function () {
     if (!mergeCtx) return;
-    const a = mergeCtx.aSymbolId ? findSymbolById(mergeCtx.aSymbolId) : null;
-    const b = mergeCtx.bSymbolId ? findSymbolById(mergeCtx.bSymbolId) : null;
-    const aDisp = a ? a.char : mergeCtx.aText;
-    const bDisp = b ? b.char : mergeCtx.bText;
+    const aDisp = mergeCtx.aChar || mergeCtx.aText;
+    const bDisp = mergeCtx.bChar || mergeCtx.bText;
     const v = this.value.trim();
     document.getElementById('mergePreview').textContent = aDisp + ' + ' + bDisp + ' → ' + (v || '🆕');
   });
+
+  function ensureSymbolFromToken(token, symbolId, char, word) {
+    if (symbolId) {
+      const s = findSymbolById(symbolId);
+      if (s) return s;
+    }
+    if (char) {
+      const s = findSymbolByChar(char);
+      if (s) {
+        if (word && !s.word) { s.word = word; Store.save(); }
+        return s;
+      }
+      const created = { id: uid(), char, word: word || '', children: [], created: nowIso() };
+      Store.get().symbols.push(created);
+      Store.save();
+      return created;
+    }
+    if (word) {
+      const s = findSymbolByWord(word);
+      if (s) return s;
+      const created = { id: uid(), char: '', word, children: [], created: nowIso() };
+      Store.get().symbols.push(created);
+      Store.save();
+      return created;
+    }
+    return null;
+  }
 
   document.getElementById('mergeSave').addEventListener('click', () => {
     if (!mergeCtx) return;
     const charIn = document.getElementById('mergeChar');
     const wordIn = document.getElementById('mergeWord');
     const errEl = document.getElementById('mergeErr');
-    const char = charIn.value.trim();
-    const word = wordIn.value.trim();
+    const groupChar = charIn.value.trim();
+    const groupWord = wordIn.value.trim();
 
-    if (char && !isEmojiOnly(char)) {
+    if (groupChar && !isEmojiOnly(groupChar)) {
       errEl.textContent = 'Только смайлы';
       charIn.classList.add('error');
       setTimeout(() => charIn.classList.remove('error'), 400);
       return;
     }
 
-    let finalWord = word;
+    const symA = ensureSymbolFromToken({ type: mergeCtx.aType }, mergeCtx.aSymbolId, mergeCtx.aChar, mergeCtx.aWord);
+    const symB = ensureSymbolFromToken({ type: mergeCtx.bType }, mergeCtx.bSymbolId, mergeCtx.bChar, mergeCtx.bWord);
+    if (!symA || !symB) {
+      errEl.textContent = 'Не удалось объединить';
+      return;
+    }
+
+    let finalWord = groupWord;
     if (!finalWord) {
-      const a = mergeCtx.aSymbolId ? findSymbolById(mergeCtx.aSymbolId) : null;
-      const b = mergeCtx.bSymbolId ? findSymbolById(mergeCtx.bSymbolId) : null;
-      const aW = a ? (a.word || a.char) : mergeCtx.aText;
-      const bW = b ? (b.word || b.char) : mergeCtx.bText;
+      const aW = symA.word || symA.char || '';
+      const bW = symB.word || symB.char || '';
       finalWord = (aW + ' ' + bW).trim();
     }
 
-    const group = { id: uid(), char: char, word: finalWord, children: [], created: nowIso() };
-    if (mergeCtx.aSymbolId) group.children.push(mergeCtx.aSymbolId);
-    if (mergeCtx.bSymbolId) group.children.push(mergeCtx.bSymbolId);
+    const group = {
+      id: uid(),
+      char: groupChar,
+      word: finalWord,
+      children: [],
+      created: nowIso()
+    };
+    if (group.children.indexOf(symA.id) === -1) group.children.push(symA.id);
+    if (group.children.indexOf(symB.id) === -1) group.children.push(symB.id);
     Store.get().symbols.push(group);
+    Store.save();
 
     let text = editorText.value;
-    const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(escRe(mergeCtx.aText) + '\\s+' + escRe(mergeCtx.bText) + '|' + escRe(mergeCtx.bText) + '\\s+' + escRe(mergeCtx.aText));
-    if (char) {
-      if (pattern.test(text)) text = text.replace(pattern, char);
-      else text = text.replace(new RegExp(escRe(mergeCtx.aText)), '').replace(new RegExp(escRe(mergeCtx.bText)), '').trim() + ' ' + char;
+    const aText = mergeCtx.aText;
+    const bText = mergeCtx.bText;
+    const idxA = text.indexOf(aText);
+    const idxB = text.indexOf(bText);
+    const groupDisplay = groupChar || finalWord || '🆕';
+
+    if (idxA !== -1 && idxB !== -1 && idxA !== idxB) {
+      const firstIdx = Math.min(idxA, idxB);
+      const secondIdx = Math.max(idxA, idxB);
+      const firstText = idxA < idxB ? aText : bText;
+      const secondText = idxA < idxB ? bText : aText;
+      const firstEnd = firstIdx + firstText.length;
+      const secondEnd = secondIdx + secondText.length;
+      text = text.slice(0, secondIdx) + text.slice(secondEnd);
+      text = text.slice(0, firstIdx) + groupDisplay + text.slice(firstEnd);
+    } else if (idxA !== -1) {
+      text = text.slice(0, idxA) + groupDisplay + text.slice(idxA + aText.length);
+    } else if (idxB !== -1) {
+      text = text.slice(0, idxB) + groupDisplay + text.slice(idxB + bText.length);
+    } else {
+      text = (text.trim() + ' ' + groupDisplay).trim();
     }
 
     if (currentBeliefId) {
@@ -1378,7 +1645,7 @@
     const s = findSymbolById(cardSymbolId);
     if (!s) return;
     cardModal.classList.add('hidden');
-    askConfirm('Удалить символ?', s.char + (s.word ? ' : ' + s.word : '') + ' будет удалён из базы.', () => {
+    askConfirm('Удалить символ?', (s.char || '◌') + (s.word ? ' : ' + s.word : '') + ' будет удалён из базы.', () => {
       deleteSymbol(s.id);
       renderPreview();
       toast('Удалено');
@@ -1389,7 +1656,6 @@
   const pickerModal = document.getElementById('pickerModal');
 
   function openPicker(parentId) {
-    pickerParent = parentId;
     const list = document.getElementById('pickerList');
     list.innerHTML = '';
     const parent = findSymbolById(parentId);
@@ -1432,14 +1698,22 @@
   document.getElementById('pickerCancel').addEventListener('click', () => pickerModal.classList.add('hidden'));
 
   /* ===== нижняя панель ===== */
-  document.getElementById('addBeliefBtn').addEventListener('click', () => {
-    const b = createBelief();
+  addBeliefBtn.addEventListener('click', () => {
+    const sum = getBeliefsSum();
+    const remaining = 1 - sum;
+    if (remaining < MIN_NEW_WEIGHT) {
+      toast('Освободи место — нет свободного места');
+      return;
+    }
+    const newWeight = sum === 0 ? 1 : Math.min(0.5, remaining);
+    const b = createBelief(newWeight);
     openEditor(b.id);
   });
+
   document.getElementById('backBtn').addEventListener('click', closeEditor);
   document.getElementById('deleteBeliefBtn').addEventListener('click', () => {
     if (!currentBeliefId) return;
-    askConfirm('Удалить убеждение?', 'Его текст и свойства исчезнут.', () => {
+    askConfirm('Удалить убеждение?', 'Его текст исчезнет.', () => {
       deleteBelief(currentBeliefId);
       closeEditor();
       toast('Удалено');
