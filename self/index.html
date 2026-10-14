@@ -18,146 +18,46 @@
   .scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 10px 110px; }
   .scroll::-webkit-scrollbar { display:none; }
 
-  /* ==== убеждение — просто рамка ==== */
-  .belief {
-    position:relative;
-    border:1.5px solid rgba(111,168,255,.28);
-    background: linear-gradient(160deg, rgba(30,39,64,.45), rgba(18,19,28,.7));
-    border-radius:18px;
-    padding:14px 12px 14px;
-    margin-bottom:12px;
-    transition:.15s;
-    min-height:64px;
-  }
+  .belief { position:relative; border:1.5px solid rgba(111,168,255,.28); background: linear-gradient(160deg, rgba(30,39,64,.45), rgba(18,19,28,.7)); border-radius:18px; padding:14px 12px 14px; margin-bottom:12px; transition:.15s; min-height:64px; }
   .belief.drop-target { border-color:#6fa8ff; background:rgba(111,168,255,.08); }
 
-  .belief-edit {
-    position:absolute; top:8px; right:8px;
-    width:30px; height:30px;
-    border-radius:9px;
-    background:rgba(255,255,255,.04);
-    border:1px solid #262633;
-    color:#6b6b7b;
-    font-size:14px;
-    display:flex; align-items:center; justify-content:center;
-    cursor:pointer;
-    transition:.15s;
-    z-index:2;
-  }
+  .belief-edit { position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.04); border:1px solid #262633; color:#6b6b7b; font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; z-index:2; }
   .belief-edit:active { background:rgba(111,168,255,.15); color:#6fa8ff; border-color:#6fa8ff; }
 
-  .belief-weight {
-    position:absolute; top:8px; right:46px;
-    font-size:10px; color:#6b6b7b;
-    background:rgba(255,180,111,.1);
-    padding:4px 8px;
-    border-radius:999px;
-  }
+  .belief-weight { position:absolute; top:8px; right:46px; font-size:10px; color:#6b6b7b; background:rgba(255,180,111,.1); padding:4px 8px; border-radius:999px; }
 
-  /* ==== строка символов ==== */
-  .row {
-    display:flex; flex-wrap:wrap; align-items:center;
-    gap:8px;
-    min-height:40px;
-  }
-  .row.nested {
-    margin-top:6px;
-    padding-left:20px;
-    position:relative;
-  }
-  .row.nested::before {
-    content:'';
-    position:absolute;
-    left:6px; top:10px; bottom:10px;
-    width:2px;
-    background:linear-gradient(180deg, rgba(111,168,255,.5), rgba(111,168,255,.1));
-    border-radius:1px;
-  }
+  .row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-height:40px; }
+  .row.nested { margin-top:6px; padding-left:20px; position:relative; }
+  .row.nested::before { content:''; position:absolute; left:6px; top:10px; bottom:10px; width:2px; background:linear-gradient(180deg, rgba(111,168,255,.5), rgba(111,168,255,.1)); border-radius:1px; }
 
-  /* ==== чип символа ==== */
-  .chip {
-    display:inline-flex; align-items:center;
-    gap:6px;
-    padding:6px 10px;
-    border-radius:12px;
-    background:rgba(111,168,255,.1);
-    border:1px solid rgba(111,168,255,.22);
-    cursor:pointer;
-    transition:.15s;
-    font-size:22px;
-    line-height:1.1;
-    touch-action:manipulation;
-    position:relative;
-    font-family:inherit;
-    color:#e8e8f0;
-  }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:12px; background:rgba(111,168,255,.1); border:1px solid rgba(111,168,255,.22); cursor:pointer; transition:.15s; font-size:22px; line-height:1.1; touch-action:manipulation; position:relative; font-family:inherit; color:#e8e8f0; }
   .chip:active { transform:scale(.96); }
 
   .chip .chip-emoji { font-size:22px; line-height:1; }
-  .chip .chip-word {
-    font-size:12px; color:#8890a0;
-    max-width:140px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-  .chip.group {
-    background:rgba(111,168,255,.16);
-    border-color:rgba(111,168,255,.4);
-  }
-  .chip.group.expanded {
-    background:rgba(111,168,255,.24);
-    border-color:rgba(111,168,255,.6);
-  }
-  .chip.group .chip-count {
-    font-size:11px; font-weight:800;
-    background:#6fa8ff; color:#06111f;
-    padding:1px 6px;
-    border-radius:8px;
-    min-width:20px;
-    text-align:center;
-  }
-  .chip.foreign {
-    background:rgba(255,180,111,.12);
-    border:1px dashed rgba(255,180,111,.55);
-    color:#ffb46f;
-  }
+  .chip .chip-word { font-size:12px; color:#8890a0; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chip.group { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.4); }
+  .chip.group.expanded { background:rgba(111,168,255,.24); border-color:rgba(111,168,255,.6); }
+  .chip.group .chip-count { font-size:11px; font-weight:800; background:#6fa8ff; color:#06111f; padding:1px 6px; border-radius:8px; min-width:20px; text-align:center; }
+  .chip.foreign { background:rgba(255,180,111,.12); border:1px dashed rgba(255,180,111,.55); color:#ffb46f; }
   .chip.foreign .chip-word { color:#ffb46f; }
   .chip.foreign .chip-count { background:#ffb46f; }
+  .chip.badgroup { background:rgba(255,90,90,.1); border:1px solid rgba(255,90,90,.5); color:#ff8f8f; }
+  .chip.badgroup .chip-emoji { color:#ff8f8f; }
+  .chip.badgroup .chip-count { background:#ff5a5a; color:#fff; }
   .chip.dragging { opacity:.25; }
-  .chip.drop-target {
-    background:rgba(111,168,255,.35);
-    border-color:#6fa8ff;
-    box-shadow:0 0 0 3px rgba(111,168,255,.35);
-    transform:scale(1.08);
-  }
+  .chip.drop-target { background:rgba(111,168,255,.35); border-color:#6fa8ff; box-shadow:0 0 0 3px rgba(111,168,255,.35); transform:scale(1.08); }
 
-  .drag-ghost {
-    position:fixed; z-index:9999; pointer-events:none;
-    opacity:.9; transform:scale(1.06);
-    background:#1e1e2a;
-    border:2px solid #6fa8ff;
-    border-radius:12px;
-    padding:6px 12px;
-    display:flex; align-items:center; gap:8px;
-    box-shadow:0 16px 40px rgba(0,0,0,.7);
-    font-size:14px; color:#e8e8f0;
-  }
+  .drag-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:.9; transform:scale(1.06); background:#1e1e2a; border:2px solid #6fa8ff; border-radius:12px; padding:6px 12px; display:flex; align-items:center; gap:8px; box-shadow:0 16px 40px rgba(0,0,0,.7); font-size:14px; color:#e8e8f0; }
   .drag-ghost .g-emoji { font-size:22px; }
 
-  .empty-row {
-    color:#4a4a58; font-size:13px;
-    padding:6px 0;
-    font-style:italic;
-  }
+  .empty-row { color:#4a4a58; font-size:13px; padding:6px 0; font-style:italic; }
 
-  /* ==== нижняя панель ==== */
   .bottom-panel { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(180deg, rgba(10,10,15,0) 0%, #0a0a0f 30%); padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); display:flex; gap:8px; z-index:50; }
   .bottom-btn { flex:1; height:48px; border-radius:14px; border:1px solid #262633; background:#14141c; font-size:14px; font-weight:600; color:#e8e8f0; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:5px; font-family:inherit; }
   .bottom-btn:active { transform:scale(.97); background:#1e1e2a; }
   .bottom-btn.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .bottom-btn.warn { background:rgba(255,90,90,.15); color:#ff8f8f; border-color:rgba(255,90,90,.35); }
 
-  /* ==== модалки ==== */
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:60px 20px 20px; overflow-y:auto; }
   .modal { background:#1e1e2a; border:1px solid #262633; border-radius:22px; padding:20px; width:100%; max-width:400px; display:flex; flex-direction:column; gap:12px; margin-bottom:20px; }
   .modal h3 { font-size:17px; font-weight:600; color:#e8e8f0; }
@@ -175,14 +75,7 @@
   .emoji-input.error { border-color:#ff3b30; animation:shake .3s; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
 
-  .preview-wrap {
-    background:#0f0f15; border:1px solid #262633; border-radius:14px;
-    padding:12px; min-height:60px;
-    display:flex; flex-wrap:wrap; align-items:center; gap:6px;
-    font-size:18px; line-height:1.8;
-    word-break:break-word;
-    touch-action:none;
-  }
+  .preview-wrap { background:#0f0f15; border:1px solid #262633; border-radius:14px; padding:12px; min-height:60px; display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:18px; line-height:1.8; word-break:break-word; touch-action:none; }
   .preview-wrap .empty { color:#6b6b7b; font-size:13px; font-style:italic; }
   .preview-chip { display:inline-flex; align-items:center; gap:4px; padding:5px 9px; border-radius:10px; font-size:20px; cursor:pointer; touch-action:none; transition:.15s; position:relative; font-family:inherit; color:#e8e8f0; border:1px solid transparent; }
   .preview-chip.sym { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.28); color:#6fa8ff; }
@@ -191,6 +84,8 @@
   .preview-chip.sym.foreign .pw { color:#ffb46f; }
   .preview-chip.sym .pc { font-size:10px; font-weight:800; background:#6fa8ff; color:#06111f; border-radius:6px; padding:1px 5px; margin-left:2px; }
   .preview-chip.sym.foreign .pc { background:#ffb46f; }
+  .preview-chip.sym.badgroup { background:rgba(255,90,90,.15); border:1px solid rgba(255,90,90,.5); color:#ff8f8f; }
+  .preview-chip.sym.badgroup .pc { background:#ff5a5a; color:#fff; }
   .preview-chip.new { background:rgba(255,180,111,.16); border:1px dashed rgba(255,180,111,.55); color:#ffb46f; }
   .preview-chip.new .pw { font-size:12px; color:#ffb46f; }
   .preview-chip .pq { font-size:13px; font-weight:800; margin-right:2px; }
@@ -201,6 +96,7 @@
   .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; flex-wrap:wrap; }
   .modal-actions button { padding:10px 16px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
   .modal-actions button.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .modal-actions button.primary:disabled { opacity:.35; cursor:not-allowed; }
   .modal-actions button.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
   .modal-actions button.ghost { background:transparent; }
   .modal-actions button.warn { background:rgba(255,180,111,.14); color:#ffb46f; border-color:rgba(255,180,111,.35); }
@@ -208,6 +104,7 @@
   .card-hero { text-align:center; padding:4px 0 8px; }
   .card-hero .big { display:inline-block; font-size:64px; line-height:1.1; padding:6px 20px; border-radius:20px; background:rgba(111,168,255,.12); border:1px solid rgba(111,168,255,.3); min-width:90px; text-align:center; word-break:break-word; }
   .card-hero .big.group { background:rgba(111,168,255,.20); border-color:rgba(111,168,255,.5); }
+  .card-hero .big.badgroup { background:rgba(255,90,90,.15); border-color:rgba(255,90,90,.5); color:#ff8f8f; }
 
   .prop-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .prop-grid.three { grid-template-columns:1fr 1fr 1fr; }
@@ -221,6 +118,8 @@
   .mini-chip:active { background:#22222e; border-color:#6fa8ff; }
   .mini-chip .x { width:18px; height:18px; border-radius:50%; background:rgba(255,90,90,.15); color:#ff8f8f; display:flex; align-items:center; justify-content:center; font-size:12px; }
   .mini-chip .mini-badge { font-size:10px; background:#6fa8ff; color:#06111f; padding:1px 6px; border-radius:6px; font-weight:700; }
+  .mini-chip.badgroup { border-color:rgba(255,90,90,.5); color:#ff8f8f; }
+  .mini-chip.badgroup .mini-badge { background:#ff5a5a; color:#fff; }
 
   .picker-list { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow-y:auto; }
   .picker-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:#14141c; border:1px solid #262633; cursor:pointer; text-align:left; width:100%; transition:.15s; font-family:inherit; color:#e8e8f0; }
@@ -230,19 +129,21 @@
   .picker-name.empty { color:#6b6b7b; font-style:italic; }
   .picker-sub { font-size:11px; color:#6b6b7b; }
 
-  /* ==== словарь — иерархия ==== */
   .dict-tree { display:flex; flex-direction:column; gap:4px; max-height:60vh; overflow-y:auto; padding-right:4px; }
   .dict-node { }
   .dict-row { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:10px; background:#14141c; border:1px solid #262633; cursor:pointer; text-align:left; width:100%; font-family:inherit; color:#e8e8f0; transition:.15s; }
   .dict-row:active { background:#22222e; border-color:#6fa8ff; }
   .dict-row.expanded { background:rgba(111,168,255,.08); border-color:rgba(111,168,255,.4); }
+  .dict-row.badgroup { background:rgba(255,90,90,.1); border-color:rgba(255,90,90,.5); }
   .dict-toggle { flex:none; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#6b6b7b; background:transparent; border:none; cursor:pointer; }
   .dict-toggle.blank { visibility:hidden; }
   .dict-toggle.expanded { color:#6fa8ff; }
   .dict-emoji { font-size:22px; width:28px; text-align:center; flex:none; }
+  .dict-emoji.warn { color:#ff8f8f; }
   .dict-word { flex:1; font-size:14px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .dict-word.empty { color:#6b6b7b; font-style:italic; }
   .dict-badge { font-size:11px; background:#6fa8ff; color:#06111f; padding:2px 7px; border-radius:8px; font-weight:700; }
+  .dict-badge.warn { background:#ff5a5a; color:#fff; }
   .dict-owner { font-size:10px; color:#6b6b7b; max-width:40%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .dict-children { margin-left:20px; padding-left:10px; border-left:1px solid rgba(111,168,255,.2); display:flex; flex-direction:column; gap:4px; margin-top:4px; }
 
@@ -267,6 +168,7 @@
     <button class="bottom-btn primary" id="addBeliefBtn">+ Убеждение</button>
     <button class="bottom-btn" id="wordsBtn">📝 Слова</button>
     <button class="bottom-btn" id="dictBtn">📖 Словарь</button>
+    <button class="bottom-btn warn hidden" id="fixBtn">⚠ Исправить</button>
   </div>
 
   <!-- Редактор убеждения -->
@@ -284,7 +186,7 @@
           Тащи смайл на смайл — объединишь в группу.<br>
           Тащи в промежуток — переставишь.<br>
           Тап на оранжевый ? = создать символ.<br>
-          Тап на синий = карточка. Пунктир = чужой.
+          Тап на синий = карточка. Пунктир = чужой. Красный = группа без смайла.
         </div>
       </div>
       <div class="field-row">
@@ -301,7 +203,7 @@
     </div>
   </div>
 
-  <!-- Модалка создания символа -->
+  <!-- Создание символа -->
   <div id="symModal" class="modal-overlay hidden">
     <div class="modal">
       <h3 id="symTitle">Новый символ</h3>
@@ -327,8 +229,9 @@
     <div class="modal">
       <div class="card-hero"><div class="big" id="cardBig">😀</div></div>
       <div class="field-row">
-        <span class="field-label">Смайл</span>
+        <span class="field-label" id="cardCharLabel">Смайл</span>
         <input id="cardChar" class="emoji-input" placeholder="😀" autocomplete="off" spellcheck="false">
+        <div class="hint" id="cardCharHint" style="display:none;color:#ff8f8f;">У группы обязательно должен быть смайл-объединитель.</div>
       </div>
       <div class="field-row">
         <span class="field-label">Название</span>
@@ -376,13 +279,19 @@
     <div class="modal">
       <h3>Объединить в группу</h3>
       <div style="text-align:center;padding:10px;font-size:32px;letter-spacing:6px;" id="mergePreview">🅰 + 🅱 → 🆕</div>
-      <div class="hint">Группа станет новым символом, а исходные — её составом.</div>
-      <input id="mergeWord" class="text-input" placeholder="Название группы (необязательно)" autocomplete="off">
-      <input id="mergeChar" class="emoji-input" placeholder="Смайл группы (необязательно)" autocomplete="off" spellcheck="false">
+      <div class="hint">У группы обязательно должен быть свой смайл-объединитель. Иначе группа будет выглядеть как пустой символ.</div>
+      <div class="field-row">
+        <span class="field-label">Смайл группы (обязательно)</span>
+        <input id="mergeChar" class="emoji-input" placeholder="🕺" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field-row">
+        <span class="field-label">Название группы (необязательно)</span>
+        <input id="mergeWord" class="text-input" placeholder="успешный мужчина" autocomplete="off">
+      </div>
       <div class="err" id="mergeErr"></div>
       <div class="modal-actions">
         <button id="mergeCancel" class="ghost">Отмена</button>
-        <button id="mergeSave" class="primary">Создать</button>
+        <button id="mergeSave" class="primary" disabled>Создать</button>
       </div>
     </div>
   </div>
@@ -406,7 +315,7 @@
   <div id="dictModal" class="modal-overlay hidden">
     <div class="modal">
       <h3>📖 Словарь символов</h3>
-      <div class="hint" style="margin-bottom:8px;">Цифра = общее число символов внутри. Тап на группу — раскрыть.</div>
+      <div class="hint" style="margin-bottom:8px;">Цифра = общее число символов внутри. Тап на ▸ раскрывает группу. Красный = группа без смайла.</div>
       <div class="dict-tree" id="dictList"></div>
       <div class="modal-actions">
         <button id="dictClose" class="ghost">Закрыть</button>
@@ -418,9 +327,9 @@
   <div id="exportModal" class="modal-overlay hidden">
     <div class="modal">
       <h3>📤 Экспорт графа</h3>
-      <div class="export-tabs" style="display:flex;gap:4px;background:#14141c;padding:4px;border-radius:12px;border:1px solid #262633;">
-        <button class="export-tab on" id="exportTabJson" style="flex:1;padding:8px 12px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:#6fa8ff;color:#06111f;font-family:inherit;">JSON (для 3D)</button>
-        <button class="export-tab" id="exportTabText" style="flex:1;padding:8px 12px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#6b6b7b;font-family:inherit;">Текст</button>
+      <div style="display:flex;gap:4px;background:#14141c;padding:4px;border-radius:12px;border:1px solid #262633;">
+        <button id="exportTabJson" style="flex:1;padding:8px 12px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:#6fa8ff;color:#06111f;font-family:inherit;">JSON (для 3D)</button>
+        <button id="exportTabText" style="flex:1;padding:8px 12px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#6b6b7b;font-family:inherit;">Текст</button>
       </div>
       <textarea id="exportTextarea" style="width:100%;min-height:240px;padding:12px;border:1px solid #262633;border-radius:12px;background:#14141c;color:#e8e8f0;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;resize:vertical;-webkit-user-select:text;user-select:text;outline:none;" readonly></textarea>
       <div class="modal-actions">
@@ -575,6 +484,7 @@
   function findSymbolByChar(ch) { const c = String(ch || '').trim(); if (!c) return null; return findAllSymbols().find(s => s.char === c) || null; }
   function findSymbolByWord(w) { const k = String(w || '').trim().toLowerCase(); if (!k) return null; return findAllSymbols().find(s => (s.word || '').toLowerCase() === k) || null; }
   function isGroup(s) { return s && Array.isArray(s.children) && s.children.length > 0; }
+  function isBadGroup(s) { return isGroup(s) && (!s.char || !s.char.trim()); }
   function countDescendants(symId) {
     const sym = findSymbolById(symId);
     if (!sym || !sym.children || !sym.children.length) return 0;
@@ -790,9 +700,10 @@
       e.className = 'empty-note';
       e.textContent = 'Пока пусто.\nНажми «+ Убеждение», чтобы создать первое.\n\nВнутри рамки — смайлы и слова.\nГруппа рядом с числом — тап раскрывает её содержимое.\nДолгое нажатие — перетаскивание.';
       scrollEl.appendChild(e);
-      return;
+    } else {
+      beliefs.forEach(b => scrollEl.appendChild(buildBeliefEl(b)));
     }
-    beliefs.forEach(b => scrollEl.appendChild(buildBeliefEl(b)));
+    updateFixBtn();
   }
 
   function buildBeliefEl(belief) {
@@ -828,7 +739,6 @@
     }
     el.appendChild(row);
 
-    // вложенные дети раскрытых символов
     items.forEach(symId => {
       if (expandedSymbols.has(symId)) {
         const sym = findSymbolById(symId);
@@ -851,7 +761,6 @@
       row.appendChild(buildChip(cid, { type: 'symbol', id: parentSymId }));
     });
     container.appendChild(row);
-    // рекурсивно — раскрытые дети
     (parentSym.children || []).forEach(cid => {
       if (expandedSymbols.has(cid)) {
         const child = findSymbolById(cid);
@@ -863,7 +772,6 @@
     return container;
   }
 
-  /* ==== чип ==== */
   function buildChip(symId, parentCtx) {
     const sym = findSymbolById(symId);
     const chip = document.createElement('button');
@@ -872,22 +780,29 @@
     if (!sym) return chip;
 
     const hasChildren = isGroup(sym);
+    const badGrp = isBadGroup(sym);
     const expanded = expandedSymbols.has(symId);
     const foreign = sym.owner && !(sym.owner.type === parentCtx.type && sym.owner.id === parentCtx.id);
 
     if (hasChildren) chip.classList.add('group');
     if (expanded) chip.classList.add('expanded');
     if (foreign) chip.classList.add('foreign');
+    if (badGrp) chip.classList.add('badgroup');
 
     const em = document.createElement('span');
     em.className = 'chip-emoji';
-    em.textContent = sym.char || '◌';
+    em.textContent = badGrp ? '⚠' : (sym.char || '◌');
     chip.appendChild(em);
 
     if (sym.word) {
       const w = document.createElement('span');
       w.className = 'chip-word';
       w.textContent = sym.word;
+      chip.appendChild(w);
+    } else if (badGrp) {
+      const w = document.createElement('span');
+      w.className = 'chip-word';
+      w.textContent = 'группа без смайла';
       chip.appendChild(w);
     }
 
@@ -898,7 +813,6 @@
       chip.appendChild(cnt);
     }
 
-    // Обработка тапа и long-press
     attachChipHandlers(chip, sym, parentCtx, hasChildren);
     return chip;
   }
@@ -910,9 +824,7 @@
     let pointerId = null;
     let ghost = null, dropTarget = null, dragMode = false;
 
-    function clearPress() {
-      if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-    }
+    function clearPress() { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } }
 
     function startDrag(e) {
       dragMode = true;
@@ -941,7 +853,6 @@
     function onMove(e) {
       if (e.pointerId !== pointerId) return;
       if (!dragMode) {
-        // если сдвинулся больше порога — отменяем long-press и не начинаем drag (просто скролл)
         const dx = e.clientX - startX, dy = e.clientY - startY;
         if (Math.abs(dx) > 10 || Math.abs(dy) > 10) clearPress();
         return;
@@ -974,7 +885,8 @@
           if (dropTarget.classList.contains('chip')) {
             const tid = dropTarget.dataset.symbolId;
             if (tid && tid !== sym.id) {
-              setTimeout(() => openMergeDialog({ text: sym.char, symbolId: sym.id }, { text: (findSymbolById(tid) ? findSymbolById(tid).char : ''), symbolId: tid }), 10);
+              const tSym = findSymbolById(tid);
+              setTimeout(() => openMergeDialog({ text: sym.char, symbolId: sym.id, type: 'existing' }, { text: tSym ? tSym.char : '', symbolId: tid, type: 'existing' }), 10);
             }
           } else if (dropTarget.classList.contains('belief')) {
             const bid = dropTarget.dataset.beliefId;
@@ -984,9 +896,7 @@
         dragMode = false;
         return;
       }
-      // обычный тап
       if (hasChildren) {
-        // раскрыть/свернуть
         if (expandedSymbols.has(sym.id)) expandedSymbols.delete(sym.id);
         else expandedSymbols.add(sym.id);
         persistExpanded();
@@ -1064,13 +974,14 @@
       const sym = findSymbolById(t.symbolId);
       if (!sym) { const s = document.createElement('span'); s.textContent = t.text; return s; }
       const isGrp = isGroup(sym);
+      const badGrp = isBadGroup(sym);
       const isOwn = sym.owner && sym.owner.type === 'belief' && sym.owner.id === beliefEditingId;
       const foreign = !isOwn;
       const c = document.createElement('span');
-      c.className = 'preview-chip sym' + (isGrp ? ' group' : '') + (foreign ? ' foreign' : '');
+      c.className = 'preview-chip sym' + (isGrp ? ' group' : '') + (foreign ? ' foreign' : '') + (badGrp ? ' badgroup' : '');
       c.dataset.symbolId = sym.id;
       c.dataset.tokenText = t.text;
-      const ch = document.createElement('span'); ch.textContent = sym.char || '◌';
+      const ch = document.createElement('span'); ch.textContent = badGrp ? '⚠' : (sym.char || '◌');
       c.appendChild(ch);
       if (sym.word) {
         const w = document.createElement('span'); w.className = 'pw'; w.textContent = sym.word;
@@ -1083,6 +994,7 @@
       }
       c.addEventListener('click', () => {
         if (chipDrag && chipDrag.moved) return;
+        if (badGrp) { openCardModal(sym.id); return; }
         if (foreign) openMoveDialog(sym.id, { type: 'belief', id: beliefEditingId });
         else openCardModal(sym.id);
       });
@@ -1168,7 +1080,7 @@
         const targetText = dropTarget.dataset.tokenText;
         const targetSymbolId = dropTarget.dataset.symbolId;
         if (targetText && targetText !== token.text) {
-          setTimeout(() => openMergeDialog(token, { text: targetText, symbolId: targetSymbolId }), 10);
+          setTimeout(() => openMergeDialog(token, { text: targetText, symbolId: targetSymbolId, type: 'existing' }), 10);
         }
         setTimeout(() => { chipDrag = null; }, 20);
         return;
@@ -1213,9 +1125,17 @@
     return bestDist > 200 ? -1 : bestIdx;
   }
 
-  /* ==== объединение ==== */
+  /* ==== ОБЪЕДИНЕНИЕ — теперь со обязательным смайлом ==== */
   const mergeModal = document.getElementById('mergeModal');
   let mergeCtx = null;
+
+  function updateMergeSaveState() {
+    const charIn = document.getElementById('mergeChar');
+    const saveBtn = document.getElementById('mergeSave');
+    const v = charIn.value.trim();
+    saveBtn.disabled = !v || !isEmojiOnly(v);
+  }
+
   function openMergeDialog(tokenA, tokenB) {
     const a = tokenA.symbolId ? findSymbolById(tokenA.symbolId) : null;
     const b = tokenB.symbolId ? findSymbolById(tokenB.symbolId) : null;
@@ -1231,12 +1151,14 @@
     document.getElementById('mergePreview').textContent = aChar + ' + ' + bChar + ' → 🆕';
     document.getElementById('mergeWord').value = '';
     document.getElementById('mergeChar').value = '';
+    document.getElementById('mergeChar').classList.remove('error');
     document.getElementById('mergeErr').textContent = '';
     const aW = a ? (a.word || a.char) : (tokenA.word || tokenA.char || '');
     const bW = b ? (b.word || b.char) : (tokenB.word || tokenB.char || '');
     if (aW && bW) document.getElementById('mergeWord').value = (aW + ' ' + bW).trim();
+    updateMergeSaveState();
     mergeModal.classList.remove('hidden');
-    setTimeout(() => document.getElementById('mergeWord').focus(), 200);
+    setTimeout(() => document.getElementById('mergeChar').focus(), 200);
   }
   document.getElementById('mergeCancel').addEventListener('click', () => { mergeModal.classList.add('hidden'); mergeCtx = null; });
   document.getElementById('mergeChar').addEventListener('input', function () {
@@ -1245,7 +1167,9 @@
     const bDisp = mergeCtx.bChar || mergeCtx.bText || '';
     const v = this.value.trim();
     document.getElementById('mergePreview').textContent = aDisp + ' + ' + bDisp + ' → ' + (v || '🆕');
+    updateMergeSaveState();
   });
+
   function ensureSymbolFromToken(token, symbolId, char, word) {
     if (symbolId) { const s = findSymbolById(symbolId); if (s) return s; }
     if (char) {
@@ -1266,6 +1190,7 @@
     }
     return null;
   }
+
   document.getElementById('mergeSave').addEventListener('click', () => {
     if (!mergeCtx) return;
     const charIn = document.getElementById('mergeChar');
@@ -1273,41 +1198,61 @@
     const errEl = document.getElementById('mergeErr');
     const groupChar = charIn.value.trim();
     const groupWord = wordIn.value.trim();
-    if (groupChar && !isEmojiOnly(groupChar)) {
-      errEl.textContent = 'Только смайлы';
+
+    // === СМАЙЛ ГРУППЫ ОБЯЗАТЕЛЕН ===
+    if (!groupChar) {
+      errEl.textContent = 'Нужен смайл группы';
       charIn.classList.add('error');
-      setTimeout(() => charIn.classList.remove('error'), 400);
+      setTimeout(() => charIn.classList.remove('error'), 500);
       return;
     }
+    if (!isEmojiOnly(groupChar)) {
+      errEl.textContent = 'Только смайлы';
+      charIn.classList.add('error');
+      setTimeout(() => charIn.classList.remove('error'), 500);
+      return;
+    }
+
     const symA = ensureSymbolFromToken({ type: mergeCtx.aType }, mergeCtx.aSymbolId, mergeCtx.aChar, mergeCtx.aWord);
     const symB = ensureSymbolFromToken({ type: mergeCtx.bType }, mergeCtx.bSymbolId, mergeCtx.bChar, mergeCtx.bWord);
     if (!symA || !symB) { errEl.textContent = 'Не удалось'; return; }
-    let finalWord = groupWord;
-    if (!finalWord) {
-      const aW = symA.word || symA.char || '';
-      const bW = symB.word || symB.char || '';
-      finalWord = (aW + ' ' + bW).trim();
-    }
-    let group = groupChar ? findSymbolByChar(groupChar) : null;
-    if (group && !isGroup(group) && group.id !== symA.id && group.id !== symB.id) {
-      group.children = group.children || [];
-      if (group.children.indexOf(symA.id) === -1) group.children.push(symA.id);
-      if (group.children.indexOf(symB.id) === -1) group.children.push(symB.id);
-      if (finalWord && !group.word) group.word = finalWord;
-    } else if (!group) {
-      group = { id: uid(), char: groupChar, word: finalWord, description:'', tags:[], props:{}, pos:{x:0,y:0,z:0}, children: [], owner: beliefEditingId ? { type:'belief', id: beliefEditingId } : null, created: nowIso() };
-      group.children.push(symA.id);
-      group.children.push(symB.id);
+
+    // === проверяем смайл: занят или нет ===
+    let group = findSymbolByChar(groupChar);
+    if (group) {
+      if (group.id === symA.id || group.id === symB.id) {
+        errEl.textContent = 'Этот смайл — участник объединения';
+        return;
+      }
+      if (group.owner) {
+        errEl.textContent = 'Этот смайл уже где-то живёт: ' + describeOwner(group.owner);
+        return;
+      }
+      // если уже группа — добавляем в неё
+      if (group.children.length && !isGroup(group)) {
+        errEl.textContent = 'Символ с таким смайлом не может быть группой';
+        return;
+      }
+    } else {
+      group = { id: uid(), char: groupChar, word: groupWord || '', description:'', tags:[], props:{}, pos:{x:0,y:0,z:0}, children: [], owner: beliefEditingId ? {type:'belief', id: beliefEditingId} : null, created: nowIso() };
       Store.get().symbols.push(group);
     }
+    if (groupWord && !group.word) group.word = groupWord;
+    if (group.children.indexOf(symA.id) === -1) group.children.push(symA.id);
+    if (group.children.indexOf(symB.id) === -1) group.children.push(symB.id);
     symA.owner = { type: 'symbol', id: group.id };
     symB.owner = { type: 'symbol', id: group.id };
+
+    // === раскрываем группу в дереве ===
+    expandedSymbols.add(group.id);
+    persistExpanded();
+
     Store.save();
 
     let text = draftText;
     const aText = mergeCtx.aText, bText = mergeCtx.bText;
     const idxA = text.indexOf(aText), idxB = text.indexOf(bText);
-    const groupDisplay = groupChar || finalWord || '🆕';
+    const groupDisplay = groupChar;
     if (idxA !== -1 && idxB !== -1 && idxA !== idxB) {
       const firstIdx = Math.min(idxA, idxB);
       const secondIdx = Math.max(idxA, idxB);
@@ -1383,7 +1328,7 @@
   });
 
   /* =========================================================
-     МОДАЛКА СОЗДАНИЯ СИМВОЛА
+     СОЗДАНИЕ СИМВОЛА
      ========================================================= */
   const symModal = document.getElementById('symModal');
   let symCtx = null;
@@ -1474,6 +1419,7 @@
   const cardModal = document.getElementById('cardModal');
   let cardEditingId = null;
   let cardDraft = null;
+
   function openCardModal(symbolId) {
     const s = findSymbolById(symbolId);
     if (!s) return;
@@ -1484,9 +1430,14 @@
       props: Object.assign({ color: '#6fa8ff', size: 1 }, s.props || {}),
       pos: Object.assign({ x: 0, y: 0, z: 0 }, s.pos || {})
     };
-    document.getElementById('cardBig').textContent = s.char || '◌';
-    document.getElementById('cardBig').classList.toggle('group', isGroup(s));
+    const isGrp = isGroup(s);
+    const badGrp = isBadGroup(s);
+    const bigEl = document.getElementById('cardBig');
+    bigEl.textContent = badGrp ? '⚠' : (s.char || '◌');
+    bigEl.classList.toggle('group', isGrp && !badGrp);
+    bigEl.classList.toggle('badgroup', badGrp);
     document.getElementById('cardChar').value = cardDraft.char;
+    document.getElementById('cardChar').classList.remove('error');
     document.getElementById('cardWord').value = cardDraft.word;
     document.getElementById('cardDesc').value = cardDraft.description;
     document.getElementById('cardColor').value = cardDraft.props.color || '#6fa8ff';
@@ -1495,6 +1446,8 @@
     document.getElementById('cardPosY').value = cardDraft.pos.y || 0;
     document.getElementById('cardPosZ').value = cardDraft.pos.z || 0;
     document.getElementById('cardErr').textContent = '';
+    document.getElementById('cardCharHint').style.display = badGrp ? 'block' : 'none';
+    document.getElementById('cardCharLabel').textContent = badGrp ? 'Смайл группы (обязательно)' : 'Смайл';
     const total = countDescendants(s.id);
     document.getElementById('cardOwner').textContent = describeOwner(s.owner) + (total > 0 ? ' · внутри: ' + total : '');
     renderCardChildren();
@@ -1508,8 +1461,9 @@
     const kids = (sym.children || []).map(findSymbolById).filter(Boolean);
     kids.forEach(k => {
       const chip = document.createElement('button');
-      chip.className = 'mini-chip';
-      chip.textContent = k.char || k.word || '◌';
+      const bad = isBadGroup(k);
+      chip.className = 'mini-chip' + (bad ? ' badgroup' : '');
+      chip.textContent = bad ? '⚠ ' + (k.word || '') : (k.char || k.word || '◌');
       if (isGroup(k)) {
         const total = countDescendants(k.id);
         const b = document.createElement('span');
@@ -1533,7 +1487,9 @@
   }
   document.getElementById('cardChar').addEventListener('input', function () {
     cardDraft.char = this.value.trim();
-    document.getElementById('cardBig').textContent = cardDraft.char || '◌';
+    const bigEl = document.getElementById('cardBig');
+    bigEl.textContent = cardDraft.char || '◌';
+    bigEl.classList.remove('badgroup');
   });
   document.getElementById('cardClose').addEventListener('click', () => {
     cardModal.classList.add('hidden');
@@ -1543,6 +1499,14 @@
     const sym = findSymbolById(cardEditingId);
     if (!sym) return;
     const char = cardDraft.char.trim();
+    const isGrp = isGroup(sym);
+    // === Если это группа — смайл обязателен ===
+    if (isGrp && !char) {
+      document.getElementById('cardErr').textContent = 'У группы обязательно должен быть смайл';
+      document.getElementById('cardChar').classList.add('error');
+      setTimeout(() => document.getElementById('cardChar').classList.remove('error'), 500);
+      return;
+    }
     if (char && !isEmojiOnly(char)) { document.getElementById('cardErr').textContent = 'Только смайлы'; return; }
     if (char && char !== sym.char) {
       const exist = findSymbolByChar(char);
@@ -1557,6 +1521,7 @@
     cardModal.classList.add('hidden');
     cardEditingId = null; cardDraft = null;
     render();
+    if (beliefEditingId) renderBeliefPreview();
     toast('Сохранено');
   });
   document.getElementById('cardDelete').addEventListener('click', () => {
@@ -1568,6 +1533,7 @@
     askConfirm('Удалить символ?', (sym.char || '◌') + ' и всё внутри будет удалено.', () => {
       deleteSymbol(id);
       render();
+      if (beliefEditingId) renderBeliefPreview();
       toast('Удалено');
     });
   });
@@ -1675,7 +1641,7 @@
     render();
     if (beliefEditingId) renderBeliefPreview();
     if (oldOwner && oldOwner.type === 'belief') {
-      toast('Переехало. Открыть старое?', 'Открыть', () => { render(); });
+      toast('Переехало', 'Открыть старое', () => { render(); });
     } else {
       toast('Переехало');
     }
@@ -1683,17 +1649,18 @@
   document.getElementById('moveCancel').addEventListener('click', () => moveModal.classList.add('hidden'));
 
   /* =========================================================
-     СЛОВАРЬ — ИЕРАРХИЧЕСКИЙ
+     СЛОВАРЬ
      ========================================================= */
   function buildDictNode(sym, depth) {
     const wrap = document.createElement('div');
     wrap.className = 'dict-node';
 
     const hasChildren = isGroup(sym);
+    const badGrp = isBadGroup(sym);
     const expanded = expandedDict.has(sym.id);
 
     const row = document.createElement('button');
-    row.className = 'dict-row' + (expanded ? ' expanded' : '');
+    row.className = 'dict-row' + (expanded ? ' expanded' : '') + (badGrp ? ' badgroup' : '');
     row.dataset.symbolId = sym.id;
 
     const toggle = document.createElement('div');
@@ -1701,16 +1668,19 @@
     toggle.textContent = hasChildren ? (expanded ? '▾' : '▸') : '';
     row.appendChild(toggle);
 
-    const em = document.createElement('div'); em.className = 'dict-emoji'; em.textContent = sym.char || '◌';
+    const em = document.createElement('div');
+    em.className = 'dict-emoji' + (badGrp ? ' warn' : '');
+    em.textContent = badGrp ? '⚠' : (sym.char || '◌');
     row.appendChild(em);
 
     const w = document.createElement('div');
     w.className = 'dict-word' + (sym.word ? '' : ' empty');
-    w.textContent = sym.word || '—';
+    w.textContent = badGrp ? 'группа без смайла — нажми' : (sym.word || '—');
     row.appendChild(w);
 
     if (hasChildren) {
-      const b = document.createElement('span'); b.className = 'dict-badge';
+      const b = document.createElement('span');
+      b.className = 'dict-badge' + (badGrp ? ' warn' : '');
       b.textContent = String(countDescendants(sym.id));
       row.appendChild(b);
     }
@@ -1729,7 +1699,6 @@
         renderDict();
         return;
       }
-      // тап по строке — карточка
       document.getElementById('dictModal').classList.add('hidden');
       setTimeout(() => openCardModal(sym.id), 60);
     });
@@ -1750,15 +1719,12 @@
   function renderDict() {
     const list = document.getElementById('dictList');
     list.innerHTML = '';
-    // корневые символы: те, у которых owner не является symbol (то есть у них нет родителя-символа)
-    // ИЛИ у которых owner вообще null
     const rootSymbols = findAllSymbols().filter(s => {
       if (!s.owner) return true;
-      if (s.owner.type === 'belief') return true; // они в убеждении, но покажем как корень в словаре
-      if (s.owner.type === 'symbol') return false; // это чей-то ребёнок, покажем внутри родителя
+      if (s.owner.type === 'belief') return true;
+      if (s.owner.type === 'symbol') return false;
       return true;
     });
-    // сортируем: сначала с эмодзи, потом по имени
     rootSymbols.sort((a, b) => {
       const ae = a.char ? 0 : 1;
       const be = b.char ? 0 : 1;
@@ -1780,6 +1746,28 @@
     document.getElementById('dictModal').classList.remove('hidden');
   });
   document.getElementById('dictClose').addEventListener('click', () => document.getElementById('dictModal').classList.add('hidden'));
+
+  /* =========================================================
+     FIX BAD GROUPS
+     ========================================================= */
+  function collectBadGroups() {
+    return findAllSymbols().filter(s => isBadGroup(s));
+  }
+  function updateFixBtn() {
+    const bad = collectBadGroups();
+    const btn = document.getElementById('fixBtn');
+    if (bad.length) {
+      btn.classList.remove('hidden');
+      btn.textContent = '⚠ Исправить ' + bad.length;
+    } else {
+      btn.classList.add('hidden');
+    }
+  }
+  document.getElementById('fixBtn').addEventListener('click', () => {
+    const bad = collectBadGroups();
+    if (!bad.length) return;
+    openCardModal(bad[0].id);
+  });
 
   /* =========================================================
      ЭКСПОРТ
@@ -1804,7 +1792,10 @@
   }
   function buildExportJson() {
     return {
-      version: '3.1', app: 'Твои убеждения', exported: nowIso(),
+      version: '3.2', app: 'Твои убеждения', exported: nowIso(),
+      schema: {
+        rules: ['Символ один в графе', 'Переезд = смена owner', 'У группы обязательно есть смайл-объединитель']
+      },
       beliefs: Store.get().beliefs.map(b => ({
         id: b.id, text: b.text || '', weight: b.weight || 0.5, created: b.created,
         items: beliefItems(b).map(buildSymbolTree).filter(Boolean)
@@ -1832,6 +1823,7 @@
     return lines.join('\n');
   }
   const exportModal = document.getElementById('exportModal');
+  let exportMode = 'json';
   document.getElementById('exportBtn').addEventListener('click', () => {
     updateExportText();
     exportModal.classList.remove('hidden');
@@ -1852,7 +1844,6 @@
     document.getElementById('exportTabJson').style.color = '#6b6b7b';
     updateExportText();
   });
-  let exportMode = 'json';
   function updateExportText() {
     const ta = document.getElementById('exportTextarea');
     ta.value = exportMode === 'json' ? JSON.stringify(buildExportJson(), null, 2) : buildExportText();
