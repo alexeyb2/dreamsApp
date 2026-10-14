@@ -46,10 +46,10 @@
     to   { opacity: 1; transform: none; }
   }
   @keyframes fallIn {
-    from { opacity: 0; transform: scale(1.06); }
+    from { opacity: 0; transform: scale(1.08); }
     to   { opacity: 1; transform: scale(1); }
   }
-  .screen.fall { animation: fallIn .32s cubic-bezier(.22, 1, .36, 1) both; }
+  .screen.fall { animation: fallIn .34s cubic-bezier(.22, 1, .36, 1) both; }
 
   .hdr {
     flex: none; display: flex; align-items: center; gap: 6px;
@@ -137,19 +137,19 @@
   .btn-row { display: flex; gap: 10px; }
   .btn-row .btn { flex: 1; }
 
-  /* ==== рабочий стол (хаб) ==== */
-  .desk-current {
+  /* ==== рабочая область (любой экран с пузырьками) ==== */
+  .area-head {
     display: flex; flex-direction: column; align-items: center;
-    gap: 10px; padding: 8px 0 22px;
+    gap: 10px; padding: 10px 0 22px;
     cursor: pointer;
     transition: transform .15s;
   }
-  .desk-current:active { transform: scale(.97); }
+  .area-head:active { transform: scale(.97); }
 
-  .desk-sphere {
-    width: 108px; height: 108px; border-radius: 50%;
+  .area-sphere {
+    width: 116px; height: 116px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 52px;
+    font-size: 56px;
     background: radial-gradient(circle at 35% 30%, #2b3a5c, #12131c 70%);
     border: 1px solid rgba(111,168,255,.32);
     animation: pulse 3.4s infinite;
@@ -160,12 +160,18 @@
     100% { box-shadow: 0 0 0 0 rgba(111,168,255,0); }
   }
 
-  .desk-word {
-    font-size: 19px; font-weight: 600; letter-spacing: -.01em;
+  .area-name {
+    font-size: 20px; font-weight: 600; letter-spacing: -.01em;
     text-align: center; max-width: 90%; word-break: break-word;
   }
 
-  .desk-hint {
+  .area-meta {
+    font-size: 12px; color: var(--muted);
+    letter-spacing: .06em; text-transform: uppercase;
+    text-align: center;
+  }
+
+  .area-hint {
     font-size: 12px; color: var(--muted);
     text-align: center; padding: 4px 0 14px;
     letter-spacing: .05em; text-transform: uppercase;
@@ -176,7 +182,9 @@
     gap: 14px; padding: 4px 2px 20px;
   }
 
+  /* пузырёк с бейджем-счётчиком */
   .bubble {
+    position: relative;
     width: 84px; height: 84px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 36px;
@@ -185,6 +193,7 @@
     box-shadow: 0 8px 24px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.07);
     animation: bubbleFloat 6s ease-in-out infinite;
     will-change: transform;
+    transition: filter .15s;
   }
   .bubble:active { animation: none; transform: scale(.9); filter: brightness(1.25); }
   .bubble:nth-child(2n) { animation-delay: -2s; }
@@ -206,49 +215,34 @@
     animation: none;
   }
 
-  /* ==== экран «Воспоминание» ==== */
-  .memory-pair {
-    display: flex; justify-content: center; align-items: flex-start;
-    gap: 26px; padding: 26px 0 30px;
-  }
-
-  .memory-cell {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 12px; max-width: 140px;
-    transition: transform .15s;
-  }
-  .memory-cell:active { transform: scale(.94); }
-
-  .memory-emoji {
-    width: 118px; height: 118px; border-radius: 50%;
+  /* счётчик сколько внутри области */
+  .bubble-count {
+    position: absolute;
+    right: -2px; top: -2px;
+    min-width: 22px; height: 22px; padding: 0 6px;
+    border-radius: 11px;
+    background: var(--accent);
+    color: #06111f;
+    font-size: 12px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
-    font-size: 58px;
-    background: radial-gradient(circle at 32% 28%, rgba(111,168,255,.26), rgba(20,20,28,.96) 72%);
-    border: 1px solid rgba(111,168,255,.34);
-    box-shadow: 0 14px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
-    animation: bubbleFloat 6s ease-in-out infinite;
+    border: 2px solid var(--bg);
   }
-  .memory-cell:nth-child(2) .memory-emoji { animation-delay: -2s; }
+  .bubble-draft .bubble-count { background: var(--new); color: #241403; }
 
-  .memory-caption {
-    font-size: 13px; line-height: 1.3;
-    color: var(--fg); opacity: .88;
+  /* подпись под пузырьком на рабочем столе */
+  .bubble-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; max-width: 92px;
+  }
+  .bubble-label {
+    font-size: 11px; line-height: 1.25;
+    color: var(--fg); opacity: .85;
     text-align: center; word-break: break-word;
+    max-width: 92px;
   }
-  .memory-caption.empty { opacity: .4; }
+  .bubble-label.empty { opacity: .4; font-style: italic; }
 
-  .memory-note {
-    font-size: 13px; color: var(--muted);
-    text-align: center; padding: 8px 0;
-    line-height: 1.5;
-  }
-
-  /* ==== belief card ==== */
-  .card-emoji { font-size: 72px; text-align: center; padding: 4px 0 2px; }
-  .card-word {
-    font-size: 24px; font-weight: 600; text-align: center;
-    margin: 0 0 18px; letter-spacing: -.01em; word-break: break-word;
-  }
+  /* ==== блоки в области ==== */
   .block {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--r); padding: 14px 16px; margin-bottom: 12px;
@@ -328,7 +322,7 @@
   }
   .tl-body { font-size: 15px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 
-  /* ==== diary (лента по дням) ==== */
+  /* ==== дневник ==== */
   .diary-intro {
     font-size: 13px; color: var(--muted); text-align: center;
     padding: 4px 0 20px; line-height: 1.5;
@@ -362,11 +356,6 @@
   .memory-row:active {
     background: rgba(111,168,255,.16);
     border-color: rgba(111,168,255,.4);
-  }
-  .memory-row.falling {
-    transform: scale(1.08);
-    background: rgba(111,168,255,.28);
-    border-color: var(--accent);
   }
   .memory-emoji-sm { font-size: 26px; line-height: 1; flex: none; }
   .memory-eq { color: var(--muted); font-size: 15px; flex: none; }
@@ -450,7 +439,6 @@
   const MAX_NGRAM = 3;
   const SHEET_ANIM_MS = 300;
   const TOAST_MS = 2200;
-  const FALL_DELAY = 190;
 
   const MONTHS = [
     'января','февраля','марта','апреля','мая','июня',
@@ -519,13 +507,10 @@
     return 'b_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
   }
   function nowIso() { return new Date().toISOString(); }
-
   function normalize(text) {
     return String(text == null ? '' : text)
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+      .toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .replace(/\s+/g, ' ').trim();
   }
   function formatDate(iso) {
     const d = new Date(iso);
@@ -548,9 +533,7 @@
   const Store = (function () {
     let state = null;
     let storageOk = true;
-
     function emptyState() { return { beliefs: [], links: [], versions: [], events: [] }; }
-
     function read() {
       try { return window.localStorage.getItem(STORAGE_KEY); }
       catch (e) { storageOk = false; return null; }
@@ -575,12 +558,11 @@
     function save() { write(JSON.stringify(state)); }
     function get() { return state; }
     function isOk() { return storageOk; }
-
     return { load: load, save: save, get: get, isOk: isOk };
   })();
 
   /* =========================================================
-     ЛОГИКА ДАННЫХ
+     ЛОГИКА
      ========================================================= */
   function getBelief(id) {
     const list = Store.get().beliefs;
@@ -645,13 +627,11 @@
     const word = String(opts.word || '').trim();
     const key = normalize(word);
     if (!key) return { belief: null, created: false };
-
     const existing = findBeliefByKey(key);
     if (existing) {
       if (opts.parentId) linkBeliefs(opts.parentId, existing.id);
       return { belief: existing, created: false };
     }
-
     const emoji = opts.emoji || null;
     const belief = {
       id: uid(), emoji: emoji, word: word,
@@ -801,10 +781,7 @@
     let cursor = 0;
     for (let pi = 0; pi < pieces.length; pi++) {
       const piece = pieces[pi];
-      if (piece.kind !== 'word') {
-        tokens.push({ type: 'raw', text: piece.text });
-        continue;
-      }
+      if (piece.kind !== 'word') { tokens.push({ type: 'raw', text: piece.text }); continue; }
       const a = assignments[cursor];
       if (!a || !a.group) { cursor += 1; continue; }
       const lastPiece = wordPieces[cursor + a.size - 1];
@@ -828,20 +805,17 @@
   }
 
   /* =========================================================
-     UI: ТОКЕНЫ, TOAST, BOTTOM SHEET
+     UI: ТОКЕНЫ, TOAST, SHEET
      ========================================================= */
   function renderTokens(container, tokens, opts) {
     container.textContent = '';
     container.classList.remove('empty');
     if (!tokens.length) { container.classList.add('empty'); return; }
     tokens.forEach(function (t) {
-      if (t.type === 'raw') {
-        container.appendChild(document.createTextNode(t.text));
-        return;
-      }
+      if (t.type === 'raw') { container.appendChild(document.createTextNode(t.text)); return; }
       const span = el('span', 'tok tok-' + t.type, t.text);
       if (t.type === 'existing' && t.beliefId) {
-        span.addEventListener('click', function () { go('belief', { id: t.beliefId }); });
+        span.addEventListener('click', function () { go('area', { id: t.beliefId }); });
       } else if (t.type === 'new') {
         span.addEventListener('click', function () {
           openCreateModal({ word: t.text, parentId: opts && opts.parentId });
@@ -853,10 +827,7 @@
 
   let toastEl = null, toastTimer = null;
   function toast(message) {
-    if (!toastEl) {
-      toastEl = el('div', 'toast');
-      document.body.appendChild(toastEl);
-    }
+    if (!toastEl) { toastEl = el('div', 'toast'); document.body.appendChild(toastEl); }
     toastEl.textContent = message;
     requestAnimationFrame(function () { toastEl.classList.add('show'); });
     clearTimeout(toastTimer);
@@ -987,8 +958,7 @@
       case 'describe': screen = screenDescribe(); break;
       case 'pick':     screen = screenPick(); break;
       case 'hub':      screen = screenHub(); break;
-      case 'memory':   screen = screenMemory(current.params); break;
-      case 'belief':   screen = screenBelief(current.params); break;
+      case 'area':     screen = screenArea(current.params); break;
       case 'edit':     screen = screenEdit(current.params); break;
       case 'history':  screen = screenHistory(current.params); break;
       case 'events':   screen = screenEvents(); break;
@@ -1199,6 +1169,46 @@
   }
 
   /* =========================================================
+     ПУЗЫРЁК — единый элемент везде, где есть дети
+     ========================================================= */
+  function buildBubble(belief, opts) {
+    const options = opts || {};
+    const wrap = el('div', 'bubble-wrap');
+
+    const b = el('button', 'bubble' + (belief.emoji ? '' : ' bubble-draft'));
+    b.textContent = belief.emoji || '◌';
+
+    const count = belief.children.length;
+    if (count > 0) {
+      const badge = el('span', 'bubble-count', String(count));
+      b.appendChild(badge);
+    }
+
+    b.addEventListener('click', function () {
+      go('area', { id: belief.id, fall: true });
+    });
+    wrap.appendChild(b);
+
+    if (options.showLabel !== false) {
+      const label = el('div', 'bubble-label' + (belief.word ? '' : ' empty'),
+        belief.word || 'без имени');
+      wrap.appendChild(label);
+    }
+    return wrap;
+  }
+
+  function buildAddBubble(parentId) {
+    const wrap = el('div', 'bubble-wrap');
+    const b = el('button', 'bubble bubble-add');
+    b.textContent = '＋';
+    b.addEventListener('click', function () {
+      openCreateModal({ parentId: parentId });
+    });
+    wrap.appendChild(b);
+    return wrap;
+  }
+
+  /* =========================================================
      ЭКРАН 4: РАБОЧИЙ СТОЛ
      ========================================================= */
   function screenHub() {
@@ -1227,15 +1237,19 @@
       return wrap;
     }
 
-    // Текущее убеждение (крупно сверху)
-    const current = el('div', 'desk-current');
-    current.appendChild(el('div', 'desk-sphere', self.emoji || '🙂'));
-    current.appendChild(el('div', 'desk-word', self.word || 'Я'));
-    current.addEventListener('click', function () { go('belief', { id: self.id }); });
-    body.appendChild(current);
+    // Моё текущее
+    const head = el('div', 'area-head');
+    head.appendChild(el('div', 'area-sphere', self.emoji || '🙂'));
+    head.appendChild(el('div', 'area-name', self.word || 'Я'));
+    const childCount = self.children.length;
+    head.appendChild(el('div', 'area-meta', childCount
+      ? 'внутри: ' + childCount
+      : 'пока пусто'));
+    head.addEventListener('click', function () { go('area', { id: self.id }); });
+    body.appendChild(head);
 
-    // Пузырьки
-    body.appendChild(el('div', 'desk-hint', 'Твои воспоминания'));
+    body.appendChild(el('div', 'area-hint', 'Мои области'));
+
     const desktop = el('div', 'desktop');
     const children = self.children.map(getBelief).filter(Boolean);
     children.forEach(function (child) { desktop.appendChild(buildBubble(child)); });
@@ -1244,24 +1258,6 @@
 
     wrap.appendChild(body);
     return wrap;
-  }
-
-  function buildBubble(belief) {
-    const b = el('button', 'bubble' + (belief.emoji ? '' : ' bubble-draft'));
-    b.textContent = belief.emoji || '◌';
-    b.addEventListener('click', function () {
-      go('memory', { id: belief.id, fall: true });
-    });
-    return b;
-  }
-
-  function buildAddBubble(parentId) {
-    const b = el('button', 'bubble bubble-add');
-    b.textContent = '＋';
-    b.addEventListener('click', function () {
-      openCreateModal({ parentId: parentId });
-    });
-    return b;
   }
 
   function exportJson() {
@@ -1279,70 +1275,50 @@
   }
 
   /* =========================================================
-     ЭКРАН: ВОСПОМИНАНИЕ (2 смайлика)
+     ЭКРАН 5: ОБЛАСТЬ (внутренность узла)
      ========================================================= */
-  function screenMemory(params) {
+  function screenArea(params) {
     const belief = getBelief(params.id);
     if (!belief) { reset('hub'); return el('div'); }
 
     const wrap = el('div', 'screen' + (params.fall ? ' fall' : ''));
-    wrap.appendChild(makeHeader('Воспоминание', true));
+    wrap.appendChild(makeHeader('Область', true));
 
     const body = el('div', 'body');
 
-    // Найдём «партнёра» — ребёнка, иначе родителя
-    let partner = null;
-    if (belief.children.length) partner = getBelief(belief.children[0]);
-    else if (belief.parents.length) partner = getBelief(belief.parents[0]);
+    // крупная голова — она же вход в карточку
+    const head = el('div', 'area-head');
+    head.appendChild(el('div', 'area-sphere', belief.emoji || '◌'));
+    head.appendChild(el('div', 'area-name', belief.word));
+    const count = belief.children.length;
+    head.appendChild(el('div', 'area-meta', count
+      ? 'внутри: ' + count
+      : 'внутри пока пусто'));
+    head.addEventListener('click', function () {
+      go('edit', { id: belief.id });
+    });
+    body.appendChild(head);
 
-    const pair = el('div', 'memory-pair');
-    pair.appendChild(buildMemoryCell(belief));
-    if (partner) pair.appendChild(buildMemoryCell(partner));
-    body.appendChild(pair);
-
-    if (!partner) {
-      body.appendChild(el('div', 'memory-note',
-        'У этого воспоминания пока одна сторона. Добавь вторую — открой карточку и опиши, из чего оно состоит.'));
+    // сетка детей-пузырьков
+    if (count > 0) {
+      body.appendChild(el('div', 'area-hint', 'Живут здесь'));
+      const desktop = el('div', 'desktop');
+      belief.children.map(getBelief).filter(Boolean).forEach(function (child) {
+        desktop.appendChild(buildBubble(child));
+      });
+      desktop.appendChild(buildAddBubble(belief.id));
+      body.appendChild(desktop);
     } else {
-      body.appendChild(el('div', 'memory-note',
-        'Нажми на любой смайлик — увидишь, что он значит.'));
+      body.appendChild(el('div', 'area-hint', 'Пусто — добавь первое'));
+      const desktop = el('div', 'desktop');
+      desktop.appendChild(buildAddBubble(belief.id));
+      body.appendChild(desktop);
     }
 
-    wrap.appendChild(body);
-    return wrap;
-  }
-
-  function buildMemoryCell(belief) {
-    const cell = el('button', 'memory-cell');
-    cell.appendChild(el('div', 'memory-emoji', belief.emoji || '◌'));
-    cell.appendChild(el('div', 'memory-caption' + (belief.word ? '' : ' empty'),
-      belief.word || 'без названия'));
-    cell.addEventListener('click', function () {
-      go('belief', { id: belief.id, fall: true });
-    });
-    return cell;
-  }
-
-  /* =========================================================
-     ЭКРАН 5: КАРТОЧКА УБЕЖДЕНИЯ
-     ========================================================= */
-  function screenBelief(params) {
-    const belief = getBelief(params.id);
-    if (!belief) { reset('hub'); return el('div'); }
-
-    const wrap = el('div', 'screen' + (params.fall ? ' fall' : ''));
-    wrap.appendChild(makeHeader('Воспоминание', true));
-
-    const body = el('div', 'body');
-    body.appendChild(el('div', 'card-emoji', belief.emoji || '◌'));
-    body.appendChild(el('div', 'card-word', belief.word));
-
+    // определение
     body.appendChild(buildDefinitionBlock(belief));
-    body.appendChild(buildRefBlock(
-      'Из чего состоит',
-      belief.children.map(getBelief).filter(Boolean),
-      'Пока пусто'
-    ));
+
+    // родители
     body.appendChild(buildRefBlock(
       'Куда входит',
       belief.parents.map(getBelief).filter(Boolean),
@@ -1397,7 +1373,7 @@
       const btn = el('button', 'ref-item');
       btn.appendChild(el('span', 'ref-emoji', item.emoji || '◌'));
       btn.appendChild(el('span', 'ref-word', item.word));
-      btn.addEventListener('click', function () { go('belief', { id: item.id, fall: true }); });
+      btn.addEventListener('click', function () { go('area', { id: item.id, fall: true }); });
       list.appendChild(btn);
     });
     block.appendChild(list);
@@ -1474,16 +1450,13 @@
       if (editEmoji && belief.status === 'draft') belief.status = 'active';
       addEvent({ type: 'edited', belief_id: belief.id });
     }
-
     if (belief.definition !== editDraft) {
       belief.definition = editDraft || '';
       addVersion(belief.id, belief.definition, 'правка');
       addEvent({ type: 'edited', belief_id: belief.id });
     }
-
     Store.save();
     ensureDefinitionChildren(beliefId);
-
     editId = null;
     back();
   }
@@ -1494,12 +1467,10 @@
   function screenHistory(params) {
     const wrap = el('div', 'screen');
     wrap.appendChild(makeHeader('История', true));
-
     const body = el('div', 'body');
     const versions = Store.get().versions
       .filter(function (v) { return v.belief_id === params.id; })
       .sort(function (a, b) { return b.number - a.number; });
-
     if (!versions.length) {
       body.appendChild(el('div', 'empty-note', 'Версий пока нет'));
     } else {
@@ -1514,7 +1485,6 @@
       });
       body.appendChild(tl);
     }
-
     wrap.appendChild(body);
     return wrap;
   }
@@ -1525,10 +1495,8 @@
   function screenEvents() {
     const wrap = el('div', 'screen');
     wrap.appendChild(makeHeader('Лента событий', true));
-
     const body = el('div', 'body');
     const events = Store.get().events.slice().reverse();
-
     if (!events.length) {
       body.appendChild(el('div', 'empty-note', 'Событий пока нет'));
     } else {
@@ -1542,7 +1510,6 @@
       });
       body.appendChild(tl);
     }
-
     wrap.appendChild(body);
     return wrap;
   }
@@ -1565,7 +1532,7 @@
   }
 
   /* =========================================================
-     ЭКРАН: ДНЕВНИК (лента по дням)
+     ЭКРАН: ДНЕВНИК
      ========================================================= */
   function groupEventsByDay() {
     const events = Store.get().events;
@@ -1598,7 +1565,6 @@
 
   function screenDiary() {
     const wrap = el('div', 'screen');
-
     const hdr = el('div', 'hdr');
     const backBtn = el('button', 'icon-btn', '←');
     backBtn.setAttribute('aria-label', 'Назад');
@@ -1616,14 +1582,14 @@
 
     if (!days.length) {
       body.appendChild(el('div', 'diary-intro',
-        'Здесь появятся пузыри-воспоминания по дням. Каждый день, когда ты создаёшь или меняешь воспоминание, оставляет след.'));
+        'Здесь появятся пузыри-воспоминания по дням.'));
       body.appendChild(el('div', 'empty-note', 'Пока пусто.'));
       wrap.appendChild(body);
       return wrap;
     }
 
     body.appendChild(el('div', 'diary-intro',
-      'Каждый пузырь — день твоих слов. Нажми на пару, чтобы провалиться.'));
+      'Каждый пузырь — день. Нажми на строку, чтобы провалиться в область.'));
 
     const diary = el('div', 'diary');
     days.forEach(function (d) { diary.appendChild(buildDayBubble(d)); });
@@ -1650,8 +1616,7 @@
         row.appendChild(el('span', 'memory-word', b.word || '—'));
         row.appendChild(el('span', 'memory-arrow', '→'));
         row.addEventListener('click', function () {
-          row.classList.add('falling');
-          setTimeout(function () { go('memory', { id: b.id, fall: true }); }, FALL_DELAY);
+          go('area', { id: b.id, fall: true });
         });
         rows.appendChild(row);
       });
