@@ -10,25 +10,24 @@
     --bg: #0a0a0f;
     --fg: #e8e8f0;
     --accent: #6fa8ff;
-    --new: #ffb46f;
+    --warn: #ffb46f;
+    --danger: #ff8f8f;
     --muted: #6b6b7b;
     --surface: #14141c;
     --surface-2: #1e1e2a;
     --border: #262633;
     --r: 18px;
     --r-sm: 12px;
-    --pad: 18px;
+    --pad: 16px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
-
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
   html, body {
     margin: 0; padding: 0; height: 100%;
     background: var(--bg); color: var(--fg);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 16px; line-height: 1.45;
+    font-size: 16px; line-height: 1.5;
     overscroll-behavior: none;
   }
   body { overflow: hidden; }
@@ -37,113 +36,226 @@
 
   #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
 
-  .screen {
-    flex: 1; min-height: 0; display: flex; flex-direction: column;
-    animation: fadeIn .22s ease both;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: none; }
-  }
-
+  /* ==== шапка ==== */
   .hdr {
-    flex: none; display: flex; align-items: center; gap: 6px;
-    padding: calc(var(--safe-top) + 10px) var(--pad) 8px;
+    flex: none;
+    display: flex; align-items: center; gap: 8px;
+    padding: calc(var(--safe-top) + 14px) var(--pad) 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    z-index: 5;
   }
   .hdr-title {
-    flex: 1; font-size: 15px; font-weight: 600; opacity: .82;
-    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -.02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .hdr-title.left { text-align: left; }
+  .hdr-title .colon { color: var(--accent); }
 
   .icon-btn {
-    flex: none; width: 40px; height: 40px; border-radius: 12px;
+    flex: none; width: 38px; height: 38px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; transition: background .15s;
+    font-size: 17px; transition: background .15s;
   }
   .icon-btn:active { background: rgba(255,255,255,.08); }
 
-  .body {
-    flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
-    padding: 0 var(--pad) calc(var(--safe-bottom) + 24px);
-  }
-  .footer { flex: none; padding: 12px var(--pad) calc(var(--safe-bottom) + 16px); }
-
-  /* ==== главный экран ==== */
-  .main-title {
-    font-size: 26px; font-weight: 700;
-    letter-spacing: -.02em;
-    padding: 6px 0 22px;
-  }
-  .main-title .colon { color: var(--accent); }
-
-  .day {
-    margin-bottom: 26px;
+  /* ==== лента ==== */
+  .feed {
+    flex: 1; min-height: 0;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 14px var(--pad) 20px;
   }
 
-  .day-head {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: 10px;
-    padding: 0 4px 12px;
-    border-bottom: 1px solid var(--border);
+  .msg {
+    position: relative;
     margin-bottom: 12px;
+    padding: 14px 14px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    animation: msgIn .25s ease both;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: none; }
   }
 
-  .day-date {
-    font-size: 13px; color: var(--accent);
-    letter-spacing: .1em; text-transform: uppercase;
-    opacity: .9;
+  .msg.selecting {
+    border-color: rgba(111,168,255,.4);
+    box-shadow: 0 0 0 2px rgba(111,168,255,.14);
   }
 
-  .day-emojis {
-    font-size: 22px; letter-spacing: 2px;
-    line-height: 1;
+  .msg-body {
+    font-size: 17px;
+    line-height: 2;
+    word-break: break-word;
   }
 
-  .rows { display: flex; flex-direction: column; gap: 6px; }
+  /* смайл-чип */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    margin: 0 1px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 22px;
+    line-height: 1.2;
+    min-width: 30px;
+    transition: background .15s, transform .12s, border-color .15s, box-shadow .15s;
+    cursor: pointer;
+    background: rgba(111,168,255,.14);
+    color: var(--accent);
+    user-select: none;
+  }
+  .chip:active { transform: scale(.94); }
 
-  .row {
-    display: flex; align-items: flex-start; gap: 12px;
-    padding: 11px 14px;
+  .chip.word {
+    font-size: 15px;
+    padding: 3px 10px;
+    font-weight: 500;
+    letter-spacing: .01em;
+  }
+  .chip.empty-emoji {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+  }
+  .chip.empty-emoji::after {
+    content: '+';
+    font-size: 10px;
+    margin-left: 3px;
+    opacity: .8;
+  }
+  .chip.group {
+    position: relative;
+    padding-right: 22px;
+    background: rgba(111,168,255,.22);
+  }
+  .chip.group::after {
+    content: attr(data-count);
+    position: absolute;
+    right: 3px;
+    top: 50%;
+    transform: translateY(-50%) translateY(-1px);
+    background: var(--accent);
+    color: #06111f;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 15px;
+    height: 15px;
+    line-height: 15px;
+    padding: 0 3px;
+    border-radius: 8px;
+    text-align: center;
+    letter-spacing: 0;
+  }
+  .chip.selected {
+    background: rgba(111,168,255,.45);
+    color: #fff;
+    box-shadow: 0 0 0 2px rgba(111,168,255,.5);
+  }
+  .chip.selectable { cursor: pointer; }
+  .chip.selectable:active { transform: scale(.94); }
+
+  .raw {
+    display: inline;
+    vertical-align: middle;
+    line-height: inherit;
+  }
+
+  /* действия сообщения */
+  .msg-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    min-height: 30px;
+  }
+  .msg-btn {
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    transition: background .15s, color .15s;
+  }
+  .msg-btn:active { background: rgba(255,255,255,.06); color: var(--fg); }
+  .msg-btn.primary {
+    color: var(--accent);
+    background: rgba(111,168,255,.14);
+  }
+  .msg-btn.primary:active { background: rgba(111,168,255,.28); }
+  .msg-btn:disabled { opacity: .35; }
+
+  .feed-empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+    padding: 60px 20px;
+    white-space: pre-line;
+  }
+
+  /* ==== композер ==== */
+  .composer {
+    flex: none;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 10px var(--pad) calc(var(--safe-bottom) + 12px);
+  }
+
+  .draft {
+    display: none;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-items: center;
+    padding: 8px 10px;
+    margin-bottom: 8px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 14px;
-    text-align: left; width: 100%;
-    transition: background .15s, border-color .15s;
+    font-size: 17px;
+    line-height: 2;
+    min-height: 42px;
   }
-  .row:active { background: var(--surface-2); border-color: var(--accent); }
+  .draft.visible { display: flex; }
 
-  .row-key {
-    flex: none;
-    font-size: 22px; line-height: 1.15;
-    min-width: 32px;
-    word-break: break-word;
-  }
-
-  .row-sep {
-    flex: none;
-    color: var(--muted);
-    font-size: 15px; line-height: 1.4;
+  .composer-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
   }
 
-  .row-val {
+  .composer-input {
     flex: 1;
-    font-size: 15px; line-height: 1.4;
-    word-break: break-word;
-    padding-top: 3px;
+    min-width: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 13px 16px;
+    outline: none;
+    font-size: 16px;
+    transition: border-color .15s;
   }
+  .composer-input:focus { border-color: var(--accent); }
 
-  .row-val.empty { color: var(--muted); font-style: italic; }
-  .row-val.tag { color: var(--new); }
-
-  .row-tag-key { color: var(--new); }
-
-  .empty-note {
-    color: var(--muted); font-size: 14px;
-    text-align: center; padding: 20px 12px; line-height: 1.5;
+  .send-btn {
+    flex: none;
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    background: var(--accent);
+    color: #06111f;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700;
+    transition: transform .12s, opacity .15s;
   }
+  .send-btn:active { transform: scale(.94); }
+  .send-btn:disabled { opacity: .35; }
 
-  /* ==== bottom sheet ==== */
+  /* ==== sheet ==== */
   .backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,.62);
     opacity: 0; transition: opacity .25s;
@@ -156,7 +268,7 @@
     padding: 8px var(--pad) calc(var(--safe-bottom) + 20px);
     transform: translateY(102%);
     transition: transform .28s cubic-bezier(.22, 1, .36, 1);
-    max-height: 92vh;
+    max-height: 90vh;
     display: flex; flex-direction: column;
     box-shadow: 0 -10px 40px rgba(0,0,0,.55);
   }
@@ -166,75 +278,117 @@
     background: #35354a; margin: 6px auto 14px;
   }
   .sheet-body { overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; }
-  .sheet-title { font-size: 17px; font-weight: 600; margin: 0 0 16px; }
+  .sheet-title { font-size: 17px; font-weight: 600; margin: 0 0 14px; }
+  .sheet-text { font-size: 15px; line-height: 1.5; opacity: .85; margin: 0 0 18px; }
 
-  .form-row { margin-bottom: 16px; }
+  /* hero карточки символа */
+  .sym-hero {
+    text-align: center;
+    padding: 6px 0 16px;
+  }
+  .sym-hero .big {
+    display: inline-block;
+    padding: 8px 22px;
+    font-size: 52px;
+    line-height: 1.2;
+    background: rgba(111,168,255,.14);
+    border-radius: 20px;
+    font-weight: 600;
+    word-break: break-word;
+    letter-spacing: 2px;
+    min-width: 80px;
+  }
+  .sym-hero .big.word {
+    font-size: 24px;
+    letter-spacing: 0;
+    padding: 12px 22px;
+  }
+  .sym-hero .big.empty {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-size: 24px;
+    padding: 12px 22px;
+  }
+
+  .form-row { margin-bottom: 14px; }
   .form-label {
     display: block; font-size: 12px; color: var(--muted);
     text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px;
   }
-
   .text-input {
     width: 100%; background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--r-sm); padding: 12px 14px; outline: none;
     resize: none; transition: border-color .15s;
   }
   .text-input:focus { border-color: var(--accent); }
+  .text-input.emoji-input {
+    font-size: 26px;
+    letter-spacing: 3px;
+    min-height: 56px;
+  }
 
-  .emoji-input {
-    font-size: 28px;
-    padding: 14px 16px;
-    letter-spacing: 4px;
-    min-height: 62px;
+  .block-title {
+    font-size: 12px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .07em; margin: 18px 0 10px;
+  }
+
+  .chips-line {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+
+  .mini-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px 6px 12px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 15px;
+    transition: background .15s, border-color .15s;
+  }
+  .mini-chip:active { background: var(--surface-2); border-color: var(--accent); }
+  .mini-chip.emoji { font-size: 20px; padding: 4px 10px; }
+  .mini-chip .x {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    color: var(--muted);
+    background: rgba(255,255,255,.05);
+    transition: background .15s, color .15s;
+  }
+  .mini-chip .x:active { background: rgba(255,90,90,.2); color: var(--danger); }
+
+  .occ-list { display: flex; flex-direction: column; gap: 6px; }
+  .occ-item {
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--fg);
+    opacity: .9;
+    text-align: left;
+    word-break: break-word;
+  }
+  .occ-item .mark {
+    color: var(--accent);
+    font-weight: 600;
+    background: rgba(111,168,255,.14);
+    padding: 1px 6px;
+    border-radius: 6px;
+  }
+  .occ-empty {
+    color: var(--muted);
+    font-size: 13px;
+    font-style: italic;
+    padding: 4px 0;
   }
 
   .hint {
     font-size: 12px; color: var(--muted);
     margin-top: 6px; line-height: 1.4;
-  }
-
-  .pair-rows { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
-
-  .pair {
-    display: flex; align-items: center; gap: 10px;
-  }
-
-  .pair-emoji {
-    flex: none;
-    width: 52px; height: 52px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 26px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 14px;
-  }
-
-  .pair-input {
-    flex: 1;
-    min-width: 0;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 14px; padding: 12px 14px; outline: none;
-    transition: border-color .15s;
-  }
-  .pair-input:focus { border-color: var(--accent); }
-
-  .seg-toggle {
-    display: flex; gap: 4px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 4px;
-    margin-bottom: 16px;
-  }
-  .seg-btn {
-    flex: 1;
-    padding: 10px 12px;
-    border-radius: 10px;
-    font-size: 14px; font-weight: 600;
-    color: var(--muted);
-    transition: background .15s, color .15s;
-  }
-  .seg-btn.on {
-    background: var(--accent); color: #06111f;
   }
 
   .btn {
@@ -246,15 +400,29 @@
   .btn:active { transform: scale(.98); }
   .btn-primary { background: var(--accent); color: #06111f; }
   .btn-ghost { background: var(--surface); color: var(--fg); border: 1px solid var(--border); }
-  .btn-danger { background: rgba(255,90,90,.12); color: #ff8f8f; border: 1px solid rgba(255,90,90,.28); }
-
+  .btn-danger { background: rgba(255,90,90,.14); color: var(--danger); border: 1px solid rgba(255,90,90,.3); }
   .btn-row { display: flex; gap: 10px; }
   .btn-row .btn { flex: 1; }
+
+  .group-preview {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 6px; padding: 14px;
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    margin-bottom: 16px;
+    font-size: 24px;
+  }
+  .group-preview .plus {
+    color: var(--muted);
+    font-size: 18px;
+    margin: 0 2px;
+  }
 
   .space-12 { height: 12px; }
 
   .toast {
-    position: fixed; left: 50%; bottom: calc(var(--safe-bottom) + 24px);
+    position: fixed; left: 50%; bottom: calc(var(--safe-bottom) + 96px);
     transform: translate(-50%, 20px); z-index: 500;
     background: #22222f; border: 1px solid var(--border);
     padding: 11px 18px; border-radius: 999px; font-size: 14px;
@@ -262,20 +430,6 @@
     pointer-events: none; max-width: 86vw; text-align: center;
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
-
-  .fab {
-    position: fixed;
-    right: 20px;
-    bottom: calc(var(--safe-bottom) + 20px);
-    width: 60px; height: 60px; border-radius: 50%;
-    background: var(--accent); color: #06111f;
-    font-size: 30px; font-weight: 300;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 12px 30px rgba(111,168,255,.4);
-    z-index: 50;
-    transition: transform .12s;
-  }
-  .fab:active { transform: scale(.92); }
 </style>
 </head>
 <body>
@@ -291,55 +445,74 @@
   const SHEET_ANIM_MS = 300;
   const TOAST_MS = 2200;
 
-  const MONTHS = [
-    'января','февраля','марта','апреля','мая','июня',
-    'июля','августа','сентября','октября','ноября','декабря'
-  ];
-
   /* =========================================================
      УТИЛИТЫ
      ========================================================= */
-  function el(tag, className, text) {
-    const node = document.createElement(tag);
-    if (className) node.className = className;
-    if (text != null) node.textContent = text;
-    return node;
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
   }
   function uid() {
-    return 'e_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+    return 'x_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
   }
   function nowIso() { return new Date().toISOString(); }
 
-  function dayKey(iso) { return String(iso || '').slice(0, 10); }
-
-  function formatDayLong(isoDate) {
-    const parts = String(isoDate || '').split('-');
-    if (parts.length !== 3) return String(isoDate || '');
-    const y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2]);
-    if (!y || !m || !d) return isoDate;
-    return d + ' ' + (MONTHS[m - 1] || '') + ' ' + y;
+  function normalizeKey(s) {
+    return String(s == null ? '' : s).trim().toLowerCase();
   }
 
-  /**
-   * Разбивает строку с эмодзи на отдельные графемы.
-   * ❤️‍🔥 остаётся одним элементом, а не тремя.
-   */
-  function splitEmojis(str) {
+  function isEmojiLike(g) {
+    if (!g) return false;
+    if (/[\p{L}\p{N}]/u.test(g)) return false;
+    if (/^\s+$/u.test(g)) return false;
+    // пунктуация — не эмодзи
+    if (/^[!"#$%&'()*+,\-.\/:;<=>?@\[\\\]^_`{|}~«»„""…–—]+$/u.test(g) && g.length <= 3) return false;
+    return true;
+  }
+
+  function splitGraphemes(str) {
     const s = String(str == null ? '' : str);
     if (typeof Intl !== 'undefined' && Intl.Segmenter) {
       try {
         const seg = new Intl.Segmenter('ru', { granularity: 'grapheme' });
         const out = [];
-        for (const piece of seg.segment(s)) {
-          const g = piece.segment;
-          if (g && g.trim()) out.push(g);
-        }
+        for (const piece of seg.segment(s)) out.push(piece.segment);
         return out;
-      } catch (e) { /* fallthrough */ }
+      } catch (e) {}
     }
-    // простой fallback — по code points
-    const arr = Array.from(s);
-    return arr.filter(function (c) { return c && c.trim(); });
+    return Array.from(s);
+  }
+
+  /**
+   * Токенизация. Возвращает массив:
+   * { type: 'word'|'emoji'|'space'|'punct', text }
+   */
+  function tokenize(text) {
+    const graphemes = splitGraphemes(text);
+    const tokens = [];
+    let wordBuf = '';
+    function flushWord() {
+      if (wordBuf) { tokens.push({ type: 'word', text: wordBuf }); wordBuf = ''; }
+    }
+    for (let i = 0; i < graphemes.length; i++) {
+      const g = graphemes[i];
+      if (/^\s+$/u.test(g)) {
+        flushWord();
+        tokens.push({ type: 'space', text: g });
+      } else if (/^[\p{L}\p{N}#@_]+$/u.test(g)) {
+        wordBuf += g;
+      } else if (isEmojiLike(g)) {
+        flushWord();
+        tokens.push({ type: 'emoji', text: g });
+      } else {
+        flushWord();
+        tokens.push({ type: 'punct', text: g });
+      }
+    }
+    flushWord();
+    return tokens;
   }
 
   /* =========================================================
@@ -349,19 +522,16 @@
     let state = null;
     let storageOk = true;
 
-    function emptyState() {
-      return { beliefs: [], tags: [] };
-    }
+    function emptyState() { return { symbols: [], messages: [] }; }
 
     function read() {
       try { return window.localStorage.getItem(STORAGE_KEY); }
       catch (e) { storageOk = false; return null; }
     }
-    function write(value) {
-      try { window.localStorage.setItem(STORAGE_KEY, value); }
+    function write(v) {
+      try { window.localStorage.setItem(STORAGE_KEY, v); }
       catch (e) { storageOk = false; }
     }
-
     function load() {
       const raw = read();
       if (!raw) { state = emptyState(); return; }
@@ -369,129 +539,218 @@
       try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
       if (!parsed || typeof parsed !== 'object') { state = emptyState(); return; }
       state = {
-        beliefs: Array.isArray(parsed.beliefs) ? parsed.beliefs : [],
-        tags: Array.isArray(parsed.tags) ? parsed.tags : []
+        symbols: Array.isArray(parsed.symbols) ? parsed.symbols : [],
+        messages: Array.isArray(parsed.messages) ? parsed.messages : []
       };
     }
-
     function save() { write(JSON.stringify(state)); }
     function get() { return state; }
     function isOk() { return storageOk; }
-
-    return { load: load, save: save, get: get, isOk: isOk };
+    return { load, save, get, isOk };
   })();
 
   /* =========================================================
-     ЛОГИКА ДАННЫХ
+     СИМВОЛЫ
      ========================================================= */
-  function createBelief(emojis, values) {
-    const entry = {
-      id: uid(),
-      emojis: emojis.slice(),
-      values: values.slice(),
-      created: nowIso()
-    };
-    Store.get().beliefs.push(entry);
-    Store.save();
-    return entry;
+  function getSymbol(id) {
+    const list = Store.get().symbols;
+    for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
   }
 
-  function updateBelief(id, emojis, values) {
-    const list = Store.get().beliefs;
+  function findSymbolByWord(word) {
+    const key = normalizeKey(word);
+    if (!key) return null;
+    const list = Store.get().symbols;
     for (let i = 0; i < list.length; i++) {
-      if (list[i].id === id) {
-        list[i].emojis = emojis.slice();
-        list[i].values = values.slice();
-        Store.save();
-        return list[i];
-      }
+      if (normalizeKey(list[i].word) === key) return list[i];
     }
     return null;
   }
 
-  function deleteBelief(id) {
-    const list = Store.get().beliefs;
+  function findSymbolByEmoji(emoji) {
+    const e = String(emoji || '').trim();
+    if (!e) return null;
+    const list = Store.get().symbols;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].emoji === e) return list[i];
+    }
+    return null;
+  }
+
+  function createSymbol(opts) {
+    const s = {
+      id: uid(),
+      emoji: String(opts.emoji || '').trim(),
+      word: String(opts.word || '').trim(),
+      definition: String(opts.definition || ''),
+      children: [],
+      parents: [],
+      created: nowIso()
+    };
+    Store.get().symbols.push(s);
+    return s;
+  }
+
+  /**
+   * Находит или создаёт символ для токена.
+   * Если токен — слово и уже есть символ с таким словом → возвращает его.
+   * Если токен — эмодзи и уже есть символ с таким эмодзи → возвращает его.
+   * Иначе — создаёт новый с этим полем.
+   */
+  function resolveTokenSymbol(token) {
+    if (token.type === 'word') {
+      const byWord = findSymbolByWord(token.text);
+      if (byWord) return byWord;
+      // на всякий случай — вдруг кто-то ввёл эмодзи как "слово" (не бывает, но)
+      const created = createSymbol({ word: token.text });
+      return created;
+    }
+    if (token.type === 'emoji') {
+      const byEmoji = findSymbolByEmoji(token.text);
+      if (byEmoji) return byEmoji;
+      const created = createSymbol({ emoji: token.text });
+      return created;
+    }
+    return null;
+  }
+
+  function updateSymbol(id, patch) {
+    const s = getSymbol(id);
+    if (!s) return null;
+    if (patch.emoji !== undefined) s.emoji = String(patch.emoji || '').trim();
+    if (patch.word !== undefined) s.word = String(patch.word || '').trim();
+    if (patch.definition !== undefined) s.definition = String(patch.definition || '');
+    Store.save();
+    return s;
+  }
+
+  function deleteSymbol(id) {
+    // отвязать от родителей и детей
+    const s = getSymbol(id);
+    if (!s) return;
+    s.parents.slice().forEach(function (pid) {
+      const p = getSymbol(pid);
+      if (p) {
+        const i = p.children.indexOf(id);
+        if (i !== -1) p.children.splice(i, 1);
+      }
+    });
+    s.children.slice().forEach(function (cid) {
+      const c = getSymbol(cid);
+      if (c) {
+        const i = c.parents.indexOf(id);
+        if (i !== -1) c.parents.splice(i, 1);
+      }
+    });
+    // удалить из сообщений
+    Store.get().messages.forEach(function (m) {
+      m.itemIds = m.itemIds.filter(function (x) { return x !== id; });
+    });
+    // удалить символ
+    const list = Store.get().symbols;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i].id === id) list.splice(i, 1);
+    }
+    // удалить пустые сообщения
+    Store.get().messages = Store.get().messages.filter(function (m) { return m.itemIds.length > 0; });
+    Store.save();
+  }
+
+  function linkChild(parentId, childId) {
+    if (!parentId || !childId || parentId === childId) return;
+    const p = getSymbol(parentId), c = getSymbol(childId);
+    if (!p || !c) return;
+    if (p.children.indexOf(childId) === -1) p.children.push(childId);
+    if (c.parents.indexOf(parentId) === -1) c.parents.push(parentId);
+  }
+
+  function unlinkChild(parentId, childId) {
+    const p = getSymbol(parentId), c = getSymbol(childId);
+    if (p) {
+      const i = p.children.indexOf(childId);
+      if (i !== -1) p.children.splice(i, 1);
+    }
+    if (c) {
+      const i = c.parents.indexOf(parentId);
+      if (i !== -1) c.parents.splice(i, 1);
+    }
+  }
+
+  function getChildren(sym) {
+    if (!sym) return [];
+    return sym.children.map(getSymbol).filter(Boolean);
+  }
+
+  function getParents(sym) {
+    if (!sym) return [];
+    return sym.parents.map(getSymbol).filter(Boolean);
+  }
+
+  /* =========================================================
+     СООБЩЕНИЯ
+     ========================================================= */
+  function createMessage(text) {
+    const t = String(text || '').trim();
+    if (!t) return null;
+    const tokens = tokenize(t);
+    const itemIds = [];
+    tokens.forEach(function (tok) {
+      if (tok.type === 'word' || tok.type === 'emoji') {
+        const s = resolveTokenSymbol(tok);
+        if (s) itemIds.push(s.id);
+      }
+    });
+    if (!itemIds.length) return null;
+    const msg = { id: uid(), itemIds: itemIds, created: nowIso() };
+    Store.get().messages.push(msg);
+    Store.save();
+    return msg;
+  }
+
+  function getMessage(id) {
+    const list = Store.get().messages;
+    for (let i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  function deleteMessage(id) {
+    const list = Store.get().messages;
     for (let i = list.length - 1; i >= 0; i--) {
       if (list[i].id === id) { list.splice(i, 1); Store.save(); return true; }
     }
     return false;
   }
 
-  function createTag(tag, description) {
-    const entry = {
-      id: uid(),
-      tag: String(tag || '').trim(),
-      description: String(description || '').trim(),
-      created: nowIso()
-    };
-    Store.get().tags.push(entry);
-    Store.save();
-    return entry;
+  /**
+   * Собирает сообщение обратно в текст (для отображения в списке «где встречается»).
+   */
+  function messageToText(msg) {
+    if (!msg) return '';
+    const parts = [];
+    msg.itemIds.forEach(function (id) {
+      const s = getSymbol(id);
+      if (!s) return;
+      parts.push(s.emoji || s.word || '·');
+    });
+    return parts.join(' ');
   }
 
-  function updateTag(id, tag, description) {
-    const list = Store.get().tags;
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].id === id) {
-        list[i].tag = String(tag || '').trim();
-        list[i].description = String(description || '').trim();
-        Store.save();
-        return list[i];
-      }
-    }
-    return null;
-  }
-
-  function deleteTag(id) {
-    const list = Store.get().tags;
-    for (let i = list.length - 1; i >= 0; i--) {
-      if (list[i].id === id) { list.splice(i, 1); Store.save(); return true; }
-    }
-    return false;
+  function findOccurrences(symId) {
+    const result = [];
+    Store.get().messages.forEach(function (m) {
+      if (m.itemIds.indexOf(symId) !== -1) result.push(m);
+    });
+    return result;
   }
 
   /* =========================================================
-     ГРУППИРОВКА ПО ДНЯМ
-     ========================================================= */
-  function groupByDay() {
-    const s = Store.get();
-    const map = new Map();
-
-    function ensure(day) {
-      if (!map.has(day)) {
-        map.set(day, { day: day, beliefs: [], tags: [], emojis: [] });
-      }
-      return map.get(day);
-    }
-
-    s.beliefs.forEach(function (b) {
-      const day = dayKey(b.created);
-      if (!day) return;
-      const g = ensure(day);
-      g.beliefs.push(b);
-      (b.emojis || []).forEach(function (e) { g.emojis.push(e); });
-    });
-
-    s.tags.forEach(function (t) {
-      const day = dayKey(t.created);
-      if (!day) return;
-      const g = ensure(day);
-      g.tags.push(t);
-    });
-
-    const arr = [];
-    map.forEach(function (v) { arr.push(v); });
-    arr.sort(function (a, b) { return b.day.localeCompare(a.day); });
-    return arr;
-  }
-
-  /* =========================================================
-     UI: TOAST / SHEET
+     UI: TOAST, SHEET
      ========================================================= */
   let toastEl = null, toastTimer = null;
-  function toast(message) {
+  function toast(msg) {
     if (!toastEl) { toastEl = el('div', 'toast'); document.body.appendChild(toastEl); }
-    toastEl.textContent = message;
+    toastEl.textContent = msg;
     requestAnimationFrame(function () { toastEl.classList.add('show'); });
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, TOAST_MS);
@@ -517,358 +776,593 @@
       setTimeout(function () { backdrop.remove(); sheet.remove(); }, SHEET_ANIM_MS);
     }
     backdrop.addEventListener('click', close);
-    return { close: close };
+    return { close };
+  }
+
+  function openConfirm(opts) {
+    const form = el('div');
+    form.appendChild(el('div', 'sheet-title', opts.title || 'Удалить?'));
+    form.appendChild(el('div', 'sheet-text', opts.text || ''));
+    const btnRow = el('div', 'btn-row');
+    const cancelBtn = el('button', 'btn btn-ghost', 'Отмена');
+    const okBtn = el('button', 'btn btn-danger', opts.okText || 'Удалить');
+    btnRow.appendChild(cancelBtn); btnRow.appendChild(okBtn);
+    form.appendChild(btnRow);
+    const sheet = openSheet(form);
+    cancelBtn.addEventListener('click', function () { sheet.close(); });
+    okBtn.addEventListener('click', function () {
+      sheet.close();
+      if (typeof opts.onOk === 'function') opts.onOk();
+    });
   }
 
   /* =========================================================
-     РЕДАКТОР: УБЕЖДЕНИЕ
+     СОСТОЯНИЕ
      ========================================================= */
-  function openBeliefEditor(existing) {
-    const isEdit = !!existing;
+  const STATE = {
+    selection: {}   // { [messageId]: Set<index> } — присутствие ключа = режим выбора
+  };
 
-    // Состояние формы
-    let emojis = existing ? existing.emojis.slice() : [];
-    let values = existing ? existing.values.slice() : [];
+  /* =========================================================
+     КАРТОЧКА СИМВОЛА
+     ========================================================= */
+  function openSymbolCard(symId) {
+    const sym = getSymbol(symId);
+    if (!sym) return;
 
     const form = el('div');
-    form.appendChild(el('div', 'sheet-title', isEdit ? 'Убеждение' : 'Новое убеждение'));
 
-    // Поле эмодзи
-    const emojiRow = el('div', 'form-row');
-    emojiRow.appendChild(el('label', 'form-label', 'Смайлики'));
-    const emojiInput = document.createElement('input');
-    emojiInput.type = 'text';
-    emojiInput.className = 'text-input emoji-input';
-    emojiInput.placeholder = '🤲❤️‍🔥';
-    emojiInput.autocomplete = 'off';
-    emojiInput.spellcheck = false;
-    emojiInput.value = (existing && existing.emojis ? existing.emojis.join('') : '');
-    emojiRow.appendChild(emojiInput);
-    const hint = el('div', 'hint', 'Набери или вставь смайлики со своей клавиатуры. Можно один или несколько подряд.');
-    emojiRow.appendChild(hint);
-    form.appendChild(emojiRow);
+    // hero
+    const hero = el('div', 'sym-hero');
+    const big = el('span', 'big');
+    if (sym.emoji) {
+      big.textContent = sym.emoji;
+    } else if (sym.word) {
+      big.classList.add('word');
+      big.textContent = sym.word;
+    } else {
+      big.classList.add('empty');
+      big.textContent = '·';
+    }
+    hero.appendChild(big);
+    form.appendChild(hero);
 
-    // Динамические строки значений
-    const valuesLabel = el('div', 'form-label', 'Что они значат');
-    form.appendChild(valuesLabel);
+    // emoji
+    const emRow = el('div', 'form-row');
+    emRow.appendChild(el('div', 'form-label', 'Смайл'));
+    const emInput = document.createElement('input');
+    emInput.type = 'text';
+    emInput.className = 'text-input emoji-input';
+    emInput.placeholder = '😀';
+    emInput.autocomplete = 'off';
+    emInput.spellcheck = false;
+    emInput.value = sym.emoji;
+    emRow.appendChild(emInput);
+    emRow.appendChild(el('div', 'hint', 'Набери или вставь смайл со своей клавиатуры.'));
+    form.appendChild(emRow);
 
-    const pairRows = el('div', 'pair-rows');
-    form.appendChild(pairRows);
+    // word
+    const wordRow = el('div', 'form-row');
+    wordRow.appendChild(el('div', 'form-label', 'Слово'));
+    const wordInput = document.createElement('input');
+    wordInput.type = 'text';
+    wordInput.className = 'text-input';
+    wordInput.placeholder = 'что это значит';
+    wordInput.autocomplete = 'off';
+    wordInput.value = sym.word;
+    wordRow.appendChild(wordInput);
+    form.appendChild(wordRow);
 
-    const pairInputs = []; // {emoji, input}
+    // definition
+    const defRow = el('div', 'form-row');
+    defRow.appendChild(el('div', 'form-label', 'Описание'));
+    const defInput = document.createElement('textarea');
+    defInput.className = 'text-input';
+    defInput.rows = 3;
+    defInput.placeholder = 'необязательно';
+    defInput.value = sym.definition;
+    defRow.appendChild(defInput);
+    form.appendChild(defRow);
 
-    function refreshPairs() {
-      // Сохраним текущие значения, чтобы не потерять при перерисовке
-      const saved = {};
-      pairInputs.forEach(function (p) { saved[p.emoji] = p.input.value; });
+    // children
+    form.appendChild(el('div', 'block-title', 'Из чего состоит'));
+    const childrenLine = el('div', 'chips-line');
+    form.appendChild(childrenLine);
 
-      pairRows.textContent = '';
-      pairInputs.length = 0;
+    function refreshChildren() {
+      childrenLine.textContent = '';
+      const kids = getChildren(sym);
+      kids.forEach(function (k) {
+        const chip = el('button', 'mini-chip' + (k.emoji ? ' emoji' : ''));
+        chip.appendChild(el('span', '', k.emoji || k.word || '·'));
+        const x = el('span', 'x', '×');
+        x.addEventListener('click', function (e) {
+          e.stopPropagation();
+          unlinkChild(sym.id, k.id);
+          Store.save();
+          refreshChildren();
+          render();
+        });
+        chip.appendChild(x);
+        chip.addEventListener('click', function () {
+          sheet.close();
+          setTimeout(function () { openSymbolCard(k.id); }, 60);
+        });
+        childrenLine.appendChild(chip);
+      });
+      const addBtn = el('button', 'mini-chip');
+      addBtn.appendChild(el('span', '', '+ добавить'));
+      addBtn.addEventListener('click', function () {
+        sheet.close();
+        setTimeout(function () { openSymbolPicker(sym.id); }, 60);
+      });
+      childrenLine.appendChild(addBtn);
+    }
+    refreshChildren();
 
-      const seen = new Set();
-      emojis.forEach(function (e) {
-        if (seen.has(e)) return;
-        seen.add(e);
-        const row = el('div', 'pair');
-        row.appendChild(el('div', 'pair-emoji', e));
-        const inp = document.createElement('input');
-        inp.type = 'text';
-        inp.className = 'pair-input';
-        inp.placeholder = 'что это значит…';
-        inp.autocomplete = 'off';
-        // Начальное значение — из saved, или из values если только что открыли
-        const oldIdx = emojis.indexOf(e);
-        inp.value = saved[e] !== undefined ? saved[e] : (values[oldIdx] || '');
-        row.appendChild(inp);
-        pairRows.appendChild(row);
-        pairInputs.push({ emoji: e, input: inp });
+    // parents
+    const parents = getParents(sym);
+    if (parents.length) {
+      form.appendChild(el('div', 'block-title', 'Входит в'));
+      const pc = el('div', 'chips-line');
+      parents.forEach(function (p) {
+        const chip = el('button', 'mini-chip' + (p.emoji ? ' emoji' : ''));
+        chip.appendChild(el('span', '', p.emoji || p.word || '·'));
+        chip.addEventListener('click', function () {
+          sheet.close();
+          setTimeout(function () { openSymbolCard(p.id); }, 60);
+        });
+        pc.appendChild(chip);
+      });
+      form.appendChild(pc);
+    }
+
+    // occurrences
+    const occ = findOccurrences(sym.id);
+    form.appendChild(el('div', 'block-title', 'Где встречается (' + occ.length + ')'));
+    if (!occ.length) {
+      form.appendChild(el('div', 'occ-empty', 'Пока нигде не встречается.'));
+    } else {
+      const list = el('div', 'occ-list');
+      occ.slice(0, 15).forEach(function (m) {
+        const item = el('div', 'occ-item');
+        m.itemIds.forEach(function (id, i) {
+          if (i > 0) item.appendChild(document.createTextNode(' '));
+          const s = getSymbol(id);
+          if (!s) return;
+          const display = s.emoji || s.word || '·';
+          if (s.id === sym.id) {
+            item.appendChild(el('span', 'mark', display));
+          } else {
+            item.appendChild(document.createTextNode(display));
+          }
+        });
+        list.appendChild(item);
+      });
+      form.appendChild(list);
+    }
+
+    // save + delete
+    const saveWrap = el('div');
+    saveWrap.style.marginTop = '20px';
+    const saveBtn = el('button', 'btn btn-primary', 'Сохранить');
+    saveBtn.addEventListener('click', function () {
+      updateSymbol(sym.id, {
+        emoji: emInput.value,
+        word: wordInput.value,
+        definition: defInput.value
+      });
+      Store.save();
+      sheet.close();
+      render();
+      toast('Сохранено');
+    });
+    saveWrap.appendChild(saveBtn);
+    form.appendChild(saveWrap);
+
+    const delWrap = el('div');
+    delWrap.style.marginTop = '10px';
+    const delBtn = el('button', 'btn btn-danger', 'Удалить символ');
+    delBtn.addEventListener('click', function () {
+      sheet.close();
+      openConfirm({
+        title: 'Удалить символ?',
+        text: '«' + (sym.emoji || sym.word || '·') + '» будет удалён из базы и всех сообщений.',
+        okText: 'Удалить',
+        onOk: function () { deleteSymbol(sym.id); render(); toast('Удалено'); }
+      });
+    });
+    delWrap.appendChild(delBtn);
+    form.appendChild(delWrap);
+
+    const sheet = openSheet(form);
+    setTimeout(function () { emInput.focus(); }, 320);
+  }
+
+  /* =========================================================
+     ПИКЕР СИМВОЛОВ
+     ========================================================= */
+  function openSymbolPicker(targetSymId) {
+    const target = getSymbol(targetSymId);
+    if (!target) return;
+
+    const form = el('div');
+    form.appendChild(el('div', 'sheet-title', 'Добавить в «' + (target.emoji || target.word || '·') + '»'));
+
+    // Исключаем target и его потомков
+    const excluded = new Set([targetSymId]);
+    const queue = [targetSymId];
+    while (queue.length) {
+      const cur = queue.shift();
+      const s = getSymbol(cur);
+      if (!s) continue;
+      s.children.forEach(function (cid) {
+        if (!excluded.has(cid)) { excluded.add(cid); queue.push(cid); }
       });
     }
 
-    // Первичная отрисовка
-    refreshPairs();
+    const all = Store.get().symbols.filter(function (s) { return !excluded.has(s.id); });
 
-    // При вводе эмодзи — обновляем строки
-    emojiInput.addEventListener('input', function () {
-      emojis = splitEmojis(emojiInput.value);
-      // Синхронизируем values по позиции: берём из saved не будем — просто держим значения в инпутах
-      refreshPairs();
+    if (!all.length) {
+      form.appendChild(el('div', 'occ-empty', 'Нет других символов. Напиши сообщение с ними.'));
+    } else {
+      const list = el('div', 'chips-line');
+      list.style.flexDirection = 'column';
+      list.style.gap = '6px';
+      all.forEach(function (s) {
+        const row = el('button', 'mini-chip');
+        row.style.width = '100%';
+        row.style.justifyContent = 'flex-start';
+        row.style.padding = '12px 14px';
+        row.style.borderRadius = '12px';
+        const sym = el('span', '', s.emoji || s.word || '·');
+        sym.style.fontSize = s.emoji ? '22px' : '15px';
+        sym.style.marginRight = '10px';
+        row.appendChild(sym);
+        if (s.word && s.emoji) {
+          row.appendChild(el('span', '', s.word));
+          row.lastChild.style.color = 'var(--muted)';
+          row.lastChild.style.fontSize = '14px';
+        }
+        row.addEventListener('click', function () {
+          linkChild(targetSymId, s.id);
+          Store.save();
+          sheet.close();
+          render();
+          setTimeout(function () { openSymbolCard(targetSymId); }, 60);
+        });
+        list.appendChild(row);
+      });
+      form.appendChild(list);
+    }
+
+    const sheet = openSheet(form);
+  }
+
+  /* =========================================================
+     ДИАЛОГ ГРУППЫ
+     ========================================================= */
+  function openGroupDialog(messageId, indices) {
+    const msg = getMessage(messageId);
+    if (!msg) return;
+    const sorted = indices.slice().sort(function (a, b) { return a - b; });
+    const selectedSymbols = sorted.map(function (i) { return getSymbol(msg.itemIds[i]); }).filter(Boolean);
+
+    const form = el('div');
+    form.appendChild(el('div', 'sheet-title', 'Новая группа'));
+
+    // preview
+    const preview = el('div', 'group-preview');
+    selectedSymbols.forEach(function (s, i) {
+      if (i > 0) preview.appendChild(el('span', 'plus', '+'));
+      preview.appendChild(el('span', '', s.emoji || s.word || '·'));
     });
+    preview.appendChild(el('span', 'plus', '→'));
+    const resultSpan = el('span', '', '🆕');
+    resultSpan.style.opacity = '.5';
+    preview.appendChild(resultSpan);
+    form.appendChild(preview);
 
-    // Фокус на поле эмодзи
-    setTimeout(function () {
-      if (!isEdit) emojiInput.focus();
-      else emojiInput.focus();
-    }, 320);
+    // emoji
+    const emRow = el('div', 'form-row');
+    emRow.appendChild(el('div', 'form-label', 'Смайл группы'));
+    const emInput = document.createElement('input');
+    emInput.type = 'text';
+    emInput.className = 'text-input emoji-input';
+    emInput.placeholder = '🕺';
+    emInput.autocomplete = 'off';
+    emInput.spellcheck = false;
+    emInput.addEventListener('input', function () {
+      resultSpan.textContent = emInput.value.trim() || '🆕';
+      resultSpan.style.opacity = emInput.value.trim() ? '1' : '.5';
+    });
+    emRow.appendChild(emInput);
+    form.appendChild(emRow);
 
-    // Кнопки
+    // word
+    const wordRow = el('div', 'form-row');
+    wordRow.appendChild(el('div', 'form-label', 'Слово / название'));
+    const wordInput = document.createElement('input');
+    wordInput.type = 'text';
+    wordInput.className = 'text-input';
+    wordInput.placeholder = 'успешный мужчина';
+    wordInput.autocomplete = 'off';
+    wordRow.appendChild(wordInput);
+    form.appendChild(wordRow);
+
+    // buttons
     const btnRow = el('div', 'btn-row');
     const cancelBtn = el('button', 'btn btn-ghost', 'Отмена');
-    const saveBtn = el('button', 'btn btn-primary', isEdit ? 'Сохранить' : 'Добавить');
-    btnRow.appendChild(cancelBtn);
-    btnRow.appendChild(saveBtn);
+    const okBtn = el('button', 'btn btn-primary', 'Создать');
+    btnRow.appendChild(cancelBtn); btnRow.appendChild(okBtn);
     form.appendChild(btnRow);
 
     const sheet = openSheet(form);
+    setTimeout(function () { emInput.focus(); }, 320);
 
-    cancelBtn.addEventListener('click', function () { sheet.close(); });
-
-    saveBtn.addEventListener('click', function () {
-      // Пересобираем эмодзи и значения финально
-      const finalEmojis = splitEmojis(emojiInput.value);
-      const valueMap = {};
-      pairInputs.forEach(function (p) { valueMap[p.emoji] = p.input.value.trim(); });
-      const finalValues = finalEmojis.map(function (e) {
-        return valueMap[e] !== undefined ? valueMap[e] : '';
-      });
-
-      if (!finalEmojis.length) {
-        toast('Добавь хотя бы один смайлик');
-        return;
-      }
-
-      if (isEdit) {
-        updateBelief(existing.id, finalEmojis, finalValues);
-      } else {
-        createBelief(finalEmojis, finalValues);
-      }
+    cancelBtn.addEventListener('click', function () {
       sheet.close();
+      delete STATE.selection[messageId];
       render();
     });
 
-    // Кнопка удаления при редактировании
-    if (isEdit) {
-      const delWrap = el('div');
-      delWrap.appendChild(el('div', 'space-12'));
-      const delBtn = el('button', 'btn btn-danger', 'Удалить');
-      delBtn.addEventListener('click', function () {
-        if (deleteBelief(existing.id)) {
-          sheet.close();
-          render();
-          toast('Удалено');
-        }
-      });
-      delWrap.appendChild(delBtn);
-      form.appendChild(delWrap);
-    }
-  }
+    okBtn.addEventListener('click', function () {
+      const emoji = emInput.value.trim();
+      const word = wordInput.value.trim();
+      if (!emoji && !word) { toast('Нужен смайл или слово'); return; }
 
-  /* =========================================================
-     РЕДАКТОР: ТЕГ
-     ========================================================= */
-  function openTagEditor(existing) {
-    const isEdit = !!existing;
+      // Создаём группу
+      const group = createSymbol({ emoji: emoji, word: word });
+      selectedSymbols.forEach(function (s) { linkChild(group.id, s.id); });
 
-    const form = el('div');
-    form.appendChild(el('div', 'sheet-title', isEdit ? 'Тег' : 'Новый тег'));
-
-    const tagRow = el('div', 'form-row');
-    tagRow.appendChild(el('label', 'form-label', 'Тег'));
-    const tagInput = document.createElement('input');
-    tagInput.type = 'text';
-    tagInput.className = 'text-input';
-    tagInput.placeholder = 'соблазняет';
-    tagInput.autocomplete = 'off';
-    tagInput.value = existing ? (existing.tag || '').replace(/^#/, '') : '';
-    tagRow.appendChild(tagInput);
-    form.appendChild(tagRow);
-
-    const descRow = el('div', 'form-row');
-    descRow.appendChild(el('label', 'form-label', 'Описание'));
-    const descInput = document.createElement('textarea');
-    descInput.className = 'text-input';
-    descInput.rows = 3;
-    descInput.placeholder = 'Привлечь твоё сердце ❤️‍🔥 в свои 🤲 руки';
-    descInput.value = existing ? (existing.description || '') : '';
-    descRow.appendChild(descInput);
-    form.appendChild(descRow);
-
-    const btnRow = el('div', 'btn-row');
-    const cancelBtn = el('button', 'btn btn-ghost', 'Отмена');
-    const saveBtn = el('button', 'btn btn-primary', isEdit ? 'Сохранить' : 'Добавить');
-    btnRow.appendChild(cancelBtn);
-    btnRow.appendChild(saveBtn);
-    form.appendChild(btnRow);
-
-    const sheet = openSheet(form);
-
-    setTimeout(function () { tagInput.focus(); }, 320);
-
-    cancelBtn.addEventListener('click', function () { sheet.close(); });
-
-    saveBtn.addEventListener('click', function () {
-      const tag = tagInput.value.trim().replace(/^#/, '');
-      const description = descInput.value.trim();
-      if (!tag) { toast('Введи тег'); return; }
-      if (isEdit) {
-        updateTag(existing.id, tag, description);
-      } else {
-        createTag(tag, description);
+      // Заменяем в сообщении
+      const insertAt = sorted[0];
+      // удаляем выбранные индексы (с конца)
+      for (let i = sorted.length - 1; i >= 0; i--) {
+        msg.itemIds.splice(sorted[i], 1);
       }
+      msg.itemIds.splice(insertAt, 0, group.id);
+
+      Store.save();
+      delete STATE.selection[messageId];
       sheet.close();
       render();
+      toast('Группа создана');
     });
-
-    if (isEdit) {
-      const delWrap = el('div');
-      delWrap.appendChild(el('div', 'space-12'));
-      const delBtn = el('button', 'btn btn-danger', 'Удалить');
-      delBtn.addEventListener('click', function () {
-        if (deleteTag(existing.id)) {
-          sheet.close();
-          render();
-          toast('Удалено');
-        }
-      });
-      delWrap.appendChild(delBtn);
-      form.appendChild(delWrap);
-    }
   }
 
   /* =========================================================
-     МОДАЛКА: ЧТО СОЗДАТЬ
+     РЕНДЕР
      ========================================================= */
-  function openCreateChooser() {
-    const form = el('div');
-    form.appendChild(el('div', 'sheet-title', 'Что добавить?'));
+  function render() {
+    const app = document.getElementById('app');
+    app.textContent = '';
 
-    const list = el('div', 'pair-rows');
-
-    const b1 = el('button', 'row');
-    b1.appendChild(el('span', 'row-key', '🤲'));
-    b1.appendChild(el('span', 'row-sep', '—'));
-    b1.appendChild(el('span', 'row-val', 'Убеждение (смайлики и их значения)'));
-    b1.addEventListener('click', function () {
-      sheet.close();
-      setTimeout(function () { openBeliefEditor(null); }, 50);
-    });
-    list.appendChild(b1);
-
-    const b2 = el('button', 'row');
-    b2.appendChild(el('span', 'row-key row-tag-key', '#'));
-    b2.appendChild(el('span', 'row-sep', '—'));
-    b2.appendChild(el('span', 'row-val', 'Тег (метка и описание)'));
-    b2.addEventListener('click', function () {
-      sheet.close();
-      setTimeout(function () { openTagEditor(null); }, 50);
-    });
-    list.appendChild(b2);
-
-    form.appendChild(list);
-
-    const sheet = openSheet(form);
-  }
-
-  /* =========================================================
-     ГЛАВНЫЙ ЭКРАН
-     ========================================================= */
-  function screenHome() {
-    const wrap = el('div', 'screen');
-
+    // hdr
     const hdr = el('div', 'hdr');
-    hdr.appendChild(el('div', 'hdr-title left', 'Главная'));
-
-    const exportBtn = el('button', 'icon-btn', '📤');
-    exportBtn.setAttribute('aria-label', 'Экспорт JSON');
-    exportBtn.addEventListener('click', exportJson);
-    hdr.appendChild(exportBtn);
-
-    hdr.appendChild(el('div', 'icon-btn'));
-    wrap.appendChild(hdr);
-
-    const body = el('div', 'body');
-
-    const title = el('div', 'main-title');
+    const title = el('div', 'hdr-title');
     title.appendChild(document.createTextNode('Твои убеждения'));
     title.appendChild(el('span', 'colon', ':'));
-    body.appendChild(title);
+    hdr.appendChild(title);
 
-    const days = groupByDay();
+    const exportBtn = el('button', 'icon-btn', '📤');
+    exportBtn.setAttribute('aria-label', 'Экспорт');
+    exportBtn.addEventListener('click', exportJson);
+    hdr.appendChild(exportBtn);
+    app.appendChild(hdr);
 
-    if (!days.length) {
-      body.appendChild(el('div', 'empty-note',
-        'Пока пусто.\nНажми «＋», чтобы добавить первое убеждение или тег.'));
+    // feed
+    const feed = el('div', 'feed');
+    const messages = Store.get().messages;
+
+    if (!messages.length) {
+      feed.appendChild(el('div', 'feed-empty',
+        'Напиши первое сообщение.\n\nКаждое слово превратится в смайл.\nСмайлы можно таскать и объединять в группы.'));
     } else {
-      days.forEach(function (d) { body.appendChild(buildDay(d)); });
+      messages.slice().reverse().forEach(function (m) {
+        feed.appendChild(buildMessageEl(m));
+      });
+    }
+    app.appendChild(feed);
+
+    // composer
+    app.appendChild(buildComposer());
+  }
+
+  function buildComposer() {
+    const wrap = el('div', 'composer');
+
+    const draft = el('div', 'draft');
+    wrap.appendChild(draft);
+
+    const row = el('div', 'composer-row');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'composer-input';
+    input.placeholder = 'Напиши сообщение…';
+    input.autocomplete = 'off';
+    row.appendChild(input);
+
+    const send = el('button', 'send-btn', '→');
+    send.setAttribute('aria-label', 'Отправить');
+    send.disabled = true;
+    row.appendChild(send);
+    wrap.appendChild(row);
+
+    function refresh() {
+      const v = input.value.trim();
+      send.disabled = !v;
+      if (!v) {
+        draft.classList.remove('visible');
+        draft.textContent = '';
+        return;
+      }
+      draft.classList.add('visible');
+      draft.textContent = '';
+      const tokens = tokenize(input.value);
+      tokens.forEach(function (tok) {
+        if (tok.type === 'word' || tok.type === 'emoji') {
+          const chip = buildPreviewChip(tok);
+          draft.appendChild(chip);
+        } else {
+          draft.appendChild(document.createTextNode(tok.text));
+        }
+      });
     }
 
+    input.addEventListener('input', refresh);
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!send.disabled) send.click();
+      }
+    });
+
+    send.addEventListener('click', function () {
+      const v = input.value.trim();
+      if (!v) return;
+      createMessage(v);
+      input.value = '';
+      refresh();
+      render();
+      const newFeed = document.querySelector('.feed');
+      if (newFeed) newFeed.scrollTop = 0;
+    });
+
+    return wrap;
+  }
+
+  function buildPreviewChip(tok) {
+    const chip = el('span', 'chip');
+    if (tok.type === 'emoji') {
+      const existing = findSymbolByEmoji(tok.text);
+      chip.textContent = tok.text;
+      if (!existing) {
+        chip.classList.add('empty-emoji');
+      }
+    } else {
+      // word
+      const existing = findSymbolByWord(tok.text);
+      if (existing && existing.emoji) {
+        chip.textContent = existing.emoji;
+      } else if (existing && !existing.emoji) {
+        chip.classList.add('word', 'empty-emoji');
+        chip.textContent = existing.word;
+      } else {
+        chip.classList.add('word', 'empty-emoji');
+        chip.textContent = tok.text;
+      }
+    }
+    return chip;
+  }
+
+  function buildMessageEl(msg) {
+    const wrap = el('div', 'msg');
+    const selecting = !!STATE.selection[msg.id];
+    if (selecting) wrap.classList.add('selecting');
+
+    const body = el('div', 'msg-body');
+    msg.itemIds.forEach(function (symId, idx) {
+      const s = getSymbol(symId);
+      if (!s) return;
+      const chip = buildSymbolChip(s, {
+        selectable: selecting,
+        selected: selecting && STATE.selection[msg.id].has(idx),
+        onTap: function () {
+          if (selecting) {
+            toggleSelection(msg.id, idx);
+            render();
+          } else {
+            openSymbolCard(s.id);
+          }
+        }
+      });
+      body.appendChild(chip);
+    });
     wrap.appendChild(body);
 
-    const fab = el('button', 'fab', '＋');
-    fab.setAttribute('aria-label', 'Добавить');
-    fab.addEventListener('click', openCreateChooser);
-    wrap.appendChild(fab);
+    // actions
+    const actions = el('div', 'msg-actions');
 
+    if (selecting) {
+      const n = STATE.selection[msg.id].size;
+      const cancelBtn = el('button', 'msg-btn', 'Отмена');
+      cancelBtn.addEventListener('click', function () {
+        delete STATE.selection[msg.id];
+        render();
+      });
+      actions.appendChild(cancelBtn);
+
+      const groupBtn = el('button', 'msg-btn primary', 'Объединить (' + n + ')');
+      groupBtn.disabled = n < 2;
+      groupBtn.addEventListener('click', function () {
+        if (n < 2) return;
+        const indices = Array.from(STATE.selection[msg.id]);
+        openGroupDialog(msg.id, indices);
+      });
+      actions.appendChild(groupBtn);
+    } else {
+      if (msg.itemIds.length > 1) {
+        const grp = el('button', 'msg-btn', '⊞ Группа');
+        grp.addEventListener('click', function () {
+          STATE.selection[msg.id] = new Set();
+          render();
+        });
+        actions.appendChild(grp);
+      }
+      const del = el('button', 'msg-btn', '×');
+      del.setAttribute('aria-label', 'Удалить сообщение');
+      del.addEventListener('click', function () {
+        openConfirm({
+          title: 'Удалить сообщение?',
+          text: 'Сами символы останутся в базе.',
+          okText: 'Удалить',
+          onOk: function () { deleteMessage(msg.id); render(); }
+        });
+      });
+      actions.appendChild(del);
+    }
+
+    wrap.appendChild(actions);
     return wrap;
   }
 
-  function buildDay(dayEntry) {
-    const block = el('div', 'day');
-
-    const head = el('div', 'day-head');
-    head.appendChild(el('div', 'day-date', formatDayLong(dayEntry.day)));
-
-    if (dayEntry.emojis.length) {
-      const em = el('div', 'day-emojis');
-      em.textContent = dayEntry.emojis.join('');
-      head.appendChild(em);
-    }
-    block.appendChild(head);
-
-    const rows = el('div', 'rows');
-
-    dayEntry.beliefs.forEach(function (b) {
-      rows.appendChild(buildBeliefRow(b));
-    });
-
-    dayEntry.tags.forEach(function (t) {
-      rows.appendChild(buildTagRow(t));
-    });
-
-    block.appendChild(rows);
-    return block;
+  function toggleSelection(msgId, idx) {
+    const set = STATE.selection[msgId];
+    if (!set) return;
+    if (set.has(idx)) set.delete(idx);
+    else set.add(idx);
   }
 
-  function buildBeliefRow(b) {
-    const emojis = b.emojis || [];
-    const values = b.values || [];
+  function buildSymbolChip(sym, opts) {
+    const hasChildren = sym.children && sym.children.length > 0;
+    const hasEmoji = !!sym.emoji;
+    const hasWord = !!sym.word;
 
-    // Если один эмодзи — одна строка
-    if (emojis.length <= 1) {
-      const row = el('button', 'row');
-      row.appendChild(el('span', 'row-key', emojis[0] || '◌'));
-      row.appendChild(el('span', 'row-sep', ':'));
-      const val = el('span', 'row-val' + (values[0] ? '' : ' empty'), values[0] || 'без описания');
-      row.appendChild(val);
-      row.addEventListener('click', function () { openBeliefEditor(b); });
-      return row;
+    const chip = el('span', 'chip');
+
+    if (hasEmoji) {
+      chip.textContent = sym.emoji;
+    } else if (hasWord) {
+      chip.classList.add('word');
+      chip.textContent = sym.word;
+    } else {
+      chip.classList.add('word', 'empty-emoji');
+      chip.textContent = '·';
     }
 
-    // Несколько эмодзи — блок из нескольких строк
-    const wrap = el('div', 'rows');
-    emojis.forEach(function (e, i) {
-      const row = el('button', 'row');
-      row.appendChild(el('span', 'row-key', e));
-      row.appendChild(el('span', 'row-sep', ':'));
-      const val = el('span', 'row-val' + (values[i] ? '' : ' empty'), values[i] || 'без описания');
-      row.appendChild(val);
-      row.addEventListener('click', function () { openBeliefEditor(b); });
-      wrap.appendChild(row);
-    });
-    return wrap;
-  }
+    if (!hasEmoji && hasWord) chip.classList.add('empty-emoji');
 
-  function buildTagRow(t) {
-    const row = el('button', 'row');
-    const key = el('span', 'row-key row-tag-key', '#' + (t.tag || ''));
-    key.style.fontSize = '15px';
-    key.style.fontWeight = '600';
-    row.appendChild(key);
-    row.appendChild(el('span', 'row-sep', ':'));
-    const val = el('span', 'row-val' + (t.description ? '' : ' empty tag'), t.description || 'без описания');
-    row.appendChild(val);
-    row.addEventListener('click', function () { openTagEditor(t); });
-    return row;
+    if (hasChildren) {
+      chip.classList.add('group');
+      chip.dataset.count = String(sym.children.length);
+    }
+
+    if (opts.selectable) chip.classList.add('selectable');
+    if (opts.selected) chip.classList.add('selected');
+
+    chip.addEventListener('click', opts.onTap);
+    return chip;
   }
 
   /* =========================================================
@@ -889,23 +1383,13 @@
   }
 
   /* =========================================================
-     РЕНДЕР
-     ========================================================= */
-  function render() {
-    const app = document.getElementById('app');
-    app.textContent = '';
-    app.appendChild(screenHome());
-  }
-
-  /* =========================================================
-     ИНИЦИАЛИЗАЦИЯ
+     СТАРТ
      ========================================================= */
   function init() {
     Store.load();
-    if (!Store.isOk()) toast('Хранилище недоступно — данные не сохранятся');
+    if (!Store.isOk()) toast('Хранилище недоступно');
     render();
   }
-
   init();
 })();
 </script>
