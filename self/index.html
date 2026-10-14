@@ -45,7 +45,6 @@
   }
 
   .belief-sym { position:relative; display:inline-block; padding:0 2px; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
-
   .belief-sym .badge {
     position:absolute;
     background:#6fa8ff; color:#06111f;
@@ -63,22 +62,9 @@
   .belief-sym .word.new { color:#ffb46f; }
   .belief-sym.existing { pointer-events:auto; cursor:pointer; }
   .belief-sym.existing:active { transform:scale(.95); }
-
-  /* чужой символ — живёт в другом месте */
-  .belief-sym.foreign {
-    filter: saturate(.4) brightness(.7);
-  }
-  .belief-sym.foreign::before {
-    content: '';
-    position: absolute;
-    inset: -4px -8px;
-    border: 2px dashed #ffb46f;
-    border-radius: 12px;
-    opacity: .8;
-    pointer-events: none;
-  }
+  .belief-sym.foreign { filter: saturate(.4) brightness(.7); }
+  .belief-sym.foreign::before { content: ''; position: absolute; inset: -4px -8px; border: 2px dashed #ffb46f; border-radius: 12px; opacity: .8; pointer-events: none; }
   .belief-sym.foreign .word { color: #ffb46f; }
-
   .belief-empty-text { font-size:14px; color:#6b6b7b; text-align:center; padding: 0 20%; line-height:1.5; pointer-events:none; }
   .field-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; color:#6b6b7b; font-size:14px; line-height:1.7; white-space:pre-line; padding:0 40px; pointer-events:none; }
 
@@ -97,17 +83,81 @@
   .group-header .gh-sub { font-size:12px; color:#6fa8ff; margin-top:5px; letter-spacing:.02em; }
   .group-header .gh-arrow { font-size:22px; color:#6b6b7b; flex-shrink:0; }
 
-  .group-tiles { display:grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap:10px; }
+  .group-tiles { display:grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap:10px; }
 
-  .tile { position:relative; aspect-ratio: 1 / 1; border-radius:16px; background: linear-gradient(160deg, rgba(30,39,64,.85) 0%, rgba(18,19,28,.95) 100%); border:1.5px solid rgba(111,168,255,.28); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:8px; cursor:pointer; transition:.15s; overflow:hidden; font-family:inherit; color:#e8e8f0; }
+  /* ==== плитка: mindmap-стиль ==== */
+  .tile {
+    position:relative; aspect-ratio: 1 / 1; border-radius:16px;
+    background: linear-gradient(160deg, rgba(30,39,64,.85) 0%, rgba(18,19,28,.95) 100%);
+    border:1.5px solid rgba(111,168,255,.28);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:4px;
+    padding:8px 6px 6px;
+    cursor:pointer; transition:.15s; overflow:hidden;
+    font-family:inherit; color:#e8e8f0;
+  }
   .tile:active { transform:scale(.95); background:rgba(111,168,255,.16); border-color:#6fa8ff; }
-  .tile.group { background: linear-gradient(160deg, rgba(38,54,88,.9) 0%, rgba(20,22,36,.95) 100%); border-color: rgba(111,168,255,.55); box-shadow: inset 0 0 0 3px rgba(111,168,255,.08); }
+
+  .tile.group {
+    background: linear-gradient(160deg, rgba(38,54,88,.9) 0%, rgba(20,22,36,.95) 100%);
+    border-color: rgba(111,168,255,.55);
+    box-shadow: inset 0 0 0 3px rgba(111,168,255,.08);
+  }
   .tile.group::before { content:''; position:absolute; inset:5px; border-radius:11px; border:1px dashed rgba(111,168,255,.4); pointer-events:none; }
-  .tile.group::after { content: attr(data-count); position:absolute; top:6px; right:6px; min-width:18px; height:18px; padding:0 5px; background:#6fa8ff; color:#06111f; font-size:10px; font-weight:800; border-radius:9px; display:flex; align-items:center; justify-content:center; z-index:2; }
+
+  /* бейдж-счётчик общего числа потомков */
+  .tile-badge {
+    position:absolute; top:5px; right:5px;
+    min-width:20px; height:20px; padding:0 6px;
+    background:#6fa8ff; color:#06111f;
+    font-size:11px; font-weight:800;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    z-index:3;
+    box-shadow: 0 2px 6px rgba(0,0,0,.5);
+    letter-spacing:0;
+  }
+
   .tile .t-emoji { font-size:32px; line-height:1; z-index:1; }
   .tile.group .t-emoji { font-size:34px; }
-  .tile .t-word { font-size:10px; color:#8890a0; text-align:center; word-break:break-word; line-height:1.15; max-width:100%; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; z-index:1; }
+  .tile .t-word {
+    font-size:10px; color:#8890a0; text-align:center;
+    word-break:break-word; line-height:1.15;
+    max-width:100%; overflow:hidden;
+    display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;
+    z-index:1;
+  }
   .tile .t-word.empty { color:#3a3a48; font-style:italic; }
+
+  /* мини-превью детей — mindmap-строчка под словом */
+  .t-preview {
+    display:flex; align-items:center; justify-content:center;
+    gap:2px;
+    font-size:11px; line-height:1;
+    opacity:.9;
+    max-width:100%;
+    overflow:hidden;
+    flex-wrap:nowrap;
+    z-index:1;
+  }
+  .t-preview .p-kid {
+    position:relative;
+    display:inline-flex; align-items:center; justify-content:center;
+    flex:none;
+  }
+  .t-preview .p-kid.tiny { font-size:9px; opacity:.7; }
+  .t-preview .p-more {
+    font-size:9px; color:#6fa8ff; font-weight:700;
+    flex:none;
+  }
+  /* точка-индикатор для вложенной группы */
+  .t-preview .p-dot {
+    position:absolute;
+    bottom:-3px; left:50%; transform:translateX(-50%);
+    width:3px; height:3px; border-radius:50%;
+    background:#6fa8ff;
+  }
 
   .add-tile { aspect-ratio: 1 / 1; border-radius:16px; border:1.5px dashed #262633; background: transparent; color:#4a4a58; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s; font-family:inherit; }
   .add-tile:active { border-color:#6fa8ff; color:#6fa8ff; background:rgba(111,168,255,.05); }
@@ -201,6 +251,9 @@
   .mini-chip:active { background:#22222e; border-color:#6fa8ff; }
   .mini-chip .x { width:18px; height:18px; border-radius:50%; background:rgba(255,90,90,.15); color:#ff8f8f; display:flex; align-items:center; justify-content:center; font-size:12px; }
   .mini-chip.add { border-style:dashed; color:#6b6b7b; font-size:14px; padding:8px 14px; }
+  .mini-chip .mini-badge { font-size:10px; background:#6fa8ff; color:#06111f; padding:1px 6px; border-radius:6px; font-weight:700; }
+  .mini-chip .mini-preview { display:flex; gap:1px; font-size:12px; opacity:.7; margin-left:4px; }
+
   .picker-list { display:flex; flex-direction:column; gap:6px; max-height:44vh; overflow-y:auto; }
   .picker-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:#14141c; border:1px solid #262633; cursor:pointer; text-align:left; width:100%; transition:.15s; font-family:inherit; color:#e8e8f0; }
   .picker-row:active { background:#22222e; border-color:#6fa8ff; }
@@ -221,12 +274,7 @@
   .hidden { display:none !important; }
   .toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 90px); transform:translate(-50%, 20px); z-index:500; background:#22222f; border:1px solid #262633; padding:11px 18px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .22s, transform .22s; pointer-events:none; max-width:86vw; text-align:center; color:#e8e8f0; }
   .toast.show { opacity:1; transform:translate(-50%, 0); }
-  .toast .toast-btn {
-    display:inline-block; margin-left:10px; padding:4px 12px;
-    border-radius:999px; background:#6fa8ff; color:#06111f;
-    font-weight:600; font-size:13px; cursor:pointer;
-    pointer-events:auto;
-  }
+  .toast .toast-btn { display:inline-block; margin-left:10px; padding:4px 12px; border-radius:999px; background:#6fa8ff; color:#06111f; font-weight:600; font-size:13px; cursor:pointer; pointer-events:auto; }
 </style>
 </head>
 <body>
@@ -416,8 +464,8 @@
   <div id="dictModal" class="modal-overlay hidden">
     <div class="modal">
       <h3>📖 Словарь символов</h3>
-      <div class="hint" style="margin-bottom:8px;">Тап на группу — провалиться внутрь. Тап на символ — карточка.</div>
-      <div id="dictList" style="max-height:55vh; overflow-y:auto; display:flex; flex-wrap:wrap; gap:6px;"></div>
+      <div class="hint" style="margin-bottom:8px;">Цифра на группе — общее число символов внутри (включая вложенные).</div>
+      <div id="dictList" style="max-height:55vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px;"></div>
       <div class="modal-actions">
         <button id="dictClose" class="ghost">Закрыть</button>
       </div>
@@ -557,9 +605,6 @@
     cancel.addEventListener('click', hCancel);
   }
 
-  /* =========================================================
-     ХРАНИЛИЩЕ
-     ========================================================= */
   const Store = (function () {
     let state = null;
     let ok = true;
@@ -576,7 +621,6 @@
           beliefs: Array.isArray(p.beliefs) ? p.beliefs : []
         };
       } catch (e) { state = empty(); }
-      // Миграция / нормализация
       state.symbols.forEach(s => {
         if (!Array.isArray(s.children)) s.children = [];
         if (!Array.isArray(s.tags)) s.tags = [];
@@ -588,7 +632,6 @@
           if (typeof s.pos.y !== 'number') s.pos.y = 0;
           if (typeof s.pos.z !== 'number') s.pos.z = 0;
         }
-        // owner = { type: 'belief'|'symbol', id } | null
         if (s.owner === undefined) s.owner = null;
       });
       state.beliefs.forEach(b => {
@@ -608,6 +651,16 @@
   function findSymbolByWord(w) { const k = String(w || '').trim().toLowerCase(); if (!k) return null; return findAllSymbols().find(s => (s.word || '').toLowerCase() === k) || null; }
 
   function isGroup(s) { return s && Array.isArray(s.children) && s.children.length > 0; }
+
+  /* === НОВОЕ: общее число потомков === */
+  function countDescendants(symId) {
+    const sym = findSymbolById(symId);
+    if (!sym || !sym.children || !sym.children.length) return 0;
+    let n = 0;
+    sym.children.forEach(cid => { n += 1 + countDescendants(cid); });
+    return n;
+  }
+
   function symbolWeight(s) {
     if (!s) return 0;
     if (!s.children || !s.children.length) return 1;
@@ -629,7 +682,6 @@
     return b;
   }
   function deleteBelief(id) {
-    // при удалении убеждения — все его символы и их поддеревья освобождаем
     const symbolsToOrphan = Store.get().symbols.filter(s => s.owner && s.owner.type === 'belief' && s.owner.id === id);
     symbolsToOrphan.forEach(s => { s.owner = null; });
     Store.get().beliefs = Store.get().beliefs.filter(b => b.id !== id);
@@ -643,125 +695,6 @@
     return Math.max(0.3, 1 - index * step);
   }
 
-  /* =========================================================
-     СИМВОЛЫ И ПЕРЕЕЗДЫ
-     ========================================================= */
-
-  /** Создать/получить символ. ownerRef = {type, id} | null. */
-  function addSymbol(char, word, ownerRef) {
-    char = String(char || '').trim();
-    word = String(word || '').trim();
-    if (!char && !word) return null;
-    if (char && !isEmojiOnly(char)) return null;
-    if (char) {
-      const byChar = findSymbolByChar(char);
-      if (byChar) { if (word && !byChar.word) byChar.word = word; Store.save(); return byChar; }
-    }
-    if (word) {
-      const byWord = findSymbolByWord(word);
-      if (byWord) { if (char) byWord.char = char; Store.save(); return byWord; }
-    }
-    const s = {
-      id: uid(), char, word, description:'', tags:[], props:{},
-      pos: { x: 0, y: 0, z: 0 },
-      children: [],
-      owner: ownerRef || null,
-      created: nowIso()
-    };
-    Store.get().symbols.push(s);
-    Store.save();
-    return s;
-  }
-
-  function deleteSymbol(id) {
-    // отвязываем от родителя
-    const sym = findSymbolById(id);
-    if (sym && sym.owner) removeFromOwner(id, sym.owner);
-    // рекурсивно удаляем детей
-    const stack = [id];
-    while (stack.length) {
-      const cur = stack.pop();
-      const s = findSymbolById(cur);
-      if (!s) continue;
-      (s.children || []).forEach(cid => stack.push(cid));
-    }
-    // отвязываем всех кто ссылался на id (как child)
-    Store.get().symbols.forEach(s => {
-      s.children = (s.children || []).filter(cid => cid !== id);
-    });
-    Store.get().symbols = Store.get().symbols.filter(s => s.id !== id);
-    Store.save();
-  }
-
-  /** Убрать символ из его родителя (не удаляя самого). */
-  function removeFromOwner(symbolId, ownerRef) {
-    if (!ownerRef) return;
-    if (ownerRef.type === 'belief') {
-      const b = getBelief(ownerRef.id);
-      if (b) {
-        // убираем одно вхождение эмодзи из текста
-        const sym = findSymbolById(symbolId);
-        if (sym && sym.char) {
-          const idx = b.text.indexOf(sym.char);
-          if (idx !== -1) {
-            b.text = (b.text.slice(0, idx) + b.text.slice(idx + sym.char.length)).trim().replace(/\s+/g, ' ');
-          }
-        }
-      }
-    } else if (ownerRef.type === 'symbol') {
-      const parent = findSymbolById(ownerRef.id);
-      if (parent) {
-        parent.children = (parent.children || []).filter(cid => cid !== symbolId);
-      }
-    }
-  }
-
-  /** Добавить в нового родителя (не меняя owner — это делает caller). */
-  function addToOwner(symbolId, ownerRef) {
-    if (!ownerRef) return;
-    if (ownerRef.type === 'symbol') {
-      const parent = findSymbolById(ownerRef.id);
-      if (parent) {
-        if (!Array.isArray(parent.children)) parent.children = [];
-        if (parent.children.indexOf(symbolId) === -1) parent.children.push(symbolId);
-      }
-    }
-    // если ownerRef = belief, символ уже присутствует в тексте (мы его вставили), ничего не делаем
-  }
-
-  /** Полный переезд символа в нового владельца. */
-  function moveSymbol(symbolId, newOwnerRef) {
-    const sym = findSymbolById(symbolId);
-    if (!sym) return false;
-
-    const oldOwner = sym.owner;
-    if (oldOwner && oldOwner.type === newOwnerRef.type && oldOwner.id === newOwnerRef.id) return false;
-
-    if (oldOwner) removeFromOwner(symbolId, oldOwner);
-    sym.owner = newOwnerRef;
-    addToOwner(symbolId, newOwnerRef);
-
-    Store.save();
-    return true;
-  }
-
-  /** Человекочитаемый путь до owner. */
-  function describeOwner(ownerRef) {
-    if (!ownerRef) return 'в корне (нигде)';
-    if (ownerRef.type === 'belief') {
-      const b = getBelief(ownerRef.id);
-      return 'в убеждении «' + (b ? (b.text ? shortText(b.text, 20) : 'без названия') : 'удалено') + '»';
-    }
-    if (ownerRef.type === 'symbol') {
-      const s = findSymbolById(ownerRef.id);
-      return 'внутри ' + (s ? (s.char || s.word || '·') : 'удалённого символа');
-    }
-    return 'неизвестно';
-  }
-
-  /* =========================================================
-     ТОКЕНИЗАЦИЯ
-     ========================================================= */
   function extractUnits(text) {
     const graphemes = splitGraphemes(text);
     const units = [];
@@ -1002,13 +935,10 @@
     usageIndicator.style.color = percent > 100 ? '#ffb46f' : '#6b6b7b';
   }
 
-  /** Символ «чужой» для текущего убеждения? */
   function isForeignForBelief(sym, beliefId) {
-    if (!sym || !sym.owner) return false; // нет владельца — свой, приписываем при клике
+    if (!sym || !sym.owner) return false;
     if (sym.owner.type === 'belief' && sym.owner.id === beliefId) return false;
     if (sym.owner.type === 'symbol') {
-      // владелец — символ. Он может быть внутри этого убеждения или в другой группе
-      // проверим: принадлежит ли owner-символ этому убеждению (прямо или транзитивно)
       let cur = sym.owner;
       const seen = new Set();
       while (cur && cur.type === 'symbol' && !seen.has(cur.id)) {
@@ -1023,12 +953,6 @@
       }
       return true;
     }
-    return true;
-  }
-
-  function isForeignForSymbol(sym, currentSymbolId) {
-    if (!sym || !sym.owner) return false;
-    if (sym.owner.type === 'symbol' && sym.owner.id === currentSymbolId) return false;
     return true;
   }
 
@@ -1089,10 +1013,12 @@
       fontSize = clamp(fontSize, 22, Math.max(80, base * 0.7));
       body.style.setProperty('--bfont', fontSize + 'px');
 
-      let badgeSize = fontSize * 0.34;
-      badgeSize = Math.max(badgeSize, 22);
-      badgeSize = Math.min(badgeSize, 72);
-      badgeSize = Math.min(badgeSize, fontSize * 0.65);
+      // ==== размер бейджа по общему числу потомков ====
+      const visible0 = visible.length;
+      let badgeSize = fontSize * 0.32;
+      badgeSize = Math.max(badgeSize, 24);
+      badgeSize = Math.min(badgeSize, 84);
+      badgeSize = Math.min(badgeSize, fontSize * 0.7);
       badgeSize = Math.round(badgeSize);
       const badgeFont = Math.round(badgeSize * 0.58);
       const badgeTop = -Math.round(badgeSize * 0.42);
@@ -1105,11 +1031,12 @@
         if (t.type === 'existing') {
           const sym = findSymbolById(t.symbolId);
           if (!sym) return;
+          const isGrp = isGroup(sym);
           const foreign = isForeignForBelief(sym, b.id);
           const s = document.createElement('span');
-          s.className = 'belief-sym existing' + (isGroup(sym) ? ' group' : '') + (foreign ? ' foreign' : '');
+          s.className = 'belief-sym existing' + (isGrp ? ' group' : '') + (foreign ? ' foreign' : '');
           s.dataset.symbolId = sym.id;
-          s.dataset.isGroup = isGroup(sym) ? '1' : '0';
+          s.dataset.isGroup = isGrp ? '1' : '0';
           s.dataset.foreign = foreign ? '1' : '0';
 
           const ch = document.createElement('span');
@@ -1117,10 +1044,12 @@
           ch.style.pointerEvents = 'none';
           s.appendChild(ch);
 
-          if (isGroup(sym)) {
+          if (isGrp) {
+            // === НОВОЕ: общее число потомков, не прямых детей ===
+            const total = countDescendants(sym.id);
             const badge = document.createElement('span');
             badge.className = 'badge';
-            badge.textContent = String(sym.children.length);
+            badge.textContent = String(total);
             badge.style.top = badgeTop + 'px';
             badge.style.right = badgeRight + 'px';
             badge.style.minWidth = badgeSize + 'px';
@@ -1172,7 +1101,6 @@
     e.preventDefault();
 
     const startTarget = e.target;
-
     const canDrag = weight < 0.99;
     const startX = e.clientX, startY = e.clientY;
     const startLeft = parseFloat(el.style.left) || 0;
@@ -1318,9 +1246,13 @@
     ghWord.textContent = group.word || 'без названия';
     ghInfo.appendChild(ghWord);
     const cnt = (group.children || []).length;
+    const total = countDescendants(group.id);
     const ghSub = document.createElement('div');
     ghSub.className = 'gh-sub';
-    ghSub.textContent = cnt + ' ' + plural(cnt, 'элемент', 'элемента', 'элементов') + ' · вес ' + symbolWeight(group) + ' · ' + describeOwner(group.owner);
+    ghSub.textContent = cnt + ' ' + plural(cnt, 'элемент', 'элемента', 'элементов') +
+      (total > cnt ? ' · всего внутри: ' + total : '') +
+      ' · вес ' + symbolWeight(group) +
+      ' · ' + describeOwner(group.owner);
     ghInfo.appendChild(ghSub);
     head.appendChild(ghInfo);
     const ghArrow = document.createElement('div');
@@ -1349,7 +1281,15 @@
     const tile = document.createElement('div');
     const isGrp = isGroup(sym);
     tile.className = 'tile' + (isGrp ? ' group' : '');
-    if (isGrp) tile.dataset.count = String(sym.children.length);
+
+    // === НОВОЕ: бейдж с общим числом потомков ===
+    if (isGrp) {
+      const total = countDescendants(sym.id);
+      const badge = document.createElement('div');
+      badge.className = 'tile-badge';
+      badge.textContent = String(total);
+      tile.appendChild(badge);
+    }
 
     const em = document.createElement('div');
     em.className = 't-emoji';
@@ -1360,6 +1300,33 @@
     w.className = 't-word' + (sym.word ? '' : ' empty');
     w.textContent = sym.word || '—';
     tile.appendChild(w);
+
+    // === НОВОЕ: мини-превью детей (mindmap-строчка) ===
+    if (isGrp) {
+      const preview = document.createElement('div');
+      preview.className = 't-preview';
+      const kids = (sym.children || []).map(findSymbolById).filter(Boolean);
+      const show = kids.slice(0, 3);
+      show.forEach(k => {
+        const kEl = document.createElement('span');
+        kEl.className = 'p-kid';
+        kEl.textContent = k.char || '◌';
+        // если у ребёнка есть дети — точка-индикатор
+        if (isGroup(k)) {
+          const dot = document.createElement('span');
+          dot.className = 'p-dot';
+          kEl.appendChild(dot);
+        }
+        preview.appendChild(kEl);
+      });
+      if (kids.length > 3) {
+        const more = document.createElement('span');
+        more.className = 'p-more';
+        more.textContent = '+' + (kids.length - 3);
+        preview.appendChild(more);
+      }
+      tile.appendChild(preview);
+    }
 
     tile.addEventListener('click', () => {
       if (isGrp) enterGroup(sym.id);
@@ -1446,7 +1413,9 @@
       const foreign = currentBeliefId ? isForeignForBelief(sym, currentBeliefId) : false;
       c.className = 'chip sym' + (isGrp ? ' group' : '') + (foreign ? ' foreign' : '');
       if (isGrp) {
-        c.dataset.count = String(sym.children.length);
+        // === НОВОЕ: общее число потомков ===
+        const total = countDescendants(sym.id);
+        c.dataset.count = String(total);
         if (groupsExpanded) c.classList.add('expanded');
       }
       const ch = document.createElement('span'); ch.textContent = sym.char || '◌';
@@ -1756,7 +1725,9 @@
     document.getElementById('cardPosZ').value = cardDraft.pos.z || 0;
     document.getElementById('cardErr').textContent = '';
 
-    document.getElementById('cardOwner').textContent = describeOwner(sym ? sym.owner : null);
+    const total = sym ? countDescendants(sym.id) : 0;
+    const ownerText = describeOwner(sym ? sym.owner : null);
+    document.getElementById('cardOwner').textContent = ownerText + (total > 0 ? ' · внутри всего: ' + total : '');
 
     const enterBtn = document.getElementById('cardEnter');
     if (sym && isGroup(sym)) {
@@ -1805,17 +1776,33 @@
       const chip = document.createElement('button');
       chip.className = 'mini-chip';
       chip.textContent = k.char || k.word || '◌';
+
+      // === НОВОЕ: в чипе показываем мини-превью его детей и число ===
       if (isGroup(k)) {
-        const cnt = document.createElement('span');
-        cnt.style.cssText = 'font-size:10px;background:#6fa8ff;color:#06111f;padding:1px 5px;border-radius:6px;margin-left:4px;font-weight:700;';
-        cnt.textContent = String(k.children.length);
-        chip.appendChild(cnt);
+        const totalK = countDescendants(k.id);
+        const badge = document.createElement('span');
+        badge.className = 'mini-badge';
+        badge.textContent = String(totalK);
+        chip.appendChild(badge);
+
+        // мини-превью первых двух внуков
+        const grandkids = (k.children || []).map(findSymbolById).filter(Boolean).slice(0, 3);
+        if (grandkids.length) {
+          const pv = document.createElement('span');
+          pv.className = 'mini-preview';
+          grandkids.forEach(gk => {
+            const s = document.createElement('span');
+            s.textContent = gk.char || '◌';
+            pv.appendChild(s);
+          });
+          chip.appendChild(pv);
+        }
       }
+
       const x = document.createElement('span');
       x.className = 'x'; x.textContent = '×';
       x.addEventListener('click', e => {
         e.stopPropagation();
-        // отвязываем ребёнка (owner = null)
         if (k.owner && k.owner.type === 'symbol' && k.owner.id === sym.id) {
           k.owner = null;
         }
@@ -1903,11 +1890,7 @@
     });
   });
 
-  /* =========================================================
-     ДИАЛОГ ПЕРЕЕЗДА
-     ========================================================= */
   const moveModal = document.getElementById('moveModal');
-
   function openMoveDialog(symbolId, newOwnerRef) {
     const sym = findSymbolById(symbolId);
     if (!sym) return;
@@ -1923,28 +1906,23 @@
     const info = document.createElement('div');
     info.textContent = 'Сейчас символ ' + (sym.char || '·') + ' живёт ' + describeOwner(sym.owner) + '.';
     body.appendChild(info);
+    const total = countDescendants(sym.id);
     const next = document.createElement('div');
     next.style.marginTop = '8px';
-    next.textContent = 'Переехать ' + describeOwner(newOwnerRef) + '? Он переместится со всеми своими детьми (их: ' + (sym.children || []).length + ').';
+    next.textContent = 'Переехать ' + describeOwner(newOwnerRef) + '? Он переместится со всем поддеревом (всего внутри: ' + total + ').';
     body.appendChild(next);
 
     document.getElementById('moveErr').textContent = '';
-
     const oldBtn = document.getElementById('moveOld');
-    if (sym.owner) {
-      oldBtn.classList.remove('hidden');
-    } else {
-      oldBtn.classList.add('hidden');
-    }
+    if (sym.owner) oldBtn.classList.remove('hidden');
+    else oldBtn.classList.add('hidden');
 
     moveModal.classList.remove('hidden');
   }
-
   document.getElementById('moveCancel').addEventListener('click', () => {
     moveModal.classList.add('hidden');
     moveCtx = null;
   });
-
   document.getElementById('moveOld').addEventListener('click', () => {
     if (!moveCtx) return;
     const sym = findSymbolById(moveCtx.symbolId);
@@ -1952,7 +1930,6 @@
     const o = sym.owner;
     moveModal.classList.add('hidden');
     moveCtx = null;
-    // переходим в старое место
     if (o.type === 'belief') {
       NAV.beliefId = o.id;
       NAV.groupPath = [];
@@ -1966,14 +1943,12 @@
       render();
     }
   });
-
   document.getElementById('moveConfirm').addEventListener('click', () => {
     if (!moveCtx) return;
     const symId = moveCtx.symbolId;
     const newRef = moveCtx.newOwnerRef;
     const sym = findSymbolById(symId);
     const oldRef = sym ? sym.owner : null;
-    const oldDescription = oldRef ? describeOwner(oldRef) : null;
     moveSymbol(symId, newRef);
     moveModal.classList.add('hidden');
     moveCtx = null;
@@ -1991,9 +1966,6 @@
     }
   });
 
-  /* =========================================================
-     ОБЪЕДИНЕНИЕ
-     ========================================================= */
   const mergeModal = document.getElementById('mergeModal');
   function openMergeDialog(tokenA, tokenB) {
     const a = tokenA.symbolId ? findSymbolById(tokenA.symbolId) : null;
@@ -2081,7 +2053,6 @@
       group.children.push(symB.id);
       Store.get().symbols.push(group);
     }
-    // устанавливаем owner для symA и symB на группу
     symA.owner = { type: 'symbol', id: group.id };
     symB.owner = { type: 'symbol', id: group.id };
     Store.save();
@@ -2117,9 +2088,7 @@
     setTimeout(() => { enterGroup(group.id); }, 120);
   });
 
-  /* =========================================================
-     СЛОВАРЬ
-     ========================================================= */
+  /* ==== СЛОВАРЬ ==== */
   document.getElementById('dictBtn').addEventListener('click', () => {
     const list = document.getElementById('dictList');
     list.innerHTML = '';
@@ -2133,6 +2102,8 @@
       syms.forEach(s => {
         const chip = document.createElement('button');
         chip.className = 'mini-chip';
+        chip.style.width = '100%';
+        chip.style.justifyContent = 'flex-start';
         chip.textContent = s.char || '◌';
         if (s.word) {
           const w = document.createElement('span');
@@ -2141,11 +2112,34 @@
           chip.appendChild(w);
         }
         if (s.children && s.children.length) {
+          // === НОВОЕ: общее число потомков + мини-превью детей ===
+          const total = countDescendants(s.id);
           const cnt = document.createElement('span');
-          cnt.style.cssText = 'font-size:10px;background:#6fa8ff;color:#06111f;padding:1px 5px;border-radius:6px;margin-left:4px;font-weight:700;';
-          cnt.textContent = String(s.children.length);
+          cnt.className = 'mini-badge';
+          cnt.textContent = String(total);
           chip.appendChild(cnt);
+
+          const kids = (s.children || []).map(findSymbolById).filter(Boolean).slice(0, 5);
+          const pv = document.createElement('span');
+          pv.className = 'mini-preview';
+          kids.forEach(k => {
+            const kk = document.createElement('span');
+            kk.textContent = k.char || '◌';
+            pv.appendChild(kk);
+          });
+          if (s.children.length > 5) {
+            const more = document.createElement('span');
+            more.textContent = '+' + (s.children.length - 5);
+            pv.appendChild(more);
+          }
+          chip.appendChild(pv);
         }
+        // описание / owner
+        const sub = document.createElement('span');
+        sub.style.cssText = 'font-size:10px;color:#6b6b7b;margin-left:auto;text-align:right;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        sub.textContent = describeOwner(s.owner);
+        chip.appendChild(sub);
+
         chip.addEventListener('click', () => {
           document.getElementById('dictModal').classList.add('hidden');
           setTimeout(() => {
@@ -2167,7 +2161,6 @@
   document.getElementById('dictClose').addEventListener('click', () => document.getElementById('dictModal').classList.add('hidden'));
 
   const pickerModal = document.getElementById('pickerModal');
-
   function openPicker(parentId, onDone) {
     pickerParentId = parentId;
     pickerOnDone = onDone;
@@ -2176,13 +2169,11 @@
     renderPickerList();
     pickerModal.classList.remove('hidden');
   }
-
   function renderPickerList() {
     const list = document.getElementById('pickerList');
     list.innerHTML = '';
     const parent = findSymbolById(pickerParentId);
     if (!parent) return;
-
     const excl = new Set([pickerParentId]);
     const q = [pickerParentId];
     while (q.length) {
@@ -2192,7 +2183,6 @@
     }
     const current = new Set(parent.children || []);
     const all = findAllSymbols().filter(s => !excl.has(s.id) && !current.has(s.id));
-
     if (!all.length) {
       const n = document.createElement('div');
       n.style.cssText = 'color:#6b6b7b;font-size:13px;padding:20px 0;text-align:center;line-height:1.5;';
@@ -2213,7 +2203,7 @@
         if (isGroup(s)) {
           const sub = document.createElement('div');
           sub.className = 'picker-sub';
-          sub.textContent = 'группа · ' + s.children.length + ' · ' + describeOwner(s.owner);
+          sub.textContent = 'группа · всего внутри: ' + countDescendants(s.id) + ' · ' + describeOwner(s.owner);
           info.appendChild(sub);
         } else if (s.owner) {
           const sub = document.createElement('div');
@@ -2223,7 +2213,6 @@
         }
         row.appendChild(info);
         row.addEventListener('click', () => {
-          // переезд символа в родителя
           moveSymbol(s.id, { type: 'symbol', id: parent.id });
           pickerModal.classList.add('hidden');
           if (typeof pickerOnDone === 'function') pickerOnDone();
@@ -2233,13 +2222,11 @@
       });
     }
   }
-
   document.getElementById('pickerCancel').addEventListener('click', () => {
     pickerModal.classList.add('hidden');
     if (typeof pickerOnDone === 'function') pickerOnDone();
     else render();
   });
-
   document.getElementById('pickerCreateBtn').addEventListener('click', () => {
     const char = document.getElementById('pickerChar').value.trim();
     const word = document.getElementById('pickerWord').value.trim();
@@ -2266,9 +2253,6 @@
     if (e.key === 'Enter') { e.preventDefault(); document.getElementById('pickerCreateBtn').click(); }
   });
 
-  /* =========================================================
-     ЭКСПОРТ — единый граф
-     ========================================================= */
   function buildSymbolTree(symbolId) {
     const s = findSymbolById(symbolId);
     if (!s) return null;
@@ -2282,6 +2266,7 @@
       props: s.props || {},
       pos: s.pos || { x: 0, y: 0, z: 0 },
       weight: symbolWeight(s),
+      totalDescendants: countDescendants(s.id),
       children: []
     };
     if (isGroup(s)) {
@@ -2292,46 +2277,34 @@
     }
     return node;
   }
-
   function buildExportJson() {
-    // Граф: убеждения как корневые контейнеры, внутри — деревья символов.
-    // Плюс плоский список всех символов с их owner и pos — для 3D.
     return {
-      version: '2.0',
+      version: '2.1',
       app: 'Твои убеждения',
       exported: nowIso(),
       schema: {
-        belief: 'убеждение — контейнер символов, координата на плоскости (x,y) + вес',
-        symbol: 'символ — уникален; owner указывает единственного родителя (belief или другой symbol); pos = координаты относительно центра в 3D',
+        belief: 'убеждение — контейнер символов',
+        symbol: 'символ — уникален; owner указывает единственного родителя; pos = координаты относительно центра; totalDescendants = общее число символов внутри',
         rules: [
           'Символ существует в одном экземпляре',
           'Переезд = смена owner',
           'Пирамида: belief → symbol → symbol → …',
-          'X, Y, Z — координаты символа относительно центра родителя'
+          'totalDescendants — для визуализации вложенности'
         ]
       },
       beliefs: Store.get().beliefs.map(b => ({
-        id: b.id,
-        text: b.text || '',
-        weight: b.weight || 1,
-        position: { x: b.x || 0.5, y: b.y || 0.5 },
-        created: b.created,
-        items: resolveTokens(b.text)
-          .filter(t => t.type === 'existing')
-          .map(t => buildSymbolTree(t.symbolId))
-          .filter(Boolean)
+        id: b.id, text: b.text || '', weight: b.weight || 1,
+        position: { x: b.x || 0.5, y: b.y || 0.5 }, created: b.created,
+        items: resolveTokens(b.text).filter(t => t.type === 'existing').map(t => buildSymbolTree(t.symbolId)).filter(Boolean)
       })),
       symbols: Store.get().symbols.map(s => ({
-        id: s.id,
-        char: s.char || '',
-        word: s.word || '',
-        description: s.description || '',
-        tags: s.tags || [],
-        props: s.props || {},
+        id: s.id, char: s.char || '', word: s.word || '',
+        description: s.description || '', tags: s.tags || [], props: s.props || {},
         pos: s.pos || { x: 0, y: 0, z: 0 },
         owner: s.owner || null,
         children: (s.children || []).slice(),
-        weight: symbolWeight(s)
+        weight: symbolWeight(s),
+        totalDescendants: countDescendants(s.id)
       }))
     };
   }
@@ -2434,6 +2407,101 @@
   }
   window.addEventListener('resize', onResize);
   window.addEventListener('orientationchange', () => setTimeout(onResize, 300));
+
+  /* === вспомогательные функции (символы, owner) === */
+  function addSymbol(char, word, ownerRef) {
+    char = String(char || '').trim();
+    word = String(word || '').trim();
+    if (!char && !word) return null;
+    if (char && !isEmojiOnly(char)) return null;
+    if (char) {
+      const byChar = findSymbolByChar(char);
+      if (byChar) { if (word && !byChar.word) byChar.word = word; Store.save(); return byChar; }
+    }
+    if (word) {
+      const byWord = findSymbolByWord(word);
+      if (byWord) { if (char) byWord.char = char; Store.save(); return byWord; }
+    }
+    const s = {
+      id: uid(), char, word, description:'', tags:[], props:{},
+      pos: { x: 0, y: 0, z: 0 },
+      children: [],
+      owner: ownerRef || null,
+      created: nowIso()
+    };
+    Store.get().symbols.push(s);
+    Store.save();
+    return s;
+  }
+  function deleteSymbol(id) {
+    const sym = findSymbolById(id);
+    if (sym && sym.owner) removeFromOwner(id, sym.owner);
+    const stack = [id];
+    const toDelete = new Set();
+    while (stack.length) {
+      const cur = stack.pop();
+      const s = findSymbolById(cur);
+      if (!s) continue;
+      toDelete.add(cur);
+      (s.children || []).forEach(cid => stack.push(cid));
+    }
+    Store.get().symbols.forEach(s => {
+      s.children = (s.children || []).filter(cid => !toDelete.has(cid));
+    });
+    Store.get().symbols = Store.get().symbols.filter(s => !toDelete.has(s.id));
+    Store.save();
+  }
+  function removeFromOwner(symbolId, ownerRef) {
+    if (!ownerRef) return;
+    if (ownerRef.type === 'belief') {
+      const b = getBelief(ownerRef.id);
+      if (b) {
+        const sym = findSymbolById(symbolId);
+        if (sym && sym.char) {
+          const idx = b.text.indexOf(sym.char);
+          if (idx !== -1) {
+            b.text = (b.text.slice(0, idx) + b.text.slice(idx + sym.char.length)).trim().replace(/\s+/g, ' ');
+          }
+        }
+      }
+    } else if (ownerRef.type === 'symbol') {
+      const parent = findSymbolById(ownerRef.id);
+      if (parent) parent.children = (parent.children || []).filter(cid => cid !== symbolId);
+    }
+  }
+  function addToOwner(symbolId, ownerRef) {
+    if (!ownerRef) return;
+    if (ownerRef.type === 'symbol') {
+      const parent = findSymbolById(ownerRef.id);
+      if (parent) {
+        if (!Array.isArray(parent.children)) parent.children = [];
+        if (parent.children.indexOf(symbolId) === -1) parent.children.push(symbolId);
+      }
+    }
+  }
+  function moveSymbol(symbolId, newOwnerRef) {
+    const sym = findSymbolById(symbolId);
+    if (!sym) return false;
+    const oldOwner = sym.owner;
+    if (oldOwner && oldOwner.type === newOwnerRef.type && oldOwner.id === newOwnerRef.id) return false;
+    if (oldOwner) removeFromOwner(symbolId, oldOwner);
+    sym.owner = newOwnerRef;
+    addToOwner(symbolId, newOwnerRef);
+    Store.save();
+    return true;
+  }
+  function describeOwner(ownerRef) {
+    if (!ownerRef) return 'в корне';
+    if (ownerRef.type === 'belief') {
+      const b = getBelief(ownerRef.id);
+      return 'в убеждении «' + (b ? (b.text ? shortText(b.text, 20) : 'без названия') : 'удалено') + '»';
+    }
+    if (ownerRef.type === 'symbol') {
+      const s = findSymbolById(ownerRef.id);
+      return 'внутри ' + (s ? (s.char || s.word || '·') : '—');
+    }
+    return 'неизвестно';
+  }
 
   Store.load();
   if (!Store.isOk()) toast('Хранилище недоступно');
