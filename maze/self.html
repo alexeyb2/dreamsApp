@@ -54,7 +54,6 @@
     color: inherit;
   }
 
-  /* ==== layout ==== */
   #app {
     position: fixed;
     inset: 0;
@@ -123,7 +122,6 @@
     padding: 12px var(--pad) calc(var(--safe-bottom) + 16px);
   }
 
-  /* ==== screen 1 ==== */
   .who {
     flex: 1;
     display: flex;
@@ -158,7 +156,6 @@
 
   .big-emoji-btn:active { transform: scale(.94); border-color: var(--accent); }
 
-  /* ==== forms & preview ==== */
   .field-label {
     font-size: 12px;
     color: var(--muted);
@@ -229,7 +226,6 @@
 
   .chip:active { background: rgba(255,180,111,.22); }
 
-  /* ==== buttons ==== */
   .btn {
     display: flex;
     align-items: center;
@@ -249,7 +245,6 @@
   .btn-row { display: flex; gap: 10px; }
   .btn-row .btn { flex: 1; }
 
-  /* ==== hub ==== */
   .sphere-wrap {
     display: flex;
     justify-content: center;
@@ -267,6 +262,7 @@
     background: radial-gradient(circle at 35% 30%, #2b3a5c, #12131c 70%);
     border: 1px solid rgba(111,168,255,.3);
     animation: pulse 3s infinite;
+    cursor: pointer;
   }
 
   @keyframes pulse {
@@ -282,6 +278,7 @@
   }
 
   .tile {
+    position: relative;
     aspect-ratio: 1 / 1;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -291,24 +288,43 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 8px;
+    padding: 10px 8px 16px;
     text-align: center;
     overflow: hidden;
-    transition: transform .12s, border-color .15s;
+    transition: transform .12s, border-color .15s, background .15s;
   }
 
-  .tile:active { transform: scale(.95); border-color: var(--accent); }
+  .tile:active { transform: scale(.95); border-color: var(--accent); background: var(--surface-2); }
+
+  /* маленькая подсказка «нажми» — уголок */
+  .tile::after {
+    content: '';
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid var(--muted);
+    border-bottom: 2px solid var(--muted);
+    transform: rotate(-45deg);
+    opacity: .45;
+  }
+
   .tile-emoji { font-size: 30px; line-height: 1; }
   .tile-word {
     font-size: 12px;
     line-height: 1.2;
     opacity: .9;
     word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .tile-add { font-size: 28px; color: var(--muted); }
+  .tile-add::after { content: none; }
   .tile-draft .tile-emoji { opacity: .4; }
 
-  /* ==== belief card ==== */
   .card-emoji { font-size: 72px; text-align: center; padding: 4px 0 2px; }
 
   .card-word {
@@ -363,7 +379,6 @@
 
   .empty-note { color: var(--muted); font-size: 14px; }
 
-  /* ==== pick list ==== */
   .pick-list { display: flex; flex-direction: column; gap: 8px; }
 
   .pick-row {
@@ -441,7 +456,6 @@
     justify-content: center;
   }
 
-  /* ==== timeline ==== */
   .tl { display: flex; flex-direction: column; }
 
   .tl-item {
@@ -485,7 +499,6 @@
     word-break: break-word;
   }
 
-  /* ==== sheet ==== */
   .backdrop {
     position: fixed;
     inset: 0;
@@ -531,7 +544,6 @@
 
   .sheet-title { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
 
-  /* ==== emoji picker ==== */
   .emoji-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -551,7 +563,6 @@
   .emoji-cell:active { background: rgba(255,255,255,.1); }
   .emoji-cell.sel { background: rgba(111,168,255,.24); }
 
-  /* ==== form in sheet ==== */
   .form-row { margin-bottom: 14px; }
 
   .form-label {
@@ -588,7 +599,6 @@
     justify-content: center;
   }
 
-  /* ==== toast ==== */
   .toast {
     position: fixed;
     left: 50%;
@@ -653,7 +663,7 @@
     '🙁','😮','😲','😳','🥺','😢','😭','😱','😖','😞','😩','😤','😡','🤯','😈','🤖','💀','🤡',
     '👻','👽',
     '👦','👧','🧑','👨','👩','👴','👵','👶','🧒','🧔','👱','👳','👲','🧕','👮','🕵️','💂','👷',
-    '🤴','👸','👰','🤵','🦸','🦹','🧙','🧚','🧛','🧜','🧝','🧞','🧟',
+    '🤴','👸','👰','🤵','🦸','🦹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','💃','🕺',
     '👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✋','🤚','🖐️','🖖','👋',
     '🤝','🙏','✊','👊','🤛','🤜','👏','🙌','👐','🤲','💪','🦵','🦶','🧠','👀','👁️','👄','🦷',
     '🦴',
@@ -788,6 +798,15 @@
     return null;
   }
 
+  function findBeliefByKey(key) {
+    const list = Store.get().beliefs;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].status === 'archived') continue;
+      if (normalize(list[i].word) === key) return list[i];
+    }
+    return null;
+  }
+
   function findSelf() {
     const list = Store.get().beliefs;
     for (let i = 0; i < list.length; i++) {
@@ -852,19 +871,17 @@
     Store.save();
   }
 
+  /**
+   * Создаёт убеждение. Если название состоит из нескольких слов —
+   * автоматически раскладывает фразу на дочерние убеждения.
+   * Пример: «успешный мужчина» → дети «успешный» и «мужчина».
+   */
   function createBelief(opts) {
     const word = String(opts.word || '').trim();
     const key = normalize(word);
     if (!key) return { belief: null, created: false };
 
-    const beliefs = Store.get().beliefs;
-    let existing = null;
-    for (let i = 0; i < beliefs.length; i++) {
-      if (beliefs[i].status !== 'archived' && normalize(beliefs[i].word) === key) {
-        existing = beliefs[i];
-        break;
-      }
-    }
+    const existing = findBeliefByKey(key);
     if (existing) {
       if (opts.parentId) linkBeliefs(opts.parentId, existing.id);
       return { belief: existing, created: false };
@@ -881,7 +898,7 @@
       status: emoji ? 'active' : 'draft',
       created: nowIso()
     };
-    beliefs.push(belief);
+    Store.get().beliefs.push(belief);
     addVersion(belief.id, belief.definition, 'создание');
     addEvent({
       type: 'created',
@@ -890,8 +907,97 @@
       emoji: belief.emoji
     });
     if (opts.parentId) linkBeliefs(opts.parentId, belief.id);
+
+    // Если фраза — раскладываем на составляющие
+    if (word.indexOf(' ') !== -1 || word.indexOf('\t') !== -1) {
+      decomposePhrase(belief.id);
+    }
+
     Store.save();
     return { belief: belief, created: true };
+  }
+
+  /**
+   * Раскладывает фразу на отдельные слова.
+   * Каждое слово: находим существующее убеждение или создаём draft,
+   * затем связываем как ребёнка.
+   */
+  function decomposePhrase(beliefId) {
+    const belief = getBelief(beliefId);
+    if (!belief) return;
+
+    const parts = belief.word.split(/\s+/).filter(Boolean);
+    if (parts.length < 2) return;
+
+    const seen = new Set();
+    parts.forEach(function (part) {
+      const key = normalize(part);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+
+      const existing = findBeliefByKey(key);
+      if (existing) {
+        if (existing.id !== belief.id) linkBeliefs(belief.id, existing.id);
+        return;
+      }
+
+      const child = {
+        id: uid(),
+        emoji: null,
+        word: part,
+        definition: '',
+        children: [],
+        parents: [],
+        status: 'draft',
+        created: nowIso()
+      };
+      Store.get().beliefs.push(child);
+      addVersion(child.id, '', 'создание');
+      addEvent({
+        type: 'created',
+        belief_id: child.id,
+        word: child.word,
+        emoji: null
+      });
+      linkBeliefs(belief.id, child.id);
+    });
+  }
+
+  /**
+   * При правке определения: все новые (не стоп) слова
+   * становятся детьми этого убеждения.
+   */
+  function ensureDefinitionChildren(beliefId) {
+    const belief = getBelief(beliefId);
+    if (!belief || !belief.definition) return;
+
+    const tokens = tokenize(belief.definition, buildIndex());
+    const newWords = collectNewWords(tokens);
+    if (!newWords.length) return;
+
+    newWords.forEach(function (w) {
+      const key = w.normalized;
+      if (!key) return;
+      const existing = findBeliefByKey(key);
+      if (existing) {
+        if (existing.id !== belief.id) linkBeliefs(belief.id, existing.id);
+        return;
+      }
+      const child = {
+        id: uid(),
+        emoji: null,
+        word: w.text,
+        definition: '',
+        children: [],
+        parents: [],
+        status: 'draft',
+        created: nowIso()
+      };
+      Store.get().beliefs.push(child);
+      addVersion(child.id, '', 'создание');
+      addEvent({ type: 'created', belief_id: child.id, word: child.word, emoji: null });
+      linkBeliefs(belief.id, child.id);
+    });
   }
 
   function updateDefinition(beliefId, definition, reason) {
@@ -1176,7 +1282,6 @@
     const form = el('div');
     form.appendChild(el('div', 'sheet-title', 'Новое убеждение'));
 
-    // смайлик
     const emojiRow = el('div', 'form-row');
     emojiRow.appendChild(el('label', 'form-label', 'Смайлик'));
     const emojiBtn = el('button', 'emoji-select', emoji || '＋');
@@ -1189,7 +1294,6 @@
     emojiRow.appendChild(emojiBtn);
     form.appendChild(emojiRow);
 
-    // название
     const wordRow = el('div', 'form-row');
     wordRow.appendChild(el('label', 'form-label', 'Название'));
     const wordInput = document.createElement('input');
@@ -1200,7 +1304,6 @@
     wordRow.appendChild(wordInput);
     form.appendChild(wordRow);
 
-    // определение
     const defRow = el('div', 'form-row');
     defRow.appendChild(el('label', 'form-label', 'Определение'));
     const defInput = document.createElement('textarea');
@@ -1211,7 +1314,6 @@
     defRow.appendChild(defInput);
     form.appendChild(defRow);
 
-    // кнопки
     const btnRow = el('div', 'btn-row');
     const cancelBtn = el('button', 'btn btn-ghost', 'Отмена');
     const addBtn = el('button', 'btn btn-primary', 'Добавить');
@@ -1237,6 +1339,10 @@
         definition: defInput.value,
         parentId: parentId
       });
+      // Слова из определения тоже связываем
+      if (result.belief && defInput.value.trim()) {
+        ensureDefinitionChildren(result.belief.id);
+      }
       sheet.close();
       if (!result.created) toast('Уже есть в мире');
       render();
@@ -1512,6 +1618,7 @@
       if (!item || !item.checked) return;
       const word = String(item.name || '').trim();
       if (!word) return;
+      // createBelief сам разложит фразу на составляющие
       createBelief({ emoji: item.emoji, word: word, definition: '', parentId: selfId });
     });
     pickState = null;
@@ -1574,7 +1681,7 @@
   }
 
   function buildAddTile(parentId) {
-    const tile = el('button', 'tile');
+    const tile = el('button', 'tile tile-add');
     tile.appendChild(el('div', 'tile-add', '＋'));
     tile.addEventListener('click', function () {
       openCreateModal({ parentId: parentId });
@@ -1780,6 +1887,10 @@
     }
 
     Store.save();
+
+    // Авто-связывание новых слов из определения
+    ensureDefinitionChildren(beliefId);
+
     editId = null;
     back();
   }
