@@ -34,7 +34,8 @@
   .chip:active { transform:scale(.96); }
 
   .chip .chip-emoji { font-size:22px; line-height:1; }
-  .chip .chip-word { font-size:12px; color:#8890a0; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chip .chip-word { font-size:12px; color:#8890a0; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:none; }
+  body.words-mode .chip .chip-word { display:inline-block; }
   .chip.group { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.4); }
   .chip.group.expanded { background:rgba(111,168,255,.24); border-color:rgba(111,168,255,.6); }
   .chip.group .chip-count { font-size:11px; font-weight:800; background:#6fa8ff; color:#06111f; padding:1px 6px; border-radius:8px; min-width:20px; text-align:center; }
@@ -49,6 +50,8 @@
 
   .drag-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:.9; transform:scale(1.06); background:#1e1e2a; border:2px solid #6fa8ff; border-radius:12px; padding:6px 12px; display:flex; align-items:center; gap:8px; box-shadow:0 16px 40px rgba(0,0,0,.7); font-size:14px; color:#e8e8f0; }
   .drag-ghost .g-emoji { font-size:22px; }
+  .drag-ghost .g-word { display:none; }
+  body.words-mode .drag-ghost .g-word { display:block; }
 
   .empty-row { color:#4a4a58; font-size:13px; padding:6px 0; font-style:italic; }
 
@@ -56,7 +59,9 @@
   .bottom-btn { flex:1; height:48px; border-radius:14px; border:1px solid #262633; background:#14141c; font-size:14px; font-weight:600; color:#e8e8f0; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:5px; font-family:inherit; }
   .bottom-btn:active { transform:scale(.97); background:#1e1e2a; }
   .bottom-btn.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .bottom-btn.on { background:#6fa8ff; color:#06111f; border-color:transparent; }
   .bottom-btn.warn { background:rgba(255,90,90,.15); color:#ff8f8f; border-color:rgba(255,90,90,.35); }
+  .bottom-btn.hidden { display:none; }
 
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:60px 20px 20px; overflow-y:auto; }
   .modal { background:#1e1e2a; border:1px solid #262633; border-radius:22px; padding:20px; width:100%; max-width:400px; display:flex; flex-direction:column; gap:12px; margin-bottom:20px; }
@@ -79,7 +84,8 @@
   .preview-wrap .empty { color:#6b6b7b; font-size:13px; font-style:italic; }
   .preview-chip { display:inline-flex; align-items:center; gap:4px; padding:5px 9px; border-radius:10px; font-size:20px; cursor:pointer; touch-action:none; transition:.15s; position:relative; font-family:inherit; color:#e8e8f0; border:1px solid transparent; }
   .preview-chip.sym { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.28); color:#6fa8ff; }
-  .preview-chip.sym .pw { font-size:12px; color:#6fa8ff; opacity:.85; margin-left:2px; }
+  .preview-chip.sym .pw { font-size:12px; color:#6fa8ff; opacity:.85; margin-left:2px; display:none; }
+  body.words-mode .preview-chip.sym .pw { display:inline; }
   .preview-chip.sym.foreign { background:rgba(255,180,111,.12); border:1px dashed rgba(255,180,111,.6); color:#ffb46f; }
   .preview-chip.sym.foreign .pw { color:#ffb46f; }
   .preview-chip.sym .pc { font-size:10px; font-weight:800; background:#6fa8ff; color:#06111f; border-radius:6px; padding:1px 5px; margin-left:2px; }
@@ -120,6 +126,8 @@
   .mini-chip .mini-badge { font-size:10px; background:#6fa8ff; color:#06111f; padding:1px 6px; border-radius:6px; font-weight:700; }
   .mini-chip.badgroup { border-color:rgba(255,90,90,.5); color:#ff8f8f; }
   .mini-chip.badgroup .mini-badge { background:#ff5a5a; color:#fff; }
+  .mini-chip.add { border-style:dashed; color:#6b6b7b; padding:8px 14px; font-size:14px; }
+  .mini-chip.add:active { color:#6fa8ff; border-color:#6fa8ff; }
 
   .picker-list { display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow-y:auto; }
   .picker-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:#14141c; border:1px solid #262633; cursor:pointer; text-align:left; width:100%; transition:.15s; font-family:inherit; color:#e8e8f0; }
@@ -128,6 +136,8 @@
   .picker-name { flex:1; font-size:14px; opacity:.85; }
   .picker-name.empty { color:#6b6b7b; font-style:italic; }
   .picker-sub { font-size:11px; color:#6b6b7b; }
+  .picker-create { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:transparent; border:1px dashed #262633; cursor:pointer; width:100%; font-family:inherit; color:#6b6b7b; }
+  .picker-create:active { border-color:#6fa8ff; color:#6fa8ff; }
 
   .dict-tree { display:flex; flex-direction:column; gap:4px; max-height:60vh; overflow-y:auto; padding-right:4px; }
   .dict-node { }
@@ -140,11 +150,14 @@
   .dict-toggle.expanded { color:#6fa8ff; }
   .dict-emoji { font-size:22px; width:28px; text-align:center; flex:none; }
   .dict-emoji.warn { color:#ff8f8f; }
-  .dict-word { flex:1; font-size:14px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dict-word { flex:1; font-size:14px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:none; }
+  body.words-mode .dict-word { display:block; }
   .dict-word.empty { color:#6b6b7b; font-style:italic; }
+  .dict-word.always { display:block; color:#ff8f8f; font-style:italic; }
   .dict-badge { font-size:11px; background:#6fa8ff; color:#06111f; padding:2px 7px; border-radius:8px; font-weight:700; }
   .dict-badge.warn { background:#ff5a5a; color:#fff; }
-  .dict-owner { font-size:10px; color:#6b6b7b; max-width:40%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dict-owner { font-size:10px; color:#6b6b7b; max-width:40%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:none; }
+  body.words-mode .dict-owner { display:block; }
   .dict-children { margin-left:20px; padding-left:10px; border-left:1px solid rgba(111,168,255,.2); display:flex; flex-direction:column; gap:4px; margin-top:4px; }
 
   .empty-note { color:#4a4a58; font-size:14px; text-align:center; padding:40px 20px; line-height:1.7; white-space:pre-line; }
@@ -263,6 +276,7 @@
       <div class="field-row">
         <span class="field-label">Из чего состоит</span>
         <div class="children-chips" id="cardChildren"></div>
+        <button class="mini-chip add" id="cardAddChild">＋ Добавить символ внутрь</button>
       </div>
       <div class="err" id="cardErr"></div>
       <div class="modal-actions">
@@ -274,12 +288,24 @@
     </div>
   </div>
 
+  <!-- Выбор символа для добавления внутрь -->
+  <div id="childPickerModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Добавить символ внутрь</h3>
+      <div class="hint">Символ переедет внутрь текущего. Дети переезжают вместе с ним.</div>
+      <div class="picker-list" id="childPickerList"></div>
+      <div class="modal-actions">
+        <button id="childPickerCancel" class="ghost">Отмена</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Объединение -->
   <div id="mergeModal" class="modal-overlay hidden">
     <div class="modal">
       <h3>Объединить в группу</h3>
       <div style="text-align:center;padding:10px;font-size:32px;letter-spacing:6px;" id="mergePreview">🅰 + 🅱 → 🆕</div>
-      <div class="hint">У группы обязательно должен быть свой смайл-объединитель. Иначе группа будет выглядеть как пустой символ.</div>
+      <div class="hint">У группы обязательно должен быть свой смайл-объединитель.</div>
       <div class="field-row">
         <span class="field-label">Смайл группы (обязательно)</span>
         <input id="mergeChar" class="emoji-input" placeholder="🕺" autocomplete="off" spellcheck="false">
@@ -315,7 +341,7 @@
   <div id="dictModal" class="modal-overlay hidden">
     <div class="modal">
       <h3>📖 Словарь символов</h3>
-      <div class="hint" style="margin-bottom:8px;">Цифра = общее число символов внутри. Тап на ▸ раскрывает группу. Красный = группа без смайла.</div>
+      <div class="hint" style="margin-bottom:8px;">Цифра = общее число символов внутри. Тап на ▸ раскрывает группу.</div>
       <div class="dict-tree" id="dictList"></div>
       <div class="modal-actions">
         <button id="dictClose" class="ghost">Закрыть</button>
@@ -340,7 +366,6 @@
     </div>
   </div>
 
-  <!-- Подтверждение -->
   <div id="confirmModal" class="modal-overlay hidden">
     <div class="modal">
       <h3 id="confirmTitle">Удалить?</h3>
@@ -431,7 +456,7 @@
   const Store = (function () {
     let state = null;
     let ok = true;
-    function empty() { return { symbols: [], beliefs: [], expanded: { symbols: [], dict: [] } }; }
+    function empty() { return { symbols: [], beliefs: [], expanded: { symbols: [], dict: [] }, wordsMode: false }; }
     function read() { try { return localStorage.getItem(STORAGE_KEY); } catch (e) { ok = false; return null; } }
     function write(v) { try { localStorage.setItem(STORAGE_KEY, v); } catch (e) { ok = false; } }
     function load() {
@@ -445,7 +470,8 @@
           expanded: {
             symbols: Array.isArray(p.expanded && p.expanded.symbols) ? p.expanded.symbols : [],
             dict: Array.isArray(p.expanded && p.expanded.dict) ? p.expanded.dict : []
-          }
+          },
+          wordsMode: !!p.wordsMode
         };
       } catch (e) { state = empty(); }
       state.symbols.forEach(s => {
@@ -473,6 +499,9 @@
     const e = Store.get().expanded;
     (e.symbols || []).forEach(id => expandedSymbols.add(id));
     (e.dict || []).forEach(id => expandedDict.add(id));
+    if (Store.get().wordsMode) document.body.classList.add('words-mode');
+    const btn = document.getElementById('wordsBtn');
+    if (Store.get().wordsMode) btn.classList.add('on');
   }
   function persistExpanded() {
     Store.get().expanded = { symbols: Array.from(expandedSymbols), dict: Array.from(expandedDict) };
@@ -698,7 +727,7 @@
     if (!beliefs.length) {
       const e = document.createElement('div');
       e.className = 'empty-note';
-      e.textContent = 'Пока пусто.\nНажми «+ Убеждение», чтобы создать первое.\n\nВнутри рамки — смайлы и слова.\nГруппа рядом с числом — тап раскрывает её содержимое.\nДолгое нажатие — перетаскивание.';
+      e.textContent = 'Пока пусто.\nНажми «+ Убеждение», чтобы создать первое.\n\nВнутри рамки — смайлы.\nВключи «📝 Слова», чтобы видеть названия.\nДолгое нажатие на смайл — перетаскивание.';
       scrollEl.appendChild(e);
     } else {
       beliefs.forEach(b => scrollEl.appendChild(buildBeliefEl(b)));
@@ -819,7 +848,6 @@
 
   function attachChipHandlers(chip, sym, parentCtx, hasChildren) {
     let pressTimer = null;
-    let longPressed = false;
     let startX = 0, startY = 0;
     let pointerId = null;
     let ghost = null, dropTarget = null, dragMode = false;
@@ -832,7 +860,7 @@
       ghost = document.createElement('div');
       ghost.className = 'drag-ghost';
       const gE = document.createElement('div'); gE.className = 'g-emoji'; gE.textContent = sym.char || '◌';
-      const gW = document.createElement('div'); gW.textContent = sym.word || '';
+      const gW = document.createElement('div'); gW.className = 'g-word'; gW.textContent = sym.word || '';
       ghost.appendChild(gE); ghost.appendChild(gW);
       document.body.appendChild(ghost);
       chip.classList.add('dragging');
@@ -842,9 +870,8 @@
       if (e.button && e.button !== 0) return;
       pointerId = e.pointerId;
       startX = e.clientX; startY = e.clientY;
-      longPressed = false;
       dragMode = false;
-      pressTimer = setTimeout(() => { longPressed = true; startDrag(e); }, LONG_PRESS_MS);
+      pressTimer = setTimeout(() => { startDrag(e); }, LONG_PRESS_MS);
       document.addEventListener('pointermove', onMove);
       document.addEventListener('pointerup', onUp);
       document.addEventListener('pointercancel', onUp);
@@ -1125,7 +1152,6 @@
     return bestDist > 200 ? -1 : bestIdx;
   }
 
-  /* ==== ОБЪЕДИНЕНИЕ — теперь со обязательным смайлом ==== */
   const mergeModal = document.getElementById('mergeModal');
   let mergeCtx = null;
 
@@ -1199,7 +1225,6 @@
     const groupChar = charIn.value.trim();
     const groupWord = wordIn.value.trim();
 
-    // === СМАЙЛ ГРУППЫ ОБЯЗАТЕЛЕН ===
     if (!groupChar) {
       errEl.textContent = 'Нужен смайл группы';
       charIn.classList.add('error');
@@ -1217,7 +1242,6 @@
     const symB = ensureSymbolFromToken({ type: mergeCtx.bType }, mergeCtx.bSymbolId, mergeCtx.bChar, mergeCtx.bWord);
     if (!symA || !symB) { errEl.textContent = 'Не удалось'; return; }
 
-    // === проверяем смайл: занят или нет ===
     let group = findSymbolByChar(groupChar);
     if (group) {
       if (group.id === symA.id || group.id === symB.id) {
@@ -1226,11 +1250,6 @@
       }
       if (group.owner) {
         errEl.textContent = 'Этот смайл уже где-то живёт: ' + describeOwner(group.owner);
-        return;
-      }
-      // если уже группа — добавляем в неё
-      if (group.children.length && !isGroup(group)) {
-        errEl.textContent = 'Символ с таким смайлом не может быть группой';
         return;
       }
     } else {
@@ -1243,10 +1262,8 @@
     symA.owner = { type: 'symbol', id: group.id };
     symB.owner = { type: 'symbol', id: group.id };
 
-    // === раскрываем группу в дереве ===
     expandedSymbols.add(group.id);
     persistExpanded();
-
     Store.save();
 
     let text = draftText;
@@ -1395,8 +1412,17 @@
     if (!ch) { err.textContent = 'Нужен смайл'; chIn.classList.add('error'); setTimeout(() => chIn.classList.remove('error'), 400); return; }
     if (!isEmojiOnly(ch)) { err.textContent = 'Только смайлы'; chIn.classList.add('error'); setTimeout(() => chIn.classList.remove('error'), 400); return; }
     let sym = findSymbolByChar(ch);
-    if (sym) { if (wd && !sym.word) { sym.word = wd; Store.save(); } }
-    else { sym = addSymbol(ch, wd, beliefEditingId ? { type: 'belief', id: beliefEditingId } : null); }
+    const ownerRef = symCtx && symCtx.ownerRef ? symCtx.ownerRef : (beliefEditingId ? { type: 'belief', id: beliefEditingId } : null);
+    if (sym) {
+      if (wd && !sym.word) { sym.word = wd; }
+      // если указан ownerRef и символ чужой — переезд
+      if (ownerRef && (!sym.owner || sym.owner.type !== ownerRef.type || sym.owner.id !== ownerRef.id)) {
+        moveSymbol(sym.id, ownerRef);
+      }
+      Store.save();
+    } else {
+      sym = addSymbol(ch, wd, ownerRef);
+    }
     if (!sym) { err.textContent = 'Не удалось'; return; }
     const tokenText = symCtx && symCtx.tokenText;
     if (tokenText && sym.char && tokenText !== sym.char) {
@@ -1500,7 +1526,6 @@
     if (!sym) return;
     const char = cardDraft.char.trim();
     const isGrp = isGroup(sym);
-    // === Если это группа — смайл обязателен ===
     if (isGrp && !char) {
       document.getElementById('cardErr').textContent = 'У группы обязательно должен быть смайл';
       document.getElementById('cardChar').classList.add('error');
@@ -1541,6 +1566,94 @@
     const sym = findSymbolById(cardEditingId);
     if (!sym) return;
     openMoveDialog(sym.id, null);
+  });
+
+  /* ==== ДОБАВИТЬ СИМВОЛ ВНУТРЬ ==== */
+  document.getElementById('cardAddChild').addEventListener('click', () => {
+    if (!cardEditingId) return;
+    const parentId = cardEditingId;
+    cardModal.classList.add('hidden');
+    openChildPicker(parentId);
+  });
+
+  const childPickerModal = document.getElementById('childPickerModal');
+  function openChildPicker(parentId) {
+    const list = document.getElementById('childPickerList');
+    list.innerHTML = '';
+
+    // создать новый
+    const createRow = document.createElement('button');
+    createRow.className = 'picker-create';
+    const cEm = document.createElement('div'); cEm.className = 'picker-sym'; cEm.textContent = '＋';
+    createRow.appendChild(cEm);
+    const cTxt = document.createElement('div'); cTxt.style.flex = '1';
+    cTxt.textContent = 'Создать новый символ';
+    createRow.appendChild(cTxt);
+    createRow.addEventListener('click', () => {
+      childPickerModal.classList.add('hidden');
+      openSymModal({
+        ownerRef: { type: 'symbol', id: parentId },
+        onCreated: () => {
+          // перерисовка не нужна — рендер вызовется при закрытии
+          render();
+          setTimeout(() => openCardModal(parentId), 80);
+        }
+      });
+    });
+    list.appendChild(createRow);
+
+    // существующие
+    const parent = findSymbolById(parentId);
+    if (!parent) return;
+    const excl = new Set([parentId]);
+    const q = [parentId];
+    while (q.length) {
+      const cur = findSymbolById(q.shift());
+      if (!cur) continue;
+      (cur.children || []).forEach(cid => { if (!excl.has(cid)) { excl.add(cid); q.push(cid); } });
+    }
+    const current = new Set(parent.children || []);
+    const all = findAllSymbols().filter(s => !excl.has(s.id) && !current.has(s.id));
+
+    all.forEach(s => {
+      const row = document.createElement('button');
+      row.className = 'picker-row';
+      const em = document.createElement('div'); em.className = 'picker-sym'; em.textContent = s.char || '◌';
+      row.appendChild(em);
+      const info = document.createElement('div'); info.style.flex = '1';
+      const n = document.createElement('div'); n.className = 'picker-name' + (s.word ? '' : ' empty');
+      n.textContent = s.word || '—';
+      info.appendChild(n);
+      const sub = document.createElement('div'); sub.className = 'picker-sub';
+      sub.textContent = describeOwner(s.owner) + (isGroup(s) ? ' · внутри: ' + countDescendants(s.id) : '');
+      info.appendChild(sub);
+      row.appendChild(info);
+      row.addEventListener('click', () => {
+        if (!parent) return;
+        if (!Array.isArray(parent.children)) parent.children = [];
+        if (parent.children.indexOf(s.id) === -1) parent.children.push(s.id);
+        s.owner = { type: 'symbol', id: parent.id };
+        Store.save();
+        childPickerModal.classList.add('hidden');
+        render();
+        setTimeout(() => openCardModal(parentId), 80);
+        toast('Добавлено внутрь');
+      });
+      list.appendChild(row);
+    });
+
+    if (!all.length && !parent) {
+      const n = document.createElement('div');
+      n.style.cssText = 'color:#6b6b7b;font-size:13px;padding:20px 0;text-align:center;';
+      n.textContent = 'Пока нет других символов.';
+      list.appendChild(n);
+    }
+
+    childPickerModal.classList.remove('hidden');
+  }
+  document.getElementById('childPickerCancel').addEventListener('click', () => {
+    childPickerModal.classList.add('hidden');
+    if (cardEditingId) setTimeout(() => openCardModal(cardEditingId), 60);
   });
 
   /* =========================================================
@@ -1673,10 +1786,18 @@
     em.textContent = badGrp ? '⚠' : (sym.char || '◌');
     row.appendChild(em);
 
-    const w = document.createElement('div');
-    w.className = 'dict-word' + (sym.word ? '' : ' empty');
-    w.textContent = badGrp ? 'группа без смайла — нажми' : (sym.word || '—');
-    row.appendChild(w);
+    if (badGrp) {
+      // всегда показываем предупреждение
+      const w = document.createElement('div');
+      w.className = 'dict-word always';
+      w.textContent = 'группа без смайла — нажми';
+      row.appendChild(w);
+    } else {
+      const w = document.createElement('div');
+      w.className = 'dict-word' + (sym.word ? '' : ' empty');
+      w.textContent = sym.word || '—';
+      row.appendChild(w);
+    }
 
     if (hasChildren) {
       const b = document.createElement('span');
@@ -1792,7 +1913,7 @@
   }
   function buildExportJson() {
     return {
-      version: '3.2', app: 'Твои убеждения', exported: nowIso(),
+      version: '3.3', app: 'Твои убеждения', exported: nowIso(),
       schema: {
         rules: ['Символ один в графе', 'Переезд = смена owner', 'У группы обязательно есть смайл-объединитель']
       },
@@ -1876,13 +1997,11 @@
     openBeliefModal(b.id);
   });
 
-  let wordsMode = false;
   document.getElementById('wordsBtn').addEventListener('click', () => {
-    wordsMode = !wordsMode;
-    document.body.classList.toggle('words-mode', wordsMode);
-    const b = document.getElementById('wordsBtn');
-    if (wordsMode) { b.style.background = '#6fa8ff'; b.style.color = '#06111f'; }
-    else { b.style.background = ''; b.style.color = ''; }
+    const on = document.body.classList.toggle('words-mode');
+    document.getElementById('wordsBtn').classList.toggle('on', on);
+    Store.get().wordsMode = on;
+    Store.save();
   });
 
   Store.load();
