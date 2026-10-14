@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>👁:Убеждения</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
+  #app { display:flex; flex-direction:column; height:100dvh; width:100%; max-width:600px; margin:0 auto; position:relative; overflow:hidden; }
+
+  .top-bar { display:flex; align-items:center; gap:8px; padding:12px 14px; background:#14141c; border-bottom:1px solid #262633; flex-shrink:0; z-index:20; }
+  .top-title { flex:1; font-size:18px; font-weight:700; }
+  .top-title .colon { color:#6fa8ff; }
+  .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; text-decoration:none; }
+  .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
+
+  .field { flex:1; position:relative; overflow:hidden;
+    background:
+      radial-gradient(ellipse at center, rgba(111,168,255,.10), transparent 60%),
+      repeating-linear-gradient(0deg, transparent 0 49px, rgba(111,168,255,.03) 49px 50px),
+      repeating-linear-gradient(90deg, transparent 0 49px, rgba(111,168,255,.03) 49px 50px);
+  }
+
+  .center-you { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:56px; height:56px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #2b3a5c, #12131c 75%); border:2px solid #6fa8ff; box-shadow: 0 0 0 6px rgba(111,168,255,.15), 0 0 40px rgba(111,168,255,.35); display:flex; align-items:center; justify-content:center; font-size:26px; pointer-events:none; z-index:100; animation: pulseCenter 3s infinite; }
+  @keyframes pulseCenter {
+    0% { box-shadow: 0 0 0 6px rgba(111,168,255,.15), 0 0 40px rgba(111,168,255,.35); }
+    50% { box-shadow: 0 0 0 12px rgba(111,168,255,.05), 0 0 60px rgba(111,168,255,.55); }
+    100% { box-shadow: 0 0 0 6px rgba(111,168,255,.15), 0 0 40px rgba(111,168,255,.35); }
+  }
+  .center-you-label { position:absolute; left:50%; top:calc(50% + 42px); transform:translateX(-50%); font-size:10px; color:#6fa8ff; font-weight:700; letter-spacing:.15em; text-transform:uppercase; pointer-events:none; z-index:100; }
+
+  /* убеждение-треугольник */
+  .belief { position:absolute; display:flex; align-items:center; justify-content:center; cursor:pointer; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); animation: beliefIn .4s cubic-bezier(.22,1,.36,1) both; will-change: left, top, width, height, opacity, transform; transition: filter .2s ease; }
+  @keyframes beliefIn { from { opacity:0; transform: scale(.5); } to { opacity: var(--target-opacity, 1); } }
+  .belief:active { filter: brightness(1.3) !important; }
+
+  .belief-outline { position:absolute; inset:0; background: linear-gradient(180deg, #6fa8ff 0%, #3d6ba8 100%); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); pointer-events:none; z-index:0; }
+  .belief-inner { position:absolute; inset:3px; background: linear-gradient(180deg, #1e2740 0%, #12131c 100%); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); pointer-events:none; z-index:1; }
+  .belief.empty .belief-outline { background: linear-gradient(180deg, #ffb46f 0%, #a86a2a 100%); }
+  .belief.empty .belief-inner { background: linear-gradient(180deg, #1f1a10 0%, #0e0a05 100%); }
+
+  .belief-content { position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; padding-top:30%; padding-left:12%; padding-right:12%; padding-bottom:8%; pointer-events:none; text-align:center; gap:4%; }
+  .belief-emoji { font-size: var(--be, 40px); line-height:1; text-shadow: 0 4px 12px rgba(0,0,0,.8); }
+  .belief-word { font-size: var(--bw, 13px); font-weight: 700; color: #e8e8f0; line-height:1.15; word-break: break-word; letter-spacing:.02em; text-shadow: 0 2px 6px rgba(0,0,0,.9); max-width:100%; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .belief-word.empty { color:#6b6b7b; font-style:italic; font-weight:500; font-size:10px; }
+  .belief-count { position:absolute; bottom: 10%; left: 50%; transform: translateX(-50%); font-size:9px; font-weight:800; padding:2px 7px; border-radius:999px; background:rgba(111,168,255,.28); color:#6fa8ff; border:1px solid rgba(111,168,255,.55); z-index:5; pointer-events:none; letter-spacing:.04em; }
+  .belief-z { position:absolute; bottom:10%; right:8%; font-size:9px; font-weight:700; padding:2px 6px; border-radius:999px; background:rgba(111,168,255,.20); color:#6fa8ff; border:1px solid rgba(111,168,255,.35); pointer-events:none; z-index:5; }
+
+  .field-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; color:#6b6b7b; font-size:14px; line-height:1.7; white-space:pre-line; padding:0 40px; pointer-events:none; }
+
+  /* overlay */
+  .overlay { position:fixed; inset:0; background: rgba(10,10,15,.85); backdrop-filter:blur(10px); z-index:200; display:flex; align-items:flex-end; justify-content:center; animation: overlayIn .25s ease both; }
+  @keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
+  .overlay.hidden { display:none !important; }
+
+  .sheet { width:100%; max-width:600px; background:#1e1e2a; border-radius: 24px 24px 0 0; padding: 8px 16px calc(env(safe-area-inset-bottom, 0px) + 20px); max-height:85vh; display:flex; flex-direction:column; animation: sheetIn .28s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes sheetIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .sheet-handle { width:40px; height:4px; border-radius:2px; background:#35354a; margin: 6px auto 14px; flex-shrink:0; }
+  .sheet-scroll { overflow-y:auto; min-height:0; }
+
+  .sheet-hero { text-align:center; padding: 8px 0 16px; }
+  .sheet-emoji { font-size:64px; line-height:1; filter: drop-shadow(0 6px 20px rgba(111,168,255,.35)); display:inline-block; }
+  .sheet-word { font-size: 22px; font-weight:700; color:#e8e8f0; margin-top: 10px; word-break:break-word; }
+  .sheet-word.empty { color:#6b6b7b; font-style:italic; font-weight:500; }
+  .sheet-meta { font-size:11px; color:#6b6b7b; letter-spacing:.06em; margin-top:6px; display:flex; justify-content:center; gap:12px; }
+  .sheet-meta b { color:#ffb46f; font-weight:700; }
+  .sheet-meta i { color:#6fa8ff; font-style:normal; font-weight:700; }
+
+  .sheet-section-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.08em; margin: 10px 0 10px; display:flex; justify-content:space-between; }
+  .sheet-section-label .meta { text-transform:none; letter-spacing:0; opacity:.7; }
+
+  .symbols-grid { display:flex; flex-wrap:wrap; gap:8px; padding:12px; background:#0f0f15; border-radius:14px; min-height: 70px; }
+  .symbols-grid.empty::before { content: 'Внутри пока пусто'; color:#3a3a48; font-size:13px; font-style:italic; width:100%; text-align:center; padding: 14px 0; }
+
+  .sym-chip { display:inline-flex; flex-direction:column; align-items:center; padding:10px 12px; min-width: 60px; max-width: 100px; background:rgba(111,168,255,.12); border:1px solid rgba(111,168,255,.35); border-radius:14px; cursor:pointer; transition:.15s; font-family:inherit; color:#e8e8f0; text-align:center; position:relative; }
+  .sym-chip:active { background:rgba(111,168,255,.25); transform:scale(.96); }
+  .sym-chip.grp { background:rgba(111,168,255,.22); border-color:rgba(111,168,255,.55); }
+  .sym-chip-char { font-size:32px; line-height:1; position:relative; }
+  .sym-chip-char .badge { position:absolute; top:-8px; right:-14px; min-width:18px; height:18px; padding:0 5px; background:#6fa8ff; color:#06111f; font-size:10px; font-weight:800; border-radius:9px; display:flex; align-items:center; justify-content:center; border:2px solid #0f0f15; }
+  .sym-chip-word { font-size:10px; color:#8890a0; margin-top:6px; word-break:break-word; line-height:1.2; max-width:100%; }
+
+  .symbol-card { text-align:center; padding: 20px 0 12px; }
+  .symbol-card-emoji { font-size:84px; line-height:1; letter-spacing:6px; display:inline-block; }
+  .symbol-card-word { font-size:18px; color:#e8e8f0; margin-top: 10px; }
+  .symbol-card-word.empty { color:#6b6b7b; font-style:italic; }
+  .symbol-card-sub { font-size:11px; color:#6b6b7b; margin-top:6px; }
+
+  .close-sheet { margin-top: 12px; height: 48px; border-radius: 14px; border: 1px solid #262633; background:#14141c; color:#e8e8f0; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; width:100%; }
+  .close-sheet:active { transform:scale(.98); }
+
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top-bar">
+    <div class="top-title">Твои убеждения<span class="colon">:</span></div>
+    <a class="icon-btn" id="settingsBtn" title="Настройка" href="settings">⚙</a>
+  </header>
+
+  <div class="field" id="field"></div>
+</div>
+
+<div class="overlay hidden" id="overlay">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-scroll" id="sheetContent"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'ubezhdeniya_v1';
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  const Store = {
+    state: { symbols: [], beliefs: [] },
+    load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const p = JSON.parse(raw);
+        this.state = {
+          symbols: Array.isArray(p.symbols) ? p.symbols : [],
+          beliefs: Array.isArray(p.beliefs) ? p.beliefs : []
+        };
+      } catch (e) {}
+    }
+  };
+
+  function findSymbolById(id) { return Store.state.symbols.find(s => s.id === id) || null; }
+  function isGroup(s) { return s && Array.isArray(s.children) && s.children.length > 0; }
+
+  function computeZEffects(z) {
+    const norm = clamp((z - 0.3) / 0.7, 0, 1);
+    return {
+      opacity: 0.55 + norm * 0.45,
+      scale: 0.94 + norm * 0.06,
+      brightness: 0.7 + norm * 0.3,
+      zIndex: Math.round(norm * 200) + 10
+    };
+  }
+
+  const field = document.getElementById('field');
+  const overlay = document.getElementById('overlay');
+  const sheetContent = document.getElementById('sheetContent');
+
+  function render() {
+    field.innerHTML = '';
+
+    const center = document.createElement('div');
+    center.className = 'center-you';
+    center.textContent = '🧑';
+    field.appendChild(center);
+    const centerLabel = document.createElement('div');
+    centerLabel.className = 'center-you-label';
+    centerLabel.textContent = 'ты';
+    field.appendChild(centerLabel);
+
+    const beliefs = Store.state.beliefs;
+    if (!beliefs.length) {
+      const e = document.createElement('div');
+      e.className = 'field-empty';
+      e.textContent = 'Убеждений пока нет.\n\nОткрой настройку — ⚙ сверху — и создай первое убеждение.';
+      field.appendChild(e);
+      return;
+    }
+
+    const fW = field.clientWidth;
+    const fH = field.clientHeight;
+    const PAD = 10;
+    const availW = fW - PAD * 2;
+    const availH = fH - PAD * 2;
+
+    const sorted = beliefs.slice().sort((a, b) => (a.z || 0.5) - (b.z || 0.5));
+
+    sorted.forEach(b => {
+      const w = clamp(b.weight || 0.5, 0.1, 1);
+      const sq = Math.sqrt(w);
+      const width = Math.round(availW * sq);
+      const height = Math.round(availH * sq);
+      const maxX = Math.max(0, availW - width);
+      const maxY = Math.max(0, availH - height);
+      const x = clamp(b.x != null ? b.x : 0.5, 0, 1);
+      const y = clamp(b.y != null ? b.y : 0.5, 0, 1);
+      const left = PAD + x * maxX;
+      const top = PAD + y * maxY;
+
+      const el = buildBeliefEl(b, width, height, w);
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.width = width + 'px';
+      el.style.height = height + 'px';
+      field.appendChild(el);
+    });
+  }
+
+  function buildBeliefEl(b, width, height, weight) {
+    const el = document.createElement('div');
+    el.className = 'belief';
+    const z = b.z || 0.5;
+    const eff = computeZEffects(z);
+
+    if (!b.emoji && !b.word) el.classList.add('empty');
+
+    el.style.zIndex = String(eff.zIndex);
+    el.style.opacity = String(eff.opacity);
+    el.style.transform = 'scale(' + eff.scale.toFixed(3) + ')';
+    el.style.filter = 'brightness(' + eff.brightness.toFixed(2) + ')';
+    el.style.setProperty('--target-opacity', String(eff.opacity));
+
+    const outline = document.createElement('div');
+    outline.className = 'belief-outline';
+    el.appendChild(outline);
+    const inner = document.createElement('div');
+    inner.className = 'belief-inner';
+    el.appendChild(inner);
+
+    const content = document.createElement('div');
+    content.className = 'belief-content';
+
+    const emojiSize = clamp(Math.min(width, height) * 0.28, 24, 72);
+    const wordSize = clamp(Math.min(width, height) * 0.09, 10, 18);
+
+    if (b.emoji) {
+      const emEl = document.createElement('div');
+      emEl.className = 'belief-emoji';
+      emEl.style.setProperty('--be', emojiSize + 'px');
+      emEl.textContent = b.emoji;
+      content.appendChild(emEl);
+    }
+
+    const wEl = document.createElement('div');
+    wEl.className = 'belief-word' + (b.word ? '' : ' empty');
+    wEl.style.setProperty('--bw', wordSize + 'px');
+    wEl.textContent = b.word || (b.emoji ? '' : 'открой настройку');
+    content.appendChild(wEl);
+
+    el.appendChild(content);
+
+    if (b.items && b.items.length) {
+      const cnt = document.createElement('div');
+      cnt.className = 'belief-count';
+      cnt.textContent = b.items.length + ' симв.';
+      el.appendChild(cnt);
+    }
+
+    const zEl = document.createElement('div');
+    zEl.className = 'belief-z';
+    zEl.textContent = 'z' + z.toFixed(2);
+    el.appendChild(zEl);
+
+    el.addEventListener('click', () => openBeliefView(b.id));
+    return el;
+  }
+
+  function openBeliefView(id) {
+    const b = Store.state.beliefs.find(x => x.id === id);
+    if (!b) return;
+    renderBeliefSheet(b);
+    overlay.classList.remove('hidden');
+  }
+
+  function renderBeliefSheet(b) {
+    sheetContent.innerHTML = '';
+
+    const hero = document.createElement('div');
+    hero.className = 'sheet-hero';
+    if (b.emoji) {
+      const em = document.createElement('div');
+      em.className = 'sheet-emoji';
+      em.textContent = b.emoji;
+      hero.appendChild(em);
+    }
+    const wd = document.createElement('div');
+    wd.className = 'sheet-word' + (b.word ? '' : ' empty');
+    wd.textContent = b.word || 'без названия';
+    hero.appendChild(wd);
+    const meta = document.createElement('div');
+    meta.className = 'sheet-meta';
+    meta.innerHTML = 'вес <b>' + (b.weight || 0).toFixed(2) + '</b> · z <i>' + (b.z || 0).toFixed(2) + '</i>';
+    hero.appendChild(meta);
+    sheetContent.appendChild(hero);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'sheet-section-label';
+    lbl.innerHTML = '<span>Что внутри</span><span class="meta">' + (b.items ? b.items.length : 0) + ' символов</span>';
+    sheetContent.appendChild(lbl);
+
+    const grid = document.createElement('div');
+    grid.className = 'symbols-grid' + ((!b.items || !b.items.length) ? ' empty' : '');
+
+    if (b.items && b.items.length) {
+      b.items.forEach(sid => {
+        const sym = findSymbolById(sid);
+        if (!sym) return;
+        const chip = document.createElement('button');
+        chip.className = 'sym-chip' + (isGroup(sym) ? ' grp' : '');
+        const charWrap = document.createElement('div');
+        charWrap.className = 'sym-chip-char';
+        charWrap.textContent = sym.char || '◌';
+        if (isGroup(sym)) {
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.textContent = String(sym.children.length);
+          charWrap.appendChild(badge);
+        }
+        chip.appendChild(charWrap);
+        if (sym.word) {
+          const wEl = document.createElement('div');
+          wEl.className = 'sym-chip-word';
+          wEl.textContent = sym.word;
+          chip.appendChild(wEl);
+        }
+        chip.addEventListener('click', () => openSymbolView(sym, b.id));
+        grid.appendChild(chip);
+      });
+    }
+    sheetContent.appendChild(grid);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-sheet';
+    closeBtn.textContent = 'Закрыть';
+    closeBtn.addEventListener('click', closeOverlay);
+    sheetContent.appendChild(closeBtn);
+  }
+
+  function openSymbolView(sym, backToBeliefId) {
+    sheetContent.innerHTML = '';
+
+    const card = document.createElement('div');
+    card.className = 'symbol-card';
+    const em = document.createElement('div');
+    em.className = 'symbol-card-emoji';
+    em.textContent = sym.char || '◌';
+    card.appendChild(em);
+    const wd = document.createElement('div');
+    wd.className = 'symbol-card-word' + (sym.word ? '' : ' empty');
+    wd.textContent = sym.word || 'без значения';
+    card.appendChild(wd);
+    const sub = document.createElement('div');
+    sub.className = 'symbol-card-sub';
+    sub.textContent = isGroup(sym) ? 'группа · ' + sym.children.length + ' внутри' : 'простой символ';
+    card.appendChild(sub);
+    sheetContent.appendChild(card);
+
+    if (isGroup(sym)) {
+      const lbl = document.createElement('div');
+      lbl.className = 'sheet-section-label';
+      lbl.innerHTML = '<span>Из чего состоит</span>';
+      sheetContent.appendChild(lbl);
+
+      const grid = document.createElement('div');
+      grid.className = 'symbols-grid';
+      sym.children.forEach(cid => {
+        const k = findSymbolById(cid);
+        if (!k) return;
+        const chip = document.createElement('button');
+        chip.className = 'sym-chip' + (isGroup(k) ? ' grp' : '');
+        const ch = document.createElement('div');
+        ch.className = 'sym-chip-char';
+        ch.textContent = k.char || '◌';
+        if (isGroup(k)) {
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.textContent = String(k.children.length);
+          ch.appendChild(badge);
+        }
+        chip.appendChild(ch);
+        if (k.word) {
+          const w = document.createElement('div');
+          w.className = 'sym-chip-word';
+          w.textContent = k.word;
+          chip.appendChild(w);
+        }
+        chip.addEventListener('click', () => openSymbolView(k, backToBeliefId));
+        grid.appendChild(chip);
+      });
+      sheetContent.appendChild(grid);
+    }
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex; gap:8px; margin-top:12px;';
+
+    const backBtn = document.createElement('button');
+    backBtn.className = 'close-sheet';
+    backBtn.style.margin = '0';
+    backBtn.textContent = '← Назад';
+    backBtn.addEventListener('click', () => {
+      if (backToBeliefId) {
+        const b = Store.state.beliefs.find(x => x.id === backToBeliefId);
+        if (b) { renderBeliefSheet(b); return; }
+      }
+      closeOverlay();
+    });
+    btnRow.appendChild(backBtn);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-sheet';
+    closeBtn.style.margin = '0';
+    closeBtn.textContent = 'Закрыть';
+    closeBtn.addEventListener('click', closeOverlay);
+    btnRow.appendChild(closeBtn);
+    sheetContent.appendChild(btnRow);
+  }
+
+  function closeOverlay() { overlay.classList.add('hidden'); }
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+
+  /* синхронизация при возвращении с настроек */
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { Store.load(); render(); }
+  });
+  window.addEventListener('storage', () => { Store.load(); render(); });
+  window.addEventListener('focus', () => { Store.load(); render(); });
+  window.addEventListener('resize', () => { render(); });
+  window.addEventListener('orientationchange', () => setTimeout(render, 300));
+
+  Store.load();
+  render();
+})();
+</script>
+</body>
+</html>
