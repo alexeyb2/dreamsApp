@@ -40,7 +40,7 @@
   .editor-view { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 12px 120px; display:flex; flex-direction:column; gap:12px; }
   .editor-view::-webkit-scrollbar { display:none; }
 
-  /* ==== ГРУППА — новый "квадрат" ==== */
+  /* ==== ГРУППА ==== */
   .group-view { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px 120px; }
   .group-view::-webkit-scrollbar { display:none; }
 
@@ -310,7 +310,7 @@
     </div>
     <div id="rowGroup" class="bp-row hidden">
       <button class="bottom-btn" id="groupBackBtn">← Назад</button>
-      <button class="bottom-btn" id="groupEditBtn">✏️ Править группу</button>
+      <button class="bottom-btn" id="groupEditBtn">✏️ Править</button>
       <button class="bottom-btn primary" id="groupRootBtn">В корень</button>
     </div>
   </div>
@@ -397,6 +397,7 @@
   <div id="dictModal" class="modal-overlay hidden">
     <div class="modal">
       <h3>📖 Словарь символов</h3>
+      <div class="hint" style="margin-bottom:8px;">Тап на группу — провалиться внутрь.</div>
       <div id="dictList" style="max-height:55vh; overflow-y:auto; display:flex; flex-wrap:wrap; gap:6px;"></div>
       <div class="modal-actions">
         <button id="dictClose" class="ghost">Закрыть</button>
@@ -764,7 +765,7 @@
     root.addEventListener('click', closeEditor);
     crumbs.appendChild(root);
 
-    // убеждение
+    // убеждение (только если открыто из убеждения)
     if (NAV.beliefId) {
       crumbs.appendChild(crumbSep());
       const b = getBelief(NAV.beliefId);
@@ -1038,10 +1039,11 @@
   }
 
   /* =========================================================
-     НАВИГАЦИЯ ПО ГРУППАМ
+     НАВИГАЦИЯ ПО ГРУППАМ — работает БЕЗ убеждения тоже
      ========================================================= */
   function enterGroup(symId) {
-    if (!NAV.beliefId) return;
+    const sym = findSymbolById(symId);
+    if (!sym || !isGroup(sym)) return;
     NAV.groupPath.push(symId);
     NAV.view = 'group';
     render();
@@ -1052,13 +1054,17 @@
       render();
     } else {
       NAV.groupPath = [];
-      NAV.view = 'editor';
+      if (NAV.beliefId) {
+        NAV.view = 'editor';
+      } else {
+        NAV.view = 'space';
+      }
       render();
     }
   }
 
   /* =========================================================
-     ЭКРАН ГРУППЫ — новый "квадрат"
+     ЭКРАН ГРУППЫ
      ========================================================= */
   function renderGroupView() {
     groupView.innerHTML = '';
@@ -1066,12 +1072,11 @@
     const group = findSymbolById(groupId);
     if (!group) {
       NAV.groupPath = [];
-      NAV.view = 'editor';
+      NAV.view = NAV.beliefId ? 'editor' : 'space';
       render();
       return;
     }
 
-    // Шапка группы — кликабельна, ведёт в карточку правки
     const head = document.createElement('div');
     head.className = 'group-header';
     const ghEmoji = document.createElement('div');
@@ -1097,7 +1102,6 @@
     head.addEventListener('click', () => openCardModal(groupId));
     groupView.appendChild(head);
 
-    // Плитки детей
     const kids = (group.children || []).map(findSymbolById).filter(Boolean);
     const tiles = document.createElement('div');
     tiles.className = 'group-tiles';
@@ -1240,7 +1244,6 @@
       }
       c.dataset.symbolId = sym.id;
       c.dataset.tokenText = t.text;
-      // ГЛАВНОЕ: тап на группу — проваливаемся. Тап на обычный — карточка.
       c.addEventListener('click', () => {
         if (chipDrag && chipDrag.moved) return;
         if (isGrp) enterGroup(sym.id);
@@ -1267,9 +1270,6 @@
     updateBelief(currentBeliefId, { weight: v });
   });
 
-  /* =========================================================
-     DRAG & DROP чипов в предпросмотре
-     ========================================================= */
   function onChipPointerDown(e, chipEl, token) {
     if (chipDrag) return;
     if (e.button && e.button !== 0) return;
@@ -1397,9 +1397,6 @@
     renderPreview();
   });
 
-  /* =========================================================
-     БЫСТРАЯ МОДАЛКА: новый символ из new-emoji/new-word
-     ========================================================= */
   const symModal = document.getElementById('symModal');
   let symContext = null;
 
@@ -1526,7 +1523,6 @@
     document.getElementById('cardSize').value = cardDraft.props.size || 1;
     document.getElementById('cardErr').textContent = '';
 
-    // кнопка "Войти внутрь" для групп
     const enterBtn = document.getElementById('cardEnter');
     if (sym && isGroup(sym)) {
       enterBtn.classList.remove('hidden');
@@ -1534,18 +1530,7 @@
         cardModal.classList.add('hidden');
         cardStack = [];
         cardDraft = null;
-        if (NAV.beliefId) {
-          if (NAV.view === 'group' || NAV.view === 'editor') {
-            // уже внутри убеждения — просто пушим в groupPath
-            enterGroup(sym.id);
-          } else {
-            // с корня — открываем редактирование того убеждения, в котором есть эта группа
-            // (упрощённо: не поддерживаем этот случай без контекста)
-            toast('Сначала открой убеждение');
-          }
-        } else {
-          toast('Сначала открой убеждение');
-        }
+        enterGroup(sym.id);
       };
     } else {
       enterBtn.classList.add('hidden');
@@ -1796,7 +1781,7 @@
   });
 
   /* =========================================================
-     СЛОВАРЬ
+     СЛОВАРЬ — тап на группу → ПРОВАЛ
      ========================================================= */
   document.getElementById('dictBtn').addEventListener('click', () => {
     const list = document.getElementById('dictList');
@@ -1826,7 +1811,17 @@
         }
         chip.addEventListener('click', () => {
           document.getElementById('dictModal').classList.add('hidden');
-          setTimeout(() => openCardModal(s.id), 60);
+          setTimeout(() => {
+            if (isGroup(s)) {
+              // ПРОВАЛИВАЕМСЯ В ГРУППУ
+              NAV.beliefId = null;
+              NAV.groupPath = [s.id];
+              NAV.view = 'group';
+              render();
+            } else {
+              openCardModal(s.id);
+            }
+          }, 60);
         });
         list.appendChild(chip);
       });
@@ -2062,7 +2057,6 @@
     });
   });
 
-  // Кнопки панели группы
   document.getElementById('groupBackBtn').addEventListener('click', popGroup);
   document.getElementById('groupEditBtn').addEventListener('click', () => {
     const gid = NAV.groupPath[NAV.groupPath.length - 1];
