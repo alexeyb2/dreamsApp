@@ -1,0 +1,2070 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>👁:Убеждения</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
+  #app { display:flex; flex-direction:column; height:100dvh; width:100%; position:relative; overflow:hidden; }
+  .top-bar { display:flex; align-items:center; gap:8px; padding:10px 12px; background:#14141c; border-bottom:1px solid #262633; flex-shrink:0; z-index:20; }
+  .crumbs { flex:1; display:flex; align-items:center; gap:6px; overflow-x:auto; scrollbar-width:none; min-width:0; }
+  .crumbs::-webkit-scrollbar { display:none; }
+  .crumb { flex:none; padding:7px 14px; border-radius:999px; background:#1a1a24; border:1px solid #262633; font-size:14px; color:#e8e8f0; cursor:pointer; transition:.15s; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:inherit; }
+  .crumb:active { background:#22222e; }
+  .crumb.current { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.4); color:#6fa8ff; font-weight:600; }
+  .crumb-sep { color:#3a3a48; font-size:14px; flex-shrink:0; }
+  .crumb-usage { font-size:11px; color:#6b6b7b; padding:0 6px; letter-spacing:.04em; flex-shrink:0; }
+  .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; }
+  .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
+
+  .field { flex:1; position:relative; overflow:hidden; background: radial-gradient(ellipse at center, rgba(111,168,255,.06), transparent 60%), repeating-linear-gradient(0deg, transparent 0 39px, rgba(111,168,255,.03) 39px 40px), repeating-linear-gradient(90deg, transparent 0 39px, rgba(111,168,255,.03) 39px 40px); }
+
+  .belief { position:absolute; display:flex; align-items:center; justify-content:center; border-radius:20px; background: linear-gradient(160deg, #1e2740 0%, #12131c 90%); border:1.5px solid rgba(111,168,255,.4); box-shadow: 0 12px 32px rgba(0,0,0,.55), 0 0 0 1px rgba(111,168,255,.08), inset 0 1px 0 rgba(255,255,255,.08); cursor:pointer; overflow:hidden; will-change: left, top, width, height, opacity, transform; transition: box-shadow .2s ease, border-color .2s ease; transform-origin: center center; touch-action:none; }
+  .belief.movable { cursor:grab; }
+  .belief.movable:active { cursor:grabbing; }
+  .belief.dragging { z-index: 9999 !important; box-shadow: 0 32px 80px rgba(111,168,255,.55), 0 0 0 2px #6fa8ff; border-color:#6fa8ff; transition: none; }
+  .belief.empty { border-style:dashed; border-color: rgba(255,180,111,.4); background: linear-gradient(160deg, #1a1e2c 0%, #0e0e16 90%); }
+  .belief.tapped { border-color:#6fa8ff; box-shadow: 0 0 0 2px #6fa8ff, 0 12px 40px rgba(111,168,255,.5); }
+  .belief-weight { position:absolute; top:8px; left:8px; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px; background:#ffb46f; color:#2a1a05; pointer-events:none; z-index:5; letter-spacing:.02em; box-shadow: 0 2px 8px rgba(255,180,111,.4); }
+  .belief-z { position:absolute; top:8px; right:8px; font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; background:rgba(111,168,255,.22); color:#6fa8ff; border:1px solid rgba(111,168,255,.4); pointer-events:none; z-index:5; letter-spacing:.04em; }
+  .belief-body { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:3px 6px; font-size: var(--bfont, 42px); line-height:1.05; letter-spacing:1px; text-align:center; padding: 30px 18px 18px; max-width:100%; max-height:100%; overflow:hidden; word-break:break-word; pointer-events:none; }
+  .belief-sym { position:relative; display:inline-block; padding:0 2px; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+  .belief-sym .badge { position:absolute; top:-10%; right:-18%; min-width:18px; height:18px; padding:0 4px; background:#6fa8ff; color:#06111f; font-size:10px; font-weight:800; border-radius:9px; display:flex; align-items:center; justify-content:center; border:2px solid #12131c; text-shadow:none; }
+  .belief-sym .word { display:block; font-size:0.3em; color:#8890a0; letter-spacing:0; margin-top:2px; line-height:1.1; text-shadow:none; }
+  .belief-sym .word.new { color:#ffb46f; }
+  /* группы внутри карточки-убеждения кликабельны — провал */
+  .belief-sym.group { pointer-events:auto; cursor:pointer; }
+  .belief-empty-text { font-size:14px; color:#6b6b7b; text-align:center; padding: 0 20%; line-height:1.5; pointer-events:none; }
+  .field-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; color:#6b6b7b; font-size:14px; line-height:1.7; white-space:pre-line; padding:0 40px; pointer-events:none; }
+
+  .editor-view { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 12px 120px; display:flex; flex-direction:column; gap:12px; }
+  .editor-view::-webkit-scrollbar { display:none; }
+
+  .group-view { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px 120px; }
+  .group-view::-webkit-scrollbar { display:none; }
+
+  .group-header {
+    display:flex; align-items:center; gap:14px;
+    padding:18px;
+    border-radius:20px;
+    background: linear-gradient(160deg, #1e2740 0%, #12131c 90%);
+    border: 1.5px solid rgba(111,168,255,.5);
+    box-shadow: 0 14px 36px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    margin-bottom:18px;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .group-header:active { transform:scale(.99); border-color:#6fa8ff; }
+  .group-header .gh-emoji { font-size:56px; line-height:1; flex-shrink:0; }
+  .group-header .gh-info { flex:1; min-width:0; }
+  .group-header .gh-word { font-size:18px; font-weight:700; color:#e8e8f0; word-break:break-word; line-height:1.2; }
+  .group-header .gh-word.empty { color:#4a4a58; font-style:italic; font-weight:400; }
+  .group-header .gh-sub { font-size:12px; color:#6fa8ff; margin-top:5px; letter-spacing:.02em; }
+  .group-header .gh-arrow { font-size:22px; color:#6b6b7b; flex-shrink:0; }
+
+  .group-tiles {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    gap:10px;
+  }
+
+  .tile {
+    position:relative;
+    aspect-ratio: 1 / 1;
+    border-radius:16px;
+    background: linear-gradient(160deg, rgba(30,39,64,.85) 0%, rgba(18,19,28,.95) 100%);
+    border:1.5px solid rgba(111,168,255,.28);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:6px;
+    padding:8px;
+    cursor:pointer;
+    transition:.15s;
+    overflow:hidden;
+    font-family:inherit;
+    color:#e8e8f0;
+  }
+  .tile:active { transform:scale(.95); background:rgba(111,168,255,.16); border-color:#6fa8ff; }
+
+  .tile.group {
+    background: linear-gradient(160deg, rgba(38,54,88,.9) 0%, rgba(20,22,36,.95) 100%);
+    border-color: rgba(111,168,255,.55);
+    box-shadow: inset 0 0 0 3px rgba(111,168,255,.08);
+  }
+  .tile.group::before {
+    content:'';
+    position:absolute; inset:5px;
+    border-radius:11px;
+    border:1px dashed rgba(111,168,255,.4);
+    pointer-events:none;
+  }
+  .tile.group::after {
+    content: attr(data-count);
+    position:absolute; top:6px; right:6px;
+    min-width:18px; height:18px; padding:0 5px;
+    background:#6fa8ff; color:#06111f;
+    font-size:10px; font-weight:800;
+    border-radius:9px;
+    display:flex; align-items:center; justify-content:center;
+    z-index:2;
+  }
+  .tile .t-emoji { font-size:32px; line-height:1; z-index:1; }
+  .tile.group .t-emoji { font-size:34px; }
+  .tile .t-word {
+    font-size:10px; color:#8890a0; text-align:center;
+    word-break:break-word; line-height:1.15;
+    max-width:100%; overflow:hidden;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    z-index:1;
+  }
+  .tile .t-word.empty { color:#3a3a48; font-style:italic; }
+
+  .add-tile {
+    aspect-ratio: 1 / 1;
+    border-radius:16px;
+    border:1.5px dashed #262633;
+    background: transparent;
+    color:#4a4a58;
+    font-size:24px;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:.15s;
+    font-family:inherit;
+  }
+  .add-tile:active { border-color:#6fa8ff; color:#6fa8ff; background:rgba(111,168,255,.05); }
+
+  .group-empty {
+    text-align:center; color:#6b6b7b;
+    font-size:13px; line-height:1.6;
+    padding:30px 20px 10px; white-space:pre-line;
+  }
+
+  .sec { background:#14141c; border:1px solid #262633; border-radius:16px; padding:14px; }
+  .sec-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .sec-label .meta { font-size:11px; color:#6b6b7b; letter-spacing:0; text-transform:none; opacity:.7; display:flex; align-items:center; gap:8px; }
+  .mini-btn { background:transparent; border:1px solid #262633; border-radius:8px; color:#8890a0; font-size:11px; padding:3px 8px; cursor:pointer; font-family:inherit; letter-spacing:.02em; }
+  .mini-btn:active { background:#22222e; }
+  .mini-btn.on { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.4); color:#6fa8ff; }
+  .editor { width:100%; min-height:100px; resize:none; background:transparent; border:none; outline:none; color:#e8e8f0; font-size:17px; line-height:1.7; font-family:inherit; -webkit-user-select:text; user-select:text; padding:0; }
+  .editor::placeholder { color:#6b6b7b; }
+  .preview { font-size:20px; line-height:2; word-break:break-word; min-height:52px; display:flex; flex-wrap:wrap; align-items:center; gap:2px; touch-action:none; }
+  .preview .empty { color:#6b6b7b; font-size:14px; font-style:italic; }
+  .chip { display:inline-flex; align-items:center; gap:3px; padding:4px 8px; border-radius:9px; transition:.15s; cursor:pointer; font-size:22px; line-height:1.1; touch-action:none; position:relative; }
+  .chip:active { transform:scale(.95); }
+  .chip .w { display:none; font-size:13px; color:#6b6b7b; margin-left:3px; }
+  body.words-mode .chip .w { display:inline; }
+  .chip.sym { background:rgba(111,168,255,.16); color:#6fa8ff; border:1px solid rgba(111,168,255,.28); }
+  .chip.sym .w { color:#6fa8ff; opacity:.85; }
+  .chip.new { background:rgba(255,180,111,.16); color:#ffb46f; border:1px dashed rgba(255,180,111,.55); }
+  .chip.new .w { color:#ffb46f; display:inline; margin-left:0; }
+  .chip.new .q { font-size:15px; font-weight:800; margin-right:2px; opacity:.9; }
+  .chip.dragging { opacity:.25; }
+  .chip.drop-target { border-color:#6fa8ff; background:rgba(111,168,255,.32); box-shadow:0 0 0 3px rgba(111,168,255,.35); transform:scale(1.08); }
+  .chip.group { padding-right:16px; }
+  .chip.group::after { content:attr(data-count); position:absolute; top:-6px; right:-6px; min-width:16px; height:16px; padding:0 4px; background:#6fa8ff; color:#06111f; font-size:9px; font-weight:700; border-radius:8px; display:flex; align-items:center; justify-content:center; border:2px solid #14141c; }
+  .chip.group.expanded { padding:4px 10px 4px 8px; background:rgba(111,168,255,.20); border-color:rgba(111,168,255,.5); }
+  .children-inline { display:flex; align-items:center; gap:2px; margin-left:4px; padding:2px 6px; border-left:1px solid rgba(111,168,255,.35); font-size:18px; opacity:.9; }
+  .gap-marker { width:3px; height:36px; border-radius:2px; background:#ffb46f; box-shadow:0 0 8px rgba(255,180,111,.7); flex-shrink:0; align-self:center; }
+  .prop-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .prop-row:last-child { margin-bottom:0; }
+  .prop-label { font-size:13px; color:#6b6b7b; width:60px; flex-shrink:0; }
+  .prop-slider { flex:1; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px; background:#262633; outline:none; }
+  .prop-slider::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:#6fa8ff; cursor:pointer; }
+  .prop-slider::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:#6fa8ff; cursor:pointer; border:none; }
+  .prop-value { min-width:52px; text-align:right; font-size:14px; font-weight:700; color:#6fa8ff; font-variant-numeric:tabular-nums; }
+  .bottom-panel { position:fixed; bottom:0; left:0; right:0; background:#14141c; border-top:1px solid #262633; padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); display:flex; gap:8px; z-index:50; }
+  .bp-row { display:flex; gap:8px; flex:1; }
+  .bp-row.hidden { display:none; }
+  .bottom-btn { flex:1; height:44px; border-radius:14px; border:1px solid #262633; background:#1a1a24; font-size:14px; font-weight:600; color:#e8e8f0; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:5px; font-family:inherit; }
+  .bottom-btn:active { transform:scale(.96); background:#22222e; }
+  .bottom-btn.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .bottom-btn.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
+  .bottom-btn.on { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .bottom-btn:disabled { opacity:.4; cursor:not-allowed; }
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:60px 20px 20px; overflow-y:auto; }
+  .modal { background:#1e1e2a; border:1px solid #262633; border-radius:22px; padding:20px; width:100%; max-width:400px; display:flex; flex-direction:column; gap:12px; margin-bottom:20px; }
+  .modal h3 { font-size:17px; font-weight:600; color:#e8e8f0; }
+  .modal .hint { font-size:12px; color:#6b6b7b; line-height:1.4; }
+  .modal .err { color:#ff8f8f; font-size:12px; min-height:16px; }
+  .modal-crumbs { display:flex; align-items:center; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:4px; }
+  .modal-crumbs::-webkit-scrollbar { display:none; }
+  .mcrumb { flex:none; padding:5px 10px; border-radius:999px; background:#14141c; border:1px solid #262633; font-size:12px; color:#8890a0; cursor:pointer; font-family:inherit; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mcrumb:active { background:#22222e; color:#e8e8f0; }
+  .mcrumb.current { background:rgba(111,168,255,.16); border-color:rgba(111,168,255,.4); color:#6fa8ff; font-weight:600; }
+  .mcrumb-sep { color:#3a3a48; font-size:12px; flex:none; }
+  .text-input { padding:12px 14px; border:1px solid #262633; border-radius:14px; font-size:15px; outline:none; background:#14141c; color:#e8e8f0; font-family:inherit; width:100%; }
+  .text-input:focus { border-color:#6fa8ff; }
+  .text-input.textarea { min-height:70px; resize:vertical; -webkit-user-select:text; user-select:text; line-height:1.5; }
+  .emoji-input { padding:14px; border:1px solid #262633; border-radius:14px; font-size:32px; outline:none; background:#14141c; color:#e8e8f0; text-align:center; letter-spacing:6px; min-height:62px; font-family:inherit; width:100%; }
+  .emoji-input:focus { border-color:#6fa8ff; }
+  .emoji-input.error { border-color:#ff3b30; animation:shake .3s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; flex-wrap:wrap; }
+  .modal-actions button { padding:10px 18px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .modal-actions button.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .modal-actions button.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
+  .modal-actions button.ghost { background:transparent; }
+  .card-hero { text-align:center; padding:4px 0 8px; }
+  .card-hero .big { display:inline-block; font-size:64px; line-height:1.1; letter-spacing:6px; padding:6px 20px; border-radius:20px; background:rgba(111,168,255,.12); border:1px solid rgba(111,168,255,.3); min-width:90px; text-align:center; word-break:break-word; }
+  .card-hero .big.group { background:rgba(111,168,255,.20); border-color:rgba(111,168,255,.5); }
+  .field-row { display:flex; flex-direction:column; gap:6px; }
+  .field-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.06em; }
+  .tags-line { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .tag-chip { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:999px; background:rgba(255,180,111,.12); border:1px solid rgba(255,180,111,.3); color:#ffb46f; font-size:12px; }
+  .tag-chip .x { cursor:pointer; opacity:.7; font-size:14px; }
+  .prop-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .prop-cell { padding:10px 12px; background:#14141c; border:1px solid #262633; border-radius:12px; display:flex; flex-direction:column; gap:4px; }
+  .prop-cell .pc-label { font-size:10px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.05em; }
+  .prop-cell input[type="color"] { width:100%; height:28px; border:none; background:transparent; cursor:pointer; padding:0; }
+  .prop-cell input[type="number"] { width:100%; background:transparent; border:none; color:#e8e8f0; font-size:15px; outline:none; padding:2px 0; font-family:inherit; }
+  .children-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .mini-chip { display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; background:#14141c; border:1px solid #262633; font-size:20px; cursor:pointer; transition:.15s; font-family:inherit; color:#e8e8f0; }
+  .mini-chip:active { background:#22222e; border-color:#6fa8ff; }
+  .mini-chip .x { width:18px; height:18px; border-radius:50%; background:rgba(255,90,90,.15); color:#ff8f8f; display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .mini-chip.add { border-style:dashed; color:#6b6b7b; font-size:14px; padding:8px 14px; }
+  .picker-list { display:flex; flex-direction:column; gap:6px; max-height:44vh; overflow-y:auto; }
+  .picker-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:#14141c; border:1px solid #262633; cursor:pointer; text-align:left; width:100%; transition:.15s; font-family:inherit; color:#e8e8f0; }
+  .picker-row:active { background:#22222e; border-color:#6fa8ff; }
+  .picker-sym { font-size:26px; flex:none; min-width:40px; text-align:center; }
+  .picker-name { flex:1; font-size:14px; opacity:.85; }
+  .picker-name.empty { color:#6b6b7b; font-style:italic; }
+  .picker-sub { font-size:11px; color:#6b6b7b; }
+  .picker-create { display:flex; gap:8px; align-items:stretch; padding:10px; background:#14141c; border:1px dashed #262633; border-radius:14px; margin-bottom:4px; }
+  .picker-create input { border:1px solid #262633; background:#0f0f15; border-radius:10px; padding:10px 12px; color:#e8e8f0; font-family:inherit; outline:none; font-size:14px; }
+  .picker-create input:focus { border-color:#6fa8ff; }
+  .picker-create input#pickerChar { flex:0 0 68px; text-align:center; font-size:22px; letter-spacing:2px; }
+  .picker-create input#pickerWord { flex:1; min-width:0; }
+  .picker-create button { flex:0 0 44px; border-radius:10px; border:none; background:#6fa8ff; color:#06111f; font-size:20px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .export-textarea { width:100%; min-height:240px; padding:12px; border:1px solid #262633; border-radius:12px; background:#14141c; color:#e8e8f0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.5; resize:vertical; -webkit-user-select:text; user-select:text; outline:none; }
+  .export-tabs { display:flex; gap:4px; background:#14141c; padding:4px; border-radius:12px; border:1px solid #262633; }
+  .export-tab { flex:1; padding:8px 12px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; border:none; background:transparent; color:#6b6b7b; transition:.15s; font-family:inherit; }
+  .export-tab.on { background:#6fa8ff; color:#06111f; }
+  .hidden { display:none !important; }
+  .toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 90px); transform:translate(-50%, 20px); z-index:500; background:#22222f; border:1px solid #262633; padding:11px 18px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .22s, transform .22s; pointer-events:none; max-width:86vw; text-align:center; color:#e8e8f0; }
+  .toast.show { opacity:1; transform:translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top-bar">
+    <div class="crumbs" id="crumbs"></div>
+    <div class="crumb-usage" id="usageIndicator"></div>
+    <button class="icon-btn" id="exportBtn" title="Экспорт">📤</button>
+  </header>
+
+  <div class="field hidden" id="fieldView"></div>
+
+  <div class="editor-view hidden" id="editorView">
+    <div class="sec">
+      <div class="sec-label">
+        <span>Текст убеждения</span>
+        <span class="meta" id="editorDate"></span>
+      </div>
+      <textarea id="editorText" class="editor" placeholder="Пиши слова или смайлы…"></textarea>
+    </div>
+    <div class="sec">
+      <div class="sec-label">
+        <span>Предпросмотр</span>
+        <span class="meta">
+          <button id="expandGroupsBtn" class="mini-btn" type="button">⊞ развернуть</button>
+          <span id="editorMeta">0 символов</span>
+        </span>
+      </div>
+      <div class="preview" id="editorPreview"></div>
+      <div class="hint" style="margin-top:10px;text-align:center;font-size:11px;color:#4a4a58;line-height:1.5;">
+        Тащи смайл на смайл — объединишь в группу.<br>
+        Тащи в промежуток — переставишь.<br>
+        Тап на группу — провалишься внутрь.
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-label">
+        <span>Вес — сколько места занимает</span>
+        <span class="meta" id="weightLimitInfo"></span>
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Вес</span>
+        <input type="range" class="prop-slider" id="propWeight" min="0.1" max="1" step="0.05" value="1">
+        <span class="prop-value" id="propWeightVal">1.00</span>
+      </div>
+      <div class="hint" style="margin-top:8px;font-size:11px;color:#6b6b7b;line-height:1.5;">
+        1.00 — всё поле (не двигается).<br>
+        Меньше 1.00 — можно таскать пальцем.
+      </div>
+    </div>
+  </div>
+
+  <div class="group-view hidden" id="groupView"></div>
+
+  <div class="bottom-panel" id="bottomPanel">
+    <div id="rowSpace" class="bp-row">
+      <button class="bottom-btn primary" id="addBeliefBtn">+ Убеждение</button>
+      <button class="bottom-btn" id="wordsBtn">📝 Слова</button>
+      <button class="bottom-btn" id="dictBtn">📖 Словарь</button>
+    </div>
+    <div id="rowEditor" class="bp-row hidden">
+      <button class="bottom-btn" id="editorWordsBtn">📝 Слова</button>
+      <button class="bottom-btn danger" id="deleteBeliefBtn">🗑 Удалить</button>
+      <button class="bottom-btn primary" id="backBtn">Готово</button>
+    </div>
+    <div id="rowGroup" class="bp-row hidden">
+      <button class="bottom-btn" id="groupBackBtn">← Назад</button>
+      <button class="bottom-btn" id="groupEditBtn">✏️ Править</button>
+      <button class="bottom-btn primary" id="groupRootBtn">В корень</button>
+    </div>
+  </div>
+
+  <div id="symModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="symTitle">Новый символ</h3>
+      <input id="symChar" class="emoji-input" placeholder="😀" autocomplete="off" spellcheck="false">
+      <div class="hint">Только смайл. Со своей клавиатуры.</div>
+      <input id="symWord" class="text-input" placeholder="Значение" autocomplete="off">
+      <div class="err" id="symErr"></div>
+      <div class="modal-actions">
+        <button id="symCancel">Отмена</button>
+        <button id="symSave" class="primary">Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="cardModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-crumbs" id="cardCrumbs"></div>
+      <div class="card-hero" id="cardHero">
+        <div class="big" id="cardBig">😀</div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Смайл</span>
+        <input id="cardChar" class="emoji-input" placeholder="😀" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field-row">
+        <span class="field-label">Слово / название</span>
+        <input id="cardWord" class="text-input" placeholder="успешный мужчина" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <span class="field-label">Описание</span>
+        <textarea id="cardDesc" class="text-input textarea" placeholder="что это значит, как проявляется…"></textarea>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Теги</span>
+        <input id="cardTags" class="text-input" placeholder="эмоция, тело, деньги (через запятую)" autocomplete="off">
+        <div class="tags-line" id="cardTagsLine"></div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Свойства (для 3D)</span>
+        <div class="prop-grid">
+          <div class="prop-cell">
+            <span class="pc-label">Цвет</span>
+            <input type="color" id="cardColor" value="#6fa8ff">
+          </div>
+          <div class="prop-cell">
+            <span class="pc-label">Размер</span>
+            <input type="number" id="cardSize" min="0.1" max="5" step="0.1" value="1">
+          </div>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Из чего состоит</span>
+        <div class="children-chips" id="cardChildren"></div>
+      </div>
+      <div class="err" id="cardErr"></div>
+      <div class="modal-actions">
+        <button id="cardDelete" class="danger">Удалить</button>
+        <button id="cardEnter" class="ghost hidden">Войти внутрь →</button>
+        <button id="cardClose" class="ghost">Закрыть</button>
+        <button id="cardSave" class="primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mergeModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Объединить в группу</h3>
+      <div style="text-align:center;padding:10px;font-size:32px;letter-spacing:6px;" id="mergePreview">🅰 + 🅱 → 🆕</div>
+      <div class="hint">Группа получит своё значение, а исходные символы станут её составом.</div>
+      <input id="mergeWord" class="text-input" placeholder="Название группы (необязательно)" autocomplete="off">
+      <input id="mergeChar" class="emoji-input" placeholder="Смайл группы (необязательно)" autocomplete="off" spellcheck="false">
+      <div class="err" id="mergeErr"></div>
+      <div class="modal-actions">
+        <button id="mergeCancel" class="ghost">Отмена</button>
+        <button id="mergeSave" class="primary">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dictModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>📖 Словарь символов</h3>
+      <div class="hint" style="margin-bottom:8px;">Тап на группу — провалиться внутрь.</div>
+      <div id="dictList" style="max-height:55vh; overflow-y:auto; display:flex; flex-wrap:wrap; gap:6px;"></div>
+      <div class="modal-actions">
+        <button id="dictClose" class="ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pickerModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="pickerTitle">Что входит в состав</h3>
+      <div class="picker-create">
+        <input id="pickerChar" placeholder="😀" autocomplete="off" spellcheck="false">
+        <input id="pickerWord" placeholder="Значение" autocomplete="off">
+        <button id="pickerCreateBtn" title="Создать">＋</button>
+      </div>
+      <div class="picker-list" id="pickerList"></div>
+      <div class="modal-actions">
+        <button id="pickerCancel" class="ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="exportModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>📤 Экспорт структуры</h3>
+      <div class="export-tabs">
+        <button class="export-tab on" id="exportTabJson">JSON (для 3D)</button>
+        <button class="export-tab" id="exportTabText">Текст</button>
+      </div>
+      <textarea id="exportTextarea" class="export-textarea" readonly></textarea>
+      <div class="modal-actions">
+        <button id="exportCopy" class="primary">Копировать</button>
+        <button id="exportDownload">Скачать</button>
+        <button id="exportClose" class="ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="confirmTitle">Удалить?</h3>
+      <div class="hint" id="confirmText"></div>
+      <div class="modal-actions">
+        <button id="confirmCancel" class="ghost">Отмена</button>
+        <button id="confirmOk" class="danger">Удалить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'ubezhdeniya_v16';
+  const TOAST_MS = 2400;
+  const MAX_NGRAM = 3;
+  const DRAG_THRESHOLD = 6;
+  const FIELD_PAD = 10;
+  const MIN_WEIGHT = 0.1;
+  const MIN_NEW_WEIGHT = 0.15;
+  const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+  function uid() { return 'x_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
+  function nowIso() { return new Date().toISOString(); }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function splitGraphemes(str) {
+    const s = String(str == null ? '' : str);
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      try {
+        const seg = new Intl.Segmenter('ru', { granularity: 'grapheme' });
+        const out = [];
+        for (const piece of seg.segment(s)) out.push(piece.segment);
+        return out;
+      } catch (e) {}
+    }
+    return Array.from(s);
+  }
+  function isEmojiGrapheme(g) {
+    if (!g) return false;
+    if (/^\s+$/u.test(g)) return false;
+    if (/[\p{L}\p{N}]/u.test(g)) return false;
+    if (/^[!"#$%&'()*+,\-.\/:;<=>?@\[\\\]^_`{|}~«»„""…–—]+$/u.test(g) && g.length <= 3) return false;
+    return true;
+  }
+  function isEmojiOnly(text) {
+    const s = String(text == null ? '' : text).trim();
+    if (!s) return false;
+    const g = splitGraphemes(s);
+    for (let i = 0; i < g.length; i++) if (!isEmojiGrapheme(g[i])) return false;
+    return true;
+  }
+  function formatDate(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return pad(d.getDate()) + ' ' + (MONTHS[d.getMonth()] || '') + ' ' + d.getFullYear() + ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function plural(n, one, few, many) {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return one;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+    return many;
+  }
+  function shortText(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n-1) + '…' : s; }
+
+  let toastEl = null, toastTimer = null;
+  function toast(msg) {
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+    toastEl.textContent = msg;
+    requestAnimationFrame(() => toastEl.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), TOAST_MS);
+  }
+  function askConfirm(title, text, onOk) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = text;
+    const m = document.getElementById('confirmModal');
+    m.classList.remove('hidden');
+    const ok = document.getElementById('confirmOk');
+    const cancel = document.getElementById('confirmCancel');
+    function cleanup() { m.classList.add('hidden'); ok.removeEventListener('click', hOk); cancel.removeEventListener('click', hCancel); }
+    function hOk() { cleanup(); onOk(); }
+    function hCancel() { cleanup(); }
+    ok.addEventListener('click', hOk);
+    cancel.addEventListener('click', hCancel);
+  }
+
+  const Store = (function () {
+    let state = null;
+    let ok = true;
+    function empty() { return { symbols: [], beliefs: [] }; }
+    function read() { try { return localStorage.getItem(STORAGE_KEY); } catch (e) { ok = false; return null; } }
+    function write(v) { try { localStorage.setItem(STORAGE_KEY, v); } catch (e) { ok = false; } }
+    function load() {
+      const raw = read();
+      if (!raw) { state = empty(); return; }
+      try {
+        const p = JSON.parse(raw);
+        state = {
+          symbols: Array.isArray(p.symbols) ? p.symbols : [],
+          beliefs: Array.isArray(p.beliefs) ? p.beliefs : []
+        };
+      } catch (e) { state = empty(); }
+      state.symbols.forEach(s => {
+        if (!Array.isArray(s.children)) s.children = [];
+        if (!Array.isArray(s.tags)) s.tags = [];
+        if (!s.props || typeof s.props !== 'object') s.props = {};
+        if (typeof s.description !== 'string') s.description = '';
+      });
+      state.beliefs.forEach(b => {
+        if (typeof b.text !== 'string') b.text = '';
+        if (typeof b.weight !== 'number') b.weight = 1;
+      });
+    }
+    function save() { write(JSON.stringify(state)); }
+    function get() { return state; }
+    function isOk() { return ok; }
+    return { load, save, get, isOk };
+  })();
+
+  function findAllSymbols() { return Store.get().symbols; }
+  function findSymbolById(id) { return Store.get().symbols.find(s => s.id === id) || null; }
+  function findSymbolByChar(ch) { const c = String(ch || '').trim(); if (!c) return null; return findAllSymbols().find(s => s.char === c) || null; }
+  function findSymbolByWord(w) { const k = String(w || '').trim().toLowerCase(); if (!k) return null; return findAllSymbols().find(s => (s.word || '').toLowerCase() === k) || null; }
+
+  function addSymbol(char, word) {
+    char = String(char || '').trim();
+    word = String(word || '').trim();
+    if (!char && !word) return null;
+    if (char && !isEmojiOnly(char)) return null;
+    if (char) {
+      const byChar = findSymbolByChar(char);
+      if (byChar) { if (word && !byChar.word) byChar.word = word; Store.save(); return byChar; }
+    }
+    if (word) {
+      const byWord = findSymbolByWord(word);
+      if (byWord) { if (char) byWord.char = char; Store.save(); return byWord; }
+    }
+    const s = { id: uid(), char, word, description:'', tags:[], props:{}, children: [], created: nowIso() };
+    Store.get().symbols.push(s);
+    Store.save();
+    return s;
+  }
+  function deleteSymbol(id) {
+    Store.get().symbols.forEach(s => { s.children = (s.children || []).filter(cid => cid !== id); });
+    Store.get().symbols = Store.get().symbols.filter(s => s.id !== id);
+    Store.save();
+  }
+  function isGroup(s) { return s && Array.isArray(s.children) && s.children.length > 0; }
+  function symbolWeight(s) {
+    if (!s) return 0;
+    if (!s.children || !s.children.length) return 1;
+    let w = 0;
+    s.children.forEach(cid => { const c = findSymbolById(cid); if (c) w += symbolWeight(c); });
+    return w || 1;
+  }
+
+  function getBelief(id) { return Store.get().beliefs.find(b => b.id === id) || null; }
+  function getBeliefsSum(excludeId) {
+    let sum = 0;
+    Store.get().beliefs.forEach(b => { if (excludeId && b.id === excludeId) return; sum += (b.weight || 1); });
+    return sum;
+  }
+  function createBelief(weight) {
+    const b = { id: uid(), text: '', weight: weight, x: 0.5, y: 0.5, created: nowIso() };
+    Store.get().beliefs.unshift(b);
+    Store.save();
+    return b;
+  }
+  function deleteBelief(id) { Store.get().beliefs = Store.get().beliefs.filter(b => b.id !== id); Store.save(); }
+  function updateBelief(id, patch) { const b = getBelief(id); if (!b) return; Object.assign(b, patch); Store.save(); }
+
+  function computeZ(index, total) {
+    if (total <= 1) return 1;
+    const step = 0.7 / (total - 1);
+    return Math.max(0.3, 1 - index * step);
+  }
+
+  function extractUnits(text) {
+    const graphemes = splitGraphemes(text);
+    const units = [];
+    let wordBuf = '';
+    function flush() { if (wordBuf) { units.push({ type: 'word', text: wordBuf }); wordBuf = ''; } }
+    for (let i = 0; i < graphemes.length; i++) {
+      const g = graphemes[i];
+      if (/^\s+$/u.test(g)) { flush(); units.push({ type: 'space', text: g }); }
+      else if (/^[\p{L}\p{N}#@_]+$/u.test(g)) wordBuf += g;
+      else if (isEmojiGrapheme(g)) { flush(); units.push({ type: 'emoji', text: g }); }
+      else { flush(); units.push({ type: 'punct', text: g }); }
+    }
+    flush();
+    return units;
+  }
+
+  function resolveTokens(text) {
+    const units = extractUnits(text);
+    const sigIdx = [];
+    units.forEach((u, i) => { if (u.type === 'word' || u.type === 'emoji') sigIdx.push(i); });
+    const assignments = new Array(sigIdx.length).fill(null);
+    let si = 0;
+    while (si < sigIdx.length) {
+      let handled = false;
+      for (let n = MAX_NGRAM; n >= 1; n--) {
+        if (si + n > sigIdx.length) continue;
+        let okSpace = true;
+        for (let k = sigIdx[si] + 1; k < sigIdx[si + n - 1]; k++) {
+          if (units[k].type !== 'space') { okSpace = false; break; }
+        }
+        if (!okSpace) continue;
+        const parts = [];
+        for (let k = 0; k < n; k++) parts.push(units[sigIdx[si + k]].text);
+        if (n > 1) {
+          const phrase = parts.join(' ');
+          const byPhrase = findSymbolByWord(phrase);
+          if (byPhrase) {
+            assignments[si] = { size: n, out: { type: 'existing', symbolId: byPhrase.id } };
+            for (let k = 1; k < n; k++) assignments[si + k] = { skip: true };
+            si += n; handled = true; break;
+          }
+        }
+        if (n === 1) {
+          const tok = units[sigIdx[si]];
+          if (tok.type === 'emoji') {
+            const byChar = findSymbolByChar(tok.text);
+            if (byChar) assignments[si] = { size: 1, out: { type: 'existing', symbolId: byChar.id } };
+            else assignments[si] = { size: 1, out: { type: 'new-emoji', char: tok.text } };
+          } else {
+            const byWord = findSymbolByWord(tok.text);
+            if (byWord) assignments[si] = { size: 1, out: { type: 'existing', symbolId: byWord.id } };
+            else assignments[si] = { size: 1, out: { type: 'new-word', word: tok.text } };
+          }
+          si += 1; handled = true; break;
+        }
+      }
+      if (!handled) si += 1;
+    }
+    const tokens = [];
+    let i = 0, sc = 0;
+    while (i < units.length) {
+      const u = units[i];
+      if (u.type === 'space' || u.type === 'punct') { tokens.push({ type: 'raw', text: u.text }); i++; continue; }
+      const a = assignments[sc];
+      if (!a || a.skip) { sc++; i++; continue; }
+      const lastSig = sigIdx[sc + a.size - 1];
+      let raw = '';
+      for (let k = i; k <= lastSig; k++) raw += units[k].text;
+      tokens.push(Object.assign({}, a.out, { text: raw }));
+      i = lastSig + 1;
+      sc += a.size;
+    }
+    return tokens;
+  }
+
+  const NAV = { view: 'space', beliefId: null, groupPath: [] };
+  let wordsMode = false;
+  let groupsExpanded = false;
+  let currentBeliefId = null;
+  let chipDrag = null;
+  let cardStack = [];
+  let cardDraft = null;
+  let mergeCtx = null;
+  let beliefDrag = null;
+  let exportMode = 'json';
+  let pickerParentId = null;
+  let pickerOnDone = null;
+
+  const fieldView = document.getElementById('fieldView');
+  const editorView = document.getElementById('editorView');
+  const groupView = document.getElementById('groupView');
+  const crumbs = document.getElementById('crumbs');
+  const usageIndicator = document.getElementById('usageIndicator');
+  const rowSpace = document.getElementById('rowSpace');
+  const rowEditor = document.getElementById('rowEditor');
+  const rowGroup = document.getElementById('rowGroup');
+  const editorText = document.getElementById('editorText');
+  const editorPreview = document.getElementById('editorPreview');
+  const editorDate = document.getElementById('editorDate');
+  const editorMeta = document.getElementById('editorMeta');
+  const expandGroupsBtn = document.getElementById('expandGroupsBtn');
+  const addBeliefBtn = document.getElementById('addBeliefBtn');
+
+  function render() {
+    renderCrumbs();
+    if (NAV.view === 'space') {
+      fieldView.classList.remove('hidden');
+      editorView.classList.add('hidden');
+      groupView.classList.add('hidden');
+      rowSpace.classList.remove('hidden');
+      rowEditor.classList.add('hidden');
+      rowGroup.classList.add('hidden');
+      renderField();
+    } else if (NAV.view === 'editor') {
+      fieldView.classList.add('hidden');
+      editorView.classList.remove('hidden');
+      groupView.classList.add('hidden');
+      rowSpace.classList.add('hidden');
+      rowEditor.classList.remove('hidden');
+      rowGroup.classList.add('hidden');
+      renderEditor();
+    } else { // group
+      fieldView.classList.add('hidden');
+      editorView.classList.add('hidden');
+      groupView.classList.remove('hidden');
+      rowSpace.classList.add('hidden');
+      rowEditor.classList.add('hidden');
+      rowGroup.classList.remove('hidden');
+      renderGroupView();
+    }
+  }
+
+  function renderCrumbs() {
+    crumbs.innerHTML = '';
+    if (NAV.view === 'space') {
+      const c = document.createElement('div');
+      c.className = 'crumb current';
+      c.textContent = 'Твои убеждения';
+      crumbs.appendChild(c);
+      return;
+    }
+    const root = document.createElement('button');
+    root.className = 'crumb';
+    root.textContent = 'Твои убеждения';
+    root.addEventListener('click', closeEditor);
+    crumbs.appendChild(root);
+
+    if (NAV.beliefId) {
+      crumbs.appendChild(crumbSep());
+      const b = getBelief(NAV.beliefId);
+      const isBeliefCurrent = NAV.view === 'editor';
+      const cEl = document.createElement(isBeliefCurrent ? 'div' : 'button');
+      cEl.className = 'crumb' + (isBeliefCurrent ? ' current' : '');
+      cEl.textContent = b && b.text ? shortText(b.text, 16) : 'Убеждение';
+      if (!isBeliefCurrent) {
+        cEl.addEventListener('click', () => {
+          NAV.groupPath = [];
+          NAV.view = 'editor';
+          render();
+        });
+      }
+      crumbs.appendChild(cEl);
+    }
+
+    NAV.groupPath.forEach((gid, i) => {
+      crumbs.appendChild(crumbSep());
+      const g = findSymbolById(gid);
+      const isCur = i === NAV.groupPath.length - 1;
+      const cEl = document.createElement(isCur ? 'div' : 'button');
+      cEl.className = 'crumb' + (isCur ? ' current' : '');
+      cEl.textContent = g ? (g.char || g.word || '·') : '·';
+      if (!isCur) {
+        cEl.addEventListener('click', () => {
+          NAV.groupPath = NAV.groupPath.slice(0, i + 1);
+          render();
+        });
+      }
+      crumbs.appendChild(cEl);
+    });
+  }
+  function crumbSep() {
+    const s = document.createElement('span');
+    s.className = 'crumb-sep';
+    s.textContent = '/';
+    return s;
+  }
+
+  function renderField() {
+    fieldView.innerHTML = '';
+    const beliefs = Store.get().beliefs;
+    const totalSum = beliefs.reduce((s, b) => s + (b.weight || 1), 0);
+    updateUsage(Math.round(totalSum * 100));
+    const remaining = 1 - totalSum;
+    if (remaining < MIN_NEW_WEIGHT) {
+      addBeliefBtn.disabled = true;
+      addBeliefBtn.textContent = '🚫 Нет места';
+    } else {
+      addBeliefBtn.disabled = false;
+      addBeliefBtn.textContent = '+ Убеждение';
+    }
+    if (!beliefs.length) {
+      const e = document.createElement('div');
+      e.className = 'field-empty';
+      e.textContent = 'Пока нет убеждений.\nНажми «+ Убеждение», чтобы создать первое.\n\nНовое всегда ближе к тебе (ось Z).\nВес 1.00 — весь экран. Меньше — можно таскать.';
+      fieldView.appendChild(e);
+      return;
+    }
+    const fW = fieldView.clientWidth;
+    const fH = fieldView.clientHeight;
+    const availW = fW - FIELD_PAD * 2;
+    const availH = fH - FIELD_PAD * 2;
+    const total = beliefs.length;
+    beliefs.forEach((b, index) => {
+      const w = clamp(b.weight || 1, MIN_WEIGHT, 1);
+      const sq = Math.sqrt(w);
+      const width = Math.round(availW * sq);
+      const height = Math.round(availH * sq);
+      const maxX = Math.max(0, availW - width);
+      const maxY = Math.max(0, availH - height);
+      const x = clamp(b.x != null ? b.x : 0.5, 0, 1);
+      const y = clamp(b.y != null ? b.y : 0.5, 0, 1);
+      const left = FIELD_PAD + x * maxX;
+      const top = FIELD_PAD + y * maxY;
+      const z = computeZ(index, total);
+      const el = buildBeliefEl(b, width, height, w, z);
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.width = width + 'px';
+      el.style.height = height + 'px';
+      fieldView.appendChild(el);
+    });
+  }
+
+  function updateUsage(percent) {
+    if (percent <= 0) { usageIndicator.textContent = ''; return; }
+    usageIndicator.textContent = 'занято ' + percent + '%';
+    usageIndicator.style.color = percent > 100 ? '#ffb46f' : '#6b6b7b';
+  }
+
+  function buildBeliefEl(b, width, height, weight, z) {
+    const el = document.createElement('div');
+    el.className = 'belief';
+    el.dataset.beliefId = b.id;
+    el.dataset.z = String(z.toFixed(3));
+    const canDrag = weight < 0.99;
+    if (canDrag) el.classList.add('movable');
+    const hasContent = b.text && b.text.trim();
+    if (!hasContent) el.classList.add('empty');
+
+    const opacity = 0.55 + z * 0.45;
+    const scale = 0.94 + z * 0.06;
+    const brightness = 0.65 + z * 0.35;
+    const shadowBlur = 12 + z * 24;
+    const shadowY = 8 + z * 12;
+
+    el.style.zIndex = String(Math.round(z * 100));
+    el.style.opacity = String(opacity);
+    el.style.transform = 'scale(' + scale.toFixed(3) + ')';
+    el.style.filter = 'brightness(' + brightness.toFixed(2) + ')';
+    el.style.boxShadow =
+      '0 ' + shadowY.toFixed(0) + 'px ' + shadowBlur.toFixed(0) + 'px rgba(0,0,0,.55),' +
+      ' 0 0 0 1px rgba(111,168,255,' + (z * 0.25).toFixed(2) + '),' +
+      ' inset 0 1px 0 rgba(255,255,255,' + (0.04 + z * 0.08).toFixed(2) + ')';
+
+    const wEl = document.createElement('div');
+    wEl.className = 'belief-weight';
+    wEl.textContent = weight.toFixed(2);
+    el.appendChild(wEl);
+
+    const zEl = document.createElement('div');
+    zEl.className = 'belief-z';
+    zEl.textContent = 'z' + z.toFixed(2);
+    el.appendChild(zEl);
+
+    if (!hasContent) {
+      const t = document.createElement('div');
+      t.className = 'belief-empty-text';
+      t.textContent = 'открой и напиши';
+      el.appendChild(t);
+    } else {
+      const body = document.createElement('div');
+      body.className = 'belief-body';
+      const tokens = resolveTokens(b.text);
+      const visible = tokens.filter(t => t.type !== 'raw');
+      let fontSize = Math.min(width, height) * 0.35;
+      if (visible.length > 1) fontSize = fontSize / Math.sqrt(visible.length) * 1.4;
+      fontSize = clamp(fontSize, 14, 140);
+      body.style.setProperty('--bfont', fontSize + 'px');
+      visible.forEach(t => {
+        if (t.type === 'existing') {
+          const sym = findSymbolById(t.symbolId);
+          if (!sym) return;
+          const s = document.createElement('span');
+          s.className = 'belief-sym';
+          const ch = document.createElement('span');
+          ch.textContent = sym.char || '◌';
+          s.appendChild(ch);
+          if (isGroup(sym)) {
+            // ГРУППА — добавляем класс, обработчики, провал
+            s.classList.add('group');
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.textContent = String(sym.children.length);
+            s.appendChild(badge);
+            // клик — провал, стоп — чтобы карточка не открывала редактор
+            s.addEventListener('pointerdown', function (ev) {
+              ev.stopPropagation();
+            });
+            s.addEventListener('pointerup', function (ev) {
+              ev.stopPropagation();
+              enterGroup(sym.id);
+            });
+          }
+          if (wordsMode && sym.word) {
+            const w = document.createElement('span');
+            w.className = 'word';
+            w.textContent = sym.word;
+            s.appendChild(w);
+          }
+          body.appendChild(s);
+        } else if (t.type === 'new-emoji') {
+          const s = document.createElement('span');
+          s.className = 'belief-sym';
+          s.textContent = t.char;
+          s.style.opacity = '.5';
+          body.appendChild(s);
+        } else if (t.type === 'new-word') {
+          const s = document.createElement('span');
+          s.className = 'belief-sym';
+          const w = document.createElement('span');
+          w.className = 'word new';
+          w.style.fontSize = '0.6em';
+          w.style.display = 'inline-block';
+          w.textContent = t.word;
+          s.appendChild(w);
+          body.appendChild(s);
+        }
+      });
+      el.appendChild(body);
+    }
+
+    el.addEventListener('pointerdown', e => onBeliefPointerDown(e, b, el, weight));
+    return el;
+  }
+
+  function onBeliefPointerDown(e, belief, el, weight) {
+    if (beliefDrag) return;
+    if (e.button && e.button !== 0) return;
+    e.preventDefault();
+    const canDrag = weight < 0.99;
+    const startX = e.clientX, startY = e.clientY;
+    const startLeft = parseFloat(el.style.left) || 0;
+    const startTop = parseFloat(el.style.top) || 0;
+    const pointerId = e.pointerId;
+    let dragging = false;
+
+    if (canDrag) {
+      try { el.setPointerCapture(pointerId); } catch (err) {}
+      beliefDrag = { belief, el, pointerId, moved: false };
+    }
+
+    function onMove(ev) {
+      if (ev.pointerId !== pointerId) return;
+      if (!canDrag) return;
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      if (!dragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+        dragging = true;
+        el.classList.add('dragging');
+        el.classList.remove('tapped');
+      }
+      if (!dragging) return;
+      const fW = fieldView.clientWidth, fH = fieldView.clientHeight;
+      const availW = fW - FIELD_PAD * 2, availH = fH - FIELD_PAD * 2;
+      const w2 = el.offsetWidth, h2 = el.offsetHeight;
+      const maxX = Math.max(0, availW - w2), maxY = Math.max(0, availH - h2);
+      el.style.left = clamp(startLeft + dx, FIELD_PAD, FIELD_PAD + maxX) + 'px';
+      el.style.top = clamp(startTop + dy, FIELD_PAD, FIELD_PAD + maxY) + 'px';
+      ev.preventDefault();
+    }
+
+    function onUp(ev) {
+      if (ev.pointerId !== pointerId) return;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      el.classList.remove('dragging');
+      if (canDrag) beliefDrag = null;
+
+      if (dragging) {
+        const fW = fieldView.clientWidth, fH = fieldView.clientHeight;
+        const availW = fW - FIELD_PAD * 2, availH = fH - FIELD_PAD * 2;
+        const w2 = el.offsetWidth, h2 = el.offsetHeight;
+        const maxX = Math.max(1, availW - w2), maxY = Math.max(1, availH - h2);
+        const left = parseFloat(el.style.left) || 0, top = parseFloat(el.style.top) || 0;
+        updateBelief(belief.id, {
+          x: Number(clamp((left - FIELD_PAD) / maxX, 0, 1).toFixed(4)),
+          y: Number(clamp((top - FIELD_PAD) / maxY, 0, 1).toFixed(4))
+        });
+      } else {
+        el.classList.add('tapped');
+        setTimeout(() => el.classList.remove('tapped'), 180);
+        openEditor(belief.id);
+      }
+    }
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  }
+
+  function openEditor(beliefId) {
+    NAV.view = 'editor';
+    NAV.beliefId = beliefId;
+    NAV.groupPath = [];
+    currentBeliefId = beliefId;
+    render();
+  }
+  function closeEditor() {
+    NAV.view = 'space';
+    NAV.beliefId = null;
+    NAV.groupPath = [];
+    currentBeliefId = null;
+    render();
+  }
+
+  function enterGroup(symId) {
+    const sym = findSymbolById(symId);
+    if (!sym || !isGroup(sym)) return;
+    NAV.groupPath.push(symId);
+    NAV.view = 'group';
+    render();
+  }
+  function popGroup() {
+    if (NAV.groupPath.length > 1) {
+      NAV.groupPath.pop();
+      render();
+    } else {
+      NAV.groupPath = [];
+      if (NAV.beliefId) {
+        NAV.view = 'editor';
+      } else {
+        NAV.view = 'space';
+      }
+      render();
+    }
+  }
+
+  function renderGroupView() {
+    groupView.innerHTML = '';
+    const groupId = NAV.groupPath[NAV.groupPath.length - 1];
+    const group = findSymbolById(groupId);
+    if (!group) {
+      NAV.groupPath = [];
+      NAV.view = NAV.beliefId ? 'editor' : 'space';
+      render();
+      return;
+    }
+
+    const head = document.createElement('div');
+    head.className = 'group-header';
+    const ghEmoji = document.createElement('div');
+    ghEmoji.className = 'gh-emoji';
+    ghEmoji.textContent = group.char || '⋯';
+    head.appendChild(ghEmoji);
+    const ghInfo = document.createElement('div');
+    ghInfo.className = 'gh-info';
+    const ghWord = document.createElement('div');
+    ghWord.className = 'gh-word' + (group.word ? '' : ' empty');
+    ghWord.textContent = group.word || 'без названия';
+    ghInfo.appendChild(ghWord);
+    const cnt = (group.children || []).length;
+    const ghSub = document.createElement('div');
+    ghSub.className = 'gh-sub';
+    ghSub.textContent = cnt + ' ' + plural(cnt, 'элемент', 'элемента', 'элементов') + ' · вес ' + symbolWeight(group);
+    ghInfo.appendChild(ghSub);
+    head.appendChild(ghInfo);
+    const ghArrow = document.createElement('div');
+    ghArrow.className = 'gh-arrow';
+    ghArrow.textContent = '✏️';
+    head.appendChild(ghArrow);
+    head.addEventListener('click', () => openCardModal(groupId));
+    groupView.appendChild(head);
+
+    const kids = (group.children || []).map(findSymbolById).filter(Boolean);
+    const tiles = document.createElement('div');
+    tiles.className = 'group-tiles';
+    kids.forEach(k => tiles.appendChild(buildGroupTile(k)));
+    tiles.appendChild(buildGroupAddTile(groupId));
+    groupView.appendChild(tiles);
+
+    if (!kids.length) {
+      const empty = document.createElement('div');
+      empty.className = 'group-empty';
+      empty.textContent = 'Внутри пусто — нажми «＋», чтобы добавить символ.';
+      groupView.appendChild(empty);
+    }
+  }
+
+  function buildGroupTile(sym) {
+    const tile = document.createElement('div');
+    const isGrp = isGroup(sym);
+    tile.className = 'tile' + (isGrp ? ' group' : '');
+    if (isGrp) tile.dataset.count = String(sym.children.length);
+
+    const em = document.createElement('div');
+    em.className = 't-emoji';
+    em.textContent = sym.char || '◌';
+    tile.appendChild(em);
+
+    const w = document.createElement('div');
+    w.className = 't-word' + (sym.word ? '' : ' empty');
+    w.textContent = sym.word || '—';
+    tile.appendChild(w);
+
+    tile.addEventListener('click', () => {
+      if (isGrp) enterGroup(sym.id);
+      else openCardModal(sym.id);
+    });
+    return tile;
+  }
+
+  function buildGroupAddTile(parentId) {
+    const btn = document.createElement('button');
+    btn.className = 'add-tile';
+    btn.textContent = '＋';
+    btn.addEventListener('click', () => openPicker(parentId));
+    return btn;
+  }
+
+  function renderEditor() {
+    const b = getBelief(currentBeliefId);
+    if (!b) { closeEditor(); return; }
+    editorText.value = b.text || '';
+    editorDate.textContent = formatDate(b.created);
+    const otherSum = getBeliefsSum(currentBeliefId);
+    const maxWeight = Math.max(MIN_WEIGHT, Math.min(1, 1 - otherSum));
+    const slider = document.getElementById('propWeight');
+    slider.max = String(maxWeight.toFixed(2));
+    slider.min = String(MIN_WEIGHT);
+    const curWeight = clamp(b.weight || 1, MIN_WEIGHT, maxWeight);
+    slider.value = String(curWeight);
+    document.getElementById('propWeightVal').textContent = curWeight.toFixed(2);
+    const info = document.getElementById('weightLimitInfo');
+    info.textContent = maxWeight < 1 ? 'макс ' + maxWeight.toFixed(2) : '';
+    renderPreview();
+  }
+
+  function renderPreview() {
+    editorPreview.innerHTML = '';
+    const text = editorText.value;
+    if (!text.trim()) {
+      const e = document.createElement('span');
+      e.className = 'empty'; e.textContent = 'Здесь появятся символы…';
+      editorPreview.appendChild(e);
+      editorMeta.textContent = '0 символов';
+      return;
+    }
+    const tokens = resolveTokens(text);
+    let count = 0;
+    tokens.forEach(t => {
+      if (t.type !== 'raw') count++;
+      editorPreview.appendChild(buildTokenEl(t));
+    });
+    editorMeta.textContent = count + ' ' + plural(count, 'символ', 'символа', 'символов');
+  }
+
+  function buildTokenEl(t) {
+    if (t.type === 'raw') {
+      const s = document.createElement('span');
+      s.textContent = t.text;
+      s.style.color = '#8890a0';
+      return s;
+    }
+    if (t.type === 'new-emoji' || t.type === 'new-word') {
+      const c = document.createElement('span');
+      c.className = 'chip new';
+      const q = document.createElement('span'); q.className = 'q'; q.textContent = '?';
+      c.appendChild(q);
+      const ch = document.createElement('span');
+      ch.textContent = t.type === 'new-emoji' ? t.char : t.word;
+      c.appendChild(ch);
+      c.dataset.tokenType = t.type;
+      c.dataset.tokenText = t.text;
+      c.addEventListener('click', () => {
+        if (chipDrag && chipDrag.moved) return;
+        if (t.type === 'new-emoji') openSymModal({ kind: 'emoji', char: t.char });
+        else openSymModal({ kind: 'word', word: t.word });
+      });
+      c.addEventListener('pointerdown', e => onChipPointerDown(e, c, t));
+      return c;
+    }
+    if (t.type === 'existing') {
+      const sym = findSymbolById(t.symbolId);
+      if (!sym) { const s = document.createElement('span'); s.textContent = t.text; return s; }
+      const c = document.createElement('span');
+      const isGrp = isGroup(sym);
+      c.className = 'chip sym' + (isGrp ? ' group' : '');
+      if (isGrp) {
+        c.dataset.count = String(sym.children.length);
+        if (groupsExpanded) c.classList.add('expanded');
+      }
+      const ch = document.createElement('span'); ch.textContent = sym.char || '◌';
+      c.appendChild(ch);
+      if (sym.word) {
+        const w = document.createElement('span'); w.className = 'w'; w.textContent = sym.word;
+        c.appendChild(w);
+      }
+      if (isGrp && groupsExpanded) {
+        const inline = document.createElement('span');
+        inline.className = 'children-inline';
+        sym.children.forEach(cid => {
+          const k = findSymbolById(cid);
+          if (!k) return;
+          const ic = document.createElement('span');
+          ic.className = 'child';
+          ic.textContent = k.char || '◌';
+          inline.appendChild(ic);
+        });
+        c.appendChild(inline);
+      }
+      c.dataset.symbolId = sym.id;
+      c.dataset.tokenText = t.text;
+      c.addEventListener('click', () => {
+        if (chipDrag && chipDrag.moved) return;
+        if (isGrp) enterGroup(sym.id);
+        else openCardModal(sym.id);
+      });
+      c.addEventListener('pointerdown', e => onChipPointerDown(e, c, t));
+      return c;
+    }
+    const s = document.createElement('span');
+    s.textContent = t.text || '';
+    return s;
+  }
+
+  editorText.addEventListener('input', () => {
+    if (!currentBeliefId) return;
+    updateBelief(currentBeliefId, { text: editorText.value });
+    renderPreview();
+  });
+
+  document.getElementById('propWeight').addEventListener('input', function () {
+    const v = parseFloat(this.value);
+    document.getElementById('propWeightVal').textContent = v.toFixed(2);
+    if (!currentBeliefId) return;
+    updateBelief(currentBeliefId, { weight: v });
+  });
+
+  function onChipPointerDown(e, chipEl, token) {
+    if (chipDrag) return;
+    if (e.button && e.button !== 0) return;
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    const pointerId = e.pointerId;
+    let dragging = false, ghost = null, dropTarget = null, gapMarker = null;
+    let offX = 0, offY = 0;
+
+    function onMove(ev) {
+      if (ev.pointerId !== pointerId) return;
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      if (!dragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+        dragging = true;
+        const rect = chipEl.getBoundingClientRect();
+        offX = startX - rect.left; offY = startY - rect.top;
+        ghost = chipEl.cloneNode(true);
+        ghost.style.position = 'fixed';
+        ghost.style.zIndex = '9999';
+        ghost.style.pointerEvents = 'none';
+        ghost.style.opacity = '.9';
+        ghost.style.transform = 'scale(1.08)';
+        ghost.style.boxShadow = '0 12px 32px rgba(0,0,0,.7), 0 0 0 2px #6fa8ff';
+        ghost.style.borderRadius = '12px';
+        ghost.style.background = '#14141c';
+        ghost.style.width = rect.width + 'px';
+        ghost.style.height = rect.height + 'px';
+        ghost.style.left = rect.left + 'px';
+        ghost.style.top = rect.top + 'px';
+        document.body.appendChild(ghost);
+        chipEl.classList.add('dragging');
+        chipDrag = { active: true, moved: false };
+      }
+      if (!dragging) return;
+      chipDrag.moved = true;
+      ghost.style.left = (ev.clientX - offX) + 'px';
+      ghost.style.top = (ev.clientY - offY) + 'px';
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      const tgt = under ? under.closest('.chip') : null;
+      if (gapMarker && gapMarker.parentNode) gapMarker.remove();
+      gapMarker = null;
+      if (tgt && tgt !== chipEl) {
+        if (dropTarget !== tgt) {
+          if (dropTarget) dropTarget.classList.remove('drop-target');
+          dropTarget = tgt;
+          dropTarget.classList.add('drop-target');
+        }
+      } else {
+        if (dropTarget) { dropTarget.classList.remove('drop-target'); dropTarget = null; }
+        const gapIdx = findGapIndex(editorPreview, ev.clientX, ev.clientY, chipEl);
+        if (gapIdx !== -1) {
+          gapMarker = document.createElement('div');
+          gapMarker.className = 'gap-marker';
+          const chips = Array.from(editorPreview.querySelectorAll('.chip')).filter(c => c !== chipEl);
+          if (gapIdx < chips.length) editorPreview.insertBefore(gapMarker, chips[gapIdx]);
+          else editorPreview.appendChild(gapMarker);
+        }
+      }
+      ev.preventDefault();
+    }
+
+    function onUp(ev) {
+      if (ev.pointerId !== pointerId) return;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      if (!dragging) { chipDrag = null; return; }
+      if (ghost) ghost.remove();
+      chipEl.classList.remove('dragging');
+      if (dropTarget) {
+        dropTarget.classList.remove('drop-target');
+        const targetText = dropTarget.dataset.tokenText;
+        const targetSymbolId = dropTarget.dataset.symbolId;
+        if (targetText && targetText !== token.text) {
+          setTimeout(() => openMergeDialog(token, { text: targetText, symbolId: targetSymbolId }), 10);
+        }
+        setTimeout(() => { chipDrag = null; }, 20);
+        return;
+      }
+      if (gapMarker && gapMarker.parentNode) {
+        gapMarker.parentNode.replaceChild(chipEl, gapMarker);
+        const chipEls = Array.from(editorPreview.querySelectorAll('.chip'));
+        const finalText = chipEls.map(c => c.dataset.tokenText).filter(Boolean).join(' ');
+        if (currentBeliefId) {
+          updateBelief(currentBeliefId, { text: finalText });
+          editorText.value = finalText;
+          renderPreview();
+        }
+        setTimeout(() => { chipDrag = null; }, 20);
+        return;
+      }
+      setTimeout(() => { chipDrag = null; }, 20);
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  }
+
+  function findGapIndex(container, clientX, clientY, excludeEl) {
+    const chips = Array.from(container.querySelectorAll('.chip')).filter(c => c !== excludeEl);
+    if (!chips.length) return 0;
+    const contRect = container.getBoundingClientRect();
+    if (clientY < contRect.top - 40 || clientY > contRect.bottom + 40) return -1;
+    let bestIdx = 0, bestDist = Infinity;
+    for (let i = 0; i <= chips.length; i++) {
+      let gx, gy;
+      if (i === 0) { const r = chips[0].getBoundingClientRect(); gx = r.left; gy = r.top + r.height/2; }
+      else if (i === chips.length) { const r = chips[chips.length-1].getBoundingClientRect(); gx = r.right; gy = r.top + r.height/2; }
+      else {
+        const r1 = chips[i-1].getBoundingClientRect();
+        const r2 = chips[i].getBoundingClientRect();
+        gx = (r1.right + r2.left)/2;
+        gy = (r1.top + r1.height/2 + r2.top + r2.height/2)/2;
+      }
+      const d = Math.hypot(gx - clientX, gy - clientY);
+      if (d < bestDist) { bestDist = d; bestIdx = i; }
+    }
+    return bestDist > 200 ? -1 : bestIdx;
+  }
+
+  expandGroupsBtn.addEventListener('click', () => {
+    groupsExpanded = !groupsExpanded;
+    expandGroupsBtn.textContent = groupsExpanded ? '⊟ свернуть' : '⊞ развернуть';
+    expandGroupsBtn.classList.toggle('on', groupsExpanded);
+    renderPreview();
+  });
+
+  const symModal = document.getElementById('symModal');
+  let symContext = null;
+
+  function openSymModal(ctx) {
+    symContext = ctx;
+    document.getElementById('symErr').textContent = '';
+    const charIn = document.getElementById('symChar');
+    const wordIn = document.getElementById('symWord');
+    const title = document.getElementById('symTitle');
+    charIn.classList.remove('error');
+    charIn.disabled = false;
+    wordIn.disabled = false;
+    if (ctx.kind === 'emoji') {
+      title.textContent = 'Новый смайл';
+      charIn.value = ctx.char;
+      charIn.disabled = true;
+      wordIn.value = '';
+      wordIn.focus();
+    } else {
+      title.textContent = 'Новое слово';
+      charIn.value = '';
+      wordIn.value = ctx.word;
+      wordIn.disabled = true;
+      charIn.focus();
+    }
+    symModal.classList.remove('hidden');
+  }
+  function saveSym() {
+    if (!symContext) return;
+    const charIn = document.getElementById('symChar');
+    const wordIn = document.getElementById('symWord');
+    const err = document.getElementById('symErr');
+    let char, word;
+    if (symContext.kind === 'emoji') {
+      char = symContext.char;
+      word = wordIn.value.trim();
+    } else {
+      char = charIn.value.trim();
+      word = symContext.word;
+      if (!char) { err.textContent = 'Нужен смайл'; charIn.classList.add('error'); setTimeout(() => charIn.classList.remove('error'), 400); return; }
+      if (!isEmojiOnly(char)) { err.textContent = 'Только смайлы'; charIn.classList.add('error'); setTimeout(() => charIn.classList.remove('error'), 400); return; }
+    }
+    addSymbol(char, word);
+    charIn.disabled = false; wordIn.disabled = false;
+    symModal.classList.add('hidden');
+    renderPreview();
+  }
+  document.getElementById('symCancel').addEventListener('click', () => {
+    document.getElementById('symChar').disabled = false;
+    document.getElementById('symWord').disabled = false;
+    symModal.classList.add('hidden');
+  });
+  document.getElementById('symSave').addEventListener('click', saveSym);
+  document.getElementById('symChar').addEventListener('input', function () {
+    if (this.disabled) return;
+    const err = document.getElementById('symErr');
+    if (!this.value.trim()) { err.textContent = ''; return; }
+    err.textContent = isEmojiOnly(this.value) ? '' : 'Только смайлы';
+  });
+  document.getElementById('symChar').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveSym(); } });
+  document.getElementById('symWord').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveSym(); } });
+
+  const cardModal = document.getElementById('cardModal');
+
+  function openCardModal(symbolId, pushStack) {
+    const s = findSymbolById(symbolId);
+    if (!s) return;
+    if (pushStack !== false) {
+      if (cardStack.length === 0 || cardStack[cardStack.length - 1] !== symbolId) {
+        cardStack.push(symbolId);
+      }
+    }
+    cardDraft = {
+      id: s.id,
+      char: s.char,
+      word: s.word,
+      description: s.description || '',
+      tags: (s.tags || []).slice(),
+      props: Object.assign({ color: '#6fa8ff', size: 1 }, s.props || {})
+    };
+    renderCard();
+    cardModal.classList.remove('hidden');
+  }
+
+  function renderCard() {
+    if (!cardDraft) return;
+    const crumbsEl = document.getElementById('cardCrumbs');
+    crumbsEl.innerHTML = '';
+    cardStack.forEach((sid, i) => {
+      const sym = findSymbolById(sid);
+      if (!sym) return;
+      if (i > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'mcrumb-sep';
+        sep.textContent = '/';
+        crumbsEl.appendChild(sep);
+      }
+      const isCurrent = i === cardStack.length - 1;
+      const c = document.createElement(isCurrent ? 'div' : 'button');
+      c.className = 'mcrumb' + (isCurrent ? ' current' : '');
+      c.textContent = sym.char || sym.word || '·';
+      if (!isCurrent) {
+        c.addEventListener('click', () => {
+          cardStack = cardStack.slice(0, i + 1);
+          openCardModal(cardStack[cardStack.length - 1], false);
+        });
+      }
+      crumbsEl.appendChild(c);
+    });
+
+    const bigEl = document.getElementById('cardBig');
+    bigEl.textContent = cardDraft.char || '◌';
+    const sym = findSymbolById(cardDraft.id);
+    bigEl.classList.toggle('group', sym && (sym.children || []).length > 0);
+
+    document.getElementById('cardChar').value = cardDraft.char || '';
+    document.getElementById('cardWord').value = cardDraft.word || '';
+    document.getElementById('cardDesc').value = cardDraft.description || '';
+    document.getElementById('cardTags').value = cardDraft.tags.join(', ');
+    document.getElementById('cardColor').value = cardDraft.props.color || '#6fa8ff';
+    document.getElementById('cardSize').value = cardDraft.props.size || 1;
+    document.getElementById('cardErr').textContent = '';
+
+    const enterBtn = document.getElementById('cardEnter');
+    if (sym && isGroup(sym)) {
+      enterBtn.classList.remove('hidden');
+      enterBtn.onclick = () => {
+        cardModal.classList.add('hidden');
+        cardStack = [];
+        cardDraft = null;
+        enterGroup(sym.id);
+      };
+    } else {
+      enterBtn.classList.add('hidden');
+      enterBtn.onclick = null;
+    }
+
+    renderCardTagsLine();
+    renderCardChildren();
+  }
+
+  function renderCardTagsLine() {
+    const line = document.getElementById('cardTagsLine');
+    line.innerHTML = '';
+    cardDraft.tags.forEach((tag, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-chip';
+      chip.appendChild(document.createTextNode('#' + tag));
+      const x = document.createElement('span');
+      x.className = 'x'; x.textContent = '×';
+      x.addEventListener('click', () => {
+        cardDraft.tags.splice(i, 1);
+        document.getElementById('cardTags').value = cardDraft.tags.join(', ');
+        renderCardTagsLine();
+      });
+      chip.appendChild(x);
+      line.appendChild(chip);
+    });
+  }
+
+  function renderCardChildren() {
+    const wrap = document.getElementById('cardChildren');
+    wrap.innerHTML = '';
+    const sym = findSymbolById(cardDraft.id);
+    if (!sym) return;
+    const kids = (sym.children || []).map(findSymbolById).filter(Boolean);
+    kids.forEach(k => {
+      const chip = document.createElement('button');
+      chip.className = 'mini-chip';
+      chip.textContent = k.char || k.word || '◌';
+      if (isGroup(k)) {
+        const cnt = document.createElement('span');
+        cnt.style.cssText = 'font-size:10px;background:#6fa8ff;color:#06111f;padding:1px 5px;border-radius:6px;margin-left:4px;font-weight:700;';
+        cnt.textContent = String(k.children.length);
+        chip.appendChild(cnt);
+      }
+      const x = document.createElement('span');
+      x.className = 'x'; x.textContent = '×';
+      x.addEventListener('click', e => {
+        e.stopPropagation();
+        sym.children = sym.children.filter(cid => cid !== k.id);
+        Store.save();
+        renderCardChildren();
+        renderPreview();
+      });
+      chip.appendChild(x);
+      chip.addEventListener('click', () => { openCardModal(k.id); });
+      wrap.appendChild(chip);
+    });
+    const addBtn = document.createElement('button');
+    addBtn.className = 'mini-chip add';
+    addBtn.textContent = '+ добавить';
+    addBtn.addEventListener('click', () => {
+      const pid = cardDraft.id;
+      cardModal.classList.add('hidden');
+      setTimeout(() => openPicker(pid, () => openCardModal(pid, false)), 60);
+    });
+    wrap.appendChild(addBtn);
+  }
+
+  document.getElementById('cardChar').addEventListener('input', function () {
+    cardDraft.char = this.value.trim();
+    document.getElementById('cardBig').textContent = cardDraft.char || '◌';
+  });
+  document.getElementById('cardTags').addEventListener('input', function () {
+    cardDraft.tags = this.value.split(',').map(t => t.trim()).filter(Boolean);
+    renderCardTagsLine();
+  });
+
+  document.getElementById('cardClose').addEventListener('click', () => {
+    cardModal.classList.add('hidden');
+    cardStack = [];
+    cardDraft = null;
+  });
+
+  document.getElementById('cardSave').addEventListener('click', () => {
+    const sym = findSymbolById(cardDraft.id);
+    if (!sym) return;
+    const char = cardDraft.char.trim();
+    if (char && !isEmojiOnly(char)) {
+      document.getElementById('cardErr').textContent = 'Только смайлы';
+      return;
+    }
+    if (char && char !== sym.char) {
+      const exist = findSymbolByChar(char);
+      if (exist && exist.id !== sym.id) {
+        document.getElementById('cardErr').textContent = 'Такой смайл уже есть в базе';
+        return;
+      }
+    }
+    sym.char = char;
+    sym.word = document.getElementById('cardWord').value.trim();
+    sym.description = document.getElementById('cardDesc').value.trim();
+    sym.tags = cardDraft.tags.slice();
+    sym.props = {
+      color: document.getElementById('cardColor').value,
+      size: parseFloat(document.getElementById('cardSize').value) || 1
+    };
+    Store.save();
+    cardModal.classList.add('hidden');
+    cardStack = [];
+    cardDraft = null;
+    render();
+    toast('Сохранено');
+  });
+
+  document.getElementById('cardDelete').addEventListener('click', () => {
+    const sym = findSymbolById(cardDraft.id);
+    if (!sym) return;
+    cardModal.classList.add('hidden');
+    askConfirm('Удалить символ?', (sym.char || '◌') + (sym.word ? ' : ' + sym.word : '') + ' будет удалён из базы.', () => {
+      deleteSymbol(sym.id);
+      cardStack = [];
+      cardDraft = null;
+      render();
+      toast('Удалено');
+    });
+  });
+
+  const mergeModal = document.getElementById('mergeModal');
+  function openMergeDialog(tokenA, tokenB) {
+    const a = tokenA.symbolId ? findSymbolById(tokenA.symbolId) : null;
+    const b = tokenB.symbolId ? findSymbolById(tokenB.symbolId) : null;
+    const aChar = a ? (a.char || a.word || '·') : (tokenA.char || tokenA.word || tokenA.text);
+    const bChar = b ? (b.char || b.word || '·') : (tokenB.char || tokenB.word || tokenB.text);
+    mergeCtx = {
+      aText: tokenA.text, bText: tokenB.text,
+      aSymbolId: tokenA.symbolId || null, bSymbolId: tokenB.symbolId || null,
+      aType: tokenA.type, bType: tokenB.type,
+      aChar: a ? a.char : tokenA.char, bChar: b ? b.char : tokenB.char,
+      aWord: a ? a.word : tokenA.word, bWord: b ? b.word : tokenB.word
+    };
+    document.getElementById('mergePreview').textContent = aChar + ' + ' + bChar + ' → 🆕';
+    document.getElementById('mergeWord').value = '';
+    document.getElementById('mergeChar').value = '';
+    document.getElementById('mergeErr').textContent = '';
+    const aW = a ? (a.word || a.char) : (tokenA.word || tokenA.char || '');
+    const bW = b ? (b.word || b.char) : (tokenB.word || tokenB.char || '');
+    if (aW && bW) document.getElementById('mergeWord').value = (aW + ' ' + bW).trim();
+    mergeModal.classList.remove('hidden');
+    setTimeout(() => document.getElementById('mergeWord').focus(), 200);
+  }
+  document.getElementById('mergeCancel').addEventListener('click', () => { mergeModal.classList.add('hidden'); mergeCtx = null; });
+  document.getElementById('mergeChar').addEventListener('input', function () {
+    if (!mergeCtx) return;
+    const aDisp = mergeCtx.aChar || mergeCtx.aText;
+    const bDisp = mergeCtx.bChar || mergeCtx.bText;
+    const v = this.value.trim();
+    document.getElementById('mergePreview').textContent = aDisp + ' + ' + bDisp + ' → ' + (v || '🆕');
+  });
+
+  function ensureSymbolFromToken(token, symbolId, char, word) {
+    if (symbolId) { const s = findSymbolById(symbolId); if (s) return s; }
+    if (char) {
+      const s = findSymbolByChar(char);
+      if (s) { if (word && !s.word) { s.word = word; Store.save(); } return s; }
+      const created = { id: uid(), char, word: word || '', description:'', tags:[], props:{}, children: [], created: nowIso() };
+      Store.get().symbols.push(created);
+      Store.save();
+      return created;
+    }
+    if (word) {
+      const s = findSymbolByWord(word);
+      if (s) return s;
+      const created = { id: uid(), char: '', word, description:'', tags:[], props:{}, children: [], created: nowIso() };
+      Store.get().symbols.push(created);
+      Store.save();
+      return created;
+    }
+    return null;
+  }
+
+  document.getElementById('mergeSave').addEventListener('click', () => {
+    if (!mergeCtx) return;
+    const charIn = document.getElementById('mergeChar');
+    const wordIn = document.getElementById('mergeWord');
+    const errEl = document.getElementById('mergeErr');
+    const groupChar = charIn.value.trim();
+    const groupWord = wordIn.value.trim();
+    if (groupChar && !isEmojiOnly(groupChar)) {
+      errEl.textContent = 'Только смайлы';
+      charIn.classList.add('error');
+      setTimeout(() => charIn.classList.remove('error'), 400);
+      return;
+    }
+    const symA = ensureSymbolFromToken({ type: mergeCtx.aType }, mergeCtx.aSymbolId, mergeCtx.aChar, mergeCtx.aWord);
+    const symB = ensureSymbolFromToken({ type: mergeCtx.bType }, mergeCtx.bSymbolId, mergeCtx.bChar, mergeCtx.bWord);
+    if (!symA || !symB) { errEl.textContent = 'Не удалось объединить'; return; }
+    let finalWord = groupWord;
+    if (!finalWord) {
+      const aW = symA.word || symA.char || '';
+      const bW = symB.word || symB.char || '';
+      finalWord = (aW + ' ' + bW).trim();
+    }
+    let group = groupChar ? findSymbolByChar(groupChar) : null;
+    if (group && !isGroup(group) && group.id !== symA.id && group.id !== symB.id) {
+      group.children = group.children || [];
+      if (group.children.indexOf(symA.id) === -1) group.children.push(symA.id);
+      if (group.children.indexOf(symB.id) === -1) group.children.push(symB.id);
+      if (finalWord && !group.word) group.word = finalWord;
+    } else if (!group) {
+      group = { id: uid(), char: groupChar, word: finalWord, description:'', tags:[], props:{}, children: [], created: nowIso() };
+      group.children.push(symA.id);
+      group.children.push(symB.id);
+      Store.get().symbols.push(group);
+    }
+    Store.save();
+    let text = editorText.value;
+    const aText = mergeCtx.aText, bText = mergeCtx.bText;
+    const idxA = text.indexOf(aText), idxB = text.indexOf(bText);
+    const groupDisplay = groupChar || finalWord || '🆕';
+    if (idxA !== -1 && idxB !== -1 && idxA !== idxB) {
+      const firstIdx = Math.min(idxA, idxB);
+      const secondIdx = Math.max(idxA, idxB);
+      const firstText = idxA < idxB ? aText : bText;
+      const secondText = idxA < idxB ? bText : aText;
+      const firstEnd = firstIdx + firstText.length;
+      const secondEnd = secondIdx + secondText.length;
+      text = text.slice(0, secondIdx) + text.slice(secondEnd);
+      text = text.slice(0, firstIdx) + groupDisplay + text.slice(firstEnd);
+    } else if (idxA !== -1) {
+      text = text.slice(0, idxA) + groupDisplay + text.slice(idxA + aText.length);
+    } else if (idxB !== -1) {
+      text = text.slice(0, idxB) + groupDisplay + text.slice(idxB + bText.length);
+    } else {
+      text = (text.trim() + ' ' + groupDisplay).trim();
+    }
+    if (currentBeliefId) {
+      updateBelief(currentBeliefId, { text: text.trim() });
+      editorText.value = text.trim();
+    }
+    mergeModal.classList.add('hidden');
+    mergeCtx = null;
+    renderPreview();
+    toast('Группа создана');
+  });
+
+  document.getElementById('dictBtn').addEventListener('click', () => {
+    const list = document.getElementById('dictList');
+    list.innerHTML = '';
+    const syms = findAllSymbols().slice().sort((a, b) => String(b.created).localeCompare(String(a.created)));
+    if (!syms.length) {
+      const n = document.createElement('div');
+      n.style.cssText = 'color:#6b6b7b;font-size:14px;padding:10px 0;';
+      n.textContent = 'Словарь пуст. Пиши слова в редакторе.';
+      list.appendChild(n);
+    } else {
+      syms.forEach(s => {
+        const chip = document.createElement('button');
+        chip.className = 'mini-chip';
+        chip.textContent = s.char || '◌';
+        if (s.word) {
+          const w = document.createElement('span');
+          w.style.cssText = 'font-size:13px;color:#6fa8ff;margin-left:4px;';
+          w.textContent = ':' + s.word;
+          chip.appendChild(w);
+        }
+        if (s.children && s.children.length) {
+          const cnt = document.createElement('span');
+          cnt.style.cssText = 'font-size:10px;background:#6fa8ff;color:#06111f;padding:1px 5px;border-radius:6px;margin-left:4px;font-weight:700;';
+          cnt.textContent = String(s.children.length);
+          chip.appendChild(cnt);
+        }
+        chip.addEventListener('click', () => {
+          document.getElementById('dictModal').classList.add('hidden');
+          setTimeout(() => {
+            if (isGroup(s)) {
+              NAV.beliefId = null;
+              NAV.groupPath = [s.id];
+              NAV.view = 'group';
+              render();
+            } else {
+              openCardModal(s.id);
+            }
+          }, 60);
+        });
+        list.appendChild(chip);
+      });
+    }
+    document.getElementById('dictModal').classList.remove('hidden');
+  });
+  document.getElementById('dictClose').addEventListener('click', () => document.getElementById('dictModal').classList.add('hidden'));
+
+  const pickerModal = document.getElementById('pickerModal');
+
+  function openPicker(parentId, onDone) {
+    pickerParentId = parentId;
+    pickerOnDone = onDone;
+    document.getElementById('pickerChar').value = '';
+    document.getElementById('pickerWord').value = '';
+    renderPickerList();
+    pickerModal.classList.remove('hidden');
+  }
+
+  function renderPickerList() {
+    const list = document.getElementById('pickerList');
+    list.innerHTML = '';
+    const parent = findSymbolById(pickerParentId);
+    if (!parent) return;
+
+    const excl = new Set([pickerParentId]);
+    const q = [pickerParentId];
+    while (q.length) {
+      const cur = findSymbolById(q.shift());
+      if (!cur) continue;
+      (cur.children || []).forEach(cid => { if (!excl.has(cid)) { excl.add(cid); q.push(cid); } });
+    }
+    const current = new Set(parent.children || []);
+    const all = findAllSymbols().filter(s => !excl.has(s.id) && !current.has(s.id));
+
+    if (!all.length) {
+      const n = document.createElement('div');
+      n.style.cssText = 'color:#6b6b7b;font-size:13px;padding:20px 0;text-align:center;line-height:1.5;';
+      n.textContent = 'Больше нет свободных символов.\nСоздай новый через поле сверху.';
+      list.appendChild(n);
+    } else {
+      all.forEach(s => {
+        const row = document.createElement('button');
+        row.className = 'picker-row';
+        const sym = document.createElement('span'); sym.className = 'picker-sym'; sym.textContent = s.char || '◌';
+        row.appendChild(sym);
+        const info = document.createElement('div');
+        info.style.cssText = 'flex:1;min-width:0;';
+        const nm = document.createElement('div');
+        nm.className = 'picker-name' + (s.word ? '' : ' empty');
+        nm.textContent = s.word || '—';
+        info.appendChild(nm);
+        if (isGroup(s)) {
+          const sub = document.createElement('div');
+          sub.className = 'picker-sub';
+          sub.textContent = 'группа · ' + s.children.length;
+          info.appendChild(sub);
+        }
+        row.appendChild(info);
+        row.addEventListener('click', () => {
+          if (!parent.children) parent.children = [];
+          if (parent.children.indexOf(s.id) === -1) parent.children.push(s.id);
+          Store.save();
+          pickerModal.classList.add('hidden');
+          if (typeof pickerOnDone === 'function') pickerOnDone();
+          else render();
+        });
+        list.appendChild(row);
+      });
+    }
+  }
+
+  document.getElementById('pickerCancel').addEventListener('click', () => {
+    pickerModal.classList.add('hidden');
+    if (typeof pickerOnDone === 'function') pickerOnDone();
+    else render();
+  });
+
+  document.getElementById('pickerCreateBtn').addEventListener('click', () => {
+    const char = document.getElementById('pickerChar').value.trim();
+    const word = document.getElementById('pickerWord').value.trim();
+    if (!char || !isEmojiOnly(char)) { toast('Только смайлы'); return; }
+    const sym = addSymbol(char, word);
+    if (!sym) { toast('Не удалось создать'); return; }
+    const parent = findSymbolById(pickerParentId);
+    if (parent) {
+      if (!parent.children) parent.children = [];
+      if (parent.children.indexOf(sym.id) === -1) parent.children.push(sym.id);
+      Store.save();
+    }
+    document.getElementById('pickerChar').value = '';
+    document.getElementById('pickerWord').value = '';
+    renderPickerList();
+    toast('Создан и добавлен');
+  });
+  document.getElementById('pickerChar').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('pickerWord').focus(); }
+  });
+  document.getElementById('pickerWord').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('pickerCreateBtn').click(); }
+  });
+
+  function buildSymbolTree(symbolId) {
+    const s = findSymbolById(symbolId);
+    if (!s) return null;
+    const node = {
+      id: s.id,
+      type: isGroup(s) ? 'group' : 'symbol',
+      char: s.char || '',
+      word: s.word || '',
+      description: s.description || '',
+      tags: s.tags || [],
+      props: s.props || {},
+      weight: symbolWeight(s),
+      children: []
+    };
+    if (isGroup(s)) {
+      s.children.forEach(cid => {
+        const child = buildSymbolTree(cid);
+        if (child) node.children.push(child);
+      });
+    }
+    return node;
+  }
+  function buildExportJson() {
+    return {
+      version: '1.0',
+      app: 'Твои убеждения',
+      exported: nowIso(),
+      schema: {
+        symbol: 'эмодзи + слово, может быть группой',
+        belief: 'убеждение — текст + вес + позиция'
+      },
+      beliefs: Store.get().beliefs.map(b => ({
+        id: b.id,
+        text: b.text || '',
+        weight: b.weight || 1,
+        position: { x: b.x || 0.5, y: b.y || 0.5 },
+        created: b.created,
+        items: resolveTokens(b.text).filter(t => t.type === 'existing').map(t => buildSymbolTree(t.symbolId)).filter(Boolean)
+      })),
+      symbols: Store.get().symbols.map(s => ({
+        id: s.id,
+        char: s.char || '',
+        word: s.word || '',
+        description: s.description || '',
+        tags: s.tags || [],
+        props: s.props || {},
+        children: (s.children || []).slice(),
+        weight: symbolWeight(s)
+      }))
+    };
+  }
+  function buildExportText() {
+    const lines = [];
+    Store.get().beliefs.forEach(b => {
+      const row = [];
+      resolveTokens(b.text).forEach(t => {
+        if (t.type === 'existing') {
+          const s = findSymbolById(t.symbolId);
+          if (s) row.push(s.char + (s.word ? ':' + s.word : ''));
+        }
+      });
+      if (row.length) lines.push(row.join(' '));
+    });
+    return lines.join('\n');
+  }
+  const exportModal = document.getElementById('exportModal');
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    updateExportText();
+    exportModal.classList.remove('hidden');
+  });
+  document.getElementById('exportTabJson').addEventListener('click', () => {
+    exportMode = 'json';
+    document.getElementById('exportTabJson').classList.add('on');
+    document.getElementById('exportTabText').classList.remove('on');
+    updateExportText();
+  });
+  document.getElementById('exportTabText').addEventListener('click', () => {
+    exportMode = 'text';
+    document.getElementById('exportTabText').classList.add('on');
+    document.getElementById('exportTabJson').classList.remove('on');
+    updateExportText();
+  });
+  function updateExportText() {
+    const ta = document.getElementById('exportTextarea');
+    ta.value = exportMode === 'json' ? JSON.stringify(buildExportJson(), null, 2) : buildExportText();
+  }
+  document.getElementById('exportCopy').addEventListener('click', () => {
+    const ta = document.getElementById('exportTextarea');
+    if (navigator.clipboard) { navigator.clipboard.writeText(ta.value); toast('Скопировано'); }
+  });
+  document.getElementById('exportDownload').addEventListener('click', () => {
+    try {
+      const ta = document.getElementById('exportTextarea');
+      const isJson = exportMode === 'json';
+      const blob = new Blob([ta.value], { type: isJson ? 'application/json' : 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = isJson ? 'ubezhdeniya.json' : 'ubezhdeniya.txt';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('Файл сохранён');
+    } catch (e) { toast('Ошибка'); }
+  });
+  document.getElementById('exportClose').addEventListener('click', () => exportModal.classList.add('hidden'));
+
+  addBeliefBtn.addEventListener('click', () => {
+    const sum = getBeliefsSum();
+    const remaining = 1 - sum;
+    if (remaining < MIN_NEW_WEIGHT) { toast('Освободи место — нет свободного места'); return; }
+    const newWeight = sum === 0 ? 1 : Math.min(0.5, remaining);
+    const b = createBelief(newWeight);
+    openEditor(b.id);
+  });
+
+  document.getElementById('backBtn').addEventListener('click', closeEditor);
+  document.getElementById('deleteBeliefBtn').addEventListener('click', () => {
+    if (!currentBeliefId) return;
+    askConfirm('Удалить убеждение?', 'Его текст исчезнет.', () => {
+      deleteBelief(currentBeliefId);
+      closeEditor();
+      toast('Удалено');
+    });
+  });
+
+  document.getElementById('groupBackBtn').addEventListener('click', popGroup);
+  document.getElementById('groupEditBtn').addEventListener('click', () => {
+    const gid = NAV.groupPath[NAV.groupPath.length - 1];
+    if (gid) openCardModal(gid);
+  });
+  document.getElementById('groupRootBtn').addEventListener('click', closeEditor);
+
+  function toggleWords() {
+    wordsMode = !wordsMode;
+    document.body.classList.toggle('words-mode', wordsMode);
+    document.getElementById('wordsBtn').classList.toggle('on', wordsMode);
+    document.getElementById('editorWordsBtn').classList.toggle('on', wordsMode);
+    if (NAV.view === 'editor') renderPreview();
+    else if (NAV.view === 'space') renderField();
+    else renderGroupView();
+  }
+  document.getElementById('wordsBtn').addEventListener('click', toggleWords);
+  document.getElementById('editorWordsBtn').addEventListener('click', toggleWords);
+
+  let resizeTimer = null;
+  function onResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { if (NAV.view === 'space') renderField(); }, 120);
+  }
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', () => setTimeout(onResize, 300));
+
+  Store.load();
+  if (!Store.isOk()) toast('Хранилище недоступно');
+  render();
+})();
+</script>
+</body>
+</html>

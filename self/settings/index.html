@@ -34,8 +34,11 @@
   .belief-sym .badge { position:absolute; top:-10%; right:-18%; min-width:18px; height:18px; padding:0 4px; background:#6fa8ff; color:#06111f; font-size:10px; font-weight:800; border-radius:9px; display:flex; align-items:center; justify-content:center; border:2px solid #12131c; text-shadow:none; }
   .belief-sym .word { display:block; font-size:0.3em; color:#8890a0; letter-spacing:0; margin-top:2px; line-height:1.1; text-shadow:none; }
   .belief-sym .word.new { color:#ffb46f; }
-  /* группы внутри карточки-убеждения кликабельны — провал */
-  .belief-sym.group { pointer-events:auto; cursor:pointer; }
+  /* ВАЖНО: все существующие смайлы в карточке кликабельны — тап ведёт внутрь */
+  .belief-sym.existing { pointer-events:auto; cursor:pointer; }
+  .belief-sym.existing:active { transform:scale(.95); }
+  /* group — бейдж+пунктирная подсветка уже была, оставляем */
+  .belief-sym.group { }
   .belief-empty-text { font-size:14px; color:#6b6b7b; text-align:center; padding: 0 20%; line-height:1.5; pointer-events:none; }
   .field-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; color:#6b6b7b; font-size:14px; line-height:1.7; white-space:pre-line; padding:0 40px; pointer-events:none; }
 
@@ -45,17 +48,7 @@
   .group-view { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px 120px; }
   .group-view::-webkit-scrollbar { display:none; }
 
-  .group-header {
-    display:flex; align-items:center; gap:14px;
-    padding:18px;
-    border-radius:20px;
-    background: linear-gradient(160deg, #1e2740 0%, #12131c 90%);
-    border: 1.5px solid rgba(111,168,255,.5);
-    box-shadow: 0 14px 36px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
-    margin-bottom:18px;
-    cursor:pointer;
-    transition:.15s;
-  }
+  .group-header { display:flex; align-items:center; gap:14px; padding:18px; border-radius:20px; background: linear-gradient(160deg, #1e2740 0%, #12131c 90%); border: 1.5px solid rgba(111,168,255,.5); box-shadow: 0 14px 36px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08); margin-bottom:18px; cursor:pointer; transition:.15s; }
   .group-header:active { transform:scale(.99); border-color:#6fa8ff; }
   .group-header .gh-emoji { font-size:56px; line-height:1; flex-shrink:0; }
   .group-header .gh-info { flex:1; min-width:0; }
@@ -64,82 +57,23 @@
   .group-header .gh-sub { font-size:12px; color:#6fa8ff; margin-top:5px; letter-spacing:.02em; }
   .group-header .gh-arrow { font-size:22px; color:#6b6b7b; flex-shrink:0; }
 
-  .group-tiles {
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
-    gap:10px;
-  }
+  .group-tiles { display:grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap:10px; }
 
-  .tile {
-    position:relative;
-    aspect-ratio: 1 / 1;
-    border-radius:16px;
-    background: linear-gradient(160deg, rgba(30,39,64,.85) 0%, rgba(18,19,28,.95) 100%);
-    border:1.5px solid rgba(111,168,255,.28);
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    gap:6px;
-    padding:8px;
-    cursor:pointer;
-    transition:.15s;
-    overflow:hidden;
-    font-family:inherit;
-    color:#e8e8f0;
-  }
+  .tile { position:relative; aspect-ratio: 1 / 1; border-radius:16px; background: linear-gradient(160deg, rgba(30,39,64,.85) 0%, rgba(18,19,28,.95) 100%); border:1.5px solid rgba(111,168,255,.28); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:8px; cursor:pointer; transition:.15s; overflow:hidden; font-family:inherit; color:#e8e8f0; }
   .tile:active { transform:scale(.95); background:rgba(111,168,255,.16); border-color:#6fa8ff; }
 
-  .tile.group {
-    background: linear-gradient(160deg, rgba(38,54,88,.9) 0%, rgba(20,22,36,.95) 100%);
-    border-color: rgba(111,168,255,.55);
-    box-shadow: inset 0 0 0 3px rgba(111,168,255,.08);
-  }
-  .tile.group::before {
-    content:'';
-    position:absolute; inset:5px;
-    border-radius:11px;
-    border:1px dashed rgba(111,168,255,.4);
-    pointer-events:none;
-  }
-  .tile.group::after {
-    content: attr(data-count);
-    position:absolute; top:6px; right:6px;
-    min-width:18px; height:18px; padding:0 5px;
-    background:#6fa8ff; color:#06111f;
-    font-size:10px; font-weight:800;
-    border-radius:9px;
-    display:flex; align-items:center; justify-content:center;
-    z-index:2;
-  }
+  .tile.group { background: linear-gradient(160deg, rgba(38,54,88,.9) 0%, rgba(20,22,36,.95) 100%); border-color: rgba(111,168,255,.55); box-shadow: inset 0 0 0 3px rgba(111,168,255,.08); }
+  .tile.group::before { content:''; position:absolute; inset:5px; border-radius:11px; border:1px dashed rgba(111,168,255,.4); pointer-events:none; }
+  .tile.group::after { content: attr(data-count); position:absolute; top:6px; right:6px; min-width:18px; height:18px; padding:0 5px; background:#6fa8ff; color:#06111f; font-size:10px; font-weight:800; border-radius:9px; display:flex; align-items:center; justify-content:center; z-index:2; }
   .tile .t-emoji { font-size:32px; line-height:1; z-index:1; }
   .tile.group .t-emoji { font-size:34px; }
-  .tile .t-word {
-    font-size:10px; color:#8890a0; text-align:center;
-    word-break:break-word; line-height:1.15;
-    max-width:100%; overflow:hidden;
-    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
-    z-index:1;
-  }
+  .tile .t-word { font-size:10px; color:#8890a0; text-align:center; word-break:break-word; line-height:1.15; max-width:100%; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; z-index:1; }
   .tile .t-word.empty { color:#3a3a48; font-style:italic; }
 
-  .add-tile {
-    aspect-ratio: 1 / 1;
-    border-radius:16px;
-    border:1.5px dashed #262633;
-    background: transparent;
-    color:#4a4a58;
-    font-size:24px;
-    cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    transition:.15s;
-    font-family:inherit;
-  }
+  .add-tile { aspect-ratio: 1 / 1; border-radius:16px; border:1.5px dashed #262633; background: transparent; color:#4a4a58; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s; font-family:inherit; }
   .add-tile:active { border-color:#6fa8ff; color:#6fa8ff; background:rgba(111,168,255,.05); }
 
-  .group-empty {
-    text-align:center; color:#6b6b7b;
-    font-size:13px; line-height:1.6;
-    padding:30px 20px 10px; white-space:pre-line;
-  }
+  .group-empty { text-align:center; color:#6b6b7b; font-size:13px; line-height:1.6; padding:30px 20px 10px; white-space:pre-line; }
 
   .sec { background:#14141c; border:1px solid #262633; border-radius:16px; padding:14px; }
   .sec-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
@@ -739,7 +673,7 @@
       rowEditor.classList.remove('hidden');
       rowGroup.classList.add('hidden');
       renderEditor();
-    } else { // group
+    } else {
       fieldView.classList.add('hidden');
       editorView.classList.add('hidden');
       groupView.classList.remove('hidden');
@@ -911,30 +845,27 @@
           const sym = findSymbolById(t.symbolId);
           if (!sym) return;
           const s = document.createElement('span');
-          s.className = 'belief-sym';
+          s.className = 'belief-sym existing' + (isGroup(sym) ? ' group' : '');
+          s.dataset.symbolId = sym.id;
+          s.dataset.isGroup = isGroup(sym) ? '1' : '0';
+
           const ch = document.createElement('span');
           ch.textContent = sym.char || '◌';
+          ch.style.pointerEvents = 'none';
           s.appendChild(ch);
+
           if (isGroup(sym)) {
-            // ГРУППА — добавляем класс, обработчики, провал
-            s.classList.add('group');
             const badge = document.createElement('span');
             badge.className = 'badge';
             badge.textContent = String(sym.children.length);
+            badge.style.pointerEvents = 'none';
             s.appendChild(badge);
-            // клик — провал, стоп — чтобы карточка не открывала редактор
-            s.addEventListener('pointerdown', function (ev) {
-              ev.stopPropagation();
-            });
-            s.addEventListener('pointerup', function (ev) {
-              ev.stopPropagation();
-              enterGroup(sym.id);
-            });
           }
           if (wordsMode && sym.word) {
             const w = document.createElement('span');
             w.className = 'word';
             w.textContent = sym.word;
+            w.style.pointerEvents = 'none';
             s.appendChild(w);
           }
           body.appendChild(s);
@@ -943,6 +874,7 @@
           s.className = 'belief-sym';
           s.textContent = t.char;
           s.style.opacity = '.5';
+          s.style.pointerEvents = 'none';
           body.appendChild(s);
         } else if (t.type === 'new-word') {
           const s = document.createElement('span');
@@ -953,6 +885,7 @@
           w.style.display = 'inline-block';
           w.textContent = t.word;
           s.appendChild(w);
+          s.style.pointerEvents = 'none';
           body.appendChild(s);
         }
       });
@@ -967,6 +900,10 @@
     if (beliefDrag) return;
     if (e.button && e.button !== 0) return;
     e.preventDefault();
+
+    // Запоминаем элемент под пальцем ДО pointer capture
+    const startTarget = e.target;
+
     const canDrag = weight < 0.99;
     const startX = e.clientX, startY = e.clientY;
     const startLeft = parseFloat(el.style.left) || 0;
@@ -1016,11 +953,40 @@
           x: Number(clamp((left - FIELD_PAD) / maxX, 0, 1).toFixed(4)),
           y: Number(clamp((top - FIELD_PAD) / maxY, 0, 1).toFixed(4))
         });
-      } else {
-        el.classList.add('tapped');
-        setTimeout(() => el.classList.remove('tapped'), 180);
-        openEditor(belief.id);
+        return;
       }
+
+      // ТАП. Проверяем, попал ли палец на существующий символ внутри карточки.
+      // Сначала — через startTarget (до capture).
+      let symEl = null;
+      if (startTarget && startTarget.closest) {
+        symEl = startTarget.closest('.belief-sym.existing');
+      }
+      // Страховка — elementFromPoint на момент отпускания
+      if (!symEl) {
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        if (under && under.closest) symEl = under.closest('.belief-sym.existing');
+      }
+
+      if (symEl && symEl.dataset.symbolId) {
+        const sid = symEl.dataset.symbolId;
+        const sym = findSymbolById(sid);
+        if (sym) {
+          if (isGroup(sym)) {
+            // группа — проваливаемся
+            enterGroup(sym.id);
+          } else {
+            // обычный символ — открываем его карточку
+            openCardModal(sym.id);
+          }
+          return;
+        }
+      }
+
+      // Ни на смайл, ни на группу — открываем редактор убеждения
+      el.classList.add('tapped');
+      setTimeout(() => el.classList.remove('tapped'), 180);
+      openEditor(belief.id);
     }
 
     document.addEventListener('pointermove', onMove);
