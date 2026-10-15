@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>🧭 План</title>
+
+<meta name="description" content="План от результата: цель → действие перед результатом → цепочка шагов с мыслями, чувствами, знаниями и датами.">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="🧭 План">
+<meta property="og:description" content="Строим путь от результата к первому шагу.">
+<meta property="og:image" content="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="logo.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="План">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" type="image/png" href="logo.png">
+
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
+  #app { display:flex; flex-direction:column; height:100dvh; width:100%; position:relative; overflow:hidden; }
+
+  /* TOP BAR */
+  .top-bar { display:flex; align-items:center; gap:8px; padding:12px 14px; background:#0a0a0f; border-bottom:1px solid #1c1c28; flex-shrink:0; z-index:20; }
+  .hdr-title { flex:1; font-size:20px; font-weight:700; letter-spacing:-.01em; }
+  .hdr-title .colon { color:#7fffb4; }
+  .hdr-link { font-size:12px; color:#6fa8ff; text-decoration:none; padding:6px 10px; border-radius:8px; background:rgba(111,168,255,.08); border:1px solid rgba(111,168,255,.28); white-space:nowrap; }
+  .hdr-link:active { background:rgba(111,168,255,.2); }
+  .hdr-count { font-size:12px; color:#6b6b7b; padding:4px 9px; border-radius:999px; background:#14141c; border:1px solid #262633; font-variant-numeric:tabular-nums; }
+  .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; }
+  .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
+
+  /* TAG FILTER BAR */
+  .tag-bar { display:flex; gap:6px; padding:8px 10px; background:#0a0a0f; border-bottom:1px solid #1c1c28; overflow-x:auto; flex-shrink:0; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .tag-bar::-webkit-scrollbar { display:none; }
+  .tag-bar.hidden { display:none; }
+  .tag-bar .tag-filter-chip { flex:none; padding:6px 12px; border-radius:999px; background:#14141c; border:1px solid #262633; font-size:13px; color:#8890a0; cursor:pointer; font-family:inherit; transition:.15s; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .tag-filter-chip:active { transform:scale(.96); }
+  .tag-filter-chip .tc-hash { color:#7fffb4; opacity:.6; }
+  .tag-filter-chip.active { background:rgba(127,255,180,.15); border-color:rgba(127,255,180,.6); color:#c8ffe0; }
+  .tag-filter-chip.active .tc-hash { opacity:1; color:#7fffb4; }
+  .tag-filter-chip .tc-count { font-size:10px; background:#262633; color:#8890a0; padding:1px 6px; border-radius:6px; font-variant-numeric:tabular-nums; }
+  .tag-filter-chip.active .tc-count { background:#7fffb4; color:#0a1a12; }
+  .tag-filter-chip.clear-btn { background:transparent; border-style:dashed; color:#6b6b7b; }
+  .tag-filter-chip.clear-btn:active { color:#ff8f8f; border-color:#ff8f8f; }
+
+  /* SCROLL */
+  .scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 10px 110px; }
+  .scroll::-webkit-scrollbar { display:none; }
+
+  /* PLAN CARD */
+  .plan-card { position:relative; border:1.5px solid rgba(127,255,180,.24); background: linear-gradient(160deg, rgba(24,52,42,.5), rgba(18,19,28,.7)); border-radius:18px; padding:14px 14px 12px; margin-bottom:12px; transition:.15s; touch-action:manipulation; }
+  .plan-card.drop-target { border-color:#7fffb4; background:rgba(127,255,180,.08); }
+  .plan-card.dragging { opacity:.5; z-index:9999; box-shadow:0 20px 60px rgba(127,255,180,.4); }
+
+  .plan-handle { position:absolute; top:8px; left:8px; width:24px; height:30px; border-radius:6px; color:#4a4a58; font-size:16px; display:flex; align-items:center; justify-content:center; cursor:grab; z-index:2; touch-action:none; background:transparent; border:none; font-family:inherit; padding:0; }
+  .plan-handle:active { color:#7fffb4; }
+
+  .plan-edit { position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.04); border:1px solid #262633; color:#6b6b7b; font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2; font-family:inherit; padding:0; }
+  .plan-edit:active { background:rgba(127,255,180,.15); color:#7fffb4; border-color:#7fffb4; }
+
+  .plan-toggle { position:absolute; top:8px; right:46px; width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.04); border:1px solid #262633; color:#8890a0; font-size:13px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2; font-family:inherit; padding:0; transition:.2s; }
+  .plan-toggle:active { background:rgba(127,255,180,.15); color:#7fffb4; border-color:#7fffb4; transform:scale(.94); }
+  .plan-toggle .chev { display:inline-block; transition: transform .2s; transform: rotate(0deg); }
+  .plan-card.expanded .plan-toggle .chev { transform: rotate(90deg); }
+
+  .plan-goal { font-size:15px; font-weight:700; line-height:1.35; color:#e8e8f0; padding:6px 82px 4px 40px; word-break:break-word; -webkit-user-select:text; user-select:text; }
+  .plan-goal.empty { color:#4a4a58; font-style:italic; font-weight:400; }
+
+  .plan-before { font-size:12px; color:#7fffb4; line-height:1.4; padding:0 82px 8px 40px; word-break:break-word; }
+  .plan-before::before { content:'⏮ перед финишем: '; color:#4a4a58; opacity:.8; }
+
+  .plan-tags { display:flex; flex-wrap:wrap; gap:5px; padding:0 82px 10px 40px; }
+  .plan-tag { padding:3px 9px; font-size:11px; border-radius:999px; background:rgba(127,255,180,.08); border:1px solid rgba(127,255,180,.28); color:#a8d8c0; cursor:pointer; transition:.15s; }
+  .plan-tag:active { background:rgba(127,255,180,.22); border-color:#7fffb4; }
+  .plan-tag::before { content:'#'; opacity:.5; margin-right:2px; }
+
+  .plan-meta { display:flex; align-items:center; gap:10px; padding:6px 82px 6px 40px; font-size:12px; color:#6b6b7b; border-top:1px solid rgba(255,255,255,.05); }
+  .plan-meta .pm-item { display:inline-flex; align-items:center; gap:4px; }
+  .plan-meta .pm-num { color:#c8c8d4; font-variant-numeric:tabular-nums; font-weight:600; }
+  .plan-meta .pm-num.done { color:#7fffb4; }
+
+  /* СВЁРНУТОЕ: превью первого шага */
+  .plan-preview { display:flex; gap:8px; padding:6px 0 4px 40px; }
+  .plan-preview-num { font-size:13px; color:#7fffb4; font-weight:700; flex:none; width:20px; text-align:center; }
+  .plan-preview-text { flex:1; min-width:0; font-size:13px; line-height:1.45; color:#c8c8d4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .plan-preview.empty { color:#4a4a58; font-style:italic; }
+
+  /* РАЗВЁРНУТОЕ: список шагов */
+  .plan-steps { display:flex; flex-direction:column; gap:6px; padding:10px 6px 2px 40px; }
+  .plan-steps-empty { color:#4a4a58; font-size:13px; font-style:italic; padding:8px 0 4px 40px; }
+
+  .step-item { position:relative; padding:10px 12px 10px 34px; border-radius:12px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); cursor:pointer; transition:.15s; text-align:left; width:100%; font-family:inherit; color:#e8e8f0; }
+  .step-item:active { background:rgba(127,255,180,.08); border-color:rgba(127,255,180,.4); }
+  .step-item::before {
+    content: attr(data-num);
+    position: absolute;
+    left: 8px; top: 12px;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    background: rgba(127,255,180,.12);
+    color: #7fffb4;
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .step-action { font-size:13px; line-height:1.4; font-weight:600; color:#e8e8f0; word-break:break-word; margin-bottom:4px; }
+  .step-action.empty { color:#4a4a58; font-style:italic; font-weight:400; }
+  .step-meta { display:flex; flex-wrap:wrap; gap:6px; font-size:11px; color:#6b6b7b; }
+  .step-badge { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:6px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); }
+  .step-badge.sched { background:rgba(127,255,180,.08); border-color:rgba(127,255,180,.28); color:#7fffb4; font-variant-numeric:tabular-nums; }
+  .step-badge.sched.overdue { background:rgba(255,143,143,.1); border-color:rgba(255,143,143,.4); color:#ff8f8f; }
+
+  /* EMPTY */
+  .empty-note { color:#4a4a58; font-size:14px; text-align:center; padding:50px 24px; line-height:1.8; white-space:pre-line; }
+  .empty-note b { color:#8890a0; font-weight:600; }
+
+  /* BOTTOM PANEL */
+  .bottom-panel { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(180deg, rgba(10,10,15,0) 0%, #0a0a0f 30%); padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); display:flex; gap:8px; z-index:50; }
+  .bottom-btn { flex:1; height:48px; border-radius:14px; border:1px solid #262633; background:#14141c; font-size:14px; font-weight:600; color:#e8e8f0; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:5px; font-family:inherit; }
+  .bottom-btn:active { transform:scale(.97); background:#1e1e2a; }
+  .bottom-btn.primary { background:#7fffb4; color:#0a1a12; border-color:transparent; }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:36px 16px 20px; overflow-y:auto; }
+  .modal { background:#1e1e2a; border:1px solid #262633; border-radius:22px; padding:20px; width:100%; max-width:440px; display:flex; flex-direction:column; gap:13px; margin-bottom:20px; }
+  .modal h3 { font-size:17px; font-weight:600; color:#e8e8f0; }
+  .modal .hint { font-size:12px; color:#6b6b7b; line-height:1.4; min-height:16px; }
+  .modal .err { color:#ff8f8f; font-size:12px; min-height:16px; }
+
+  .field-row { display:flex; flex-direction:column; gap:6px; }
+  .field-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.06em; }
+  .field-label.lbl-goal    { color:#7fffb4; }
+  .field-label.lbl-before  { color:#7fffb4; }
+  .field-label.lbl-action  { color:#7fffb4; }
+  .field-label.lbl-thought { color:#b48fff; }
+  .field-label.lbl-feeling { color:#ff8fb4; }
+  .field-label.lbl-know    { color:#6fa8ff; }
+  .field-label.lbl-when    { color:#ffd166; }
+  .field-label.lbl-tags    { color:#8890a0; }
+
+  .text-input { padding:12px 14px; border:1px solid #262633; border-radius:14px; font-size:15px; outline:none; background:#14141c; color:#e8e8f0; font-family:inherit; width:100%; }
+  .text-input:focus { border-color:#7fffb4; }
+  .text-input.textarea { min-height:64px; resize:vertical; -webkit-user-select:text; user-select:text; line-height:1.5; font-size:15px; }
+  .text-input.textarea.tall { min-height:84px; }
+  .text-input[type="datetime-local"] { color-scheme: dark; font-family:inherit; }
+
+  .field-hint { font-size:11px; color:#6b6b7b; line-height:1.4; margin-top:2px; }
+  .field-hint b { color:#7fffb4; font-weight:600; }
+
+  /* Steps list в редакторе плана */
+  .steps-editor { display:flex; flex-direction:column; gap:6px; }
+  .steps-editor-empty { font-size:12px; color:#6b6b7b; font-style:italic; padding:8px 2px; }
+  .step-editor-row { display:flex; align-items:center; gap:8px; padding:9px 10px 9px 32px; border-radius:10px; background:#14141c; border:1px solid #262633; position:relative; }
+  .step-editor-row::before { content: attr(data-num); position:absolute; left:8px; top:50%; transform:translateY(-50%); width:18px; height:18px; display:flex; align-items:center; justify-content:center; border-radius:5px; background:rgba(127,255,180,.12); color:#7fffb4; font-size:10px; font-weight:700; }
+  .step-editor-label { flex:1; min-width:0; font-size:13px; color:#c8c8d4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .step-editor-label.empty { color:#4a4a58; font-style:italic; }
+  .step-editor-btn { width:26px; height:26px; border-radius:7px; border:1px solid #262633; background:transparent; color:#8890a0; font-size:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; font-family:inherit; padding:0; }
+  .step-editor-btn:active { background:rgba(127,255,180,.12); color:#7fffb4; }
+  .step-editor-btn.del:active { background:rgba(255,90,90,.15); color:#ff8f8f; border-color:#ff8f8f; }
+  .add-step-inline { padding:10px 12px; border-radius:10px; border:1px dashed #262633; background:transparent; color:#8890a0; font-size:13px; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:6px; transition:.15s; }
+  .add-step-inline:active { color:#7fffb4; border-color:#7fffb4; }
+
+  /* Кнопка "Следующий шаг" в редакторе шага */
+  .next-step-inline { padding:12px 14px; border-radius:12px; border:1px dashed rgba(127,255,180,.4); background:rgba(127,255,180,.06); color:#7fffb4; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:.15s; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .next-step-inline:active:not(:disabled) { background:rgba(127,255,180,.18); border-style:solid; transform:scale(.98); }
+  .next-step-inline:disabled { opacity:.35; cursor:not-allowed; }
+
+  /* Tag editor */
+  .tag-editor { display:flex; flex-direction:column; gap:8px; padding:12px 14px; background:#14141c; border:1px solid #262633; border-radius:14px; transition:.15s; }
+  .tag-editor:focus-within { border-color:#7fffb4; }
+  .tag-editor-row { display:flex; gap:6px; align-items:center; }
+  .tag-editor-row input { flex:1; background:transparent; border:none; outline:none; color:#e8e8f0; font-size:15px; font-family:inherit; padding:0; -webkit-user-select:text; user-select:text; min-width:0; }
+  .tag-editor-row input::placeholder { color:#4a4a58; }
+  .tag-editor-row button { padding:7px 12px; border-radius:9px; border:none; background:rgba(127,255,180,.16); color:#7fffb4; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; flex-shrink:0; transition:.15s; }
+  .tag-editor-row button:active { background:rgba(127,255,180,.28); }
+  .tag-editor-row button:disabled { opacity:.4; cursor:not-allowed; }
+
+  .tag-editor-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .tag-editor-chips:empty { display:none; }
+  .tag-editor-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:rgba(127,255,180,.12); border:1px solid rgba(127,255,180,.35); color:#c8ffe0; font-size:13px; }
+  .tag-editor-chip .t-hash { color:#7fffb4; opacity:.7; }
+  .tag-editor-chip .t-x { cursor:pointer; color:#7fffb4; font-size:15px; line-height:1; padding:0 2px; }
+  .tag-editor-chip .t-x:active { color:#ff8f8f; }
+
+  .tag-suggest { display:flex; flex-wrap:wrap; gap:5px; }
+  .tag-suggest:empty { display:none; }
+  .tag-suggest-label { font-size:10px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.06em; width:100%; margin-bottom:2px; }
+  .tag-suggest-chip { padding:4px 10px; border-radius:999px; background:transparent; border:1px dashed #262633; color:#8890a0; font-size:12px; cursor:pointer; font-family:inherit; transition:.15s; }
+  .tag-suggest-chip:active { color:#7fffb4; border-color:#7fffb4; }
+  .tag-suggest-chip::before { content:'#'; opacity:.5; margin-right:2px; }
+
+  .plan-dates { display:flex; flex-direction:column; gap:4px; padding:10px 14px; background:#14141c; border:1px solid #262633; border-radius:14px; font-size:12px; color:#8890a0; }
+  .plan-dates .dt-row { display:flex; justify-content:space-between; gap:12px; }
+  .plan-dates .dt-label { color:#6b6b7b; }
+  .plan-dates .dt-value { color:#c8c8d4; text-align:right; font-variant-numeric:tabular-nums; }
+
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; flex-wrap:wrap; }
+  .modal-actions button { padding:10px 16px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; transition:.15s; }
+  .modal-actions button:active { transform:scale(.97); }
+  .modal-actions button:disabled { opacity:.35; cursor:not-allowed; }
+  .modal-actions button.primary { background:#7fffb4; color:#0a1a12; border-color:transparent; }
+  .modal-actions button.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
+  .modal-actions button.ghost { background:transparent; }
+  .modal-actions button.cal { background:rgba(255,209,102,.14); color:#ffd166; border-color:rgba(255,209,102,.35); }
+  .modal-actions button.cal:disabled { background:transparent; color:#4a4a58; border-color:#262633; opacity:1; }
+
+  /* export tabs */
+  .export-tabs { display:flex; gap:4px; background:#14141c; padding:4px; border-radius:12px; border:1px solid #262633; }
+  .export-tabs button { flex:1; padding:8px 12px; border-radius:9px; font-size:12px; font-weight:600; cursor:pointer; border:none; background:transparent; color:#6b6b7b; font-family:inherit; transition:.15s; }
+  .export-tabs button.active { background:#7fffb4; color:#0a1a12; }
+
+  .export-textarea { width:100%; min-height:220px; padding:12px; border:1px solid #262633; border-radius:12px; background:#14141c; color:#e8e8f0; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.5; resize:vertical; -webkit-user-select:text; user-select:text; outline:none; }
+  .export-textarea:focus { border-color:#7fffb4; }
+
+  .hidden { display:none !important; }
+
+  .toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 80px); transform:translate(-50%, 20px); z-index:500; background:#22222f; border:1px solid #262633; padding:11px 18px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .22s, transform .22s; pointer-events:none; max-width:86vw; text-align:center; color:#e8e8f0; }
+  .toast.show { opacity:1; transform:translate(-50%, 0); }
+
+  @media (max-width:380px) {
+    .hdr-title { font-size:17px; }
+    .hdr-link { font-size:11px; padding:5px 8px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top-bar">
+    <div class="hdr-title">План<span class="colon">:</span></div>
+    <a class="hdr-link" href="https://alexeyb2.github.io/dreamsApp/self/journal.html" title="Открыть обычный дневник">← Дневник</a>
+    <span class="hdr-count" id="hdrCount">0</span>
+    <button class="icon-btn" id="exportBtn" title="Экспорт">📤</button>
+  </header>
+
+  <div class="tag-bar hidden" id="tagBar"></div>
+
+  <main class="scroll" id="scroll"></main>
+
+  <div class="bottom-panel">
+    <button class="bottom-btn primary" id="addPlanBtn">+ Новый план</button>
+  </div>
+
+  <!-- ================= МОДАЛКА ПЛАНА ================= -->
+  <div id="planModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="planModalTitle">Новый план</h3>
+
+      <div class="field-row">
+        <span class="field-label lbl-goal">🏁 Какой результат хочешь?</span>
+        <textarea id="planGoal" class="text-input textarea tall" placeholder="Опиши цель как будто она уже случилась." rows="3"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-before">⏮ Какое действие было прямо перед результатом?</span>
+        <textarea id="planBefore" class="text-input textarea" placeholder="Что ты делаешь прямо на финише, когда цель достигнута?" rows="2"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label">🪜 Шаги к результату</span>
+        <div class="steps-editor" id="stepsEditor"></div>
+        <div class="field-hint">Первый шаг — с чего начнёшь. Дальше — цепочка до «перед финишем».</div>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-tags">🏷 Теги</span>
+        <div class="tag-editor">
+          <div class="tag-editor-chips" id="tagChipsEditor"></div>
+          <div class="tag-editor-row">
+            <input id="tagInput" type="text" placeholder="тег → Enter" autocomplete="off" spellcheck="false" maxlength="40">
+            <button id="tagAddBtn" type="button" disabled>＋</button>
+          </div>
+          <div class="tag-suggest" id="tagSuggest"></div>
+        </div>
+      </div>
+
+      <div class="plan-dates">
+        <div class="dt-row"><span class="dt-label">Создано</span><span class="dt-value" id="planCreated">—</span></div>
+        <div class="dt-row"><span class="dt-label">Изменено</span><span class="dt-value" id="planUpdated">—</span></div>
+      </div>
+
+      <div class="err" id="planErr"></div>
+
+      <div class="modal-actions">
+        <button id="planDelete" class="danger">Удалить</button>
+        <button id="planCancel" class="ghost">Отмена</button>
+        <button id="planSave" class="primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= МОДАЛКА ШАГА ================= -->
+  <div id="stepModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="stepModalTitle">Шаг</h3>
+
+      <div class="field-row">
+        <span class="field-label lbl-action">🎯 Что делаю (шаг)</span>
+        <textarea id="stepAction" class="text-input textarea tall" placeholder="Опиши шаг коротко и конкретно." rows="3"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-thought">🧠 Что думаешь об этом шаге?</span>
+        <textarea id="stepThought" class="text-input textarea" placeholder="Какие мысли приходят?" rows="2"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-feeling">💗 Что чувствуешь, когда думаешь о шаге?</span>
+        <textarea id="stepFeeling" class="text-input textarea" placeholder="Какие эмоции поднимаются?" rows="2"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-know">📚 Какие знания нужны для шага?</span>
+        <textarea id="stepKnowledge" class="text-input textarea" placeholder="Что надо узнать, освоить, подготовить?" rows="2"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-when">📅 Когда планируешь сделать?</span>
+        <input type="datetime-local" id="stepScheduled" class="text-input">
+      </div>
+
+      <div class="field-row">
+        <span class="field-label">↳ Видишь следующий шаг?</span>
+        <button id="stepNext" class="next-step-inline" disabled>↳ Опиши следующий шаг</button>
+        <div class="field-hint">Сохранит текущий шаг и откроет новый — <b>как продолжение цепочки</b>.</div>
+      </div>
+
+      <div class="err" id="stepErr"></div>
+
+      <div class="modal-actions">
+        <button id="stepDelete" class="danger">Удалить</button>
+        <button id="stepCalendar" class="cal" disabled>📅 В Календарь</button>
+        <button id="stepCancel" class="ghost">Отмена</button>
+        <button id="stepSave" class="primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ЭКСПОРТ ================= -->
+  <div id="exportModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>📤 Экспорт планов</h3>
+      <div class="export-tabs">
+        <button id="exportTabJson" class="active">JSON</button>
+        <button id="exportTabText">Текст</button>
+        <button id="exportTabICS">Календарь (.ics)</button>
+      </div>
+      <textarea id="exportTextarea" class="export-textarea" readonly></textarea>
+      <div class="hint" id="exportHint"></div>
+      <div class="modal-actions">
+        <button id="exportImport" class="warn">Импорт</button>
+        <button id="exportDownload">Скачать</button>
+        <button id="exportCopy" class="primary">Копировать</button>
+        <button id="exportClose" class="ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="confirmTitle">Удалить?</h3>
+      <div class="hint" id="confirmText"></div>
+      <div class="modal-actions">
+        <button id="confirmCancel" class="ghost">Отмена</button>
+        <button id="confirmOk" class="danger">Удалить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'planner_v1';
+  const EXPANDED_KEY = 'planner_expanded_v1';
+  const TOAST_MS = 2600;
+  const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+  /* ======================= УТИЛИТЫ ======================= */
+  function uid() { return 'p_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
+  function stepUid() { return 's_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
+  function nowIso() { return new Date().toISOString(); }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return pad2(d.getDate()) + ' ' + (MONTHS[d.getMonth()] || '') + ' ' + d.getFullYear() + ', ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function formatShort(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return pad2(d.getDate()) + ' ' + (MONTHS[d.getMonth()] || '').slice(0, 3) + ', ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function toLocalInput(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function shortText(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n-1) + '…' : s; }
+
+  function normalizeTag(raw) {
+    if (typeof raw !== 'string') return '';
+    let t = raw.trim().replace(/^#+/, '').trim();
+    t = t.replace(/[,\u3000]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!t) return '';
+    if (t.length > 40) t = t.slice(0, 40);
+    return t.toLowerCase();
+  }
+
+  let toastEl = null, toastTimer = null;
+  function toast(msg) {
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+    toastEl.textContent = msg;
+    requestAnimationFrame(() => toastEl.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), TOAST_MS);
+  }
+  function askConfirm(title, text, onOk) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = text;
+    const m = document.getElementById('confirmModal');
+    m.classList.remove('hidden');
+    const ok = document.getElementById('confirmOk');
+    const cancel = document.getElementById('confirmCancel');
+    function cleanup() { m.classList.add('hidden'); ok.removeEventListener('click', hOk); cancel.removeEventListener('click', hCancel); }
+    function hOk() { cleanup(); onOk(); }
+    function hCancel() { cleanup(); }
+    ok.addEventListener('click', hOk);
+    cancel.addEventListener('click', hCancel);
+  }
+
+  /* ======================= ХРАНИЛИЩЕ ======================= */
+  const Store = (function () {
+    let state = null;
+    let ok = true;
+    function empty() { return { plans: [] }; }
+    function read() { try { return localStorage.getItem(STORAGE_KEY); } catch (e) { ok = false; return null; } }
+    function write(v) { try { localStorage.setItem(STORAGE_KEY, v); } catch (e) { ok = false; } }
+    function normStep(s) {
+      if (!s || typeof s !== 'object') return null;
+      return {
+        id: typeof s.id === 'string' && s.id ? s.id : stepUid(),
+        action: typeof s.action === 'string' ? s.action : '',
+        thought: typeof s.thought === 'string' ? s.thought : '',
+        feeling: typeof s.feeling === 'string' ? s.feeling : '',
+        knowledge: typeof s.knowledge === 'string' ? s.knowledge : '',
+        scheduled: typeof s.scheduled === 'string' ? s.scheduled : '',
+        created: typeof s.created === 'string' ? s.created : nowIso(),
+        updated: typeof s.updated === 'string' ? s.updated : nowIso()
+      };
+    }
+    function load() {
+      const raw = read();
+      if (!raw) { state = empty(); return; }
+      try {
+        const p = JSON.parse(raw);
+        state = { plans: Array.isArray(p.plans) ? p.plans : [] };
+      } catch (e) { state = empty(); }
+      state.plans.forEach(p => {
+        if (typeof p.goal !== 'string') p.goal = '';
+        if (typeof p.before !== 'string') p.before = '';
+        if (!Array.isArray(p.steps)) p.steps = [];
+        p.steps = p.steps.map(normStep).filter(Boolean);
+        if (!Array.isArray(p.tags)) p.tags = [];
+        p.tags = p.tags.map(normalizeTag).filter(Boolean).filter((t, i, a) => a.indexOf(t) === i);
+        if (typeof p.created !== 'string') p.created = nowIso();
+        if (typeof p.updated !== 'string') p.updated = p.created;
+      });
+    }
+    function save() { write(JSON.stringify(state)); }
+    function get() { return state; }
+    function isOk() { return ok; }
+    return { load, save, get, isOk };
+  })();
+
+  /* ======================= РАЗВЁРНУТОСТЬ ======================= */
+  const expandedPlans = new Set();
+  function loadExpanded() {
+    try {
+      const raw = localStorage.getItem(EXPANDED_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) arr.forEach(id => { if (typeof id === 'string') expandedPlans.add(id); });
+      }
+    } catch (e) {}
+  }
+  function saveExpanded() {
+    try { localStorage.setItem(EXPANDED_KEY, JSON.stringify(Array.from(expandedPlans))); } catch (e) {}
+  }
+  function isPlanExpanded(id) { return expandedPlans.has(id); }
+  function togglePlanExpanded(id) {
+    if (expandedPlans.has(id)) expandedPlans.delete(id);
+    else expandedPlans.add(id);
+    saveExpanded();
+  }
+
+  /* ======================= CRUD ======================= */
+  function getPlan(id) { return Store.get().plans.find(p => p.id === id) || null; }
+  function deletePlan(id) {
+    Store.get().plans = Store.get().plans.filter(p => p.id !== id);
+    expandedPlans.delete(id);
+    saveExpanded();
+    Store.save();
+  }
+  function movePlanByIndex(id, delta) {
+    const list = Store.get().plans;
+    const i = list.findIndex(p => p.id === id);
+    if (i < 0) return false;
+    const ni = i + delta;
+    if (ni < 0 || ni >= list.length) return false;
+    const tmp = list[i]; list[i] = list[ni]; list[ni] = tmp;
+    Store.save();
+    return true;
+  }
+  function movePlanToIndex(id, targetIndex) {
+    const list = Store.get().plans;
+    const from = list.findIndex(p => p.id === id);
+    if (from < 0) return false;
+    const to = Math.max(0, Math.min(list.length - 1, targetIndex));
+    if (from === to) return false;
+    const [item] = list.splice(from, 1);
+    list.splice(to, 0, item);
+    Store.save();
+    return true;
+  }
+
+  /* ======================= .ICS ======================= */
+  function buildICSForStep(step, plan) {
+    if (!step || !step.scheduled) return null;
+    const start = new Date(step.scheduled);
+    if (isNaN(start.getTime())) return null;
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    function fmtUTC(d) {
+      return d.getUTCFullYear() + pad2(d.getUTCMonth() + 1) + pad2(d.getUTCDate())
+        + 'T' + pad2(d.getUTCHours()) + pad2(d.getUTCMinutes()) + pad2(d.getUTCSeconds()) + 'Z';
+    }
+    const esc = s => String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+
+    const summary = (step.action || 'Шаг плана').replace(/\s+/g, ' ').slice(0, 200);
+    const descLines = [];
+    if (plan && plan.goal) descLines.push('🏁 Результат: ' + plan.goal);
+    if (plan && plan.before) descLines.push('⏮ Перед финишем: ' + plan.before);
+    if (step.thought) descLines.push('🧠 Мысль: ' + step.thought);
+    if (step.feeling) descLines.push('💗 Чувство: ' + step.feeling);
+    if (step.knowledge) descLines.push('📚 Знания: ' + step.knowledge);
+    if (plan && plan.tags && plan.tags.length) descLines.push('🏷 ' + plan.tags.map(t => '#' + t).join(' '));
+
+    const lines = [
+      'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Plan//RU','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      'UID:' + esc((step.id || stepUid()) + '@plan.local'),
+      'DTSTAMP:' + fmtUTC(new Date()),
+      'DTSTART:' + fmtUTC(start),
+      'DTEND:' + fmtUTC(end),
+      'SUMMARY:' + esc(summary),
+      'DESCRIPTION:' + esc(descLines.join('\n')),
+      'BEGIN:VALARM','TRIGGER:-PT15M','ACTION:DISPLAY','DESCRIPTION:' + esc(summary),'END:VALARM',
+      'END:VEVENT','END:VCALENDAR'
+    ];
+    return lines.join('\r\n');
+  }
+
+  function downloadICSForStep(step, plan) {
+    const ics = buildICSForStep(step, plan);
+    if (!ics) { toast('У шага нет даты'); return; }
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'step-' + (step.id || 'x') + '.ics';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Открой файл в Safari — предложит добавить');
+  }
+
+  /* ======================= ТЕГИ ======================= */
+  function collectAllTags() {
+    const map = new Map();
+    Store.get().plans.forEach(p => {
+      (p.tags || []).forEach(t => map.set(t, (map.get(t) || 0) + 1));
+    });
+    return Array.from(map.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag, 'ru'));
+  }
+  const activeTags = new Set();
+  function isFiltering() { return activeTags.size > 0; }
+  function planMatchesFilter(p) {
+    if (!isFiltering()) return true;
+    const tags = p.tags || [];
+    for (const t of activeTags) if (tags.indexOf(t) === -1) return false;
+    return true;
+  }
+  function cleanupActiveTags() {
+    const ex = new Set();
+    Store.get().plans.forEach(p => (p.tags || []).forEach(t => ex.add(t)));
+    Array.from(activeTags).forEach(t => { if (!ex.has(t)) activeTags.delete(t); });
+  }
+
+  /* ======================= TAG BAR ======================= */
+  const tagBarEl = document.getElementById('tagBar');
+  function renderTagBar() {
+    const allTags = collectAllTags();
+    tagBarEl.innerHTML = '';
+    if (!allTags.length) { tagBarEl.classList.add('hidden'); return; }
+    tagBarEl.classList.remove('hidden');
+    allTags.forEach(({ tag, count }) => {
+      const btn = document.createElement('button');
+      btn.className = 'tag-filter-chip' + (activeTags.has(tag) ? ' active' : '');
+      btn.type = 'button';
+      const h = document.createElement('span'); h.className = 'tc-hash'; h.textContent = '#'; btn.appendChild(h);
+      const lbl = document.createElement('span'); lbl.textContent = tag; btn.appendChild(lbl);
+      const c = document.createElement('span'); c.className = 'tc-count'; c.textContent = String(count); btn.appendChild(c);
+      btn.addEventListener('click', () => {
+        if (activeTags.has(tag)) activeTags.delete(tag);
+        else activeTags.add(tag);
+        render();
+      });
+      tagBarEl.appendChild(btn);
+    });
+    if (isFiltering()) {
+      const clear = document.createElement('button');
+      clear.className = 'tag-filter-chip clear-btn';
+      clear.type = 'button';
+      clear.textContent = '✕ Сбросить';
+      clear.addEventListener('click', () => { activeTags.clear(); render(); });
+      tagBarEl.appendChild(clear);
+    }
+  }
+
+  /* ======================= ГЛАВНЫЙ ЭКРАН ======================= */
+  const scrollEl = document.getElementById('scroll');
+  const hdrCount = document.getElementById('hdrCount');
+
+  function countPlanned(plan) {
+    return (plan.steps || []).filter(s => s.scheduled).length;
+  }
+  function countOverdue(plan) {
+    const now = Date.now();
+    return (plan.steps || []).filter(s => {
+      if (!s.scheduled) return false;
+      const d = new Date(s.scheduled);
+      return !isNaN(d.getTime()) && d.getTime() < now;
+    }).length;
+  }
+
+  function render() {
+    cleanupActiveTags();
+    renderTagBar();
+
+    scrollEl.innerHTML = '';
+    const all = Store.get().plans;
+    const visible = all.filter(planMatchesFilter);
+
+    if (isFiltering()) hdrCount.textContent = visible.length + '/' + all.length;
+    else hdrCount.textContent = String(all.length);
+
+    if (!all.length) {
+      const e = document.createElement('div');
+      e.className = 'empty-note';
+      e.innerHTML = 'Пока пусто.\nНажми <b>+ Новый план</b>.\n\nСтроим путь в обратную сторону:\n🏁 <b>Какой результат хочешь?</b>\n⏮ <b>Что прямо перед финишем?</b>\n1️⃣ <b>Первый шаг</b> → мысли, чувства, знания, дата\n↳ и дальше <b>следующий шаг</b>…\n\nВ шапке — ссылка на обычный дневник.';
+      scrollEl.appendChild(e);
+      return;
+    }
+    if (!visible.length) {
+      const e = document.createElement('div');
+      e.className = 'empty-note';
+      e.innerHTML = 'По фильтру ничего не найдено.\nСними фильтр — тапни «✕ Сбросить» сверху.';
+      scrollEl.appendChild(e);
+      return;
+    }
+
+    const filtering = isFiltering();
+    visible.forEach((plan) => {
+      const realIndex = all.indexOf(plan);
+      scrollEl.appendChild(buildPlanEl(plan, realIndex, filtering));
+    });
+  }
+
+  function buildPlanEl(plan, realIndex, filtering) {
+    const expanded = isPlanExpanded(plan.id);
+    const el = document.createElement('div');
+    el.className = 'plan-card' + (filtering ? ' filtering' : '') + (expanded ? ' expanded' : '');
+    el.dataset.planId = plan.id;
+    el.dataset.index = String(realIndex);
+
+    const handle = document.createElement('button');
+    handle.className = 'plan-handle';
+    handle.textContent = '⋮⋮';
+    handle.setAttribute('aria-label', 'Переместить');
+    if (filtering) handle.title = 'Отключено при фильтре';
+    el.appendChild(handle);
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'plan-toggle';
+    toggleBtn.setAttribute('aria-label', expanded ? 'Свернуть' : 'Развернуть');
+    const chev = document.createElement('span'); chev.className = 'chev'; chev.textContent = '▸';
+    toggleBtn.appendChild(chev);
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePlanExpanded(plan.id);
+      render();
+    });
+    el.appendChild(toggleBtn);
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'plan-edit';
+    editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openPlanModal(plan.id); });
+    el.appendChild(editBtn);
+
+    const goalEl = document.createElement('div');
+    goalEl.className = 'plan-goal' + (plan.goal ? '' : ' empty');
+    goalEl.textContent = plan.goal || '(результат не задан)';
+    el.appendChild(goalEl);
+
+    if (plan.before) {
+      const bEl = document.createElement('div');
+      bEl.className = 'plan-before';
+      bEl.textContent = plan.before;
+      el.appendChild(bEl);
+    }
+
+    if (plan.tags && plan.tags.length) {
+      const tagsRow = document.createElement('div');
+      tagsRow.className = 'plan-tags';
+      plan.tags.forEach(t => {
+        const chip = document.createElement('span');
+        chip.className = 'plan-tag';
+        chip.textContent = t;
+        chip.title = 'Фильтровать';
+        chip.addEventListener('click', (e) => { e.stopPropagation(); activeTags.add(t); render(); });
+        tagsRow.appendChild(chip);
+      });
+      el.appendChild(tagsRow);
+    }
+
+    // meta
+    const steps = plan.steps || [];
+    const planned = countPlanned(plan);
+    const overdue = countOverdue(plan);
+
+    const meta = document.createElement('div');
+    meta.className = 'plan-meta';
+
+    const m1 = document.createElement('span');
+    m1.className = 'pm-item';
+    m1.innerHTML = '🪜 шагов: <span class="pm-num">' + steps.length + '</span>';
+    meta.appendChild(m1);
+
+    if (planned) {
+      const m2 = document.createElement('span');
+      m2.className = 'pm-item';
+      m2.innerHTML = '📅 запланировано: <span class="pm-num ' + (planned === steps.length ? 'done' : '') + '">' + planned + '/' + steps.length + '</span>';
+      meta.appendChild(m2);
+    }
+    if (overdue) {
+      const m3 = document.createElement('span');
+      m3.className = 'pm-item';
+      m3.style.color = '#ff8f8f';
+      m3.textContent = '⚠ просрочено: ' + overdue;
+      meta.appendChild(m3);
+    }
+    el.appendChild(meta);
+
+    if (expanded) {
+      // полный список шагов
+      if (!steps.length) {
+        const e = document.createElement('div');
+        e.className = 'plan-steps-empty';
+        e.textContent = 'Шагов ещё нет — нажми ✏️, чтобы добавить первый.';
+        el.appendChild(e);
+      } else {
+        const wrap = document.createElement('div');
+        wrap.className = 'plan-steps';
+        steps.forEach((step, i) => {
+          wrap.appendChild(buildStepItem(plan, step, i));
+        });
+        el.appendChild(wrap);
+      }
+    } else {
+      // превью первого шага
+      const first = steps[0];
+      const prev = document.createElement('div');
+      prev.className = 'plan-preview' + (first ? '' : ' empty');
+      const num = document.createElement('div');
+      num.className = 'plan-preview-num';
+      num.textContent = first ? '1️⃣' : '·';
+      prev.appendChild(num);
+      const txt = document.createElement('div');
+      txt.className = 'plan-preview-text';
+      txt.textContent = first ? (first.action || '(шаг без описания)') : 'нет шагов';
+      prev.appendChild(txt);
+      el.appendChild(prev);
+    }
+
+    if (!filtering) attachPlanDrag(handle, el, plan, realIndex);
+    return el;
+  }
+
+  function buildStepItem(plan, step, idx) {
+    const btn = document.createElement('button');
+    btn.className = 'step-item';
+    btn.dataset.num = String(idx + 1);
+    btn.type = 'button';
+
+    const action = document.createElement('div');
+    action.className = 'step-action' + (step.action ? '' : ' empty');
+    action.textContent = step.action || '(без описания)';
+    btn.appendChild(action);
+
+    const meta = document.createElement('div');
+    meta.className = 'step-meta';
+
+    if (step.thought) meta.appendChild(makeBadge('🧠', shortText(step.thought, 24)));
+    if (step.feeling) meta.appendChild(makeBadge('💗', shortText(step.feeling, 24)));
+    if (step.knowledge) meta.appendChild(makeBadge('📚', shortText(step.knowledge, 24)));
+    if (step.scheduled) {
+      const isOverdue = new Date(step.scheduled).getTime() < Date.now();
+      const b = document.createElement('span');
+      b.className = 'step-badge sched' + (isOverdue ? ' overdue' : '');
+      b.textContent = '📅 ' + formatShort(step.scheduled);
+      meta.appendChild(b);
+    }
+
+    if (meta.children.length) btn.appendChild(meta);
+
+    btn.addEventListener('click', () => openStepModal(plan.id, idx));
+    return btn;
+  }
+  function makeBadge(icon, text) {
+    const b = document.createElement('span');
+    b.className = 'step-badge';
+    b.textContent = icon + ' ' + text;
+    return b;
+  }
+
+  /* ======================= DRAG планов ======================= */
+  function attachPlanDrag(handle, el, plan, startIndex) {
+    let pointerId = null, dragging = false, ghost = null;
+    let currentIndex = startIndex, targetIndex = startIndex;
+
+    function makeGhost() {
+      const g = document.createElement('div');
+      g.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;opacity:.9;background:#1e1e2a;border:2px solid #7fffb4;border-radius:18px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 24px 60px rgba(0,0,0,.8);color:#e8e8f0;font-size:14px;';
+      const em = document.createElement('div'); em.textContent = '🧭'; em.style.fontSize = '22px'; g.appendChild(em);
+      const t = document.createElement('div');
+      t.textContent = shortText(plan.goal || '(без цели)', 40);
+      t.style.cssText = 'max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      g.appendChild(t);
+      return g;
+    }
+
+    function start(e) {
+      if (e.button && e.button !== 0) return;
+      pointerId = e.pointerId;
+      dragging = true;
+      if (navigator.vibrate) try { navigator.vibrate(15); } catch (er) {}
+      el.classList.add('dragging');
+      ghost = makeGhost();
+      ghost.style.left = (e.clientX - 80) + 'px';
+      ghost.style.top = (e.clientY - 22) + 'px';
+      document.body.appendChild(ghost);
+      document.addEventListener('pointermove', onMove, { passive: false });
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
+    }
+    function onMove(e) {
+      if (e.pointerId !== pointerId) return;
+      e.preventDefault();
+      ghost.style.left = (e.clientX - 80) + 'px';
+      ghost.style.top = (e.clientY - 22) + 'px';
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      const targetEl = under ? under.closest('.plan-card') : null;
+      document.querySelectorAll('.plan-card.drop-target').forEach(c => { if (c !== targetEl) c.classList.remove('drop-target'); });
+      if (targetEl && targetEl !== el) {
+        targetEl.classList.add('drop-target');
+        const ti = parseInt(targetEl.dataset.index, 10);
+        if (!isNaN(ti)) {
+          const rect = targetEl.getBoundingClientRect();
+          const mid = rect.top + rect.height / 2;
+          targetIndex = e.clientY < mid ? ti : ti + 1;
+        }
+      } else targetIndex = currentIndex;
+    }
+    function onUp(e) {
+      if (e.pointerId !== pointerId) return;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      el.classList.remove('dragging');
+      document.querySelectorAll('.plan-card.drop-target').forEach(c => c.classList.remove('drop-target'));
+      if (ghost) ghost.remove();
+      dragging = false;
+      if (targetIndex !== currentIndex && targetIndex !== currentIndex + 1) {
+        let ti = targetIndex;
+        if (ti > currentIndex) ti -= 1;
+        if (ti !== currentIndex) { movePlanToIndex(plan.id, ti); render(); toast('Перемещено'); return; }
+      }
+      render();
+    }
+    handle.addEventListener('pointerdown', start);
+  }
+
+  /* ======================= МОДАЛКА ПЛАНА ======================= */
+  const planModal = document.getElementById('planModal');
+  let planEditingId = null;
+  let editingTags = [];
+  let editingSteps = []; // копия шагов при редактировании
+
+  function renderStepsEditor() {
+    const wrap = document.getElementById('stepsEditor');
+    wrap.innerHTML = '';
+    if (!editingSteps.length) {
+      const e = document.createElement('div');
+      e.className = 'steps-editor-empty';
+      e.textContent = 'Пока нет шагов — добавь первый.';
+      wrap.appendChild(e);
+    } else {
+      editingSteps.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = 'step-editor-row';
+        row.dataset.num = String(i + 1);
+        const lbl = document.createElement('div');
+        lbl.className = 'step-editor-label' + (s.action ? '' : ' empty');
+        lbl.textContent = s.action || '(без описания)';
+        row.appendChild(lbl);
+
+        const openBtn = document.createElement('button');
+        openBtn.className = 'step-editor-btn';
+        openBtn.textContent = '↗';
+        openBtn.title = 'Открыть';
+        openBtn.addEventListener('click', () => openStepModalForEditing(i));
+        row.appendChild(openBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'step-editor-btn del';
+        delBtn.textContent = '×';
+        delBtn.title = 'Удалить шаг';
+        delBtn.addEventListener('click', () => {
+          editingSteps.splice(i, 1);
+          renderStepsEditor();
+        });
+        row.appendChild(delBtn);
+
+        wrap.appendChild(row);
+      });
+    }
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-step-inline';
+    addBtn.type = 'button';
+    addBtn.textContent = '+ Добавить шаг';
+    addBtn.addEventListener('click', () => {
+      // создаём новый пустой шаг, сразу открываем его редактор "поверх"
+      const s = {
+        id: stepUid(),
+        action: '', thought: '', feeling: '', knowledge: '', scheduled: '',
+        created: nowIso(), updated: nowIso()
+      };
+      editingSteps.push(s);
+      renderStepsEditor();
+      openStepModalForEditing(editingSteps.length - 1);
+    });
+    wrap.appendChild(addBtn);
+  }
+
+  function openStepModalForEditing(idx) {
+    // открываем редактор шага в контексте редактируемого плана (не сохранённого)
+    stepCtx = { mode: 'plan-draft', planId: null, stepIndex: idx };
+    fillStepForm(editingSteps[idx]);
+    stepModal.classList.remove('hidden');
+  }
+
+  function renderTagEditorChips() {
+    const wrap = document.getElementById('tagChipsEditor');
+    wrap.innerHTML = '';
+    editingTags.forEach((t, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-editor-chip';
+      const h = document.createElement('span'); h.className = 't-hash'; h.textContent = '#'; chip.appendChild(h);
+      const l = document.createElement('span'); l.textContent = t; chip.appendChild(l);
+      const x = document.createElement('span'); x.className = 't-x'; x.textContent = '×';
+      x.addEventListener('click', () => {
+        editingTags.splice(i, 1);
+        renderTagEditorChips();
+        renderTagSuggest();
+      });
+      chip.appendChild(x);
+      wrap.appendChild(chip);
+    });
+  }
+  function renderTagSuggest() {
+    const wrap = document.getElementById('tagSuggest');
+    wrap.innerHTML = '';
+    const q = normalizeTag(document.getElementById('tagInput').value || '');
+    const allTags = collectAllTags().map(x => x.tag);
+    const cand = allTags.filter(t => editingTags.indexOf(t) === -1 && (!q || t.indexOf(q) !== -1)).slice(0, 8);
+    if (!cand.length) return;
+    const lbl = document.createElement('div');
+    lbl.className = 'tag-suggest-label';
+    lbl.textContent = q ? 'Подходящие' : 'Уже есть';
+    wrap.appendChild(lbl);
+    cand.forEach(t => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'tag-suggest-chip';
+      chip.textContent = t;
+      chip.addEventListener('click', () => addTagToEditor(t));
+      wrap.appendChild(chip);
+    });
+  }
+  function addTagToEditor(raw) {
+    const t = normalizeTag(raw);
+    if (!t) return false;
+    if (editingTags.indexOf(t) !== -1) return false;
+    editingTags.push(t);
+    renderTagEditorChips();
+    renderTagSuggest();
+    return true;
+  }
+  function updateTagAddBtn() {
+    const inp = document.getElementById('tagInput');
+    const btn = document.getElementById('tagAddBtn');
+    const v = normalizeTag(inp.value);
+    btn.disabled = !v || editingTags.indexOf(v) !== -1;
+  }
+
+  function openPlanModal(id) {
+    planEditingId = id || null;
+    const titleEl = document.getElementById('planModalTitle');
+    const goalIn = document.getElementById('planGoal');
+    const beforeIn = document.getElementById('planBefore');
+    const delBtn = document.getElementById('planDelete');
+    const crEl = document.getElementById('planCreated');
+    const upEl = document.getElementById('planUpdated');
+    const tagInput = document.getElementById('tagInput');
+    document.getElementById('planErr').textContent = '';
+    tagInput.value = '';
+
+    if (id) {
+      const p = getPlan(id);
+      if (!p) return;
+      titleEl.textContent = 'Редактировать план';
+      goalIn.value = p.goal || '';
+      beforeIn.value = p.before || '';
+      editingTags = (p.tags || []).slice();
+      editingSteps = (p.steps || []).map(s => Object.assign({}, s));
+      delBtn.classList.remove('hidden');
+      crEl.textContent = formatDate(p.created);
+      upEl.textContent = formatDate(p.updated || p.created);
+    } else {
+      titleEl.textContent = 'Новый план';
+      goalIn.value = '';
+      beforeIn.value = '';
+      editingTags = [];
+      editingSteps = [];
+      delBtn.classList.add('hidden');
+      crEl.textContent = '—';
+      upEl.textContent = '—';
+    }
+
+    renderStepsEditor();
+    renderTagEditorChips();
+    renderTagSuggest();
+    updateTagAddBtn();
+
+    planModal.classList.remove('hidden');
+    setTimeout(() => { if (!id) goalIn.focus(); }, 200);
+  }
+  function closePlanModal() {
+    planModal.classList.add('hidden');
+    planEditingId = null;
+    editingTags = [];
+    editingSteps = [];
+  }
+
+  document.getElementById('planCancel').addEventListener('click', closePlanModal);
+
+  const tagInput = document.getElementById('tagInput');
+  tagInput.addEventListener('input', () => { updateTagAddBtn(); renderTagSuggest(); });
+  tagInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+      e.preventDefault();
+      const v = normalizeTag(tagInput.value);
+      if (v) { addTagToEditor(v); tagInput.value = ''; updateTagAddBtn(); renderTagSuggest(); }
+    } else if (e.key === 'Backspace' && !tagInput.value && editingTags.length) {
+      editingTags.pop();
+      renderTagEditorChips();
+      renderTagSuggest();
+      updateTagAddBtn();
+    }
+  });
+  tagInput.addEventListener('blur', () => {
+    const v = normalizeTag(tagInput.value);
+    if (v) { addTagToEditor(v); tagInput.value = ''; updateTagAddBtn(); renderTagSuggest(); }
+  });
+  document.getElementById('tagAddBtn').addEventListener('click', () => {
+    const v = normalizeTag(tagInput.value);
+    if (!v) return;
+    if (addTagToEditor(v)) {
+      tagInput.value = '';
+      updateTagAddBtn();
+      renderTagSuggest();
+      tagInput.focus();
+    }
+  });
+
+  document.getElementById('planSave').addEventListener('click', () => {
+    const goal = document.getElementById('planGoal').value.trim();
+    const before = document.getElementById('planBefore').value.trim();
+    const err = document.getElementById('planErr');
+    err.textContent = '';
+    const pending = normalizeTag(tagInput.value);
+    if (pending) { addTagToEditor(pending); tagInput.value = ''; }
+    const tags = editingTags.slice();
+
+    if (!goal && !before && !tags.length && !editingSteps.length) {
+      err.textContent = 'Заполни хотя бы результат';
+      return;
+    }
+
+    if (planEditingId) {
+      const p = getPlan(planEditingId);
+      if (!p) return;
+      p.goal = goal;
+      p.before = before;
+      p.tags = tags;
+      p.steps = editingSteps.map(s => Object.assign({}, s));
+      p.updated = nowIso();
+    } else {
+      const newId = uid();
+      Store.get().plans.push({
+        id: newId,
+        goal, before,
+        tags,
+        steps: editingSteps.map(s => Object.assign({}, s)),
+        created: nowIso(),
+        updated: nowIso()
+      });
+      expandedPlans.add(newId);
+      saveExpanded();
+    }
+    Store.save();
+    closePlanModal();
+    render();
+    toast('План сохранён');
+  });
+
+  document.getElementById('planDelete').addEventListener('click', () => {
+    if (!planEditingId) return;
+    const id = planEditingId;
+    closePlanModal();
+    askConfirm('Удалить план?', 'Все шаги этого плана тоже удалятся.', () => {
+      deletePlan(id);
+      render();
+      toast('Удалено');
+    });
+  });
+
+  /* ======================= МОДАЛКА ШАГА ======================= */
+  const stepModal = document.getElementById('stepModal');
+  let stepCtx = null; // { mode: 'plan'|'plan-draft', planId, stepIndex }
+
+  function fillStepForm(step) {
+    document.getElementById('stepAction').value = step.action || '';
+    document.getElementById('stepThought').value = step.thought || '';
+    document.getElementById('stepFeeling').value = step.feeling || '';
+    document.getElementById('stepKnowledge').value = step.knowledge || '';
+    document.getElementById('stepScheduled').value = step.scheduled ? toLocalInput(step.scheduled) : '';
+    document.getElementById('stepErr').textContent = '';
+    updateStepCalendarBtn();
+    updateStepNextBtn();
+  }
+
+  function readStepForm() {
+    const action = document.getElementById('stepAction').value.trim();
+    const thought = document.getElementById('stepThought').value.trim();
+    const feeling = document.getElementById('stepFeeling').value.trim();
+    const knowledge = document.getElementById('stepKnowledge').value.trim();
+    const scheduledVal = document.getElementById('stepScheduled').value;
+    let scheduled = '';
+    if (scheduledVal) {
+      const d = new Date(scheduledVal);
+      if (!isNaN(d.getTime())) scheduled = d.toISOString();
+    }
+    return { action, thought, feeling, knowledge, scheduled };
+  }
+
+  function updateStepCalendarBtn() {
+    const sch = document.getElementById('stepScheduled').value;
+    const act = document.getElementById('stepAction').value.trim();
+    document.getElementById('stepCalendar').disabled = !(act && sch);
+  }
+  function updateStepNextBtn() {
+    const act = document.getElementById('stepAction').value.trim();
+    document.getElementById('stepNext').disabled = !act;
+  }
+  document.getElementById('stepScheduled').addEventListener('input', updateStepCalendarBtn);
+  document.getElementById('stepAction').addEventListener('input', updateStepNextBtn);
+
+  function openStepModal(planId, stepIndex) {
+    const p = getPlan(planId);
+    if (!p || !p.steps[stepIndex]) return;
+    stepCtx = { mode: 'plan', planId, stepIndex };
+    document.getElementById('stepModalTitle').textContent = 'Шаг ' + (stepIndex + 1);
+    fillStepForm(p.steps[stepIndex]);
+    stepModal.classList.remove('hidden');
+  }
+
+  function openStepModalForNew(planId) {
+    // открываем редактор нового шага: шаг добавится в plan при сохранении
+    const p = getPlan(planId);
+    if (!p) return;
+    const fresh = {
+      id: stepUid(),
+      action: '', thought: '', feeling: '', knowledge: '', scheduled: '',
+      created: nowIso(), updated: nowIso()
+    };
+    p.steps.push(fresh);
+    Store.save();
+    stepCtx = { mode: 'plan', planId, stepIndex: p.steps.length - 1 };
+    document.getElementById('stepModalTitle').textContent = 'Шаг ' + (stepIndex + 1);
+    fillStepForm(fresh);
+    stepModal.classList.remove('hidden');
+    return fresh;
+  }
+
+  function closeStepModal() {
+    stepModal.classList.add('hidden');
+    stepCtx = null;
+  }
+  document.getElementById('stepCancel').addEventListener('click', () => {
+    const ctx = stepCtx;
+    closeStepModal();
+    // если закрываем без сохранения — вернуть редактор плана если есть
+    if (ctx && ctx.mode === 'plan-draft') {
+      // вернуться в редактор плана
+      planModal.classList.remove('hidden');
+      renderStepsEditor();
+    }
+  });
+
+  // СОХРАНЕНИЕ шага
+  document.getElementById('stepSave').addEventListener('click', () => {
+    if (!stepCtx) return;
+    const data = readStepForm();
+    const err = document.getElementById('stepErr');
+    if (!data.action) { err.textContent = 'Опиши шаг'; return; }
+
+    if (stepCtx.mode === 'plan-draft') {
+      // редактируем черновик в модалке плана
+      editingSteps[stepCtx.stepIndex] = Object.assign({}, editingSteps[stepCtx.stepIndex], data, { updated: nowIso() });
+      closeStepModal();
+      planModal.classList.remove('hidden');
+      renderStepsEditor();
+      return;
+    }
+    if (stepCtx.mode === 'plan') {
+      const p = getPlan(stepCtx.planId);
+      if (!p) return;
+      const s = p.steps[stepCtx.stepIndex];
+      if (!s) return;
+      Object.assign(s, data, { updated: nowIso() });
+      p.updated = nowIso();
+      Store.save();
+      closeStepModal();
+      render();
+      toast('Шаг сохранён');
+    }
+  });
+
+  // УДАЛЕНИЕ шага
+  document.getElementById('stepDelete').addEventListener('click', () => {
+    if (!stepCtx) return;
+    const ctx = stepCtx;
+    if (ctx.mode === 'plan-draft') {
+      editingSteps.splice(ctx.stepIndex, 1);
+      closeStepModal();
+      planModal.classList.remove('hidden');
+      renderStepsEditor();
+      return;
+    }
+    if (ctx.mode === 'plan') {
+      const p = getPlan(ctx.planId);
+      if (!p) return;
+      const idx = ctx.stepIndex;
+      closeStepModal();
+      askConfirm('Удалить шаг?', 'Только этот шаг.', () => {
+        p.steps.splice(idx, 1);
+        p.updated = nowIso();
+        Store.save();
+        render();
+        toast('Удалено');
+      });
+    }
+  });
+
+  // В КАЛЕНДАРЬ из редактора шага
+  document.getElementById('stepCalendar').addEventListener('click', () => {
+    if (!stepCtx) return;
+    const data = readStepForm();
+    if (!data.action || !data.scheduled) { toast('Нужно описание и дата'); return; }
+    // соберём временный plan для описания
+    let plan = null;
+    if (stepCtx.mode === 'plan') plan = getPlan(stepCtx.planId);
+    else if (stepCtx.mode === 'plan-draft') {
+      plan = {
+        goal: document.getElementById('planGoal').value.trim(),
+        before: document.getElementById('planBefore').value.trim(),
+        tags: editingTags.slice()
+      };
+    }
+    const step = {
+      id: (stepCtx.mode === 'plan' ? getPlan(stepCtx.planId).steps[stepCtx.stepIndex].id : stepUid()),
+      action: data.action,
+      thought: data.thought,
+      feeling: data.feeling,
+      knowledge: data.knowledge,
+      scheduled: data.scheduled
+    };
+    downloadICSForStep(step, plan);
+  });
+
+  // СЛЕДУЮЩИЙ ШАГ
+  document.getElementById('stepNext').addEventListener('click', () => {
+    if (!stepCtx) return;
+    const data = readStepForm();
+    if (!data.action) { toast('Опиши текущий шаг'); return; }
+
+    if (stepCtx.mode === 'plan-draft') {
+      // сохраняем текущий
+      editingSteps[stepCtx.stepIndex] = Object.assign({}, editingSteps[stepCtx.stepIndex], data, { updated: nowIso() });
+      // создаём новый
+      const fresh = {
+        id: stepUid(),
+        action: '', thought: '', feeling: '', knowledge: '', scheduled: '',
+        created: nowIso(), updated: nowIso()
+      };
+      editingSteps.push(fresh);
+      // открываем редактор нового
+      stepCtx = { mode: 'plan-draft', stepIndex: editingSteps.length - 1 };
+      document.getElementById('stepModalTitle').textContent = 'Шаг ' + editingSteps.length;
+      fillStepForm(fresh);
+      toast('Добавлен следующий шаг');
+      return;
+    }
+
+    if (stepCtx.mode === 'plan') {
+      const p = getPlan(stepCtx.planId);
+      if (!p) return;
+      // сохраняем текущий
+      Object.assign(p.steps[stepCtx.stepIndex], data, { updated: nowIso() });
+      // создаём новый шаг
+      const fresh = {
+        id: stepUid(),
+        action: '', thought: '', feeling: '', knowledge: '', scheduled: '',
+        created: nowIso(), updated: nowIso()
+      };
+      p.steps.push(fresh);
+      p.updated = nowIso();
+      Store.save();
+      // переключаемся на новый
+      stepCtx = { mode: 'plan', planId: p.id, stepIndex: p.steps.length - 1 };
+      document.getElementById('stepModalTitle').textContent = 'Шаг ' + p.steps.length;
+      fillStepForm(fresh);
+      render();
+      toast('Добавлен следующий шаг');
+    }
+  });
+
+  // ESC / Ctrl+Enter
+  stepModal.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('stepSave').click();
+    }
+  });
+  planModal.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('planSave').click();
+    }
+  });
+
+  /* ======================= ЭКСПОРТ ======================= */
+  const exportModal = document.getElementById('exportModal');
+  let exportMode = 'json';
+
+  function buildExportJson() {
+    return {
+      version: '1.0',
+      app: 'План',
+      exported: nowIso(),
+      schema: {
+        plan: ['id','goal','before','tags','steps[]','created','updated'],
+        step: ['id','action','thought','feeling','knowledge','scheduled','created','updated'],
+        rules: ['Обратное планирование: цель → действие перед финишем → цепочка шагов']
+      },
+      plans: Store.get().plans.map(p => ({
+        id: p.id,
+        goal: p.goal,
+        before: p.before,
+        tags: (p.tags || []).slice(),
+        steps: (p.steps || []).map(s => ({
+          id: s.id,
+          action: s.action,
+          thought: s.thought,
+          feeling: s.feeling,
+          knowledge: s.knowledge,
+          scheduled: s.scheduled || '',
+          created: s.created,
+          updated: s.updated
+        })),
+        created: p.created,
+        updated: p.updated
+      }))
+    };
+  }
+
+  function buildExportText() {
+    const plans = Store.get().plans;
+    if (!plans.length) return '(пусто)';
+    const lines = [];
+    plans.forEach((p, i) => {
+      lines.push('══════════════════════════════════');
+      lines.push('🏁 План #' + (i + 1) + ' · ' + formatDate(p.created));
+      lines.push('Результат: ' + (p.goal || '(не задан)'));
+      if (p.before) lines.push('⏮ Перед финишем: ' + p.before);
+      if (p.tags && p.tags.length) lines.push('🏷 ' + p.tags.map(t => '#' + t).join(' '));
+      lines.push('');
+      (p.steps || []).forEach((s, j) => {
+        lines.push('  ' + (j + 1) + '. ' + (s.action || '(без описания)'));
+        if (s.thought) lines.push('     🧠 ' + s.thought);
+        if (s.feeling) lines.push('     💗 ' + s.feeling);
+        if (s.knowledge) lines.push('     📚 ' + s.knowledge);
+        if (s.scheduled) lines.push('     📅 ' + formatDate(s.scheduled));
+        lines.push('');
+      });
+      lines.push('');
+    });
+    return lines.join('\n').trim();
+  }
+
+  function buildExportICS() {
+    const withSched = [];
+    Store.get().plans.forEach(p => {
+      (p.steps || []).forEach(s => {
+        if (s.scheduled && s.action) withSched.push({ step: s, plan: p });
+      });
+    });
+    if (!withSched.length) return '';
+    const parts = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Plan//RU','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+    const pad = n => String(n).padStart(2, '0');
+    function fmtUTC(d) {
+      return d.getUTCFullYear() + pad(d.getUTCMonth()+1) + pad(d.getUTCDate())
+        + 'T' + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + 'Z';
+    }
+    const esc = s => String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+
+    withSched.forEach(({ step, plan }) => {
+      const start = new Date(step.scheduled);
+      if (isNaN(start.getTime())) return;
+      const end = new Date(start.getTime() + 60*60*1000);
+      const summary = (step.action || 'Шаг').replace(/\s+/g,' ').slice(0, 200);
+      const desc = [];
+      if (plan.goal) desc.push('🏁 Результат: ' + plan.goal);
+      if (plan.before) desc.push('⏮ Перед финишем: ' + plan.before);
+      if (step.thought) desc.push('🧠 ' + step.thought);
+      if (step.feeling) desc.push('💗 ' + step.feeling);
+      if (step.knowledge) desc.push('📚 ' + step.knowledge);
+
+      parts.push('BEGIN:VEVENT');
+      parts.push('UID:' + esc((step.id || stepUid()) + '@plan.local'));
+      parts.push('DTSTAMP:' + fmtUTC(new Date()));
+      parts.push('DTSTART:' + fmtUTC(start));
+      parts.push('DTEND:' + fmtUTC(end));
+      parts.push('SUMMARY:' + esc(summary));
+      parts.push('DESCRIPTION:' + esc(desc.join('\n')));
+      parts.push('BEGIN:VALARM'); parts.push('TRIGGER:-PT15M'); parts.push('ACTION:DISPLAY'); parts.push('DESCRIPTION:' + esc(summary)); parts.push('END:VALARM');
+      parts.push('END:VEVENT');
+    });
+    parts.push('END:VCALENDAR');
+    return parts.join('\r\n');
+  }
+
+  function updateExportText() {
+    const ta = document.getElementById('exportTextarea');
+    if (exportMode === 'json') {
+      ta.value = JSON.stringify(buildExportJson(), null, 2);
+      document.getElementById('exportHint').textContent = 'Полная выгрузка. Вставь чужой JSON и нажми «Импорт».';
+    } else if (exportMode === 'text') {
+      ta.value = buildExportText();
+      document.getElementById('exportHint').textContent = 'Читаемый вид — удобно распечатать или переслать.';
+    } else {
+      ta.value = buildExportICS();
+      document.getElementById('exportHint').textContent = 'Все шаги с датой станут событиями Apple Календаря. Скачай и открой в Safari.';
+    }
+    ta.readOnly = exportMode !== 'json';
+  }
+
+  function setExportTab(mode) {
+    exportMode = mode;
+    document.getElementById('exportTabJson').classList.toggle('active', mode === 'json');
+    document.getElementById('exportTabText').classList.toggle('active', mode === 'text');
+    document.getElementById('exportTabICS').classList.toggle('active', mode === 'ics');
+    document.getElementById('exportImport').classList.toggle('hidden', mode !== 'json');
+    updateExportText();
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    setExportTab(exportMode);
+    exportModal.classList.remove('hidden');
+  });
+  document.getElementById('exportTabJson').addEventListener('click', () => setExportTab('json'));
+  document.getElementById('exportTabText').addEventListener('click', () => setExportTab('text'));
+  document.getElementById('exportTabICS').addEventListener('click', () => setExportTab('ics'));
+  document.getElementById('exportClose').addEventListener('click', () => exportModal.classList.add('hidden'));
+
+  document.getElementById('exportCopy').addEventListener('click', () => {
+    const ta = document.getElementById('exportTextarea');
+    ta.select(); ta.setSelectionRange(0, ta.value.length);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(ta.value).then(() => toast('Скопировано')).catch(() => toast('Не вышло'));
+    } else {
+      try { document.execCommand('copy'); toast('Скопировано'); } catch (e) { toast('Не вышло'); }
+    }
+  });
+
+  document.getElementById('exportDownload').addEventListener('click', () => {
+    try {
+      const ta = document.getElementById('exportTextarea');
+      const isJson = exportMode === 'json';
+      const isIcs = exportMode === 'ics';
+      const mime = isJson ? 'application/json' : (isIcs ? 'text/calendar;charset=utf-8' : 'text/plain');
+      const ext = isJson ? 'json' : (isIcs ? 'ics' : 'txt');
+      const blob = new Blob([ta.value], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'plan_' + Date.now() + '.' + ext;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast(isIcs ? 'Открой файл в Safari' : 'Сохранено');
+    } catch (e) { toast('Ошибка'); }
+  });
+
+  document.getElementById('exportImport').addEventListener('click', () => {
+    if (exportMode !== 'json') return;
+    const ta = document.getElementById('exportTextarea');
+    let parsed;
+    try { parsed = JSON.parse(ta.value); } catch (e) { toast('Не получилось прочитать JSON'); return; }
+    if (!parsed || !Array.isArray(parsed.plans)) { toast('Нет поля plans'); return; }
+    const existing = new Set(Store.get().plans.map(p => p.id));
+    let added = 0, updated = 0;
+    parsed.plans.forEach(raw => {
+      if (!raw || typeof raw !== 'object') return;
+      const id = typeof raw.id === 'string' && raw.id ? raw.id : uid();
+      const clean = {
+        id,
+        goal: typeof raw.goal === 'string' ? raw.goal : '',
+        before: typeof raw.before === 'string' ? raw.before : '',
+        tags: Array.isArray(raw.tags) ? raw.tags.map(normalizeTag).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i) : [],
+        steps: Array.isArray(raw.steps) ? raw.steps.map(s => ({
+          id: typeof s.id === 'string' && s.id ? s.id : stepUid(),
+          action: typeof s.action === 'string' ? s.action : '',
+          thought: typeof s.thought === 'string' ? s.thought : '',
+          feeling: typeof s.feeling === 'string' ? s.feeling : '',
+          knowledge: typeof s.knowledge === 'string' ? s.knowledge : '',
+          scheduled: typeof s.scheduled === 'string' ? s.scheduled : '',
+          created: typeof s.created === 'string' ? s.created : nowIso(),
+          updated: typeof s.updated === 'string' ? s.updated : nowIso()
+        })) : [],
+        created: typeof raw.created === 'string' ? raw.created : nowIso(),
+        updated: typeof raw.updated === 'string' ? raw.updated : nowIso()
+      };
+      if (existing.has(id)) {
+        const i = Store.get().plans.findIndex(p => p.id === id);
+        if (i >= 0) { Store.get().plans[i] = clean; updated++; }
+      } else {
+        Store.get().plans.push(clean);
+        existing.add(id);
+        added++;
+      }
+    });
+    Store.save();
+    render();
+    toast('Импорт: +' + added + ' новых, ' + updated + ' обновлено');
+  });
+
+  /* ======================= ЗАПУСК ======================= */
+  document.getElementById('addPlanBtn').addEventListener('click', () => openPlanModal(null));
+
+  Store.load();
+  loadExpanded();
+  if (!Store.isOk()) toast('Хранилище недоступно');
+  render();
+
+})();
+</script>
+</body>
+</html>
