@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>📔 Дневник</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+  html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
+  #app { display:flex; flex-direction:column; height:100dvh; width:100%; position:relative; overflow:hidden; }
+
+  /* ======================= TOP BAR ======================= */
+  .top-bar { display:flex; align-items:center; gap:8px; padding:12px 14px; background:#0a0a0f; border-bottom:1px solid #1c1c28; flex-shrink:0; z-index:20; }
+  .hdr-title { flex:1; font-size:20px; font-weight:700; letter-spacing:-.01em; }
+  .hdr-title .colon { color:#6fa8ff; }
+  .hdr-count { font-size:12px; color:#6b6b7b; padding:4px 9px; border-radius:999px; background:#14141c; border:1px solid #262633; font-variant-numeric:tabular-nums; }
+  .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; }
+  .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
+
+  /* ======================= SCROLL ======================= */
+  .scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 10px 110px; }
+  .scroll::-webkit-scrollbar { display:none; }
+
+  /* ======================= CARD ======================= */
+  .entry-card { position:relative; border:1.5px solid rgba(111,168,255,.22); background: linear-gradient(160deg, rgba(30,39,64,.45), rgba(18,19,28,.7)); border-radius:18px; padding:14px 14px 10px; margin-bottom:12px; transition: box-shadow .15s, border-color .15s, background .15s; min-height:64px; touch-action:manipulation; }
+  .entry-card.drop-target { border-color:#6fa8ff; background:rgba(111,168,255,.08); }
+  .entry-card.dragging { opacity:.5; z-index:9999; box-shadow:0 20px 60px rgba(111,168,255,.45); }
+
+  .entry-handle { position:absolute; top:8px; left:8px; width:24px; height:30px; border-radius:6px; color:#4a4a58; font-size:16px; display:flex; align-items:center; justify-content:center; cursor:grab; transition:.15s; z-index:2; touch-action:none; background:transparent; border:none; font-family:inherit; padding:0; }
+  .entry-handle:active { color:#6fa8ff; cursor:grabbing; }
+  .entry-card.dragging .entry-handle { cursor:grabbing; }
+
+  .entry-edit { position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.04); border:1px solid #262633; color:#6b6b7b; font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; z-index:2; font-family:inherit; padding:0; }
+  .entry-edit:active { background:rgba(111,168,255,.15); color:#6fa8ff; border-color:#6fa8ff; }
+
+  .entry-date { text-align:center; font-size:12px; color:#8890a0; letter-spacing:.03em; padding:6px 44px 12px; border-bottom:1px solid rgba(255,255,255,.05); margin-bottom:10px; font-variant-numeric:tabular-nums; }
+
+  .entry-body { display:flex; flex-direction:column; gap:2px; }
+
+  .entry-field { display:flex; gap:10px; padding:7px 0 7px 10px; border-left:2px solid transparent; }
+  .entry-field[data-kind="event"]   { border-left-color:rgba(111,168,255,.55); }
+  .entry-field[data-kind="feeling"] { border-left-color:rgba(255,143,180,.55); }
+  .entry-field[data-kind="thought"] { border-left-color:rgba(180,143,255,.55); }
+  .entry-field[data-kind="action"]  { border-left-color:rgba(127,255,180,.55); }
+
+  .entry-field-icon { font-size:16px; line-height:1; flex:none; width:20px; text-align:center; padding-top:2px; }
+  .entry-field-body { flex:1; min-width:0; }
+  .entry-field-name { font-size:10px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:3px; font-weight:600; }
+  .entry-field[data-kind="event"]   .entry-field-name { color:#6fa8ff; }
+  .entry-field[data-kind="feeling"] .entry-field-name { color:#ff8fb4; }
+  .entry-field[data-kind="thought"] .entry-field-name { color:#b48fff; }
+  .entry-field[data-kind="action"]  .entry-field-name { color:#7fffb4; }
+  .entry-field-value { font-size:14px; line-height:1.5; color:#e8e8f0; white-space:pre-wrap; word-break:break-word; -webkit-user-select:text; user-select:text; }
+  .entry-empty { color:#4a4a58; font-size:13px; font-style:italic; padding:8px 0 4px 10px; }
+
+  /* drag ghost */
+  .entry-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:.9; background:#1e1e2a; border:2px solid #6fa8ff; border-radius:18px; padding:10px 14px; display:flex; align-items:center; gap:10px; box-shadow:0 24px 60px rgba(0,0,0,.8); color:#e8e8f0; font-size:14px; }
+
+  /* ======================= EMPTY ======================= */
+  .empty-note { color:#4a4a58; font-size:14px; text-align:center; padding:50px 24px; line-height:1.8; white-space:pre-line; }
+  .empty-note b { color:#8890a0; font-weight:600; }
+
+  /* ======================= BOTTOM PANEL ======================= */
+  .bottom-panel { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(180deg, rgba(10,10,15,0) 0%, #0a0a0f 30%); padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); display:flex; gap:8px; z-index:50; }
+  .bottom-btn { flex:1; height:48px; border-radius:14px; border:1px solid #262633; background:#14141c; font-size:14px; font-weight:600; color:#e8e8f0; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:5px; font-family:inherit; }
+  .bottom-btn:active { transform:scale(.97); background:#1e1e2a; }
+  .bottom-btn.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+
+  /* ======================= MODAL ======================= */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px 20px; overflow-y:auto; }
+  .modal { background:#1e1e2a; border:1px solid #262633; border-radius:22px; padding:20px; width:100%; max-width:420px; display:flex; flex-direction:column; gap:14px; margin-bottom:20px; }
+  .modal h3 { font-size:17px; font-weight:600; color:#e8e8f0; }
+  .modal .hint { font-size:12px; color:#6b6b7b; line-height:1.4; min-height:16px; }
+  .modal .err { color:#ff8f8f; font-size:12px; min-height:16px; }
+
+  .field-row { display:flex; flex-direction:column; gap:6px; }
+  .field-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.06em; }
+  .field-label.lbl-event   { color:#6fa8ff; }
+  .field-label.lbl-feeling { color:#ff8fb4; }
+  .field-label.lbl-thought { color:#b48fff; }
+  .field-label.lbl-action  { color:#7fffb4; }
+
+  .text-input { padding:12px 14px; border:1px solid #262633; border-radius:14px; font-size:15px; outline:none; background:#14141c; color:#e8e8f0; font-family:inherit; width:100%; }
+  .text-input:focus { border-color:#6fa8ff; }
+  .text-input.textarea { min-height:64px; resize:vertical; -webkit-user-select:text; user-select:text; line-height:1.5; font-size:15px; }
+  .text-input.textarea.tall { min-height:88px; }
+  .text-input[type="datetime-local"] { color-scheme: dark; }
+
+  .entry-dates { display:flex; flex-direction:column; gap:4px; padding:12px 14px; background:#14141c; border:1px solid #262633; border-radius:14px; font-size:12px; color:#8890a0; }
+  .entry-dates .dt-row { display:flex; justify-content:space-between; gap:12px; }
+  .entry-dates .dt-label { color:#6b6b7b; }
+  .entry-dates .dt-value { color:#c8c8d4; text-align:right; font-variant-numeric:tabular-nums; }
+
+  .move-btns { display:flex; gap:6px; flex:0 0 auto; }
+
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:4px; flex-wrap:wrap; }
+  .modal-actions button { padding:10px 16px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; transition:.15s; }
+  .modal-actions button:active { transform:scale(.97); }
+  .modal-actions button:disabled { opacity:.35; cursor:not-allowed; }
+  .modal-actions button.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
+  .modal-actions button.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
+  .modal-actions button.ghost { background:transparent; }
+  .modal-actions button.move-btn { min-width:44px; padding:10px 12px; font-size:16px; }
+
+  /* export tabs */
+  .export-tabs { display:flex; gap:4px; background:#14141c; padding:4px; border-radius:12px; border:1px solid #262633; }
+  .export-tabs button { flex:1; padding:8px 12px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; border:none; background:transparent; color:#6b6b7b; font-family:inherit; transition:.15s; }
+  .export-tabs button.active { background:#6fa8ff; color:#06111f; }
+
+  .export-textarea { width:100%; min-height:220px; padding:12px; border:1px solid #262633; border-radius:12px; background:#14141c; color:#e8e8f0; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.5; resize:vertical; -webkit-user-select:text; user-select:text; outline:none; }
+  .export-textarea:focus { border-color:#6fa8ff; }
+
+  .hidden { display:none !important; }
+
+  /* toast */
+  .toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 80px); transform:translate(-50%, 20px); z-index:500; background:#22222f; border:1px solid #262633; padding:11px 18px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .22s, transform .22s; pointer-events:none; max-width:86vw; text-align:center; color:#e8e8f0; }
+  .toast.show { opacity:1; transform:translate(-50%, 0); }
+
+  @media (max-width:380px) {
+    .hdr-title { font-size:18px; }
+    .entry-date { padding-left:38px; padding-right:38px; font-size:11px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top-bar">
+    <div class="hdr-title">Дневник<span class="colon">:</span></div>
+    <span class="hdr-count" id="hdrCount">0</span>
+    <button class="icon-btn" id="exportBtn" title="Экспорт / Импорт">📤</button>
+  </header>
+
+  <main class="scroll" id="scroll"></main>
+
+  <div class="bottom-panel">
+    <button class="bottom-btn primary" id="addEntryBtn">+ Запись</button>
+  </div>
+
+  <!-- ================= МОДАЛКА ЗАПИСИ ================= -->
+  <div id="entryModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="entryModalTitle">Новая запись</h3>
+
+      <div class="field-row">
+        <span class="field-label">Дата и время</span>
+        <input type="datetime-local" id="entryDate" class="text-input">
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-event">🎯 Событие</span>
+        <textarea id="entryEvent" class="text-input textarea tall" placeholder="Что произошло? Факт без оценок." rows="3"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-feeling">💗 Чувство</span>
+        <textarea id="entryFeeling" class="text-input textarea" placeholder="Что я почувствовал?" rows="2"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-thought">🧠 Мысль</span>
+        <textarea id="entryThought" class="text-input textarea" placeholder="Что я подумал? Какое убеждение прозвучало?" rows="2"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-action">⚡ Действие</span>
+        <textarea id="entryAction" class="text-input textarea" placeholder="Что я сделал или сделаю?" rows="2"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label">Положение в списке</span>
+        <div class="move-btns">
+          <button id="entryMoveUp" class="ghost move-btn" title="Выше">↑</button>
+          <button id="entryMoveDown" class="ghost move-btn" title="Ниже">↓</button>
+        </div>
+      </div>
+
+      <div class="entry-dates">
+        <div class="dt-row"><span class="dt-label">Создано</span><span class="dt-value" id="entryCreated">—</span></div>
+        <div class="dt-row"><span class="dt-label">Изменено</span><span class="dt-value" id="entryUpdated">—</span></div>
+      </div>
+
+      <div class="err" id="entryErr"></div>
+
+      <div class="modal-actions">
+        <button id="entryDelete" class="danger">Удалить</button>
+        <button id="entryCancel" class="ghost">Отмена</button>
+        <button id="entrySave" class="primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ЭКСПОРТ / ИМПОРТ ================= -->
+  <div id="exportModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>📤 Синхронизация</h3>
+      <div class="export-tabs">
+        <button id="exportTabJson" class="active">JSON (для 3D / бэкапа)</button>
+        <button id="exportTabText">Текст</button>
+      </div>
+      <textarea id="exportTextarea" class="export-textarea" readonly></textarea>
+      <div class="hint" id="exportHint">Скопируй JSON — это полная выгрузка. Вставь чужой JSON и нажми «Импорт», чтобы подтянуть записи.</div>
+      <div class="modal-actions">
+        <button id="exportImport" class="warn">Импорт</button>
+        <button id="exportDownload">Скачать</button>
+        <button id="exportCopy" class="primary">Копировать</button>
+        <button id="exportClose" class="ghost">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ПОДТВЕРЖДЕНИЕ ================= -->
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="confirmTitle">Удалить?</h3>
+      <div class="hint" id="confirmText"></div>
+      <div class="modal-actions">
+        <button id="confirmCancel" class="ghost">Отмена</button>
+        <button id="confirmOk" class="danger">Удалить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'dnevnik_v1';
+  const TOAST_MS = 2600;
+  const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+  /* =========================================================
+     УТИЛИТЫ
+     ========================================================= */
+  function uid() { return 'e_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
+  function nowIso() { return new Date().toISOString(); }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return pad2(d.getDate()) + ' ' + (MONTHS[d.getMonth()] || '') + ' ' + d.getFullYear() + ', ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  function toLocalInput(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  let toastEl = null, toastTimer = null;
+  function toast(msg) {
+    if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+    toastEl.textContent = msg;
+    requestAnimationFrame(() => toastEl.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), TOAST_MS);
+  }
+
+  function askConfirm(title, text, onOk) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmText').textContent = text;
+    const m = document.getElementById('confirmModal');
+    m.classList.remove('hidden');
+    const ok = document.getElementById('confirmOk');
+    const cancel = document.getElementById('confirmCancel');
+    function cleanup() { m.classList.add('hidden'); ok.removeEventListener('click', hOk); cancel.removeEventListener('click', hCancel); }
+    function hOk() { cleanup(); onOk(); }
+    function hCancel() { cleanup(); }
+    ok.addEventListener('click', hOk);
+    cancel.addEventListener('click', hCancel);
+  }
+
+  /* =========================================================
+     ХРАНИЛИЩЕ
+     ========================================================= */
+  const Store = (function () {
+    let state = null;
+    let ok = true;
+    function empty() { return { entries: [] }; }
+    function read() { try { return localStorage.getItem(STORAGE_KEY); } catch (e) { ok = false; return null; } }
+    function write(v) { try { localStorage.setItem(STORAGE_KEY, v); } catch (e) { ok = false; } }
+    function load() {
+      const raw = read();
+      if (!raw) { state = empty(); return; }
+      try {
+        const p = JSON.parse(raw);
+        state = { entries: Array.isArray(p.entries) ? p.entries : [] };
+      } catch (e) { state = empty(); }
+      state.entries.forEach(e => {
+        if (typeof e.event !== 'string') e.event = '';
+        if (typeof e.feeling !== 'string') e.feeling = '';
+        if (typeof e.thought !== 'string') e.thought = '';
+        if (typeof e.action !== 'string') e.action = '';
+        if (typeof e.created !== 'string') e.created = nowIso();
+        if (typeof e.updated !== 'string') e.updated = e.created;
+        if (typeof e.date !== 'string' || !e.date) e.date = e.created;
+      });
+    }
+    function save() { write(JSON.stringify(state)); }
+    function get() { return state; }
+    function isOk() { return ok; }
+    return { load, save, get, isOk };
+  })();
+
+  function getEntry(id) { return Store.get().entries.find(e => e.id === id) || null; }
+
+  function createEntry() {
+    const e = {
+      id: uid(),
+      date: nowIso(),
+      event: '', feeling: '', thought: '', action: '',
+      created: nowIso(), updated: nowIso()
+    };
+    Store.get().entries.push(e);
+    Store.save();
+    return e;
+  }
+
+  function deleteEntry(id) {
+    Store.get().entries = Store.get().entries.filter(e => e.id !== id);
+    Store.save();
+  }
+
+  function moveEntryByIndex(id, delta) {
+    const list = Store.get().entries;
+    const i = list.findIndex(e => e.id === id);
+    if (i < 0) return false;
+    const ni = i + delta;
+    if (ni < 0 || ni >= list.length) return false;
+    const tmp = list[i]; list[i] = list[ni]; list[ni] = tmp;
+    Store.save();
+    return true;
+  }
+
+  function moveEntryToIndex(id, targetIndex) {
+    const list = Store.get().entries;
+    const from = list.findIndex(e => e.id === id);
+    if (from < 0) return false;
+    const to = Math.max(0, Math.min(list.length - 1, targetIndex));
+    if (from === to) return false;
+    const [item] = list.splice(from, 1);
+    list.splice(to, 0, item);
+    Store.save();
+    return true;
+  }
+
+  /* =========================================================
+     РЕНДЕР ГЛАВНОГО ЭКРАНА
+     ========================================================= */
+  const scrollEl = document.getElementById('scroll');
+  const hdrCount = document.getElementById('hdrCount');
+
+  function render() {
+    scrollEl.innerHTML = '';
+    const entries = Store.get().entries;
+    hdrCount.textContent = String(entries.length);
+
+    if (!entries.length) {
+      const e = document.createElement('div');
+      e.className = 'empty-note';
+      e.innerHTML = 'Пока пусто.\nНажми <b>+ Запись</b>, чтобы начать дневник.\n\nКаждая запись — это 4 поля:\n🎯 <b>Событие</b>\n💗 <b>Чувство</b>\n🧠 <b>Мысль</b>\n⚡ <b>Действие</b>\n\nПотяни ⋮⋮ слева — переставить.\nТапни ✏️ — редактировать.';
+      scrollEl.appendChild(e);
+      return;
+    }
+    entries.forEach((entry, i) => scrollEl.appendChild(buildEntryEl(entry, i)));
+  }
+
+  function buildEntryEl(entry, index) {
+    const el = document.createElement('div');
+    el.className = 'entry-card';
+    el.dataset.entryId = entry.id;
+    el.dataset.index = String(index);
+
+    // ручка drag
+    const handle = document.createElement('button');
+    handle.className = 'entry-handle';
+    handle.textContent = '⋮⋮';
+    handle.setAttribute('aria-label', 'Переместить');
+    el.appendChild(handle);
+
+    // кнопка редактирования
+    const editBtn = document.createElement('button');
+    editBtn.className = 'entry-edit';
+    editBtn.textContent = '✏️';
+    editBtn.setAttribute('aria-label', 'Править запись');
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEntryModal(entry.id);
+    });
+    el.appendChild(editBtn);
+
+    // дата
+    const dateEl = document.createElement('div');
+    dateEl.className = 'entry-date';
+    dateEl.textContent = formatDate(entry.date || entry.created);
+    el.appendChild(dateEl);
+
+    // тело с полями
+    const body = document.createElement('div');
+    body.className = 'entry-body';
+
+    const fields = [
+      { kind: 'event',   icon: '🎯', name: 'Событие',  value: entry.event },
+      { kind: 'feeling', icon: '💗', name: 'Чувство',  value: entry.feeling },
+      { kind: 'thought', icon: '🧠', name: 'Мысль',    value: entry.thought },
+      { kind: 'action',  icon: '⚡', name: 'Действие', value: entry.action }
+    ];
+
+    let hasAny = false;
+    fields.forEach(f => {
+      if (!f.value || !f.value.trim()) return;
+      hasAny = true;
+      const fEl = document.createElement('div');
+      fEl.className = 'entry-field';
+      fEl.dataset.kind = f.kind;
+
+      const ico = document.createElement('div');
+      ico.className = 'entry-field-icon';
+      ico.textContent = f.icon;
+      fEl.appendChild(ico);
+
+      const bd = document.createElement('div');
+      bd.className = 'entry-field-body';
+
+      const nm = document.createElement('div');
+      nm.className = 'entry-field-name';
+      nm.textContent = f.name;
+      bd.appendChild(nm);
+
+      const vl = document.createElement('div');
+      vl.className = 'entry-field-value';
+      vl.textContent = f.value;
+      bd.appendChild(vl);
+
+      fEl.appendChild(bd);
+      body.appendChild(fEl);
+    });
+
+    if (!hasAny) {
+      const empty = document.createElement('div');
+      empty.className = 'entry-empty';
+      empty.textContent = 'Пустая запись — нажми ✏️, чтобы заполнить.';
+      body.appendChild(empty);
+    }
+
+    el.appendChild(body);
+    attachEntryDrag(handle, el, entry, index);
+    return el;
+  }
+
+  /* =========================================================
+     DRAG & DROP ДЛЯ СОРТИРОВКИ
+     ========================================================= */
+  function attachEntryDrag(handle, el, entry, startIndex) {
+    let pointerId = null;
+    let dragging = false;
+    let ghost = null;
+    let currentIndex = startIndex;
+    let targetIndex = startIndex;
+
+    function makeGhost() {
+      const g = document.createElement('div');
+      g.className = 'entry-ghost';
+      const em = document.createElement('div');
+      em.textContent = '📔';
+      em.style.fontSize = '22px';
+      g.appendChild(em);
+      const t = document.createElement('div');
+      t.textContent = formatDate(entry.date || entry.created);
+      t.style.fontSize = '14px';
+      t.style.maxWidth = '200px';
+      t.style.overflow = 'hidden';
+      t.style.textOverflow = 'ellipsis';
+      t.style.whiteSpace = 'nowrap';
+      g.appendChild(t);
+      return g;
+    }
+
+    function start(e) {
+      if (e.button && e.button !== 0) return;
+      pointerId = e.pointerId;
+      dragging = true;
+      if (navigator.vibrate) try { navigator.vibrate(15); } catch (er) {}
+      el.classList.add('dragging');
+      ghost = makeGhost();
+      ghost.style.left = (e.clientX - 80) + 'px';
+      ghost.style.top = (e.clientY - 22) + 'px';
+      document.body.appendChild(ghost);
+      document.addEventListener('pointermove', onMove, { passive: false });
+      document.addEventListener('pointerup', onUp);
+      document.addEventListener('pointercancel', onUp);
+    }
+
+    function onMove(e) {
+      if (e.pointerId !== pointerId) return;
+      e.preventDefault();
+      ghost.style.left = (e.clientX - 80) + 'px';
+      ghost.style.top = (e.clientY - 22) + 'px';
+
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      const targetEl = under ? under.closest('.entry-card') : null;
+      document.querySelectorAll('.entry-card.drop-target').forEach(c => {
+        if (c !== targetEl) c.classList.remove('drop-target');
+      });
+      if (targetEl && targetEl !== el) {
+        targetEl.classList.add('drop-target');
+        const ti = parseInt(targetEl.dataset.index, 10);
+        if (!isNaN(ti)) {
+          const rect = targetEl.getBoundingClientRect();
+          const mid = rect.top + rect.height / 2;
+          targetIndex = e.clientY < mid ? ti : ti + 1;
+        }
+      } else {
+        targetIndex = currentIndex;
+      }
+    }
+
+    function onUp(e) {
+      if (e.pointerId !== pointerId) return;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      el.classList.remove('dragging');
+      document.querySelectorAll('.entry-card.drop-target').forEach(c => c.classList.remove('drop-target'));
+      if (ghost) ghost.remove();
+      dragging = false;
+
+      if (targetIndex !== currentIndex && targetIndex !== currentIndex + 1) {
+        let ti = targetIndex;
+        if (ti > currentIndex) ti -= 1;
+        if (ti !== currentIndex) {
+          moveEntryToIndex(entry.id, ti);
+          render();
+          toast('Перемещено');
+          return;
+        }
+      }
+      render();
+    }
+
+    handle.addEventListener('pointerdown', start);
+  }
+
+  /* =========================================================
+     МОДАЛКА ЗАПИСИ
+     ========================================================= */
+  const entryModal = document.getElementById('entryModal');
+  let entryEditingId = null;
+
+  function updateMoveButtons() {
+    if (!entryEditingId) return;
+    const list = Store.get().entries;
+    const idx = list.findIndex(x => x.id === entryEditingId);
+    document.getElementById('entryMoveUp').disabled = idx <= 0;
+    document.getElementById('entryMoveDown').disabled = idx < 0 || idx >= list.length - 1;
+  }
+
+  function openEntryModal(id) {
+    entryEditingId = id || null;
+    const titleEl = document.getElementById('entryModalTitle');
+    const dateIn = document.getElementById('entryDate');
+    const evIn = document.getElementById('entryEvent');
+    const feIn = document.getElementById('entryFeeling');
+    const thIn = document.getElementById('entryThought');
+    const acIn = document.getElementById('entryAction');
+    const delBtn = document.getElementById('entryDelete');
+    const crEl = document.getElementById('entryCreated');
+    const upEl = document.getElementById('entryUpdated');
+    const errEl = document.getElementById('entryErr');
+
+    errEl.textContent = '';
+
+    if (id) {
+      const e = getEntry(id);
+      if (!e) return;
+      titleEl.textContent = 'Редактировать запись';
+      dateIn.value = toLocalInput(e.date || e.created);
+      evIn.value = e.event || '';
+      feIn.value = e.feeling || '';
+      thIn.value = e.thought || '';
+      acIn.value = e.action || '';
+      delBtn.classList.remove('hidden');
+      crEl.textContent = formatDate(e.created);
+      upEl.textContent = formatDate(e.updated || e.created);
+      updateMoveButtons();
+    } else {
+      titleEl.textContent = 'Новая запись';
+      dateIn.value = toLocalInput(nowIso());
+      evIn.value = '';
+      feIn.value = '';
+      thIn.value = '';
+      acIn.value = '';
+      delBtn.classList.add('hidden');
+      crEl.textContent = '—';
+      upEl.textContent = '—';
+      document.getElementById('entryMoveUp').disabled = true;
+      document.getElementById('entryMoveDown').disabled = true;
+    }
+
+    entryModal.classList.remove('hidden');
+    setTimeout(() => { if (!id) evIn.focus(); }, 220);
+  }
+
+  function closeEntryModal() {
+    entryModal.classList.add('hidden');
+    entryEditingId = null;
+  }
+
+  document.getElementById('entryCancel').addEventListener('click', closeEntryModal);
+
+  document.getElementById('entryMoveUp').addEventListener('click', () => {
+    if (!entryEditingId) return;
+    if (moveEntryByIndex(entryEditingId, -1)) {
+      updateMoveButtons();
+      render();
+    }
+  });
+  document.getElementById('entryMoveDown').addEventListener('click', () => {
+    if (!entryEditingId) return;
+    if (moveEntryByIndex(entryEditingId, 1)) {
+      updateMoveButtons();
+      render();
+    }
+  });
+
+  document.getElementById('entrySave').addEventListener('click', () => {
+    const dateVal = document.getElementById('entryDate').value;
+    const event = document.getElementById('entryEvent').value.trim();
+    const feeling = document.getElementById('entryFeeling').value.trim();
+    const thought = document.getElementById('entryThought').value.trim();
+    const action = document.getElementById('entryAction').value.trim();
+
+    if (!event && !feeling && !thought && !action) {
+      document.getElementById('entryErr').textContent = 'Заполни хотя бы одно поле';
+      return;
+    }
+
+    let dateIso = nowIso();
+    if (dateVal) {
+      const d = new Date(dateVal);
+      if (!isNaN(d.getTime())) dateIso = d.toISOString();
+    }
+
+    if (entryEditingId) {
+      const e = getEntry(entryEditingId);
+      if (e) {
+        e.date = dateIso;
+        e.event = event;
+        e.feeling = feeling;
+        e.thought = thought;
+        e.action = action;
+        e.updated = nowIso();
+      }
+    } else {
+      const e = {
+        id: uid(),
+        date: dateIso,
+        event, feeling, thought, action,
+        created: nowIso(),
+        updated: nowIso()
+      };
+      Store.get().entries.push(e);
+    }
+    Store.save();
+    closeEntryModal();
+    render();
+    toast('Сохранено');
+  });
+
+  document.getElementById('entryDelete').addEventListener('click', () => {
+    if (!entryEditingId) return;
+    const id = entryEditingId;
+    closeEntryModal();
+    askConfirm('Удалить запись?', 'Это действие нельзя отменить.', () => {
+      deleteEntry(id);
+      render();
+      toast('Удалено');
+    });
+  });
+
+  /* Ctrl/Cmd+Enter — быстрая сохранка */
+  entryModal.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('entrySave').click();
+    }
+  });
+
+  /* =========================================================
+     ЭКСПОРТ / ИМПОРТ
+     ========================================================= */
+  const exportModal = document.getElementById('exportModal');
+  let exportMode = 'json';
+
+  function buildExportJson() {
+    return {
+      version: '1.0',
+      app: 'Дневник',
+      exported: nowIso(),
+      schema: {
+        fields: ['event', 'feeling', 'thought', 'action'],
+        rules: ['Порядок записей можно менять', 'Дата редактируется', 'Экспорт полный (для синхронизации)']
+      },
+      entries: Store.get().entries.map(e => ({
+        id: e.id,
+        date: e.date,
+        event: e.event,
+        feeling: e.feeling,
+        thought: e.thought,
+        action: e.action,
+        created: e.created,
+        updated: e.updated
+      }))
+    };
+  }
+
+  function buildExportText() {
+    const lines = [];
+    const entries = Store.get().entries;
+    if (!entries.length) return '(пусто)';
+    entries.forEach((e, i) => {
+      lines.push('═══ #' + (i + 1) + ' · ' + formatDate(e.date || e.created) + ' ═══');
+      if (e.event)   lines.push('🎯 Событие: ' + e.event);
+      if (e.feeling) lines.push('💗 Чувство: ' + e.feeling);
+      if (e.thought) lines.push('🧠 Мысль: ' + e.thought);
+      if (e.action)  lines.push('⚡ Действие: ' + e.action);
+      lines.push('');
+    });
+    return lines.join('\n').trim();
+  }
+
+  function updateExportText() {
+    const ta = document.getElementById('exportTextarea');
+    ta.value = exportMode === 'json' ? JSON.stringify(buildExportJson(), null, 2) : buildExportText();
+    ta.readOnly = exportMode !== 'json';
+    document.getElementById('exportHint').textContent = exportMode === 'json'
+      ? 'Скопируй JSON — это полная выгрузка. Вставь чужой JSON и нажми «Импорт», чтобы подтянуть записи (новые добавятся, старые не тронутся).'
+      : 'Читаемый вид — удобно перечитывать и делиться.';
+  }
+
+  function setExportTab(mode) {
+    exportMode = mode;
+    document.getElementById('exportTabJson').classList.toggle('active', mode === 'json');
+    document.getElementById('exportTabText').classList.toggle('active', mode === 'text');
+    updateExportText();
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    setExportTab(exportMode);
+    exportModal.classList.remove('hidden');
+  });
+  document.getElementById('exportTabJson').addEventListener('click', () => setExportTab('json'));
+  document.getElementById('exportTabText').addEventListener('click', () => setExportTab('text'));
+  document.getElementById('exportClose').addEventListener('click', () => exportModal.classList.add('hidden'));
+
+  document.getElementById('exportCopy').addEventListener('click', () => {
+    const ta = document.getElementById('exportTextarea');
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(ta.value).then(() => toast('Скопировано')).catch(() => toast('Не вышло'));
+    } else {
+      try { document.execCommand('copy'); toast('Скопировано'); } catch (e) { toast('Не вышло'); }
+    }
+  });
+
+  document.getElementById('exportDownload').addEventListener('click', () => {
+    try {
+      const ta = document.getElementById('exportTextarea');
+      const isJson = exportMode === 'json';
+      const blob = new Blob([ta.value], { type: isJson ? 'application/json' : 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = isJson ? ('dnevnik_' + Date.now() + '.json') : ('dnevnik_' + Date.now() + '.txt');
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('Сохранено');
+    } catch (e) { toast('Ошибка'); }
+  });
+
+  document.getElementById('exportImport').addEventListener('click', () => {
+    if (exportMode !== 'json') { toast('Импорт только из JSON'); return; }
+    const ta = document.getElementById('exportTextarea');
+    let parsed;
+    try { parsed = JSON.parse(ta.value); } catch (e) { toast('Не получилось прочитать JSON'); return; }
+    if (!parsed || !Array.isArray(parsed.entries)) { toast('Нет поля entries'); return; }
+
+    const existing = new Set(Store.get().entries.map(e => e.id));
+    let added = 0, updated = 0;
+    parsed.entries.forEach(raw => {
+      if (!raw || typeof raw !== 'object') return;
+      const id = typeof raw.id === 'string' && raw.id ? raw.id : uid();
+      const clean = {
+        id,
+        date: typeof raw.date === 'string' && raw.date ? raw.date : (raw.created || nowIso()),
+        event: typeof raw.event === 'string' ? raw.event : '',
+        feeling: typeof raw.feeling === 'string' ? raw.feeling : '',
+        thought: typeof raw.thought === 'string' ? raw.thought : '',
+        action: typeof raw.action === 'string' ? raw.action : '',
+        created: typeof raw.created === 'string' ? raw.created : nowIso(),
+        updated: typeof raw.updated === 'string' ? raw.updated : nowIso()
+      };
+      if (existing.has(id)) {
+        const i = Store.get().entries.findIndex(e => e.id === id);
+        if (i >= 0) { Store.get().entries[i] = clean; updated++; }
+      } else {
+        Store.get().entries.push(clean);
+        existing.add(id);
+        added++;
+      }
+    });
+    Store.save();
+    render();
+    toast('Импорт: +' + added + ' новых, ' + updated + ' обновлено');
+  });
+
+  /* =========================================================
+     ЗАПУСК
+     ========================================================= */
+  document.getElementById('addEntryBtn').addEventListener('click', () => {
+    openEntryModal(null);
+  });
+
+  Store.load();
+  if (!Store.isOk()) toast('Хранилище недоступно');
+  render();
+
+})();
+</script>
+</body>
+</html>
