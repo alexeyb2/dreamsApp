@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>📔 Дневник</title>
 
-<meta name="description" content="Личный дневник: событие, чувство, мысль, действие, результат. Теги, фильтры, экспорт и добавление действий в Apple Календарь.">
+<meta name="description" content="Личный дневник с цепочками событий: событие, чувство, мысль, действие, результат. Теги, фильтры, Apple Календарь.">
 <meta name="theme-color" content="#0a0a0f">
 <meta name="color-scheme" content="dark">
 <meta property="og:title" content="📔 Дневник">
-<meta property="og:description" content="Событие · Чувство · Мысль · Действие · Результат">
+<meta property="og:description" content="Событие · Чувство · Мысль · Действие · Результат · Цепочки">
 <meta property="og:image" content="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
 <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
@@ -55,6 +55,8 @@
   .entry-card.drop-target { border-color:#6fa8ff; background:rgba(111,168,255,.08); }
   .entry-card.dragging { opacity:.5; z-index:9999; box-shadow:0 20px 60px rgba(111,168,255,.45); }
   .entry-card.filtered .entry-handle { opacity:.25; cursor:not-allowed; }
+  /* подкрасим карточку-продолжение чуть иначе */
+  .entry-card.is-child { border-color: rgba(127,255,180,.28); }
 
   .entry-handle { position:absolute; top:8px; left:8px; width:24px; height:30px; border-radius:6px; color:#4a4a58; font-size:16px; display:flex; align-items:center; justify-content:center; cursor:grab; transition:.15s; z-index:2; touch-action:none; background:transparent; border:none; font-family:inherit; padding:0; }
   .entry-handle:active { color:#6fa8ff; cursor:grabbing; }
@@ -67,7 +69,26 @@
   .entry-toggle .chev { display:inline-block; transition: transform .2s; transform: rotate(0deg); }
   .entry-card.expanded .entry-toggle .chev { transform: rotate(90deg); }
 
-  .entry-date { text-align:center; font-size:12px; color:#8890a0; letter-spacing:.03em; padding:6px 82px 4px 44px; font-variant-numeric:tabular-nums; }
+  .entry-date { display:flex; align-items:center; justify-content:center; gap:6px; text-align:center; font-size:12px; color:#8890a0; letter-spacing:.03em; padding:6px 82px 4px 44px; font-variant-numeric:tabular-nums; }
+  .entry-date-text { }
+
+  /* chain-кнопки в строке даты */
+  .chain-parent, .chain-children {
+    flex:none;
+    padding:2px 7px;
+    border-radius:7px;
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    transition:.15s;
+    line-height:1.4;
+  }
+  .chain-parent { background:rgba(111,168,255,.12); color:#6fa8ff; border:1px solid rgba(111,168,255,.35); }
+  .chain-parent:active { background:rgba(111,168,255,.28); transform:scale(.94); }
+  .chain-children { background:rgba(127,255,180,.12); color:#7fffb4; border:1px solid rgba(127,255,180,.35); }
+  .chain-children:active { background:rgba(127,255,180,.28); transform:scale(.94); }
+
   .entry-tags { display:flex; flex-wrap:wrap; gap:5px; padding:0 82px 12px 44px; justify-content:center; border-bottom:1px solid rgba(255,255,255,.05); margin-bottom:10px; }
   .entry-card.no-tags .entry-date { padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,.05); margin-bottom:10px; }
   .entry-card.collapsed.no-tags .entry-date { padding-bottom:10px; margin-bottom:8px; }
@@ -118,6 +139,38 @@
   .entry-action-date:active { background: rgba(127,255,180,.22); border-color:#7fffb4; transform:scale(.97); }
   .entry-action-date::before { content:'📅'; font-size: 13px; }
 
+  /* кнопка "развить в событие" на карточке */
+  .entry-continue-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 7px; padding: 5px 11px;
+    border-radius: 8px;
+    background: rgba(255,209,102,.08);
+    border: 1px dashed rgba(255,209,102,.4);
+    color: #ffd166;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+  }
+  .entry-continue-btn:active { background: rgba(255,209,102,.22); border-color:#ffd166; border-style:solid; transform:scale(.97); }
+  .entry-continue-btn::before { content:'↳'; font-size: 14px; }
+
+  /* кнопка "уже есть продолжение" */
+  .entry-children-note {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 7px; padding: 4px 10px;
+    border-radius: 8px;
+    background: rgba(127,255,180,.08);
+    border: 1px solid rgba(127,255,180,.28);
+    color: #7fffb4;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+  }
+  .entry-children-note:active { background: rgba(127,255,180,.2); transform:scale(.97); }
+
   .entry-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:.9; background:#1e1e2a; border:2px solid #6fa8ff; border-radius:18px; padding:10px 14px; display:flex; align-items:center; gap:10px; box-shadow:0 24px 60px rgba(0,0,0,.8); color:#e8e8f0; font-size:14px; }
 
   /* EMPTY */
@@ -155,6 +208,53 @@
 
   .field-hint { font-size:11px; color:#6b6b7b; line-height:1.4; margin-top:2px; }
   .field-hint b { color:#7fffb4; font-weight:600; }
+
+  /* кнопка "создать продолжение" в редакторе */
+  .continue-inline {
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px dashed rgba(255,209,102,.4);
+    background: rgba(255,209,102,.06);
+    color: #ffd166;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .continue-inline:active:not(:disabled) { background: rgba(255,209,102,.2); border-color:#ffd166; border-style:solid; transform:scale(.98); }
+  .continue-inline:disabled { opacity:.35; cursor:not-allowed; }
+
+  /* баннер цепочки в редакторе */
+  .chain-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(111,168,255,.08);
+    border: 1px solid rgba(111,168,255,.28);
+    font-size: 12px;
+    color: #a8b8d8;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .chain-banner:active { background: rgba(111,168,255,.2); }
+  .chain-banner .chain-arrow { font-size: 14px; color: #6fa8ff; flex: none; font-weight: 700; }
+  .chain-banner .chain-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chain-banner .chain-go { font-size: 12px; color: #6fa8ff; opacity: .8; }
+  .chain-banner.children-banner {
+    background: rgba(127,255,180,.06);
+    border-color: rgba(127,255,180,.26);
+    color: #a8d8c0;
+  }
+  .chain-banner.children-banner .chain-arrow { color: #7fffb4; }
+  .chain-banner.children-banner .chain-go { color: #7fffb4; }
 
   /* Tag editor */
   .tag-editor { display:flex; flex-direction:column; gap:8px; padding:12px 14px; background:#14141c; border:1px solid #262633; border-radius:14px; transition:.15s; }
@@ -198,6 +298,15 @@
   .modal-actions button.cal:disabled { background:transparent; color:#4a4a58; border-color:#262633; opacity:1; }
   .modal-actions button.move-btn { min-width:44px; padding:10px 12px; font-size:16px; }
 
+  /* picker для выбора продолжения */
+  .chain-picker-list { display:flex; flex-direction:column; gap:6px; max-height:55vh; overflow-y:auto; }
+  .chain-picker-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:#14141c; border:1px solid #262633; cursor:pointer; text-align:left; width:100%; font-family:inherit; color:#e8e8f0; transition:.15s; }
+  .chain-picker-row:active { background:#22222e; border-color:#7fffb4; }
+  .chain-picker-icon { font-size:18px; flex:none; color:#7fffb4; font-weight:700; }
+  .chain-picker-info { flex:1; min-width:0; }
+  .chain-picker-event { font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chain-picker-date { font-size:11px; color:#6b6b7b; margin-top:2px; font-variant-numeric:tabular-nums; }
+
   .export-tabs { display:flex; gap:4px; background:#14141c; padding:4px; border-radius:12px; border:1px solid #262633; }
   .export-tabs button { flex:1; padding:8px 12px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; border:none; background:transparent; color:#6b6b7b; font-family:inherit; transition:.15s; }
   .export-tabs button.active { background:#6fa8ff; color:#06111f; }
@@ -238,6 +347,9 @@
     <div class="modal">
       <h3 id="entryModalTitle">Новая запись</h3>
 
+      <!-- баннеры цепочки, заполняются в JS -->
+      <div id="entryChainBanners"></div>
+
       <div class="field-row">
         <span class="field-label">Дата записи</span>
         <input type="datetime-local" id="entryDate" class="text-input">
@@ -272,6 +384,8 @@
       <div class="field-row">
         <span class="field-label lbl-result">✅ Результат</span>
         <textarea id="entryResult" class="text-input textarea" placeholder="Что получилось? Чем закончилось? Заполняется позже." rows="2"></textarea>
+        <button id="entryContinue" class="continue-inline" disabled>↳ Создать продолжение</button>
+        <div class="field-hint">Результат станет <b>новым событием</b> в цепочке — со своими чувствами, мыслями и действиями.</div>
       </div>
 
       <div class="field-row">
@@ -306,6 +420,18 @@
         <button id="entryCalendar" class="cal" disabled>📅 В Календарь</button>
         <button id="entryCancel" class="ghost">Отмена</button>
         <button id="entrySave" class="primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ПИКЕР ПРОДОЛЖЕНИЙ ================= -->
+  <div id="chainPickerModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>↳ Продолжения записи</h3>
+      <div class="hint">Каждое — самостоятельная запись, которая выросла из результата.</div>
+      <div class="chain-picker-list" id="chainPickerList"></div>
+      <div class="modal-actions">
+        <button id="chainPickerCancel" class="ghost">Закрыть</button>
       </div>
     </div>
   </div>
@@ -422,14 +548,20 @@
         if (typeof e.feeling !== 'string') e.feeling = '';
         if (typeof e.thought !== 'string') e.thought = '';
         if (typeof e.action !== 'string') e.action = '';
-        // НОВОЕ ПОЛЕ: если нет result — создаём пустым (старые записи не ломаются)
         if (typeof e.result !== 'string') e.result = '';
+        // НОВОЕ: цепочка
+        if (typeof e.linkedFrom !== 'string') e.linkedFrom = '';
         if (typeof e.created !== 'string') e.created = nowIso();
         if (typeof e.updated !== 'string') e.updated = e.created;
         if (typeof e.date !== 'string' || !e.date) e.date = e.created;
         if (typeof e.actionDate !== 'string' || !e.actionDate) e.actionDate = '';
         if (!Array.isArray(e.tags)) e.tags = [];
         e.tags = e.tags.map(normalizeTag).filter(Boolean).filter((t, i, a) => a.indexOf(t) === i);
+      });
+      // чистим битые ссылки
+      const ids = new Set(state.entries.map(e => e.id));
+      state.entries.forEach(e => {
+        if (e.linkedFrom && !ids.has(e.linkedFrom)) e.linkedFrom = '';
       });
     }
     function save() { write(JSON.stringify(state)); }
@@ -460,14 +592,54 @@
     saveExpanded();
   }
 
-  /* ======================= CRUD ======================= */
+  /* ======================= ЦЕПОЧКИ ======================= */
   function getEntry(id) { return Store.get().entries.find(e => e.id === id) || null; }
+  function getParent(entry) { return entry && entry.linkedFrom ? getEntry(entry.linkedFrom) : null; }
+  function getChildren(id) { return Store.get().entries.filter(e => e.linkedFrom === id); }
+
+  // поднимаемся от листа до корня
+  function getChainRoot(entry) {
+    let cur = entry;
+    const seen = new Set();
+    while (cur && cur.linkedFrom && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      const p = getEntry(cur.linkedFrom);
+      if (!p) break;
+      cur = p;
+    }
+    return cur;
+  }
+  // размер всей цепочки от корня
+  function getChainSize(entry) {
+    const root = getChainRoot(entry);
+    if (!root) return 1;
+    const seen = new Set();
+    const queue = [root.id];
+    let n = 0;
+    while (queue.length) {
+      const id = queue.shift();
+      if (seen.has(id)) continue;
+      seen.add(id);
+      n++;
+      getChildren(id).forEach(c => queue.push(c.id));
+    }
+    return n;
+  }
+
+  /* ======================= CRUD ======================= */
   function deleteEntry(id) {
+    const deleted = getEntry(id);
+    const newParent = deleted ? (deleted.linkedFrom || '') : '';
+    // «повышаем» прямых детей
+    Store.get().entries.forEach(e => {
+      if (e.linkedFrom === id) e.linkedFrom = newParent;
+    });
     Store.get().entries = Store.get().entries.filter(e => e.id !== id);
     expandedEntries.delete(id);
     saveExpanded();
     Store.save();
   }
+
   function moveEntryByIndex(id, delta) {
     const list = Store.get().entries;
     const i = list.findIndex(e => e.id === id);
@@ -488,6 +660,30 @@
     list.splice(to, 0, item);
     Store.save();
     return true;
+  }
+
+  // создаёт «ребёнка» от записи: результат родителя становится событием
+  function createContinuationFromParent(parent) {
+    if (!parent) return null;
+    const result = (parent.result || '').trim();
+    if (!result) { toast('Сначала заполни Результат'); return null; }
+    const child = {
+      id: uid(),
+      date: nowIso(),
+      event: result,
+      feeling: '', thought: '', action: '',
+      actionDate: '',
+      result: '',
+      tags: (parent.tags || []).slice(),
+      linkedFrom: parent.id,
+      created: nowIso(),
+      updated: nowIso()
+    };
+    Store.get().entries.push(child);
+    expandedEntries.add(child.id);
+    saveExpanded();
+    Store.save();
+    return child;
   }
 
   /* ======================= .ICS ДЛЯ APPLE КАЛЕНДАРЯ ======================= */
@@ -561,7 +757,7 @@
     a.download = 'dnevnik-' + (entry.id || 'event') + '.ics';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    if (!opts.silent) toast('Открывай файл в Safari — предложит добавить в Календарь');
+    if (!opts.silent) toast('Открой файл в Safari — предложит добавить в Календарь');
   }
 
   /* ======================= ТЕГИ ======================= */
@@ -633,8 +829,6 @@
   const scrollEl = document.getElementById('scroll');
   const hdrCount = document.getElementById('hdrCount');
 
-  // превью для свёрнутой карточки — первое непустое поле
-  // теперь с учётом "Результат" — он в конце очереди
   function getPreviewInfo(entry) {
     const order = [
       { icon: '🎯', value: entry.event },
@@ -667,7 +861,7 @@
     if (!all.length) {
       const e = document.createElement('div');
       e.className = 'empty-note';
-      e.innerHTML = 'Пока пусто.\nНажми <b>+ Запись</b>, чтобы начать дневник.\n\nПорядок полей:\n🎯 <b>Событие</b>\n💗 <b>Чувство</b>\n🧠 <b>Мысль</b>\n⚡ <b>Действие</b> + 📅 <b>когда</b>\n✅ <b>Результат</b>\n\nДействие с датой можно отправить\nв <b>Apple Календарь</b> одной кнопкой.\nКарточки <b>сворачиваются</b> шевроном ▸.';
+      e.innerHTML = 'Пока пусто.\nНажми <b>+ Запись</b>, чтобы начать дневник.\n\n🎯 <b>Событие</b>\n💗 <b>Чувство</b>\n🧠 <b>Мысль</b>\n⚡ <b>Действие</b> + 📅 <b>когда</b>\n✅ <b>Результат</b>\n\nЗаполни результат — и нажми\n<b>↳ Создать продолжение</b>.\nРезультат станет новым событием,\nа записи соберутся в цепочку.';
       scrollEl.appendChild(e);
       return;
     }
@@ -688,9 +882,11 @@
 
   function buildEntryEl(entry, realIndex, filtering) {
     const expanded = isExpanded(entry.id);
+    const hasParent = !!getParent(entry);
+    const kids = getChildren(entry.id);
 
     const el = document.createElement('div');
-    el.className = 'entry-card' + (filtering ? ' filtered' : '') + (expanded ? ' expanded' : ' collapsed');
+    el.className = 'entry-card' + (filtering ? ' filtered' : '') + (expanded ? ' expanded' : ' collapsed') + (hasParent ? ' is-child' : '');
     el.dataset.entryId = entry.id;
     el.dataset.index = String(realIndex);
 
@@ -723,9 +919,40 @@
     editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEntryModal(entry.id); });
     el.appendChild(editBtn);
 
+    // строка даты с цепочкой
     const dateEl = document.createElement('div');
     dateEl.className = 'entry-date';
-    dateEl.textContent = formatDate(entry.date || entry.created);
+
+    if (hasParent) {
+      const p = document.createElement('button');
+      p.className = 'chain-parent';
+      p.textContent = '↳';
+      p.title = 'Открыть предыдущую запись';
+      p.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEntryModal(entry.linkedFrom);
+      });
+      dateEl.appendChild(p);
+    }
+
+    const dateTxt = document.createElement('span');
+    dateTxt.className = 'entry-date-text';
+    dateTxt.textContent = formatDate(entry.date || entry.created);
+    dateEl.appendChild(dateTxt);
+
+    if (kids.length) {
+      const c = document.createElement('button');
+      c.className = 'chain-children';
+      c.textContent = '→' + kids.length;
+      c.title = kids.length === 1 ? 'Открыть продолжение' : 'Продолжения';
+      c.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (kids.length === 1) openEntryModal(kids[0].id);
+        else openChainPicker(entry.id);
+      });
+      dateEl.appendChild(c);
+    }
+
     el.appendChild(dateEl);
 
     const tags = entry.tags || [];
@@ -753,7 +980,6 @@
       const body = document.createElement('div');
       body.className = 'entry-body';
 
-      // порядок: событие, чувство, мысль, действие, результат
       const fields = [
         { kind: 'event',   icon: '🎯', name: 'Событие',  value: entry.event },
         { kind: 'feeling', icon: '💗', name: 'Чувство',  value: entry.feeling },
@@ -788,7 +1014,6 @@
         vl.textContent = f.value;
         bd.appendChild(vl);
 
-        // дата-плашка появляется под действием
         if (f.kind === 'action' && entry.actionDate) {
           const dtEl = document.createElement('span');
           dtEl.className = 'entry-action-date';
@@ -799,6 +1024,36 @@
             downloadICSForEntry(entry);
           });
           bd.appendChild(dtEl);
+        }
+
+        // под Результатом — кнопка цепочки
+        if (f.kind === 'result') {
+          if (kids.length > 0) {
+            const note = document.createElement('button');
+            note.className = 'entry-children-note';
+            note.textContent = kids.length === 1 ? '↳ есть продолжение' : ('↳ продолжений: ' + kids.length);
+            note.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (kids.length === 1) openEntryModal(kids[0].id);
+              else openChainPicker(entry.id);
+            });
+            bd.appendChild(note);
+          } else {
+            const btn = document.createElement('button');
+            btn.className = 'entry-continue-btn';
+            btn.textContent = 'развить в новое событие';
+            btn.title = 'Результат станет новым событием с собственными чувствами и мыслями';
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const child = createContinuationFromParent(entry);
+              if (child) {
+                render();
+                setTimeout(() => openEntryModal(child.id), 120);
+                toast('Продолжение создано');
+              }
+            });
+            bd.appendChild(btn);
+          }
         }
 
         fEl.appendChild(bd);
@@ -918,6 +1173,41 @@
     handle.addEventListener('pointerdown', start);
   }
 
+  /* ======================= ПИКЕР ПРОДОЛЖЕНИЙ ======================= */
+  const chainPickerModal = document.getElementById('chainPickerModal');
+  function openChainPicker(parentId) {
+    const list = document.getElementById('chainPickerList');
+    list.innerHTML = '';
+    const kids = getChildren(parentId);
+    if (!kids.length) { toast('Нет продолжений'); return; }
+    kids.forEach(k => {
+      const row = document.createElement('button');
+      row.className = 'chain-picker-row';
+      const ic = document.createElement('div');
+      ic.className = 'chain-picker-icon';
+      ic.textContent = '↳';
+      row.appendChild(ic);
+      const info = document.createElement('div');
+      info.className = 'chain-picker-info';
+      const ev = document.createElement('div');
+      ev.className = 'chain-picker-event';
+      ev.textContent = k.event || '(пустое событие)';
+      info.appendChild(ev);
+      const dt = document.createElement('div');
+      dt.className = 'chain-picker-date';
+      dt.textContent = formatDate(k.date || k.created);
+      info.appendChild(dt);
+      row.appendChild(info);
+      row.addEventListener('click', () => {
+        chainPickerModal.classList.add('hidden');
+        setTimeout(() => openEntryModal(k.id), 60);
+      });
+      list.appendChild(row);
+    });
+    chainPickerModal.classList.remove('hidden');
+  }
+  document.getElementById('chainPickerCancel').addEventListener('click', () => chainPickerModal.classList.add('hidden'));
+
   /* ======================= МОДАЛКА ЗАПИСИ ======================= */
   const entryModal = document.getElementById('entryModal');
   let entryEditingId = null;
@@ -995,6 +1285,70 @@
     document.getElementById('entryCalendar').disabled = !action;
   }
 
+  function updateContinueBtn() {
+    const res = document.getElementById('entryResult').value.trim();
+    document.getElementById('entryContinue').disabled = !res;
+  }
+
+  // баннеры цепочки в редакторе
+  function renderChainBanners(entry) {
+    const wrap = document.getElementById('entryChainBanners');
+    wrap.innerHTML = '';
+    if (!entry) return;
+
+    const parent = getParent(entry);
+    if (parent) {
+      const b = document.createElement('div');
+      b.className = 'chain-banner';
+      const ar = document.createElement('div');
+      ar.className = 'chain-arrow';
+      ar.textContent = '↳';
+      b.appendChild(ar);
+      const tx = document.createElement('div');
+      tx.className = 'chain-text';
+      tx.textContent = 'Продолжение от ' + formatDate(parent.date || parent.created) + ' · ' + shortText(parent.event || '(без события)', 40);
+      b.appendChild(tx);
+      const go = document.createElement('div');
+      go.className = 'chain-go';
+      go.textContent = 'открыть';
+      b.appendChild(go);
+      b.addEventListener('click', () => {
+        closeEntryModal();
+        setTimeout(() => openEntryModal(parent.id), 120);
+      });
+      wrap.appendChild(b);
+    }
+
+    const kids = getChildren(entry.id);
+    if (kids.length) {
+      const b = document.createElement('div');
+      b.className = 'chain-banner children-banner';
+      const ar = document.createElement('div');
+      ar.className = 'chain-arrow';
+      ar.textContent = '↳';
+      b.appendChild(ar);
+      const tx = document.createElement('div');
+      tx.className = 'chain-text';
+      tx.textContent = 'Уже есть продолжений: ' + kids.length;
+      b.appendChild(tx);
+      const go = document.createElement('div');
+      go.className = 'chain-go';
+      go.textContent = 'открыть';
+      b.appendChild(go);
+      b.addEventListener('click', () => {
+        if (kids.length === 1) {
+          closeEntryModal();
+          setTimeout(() => openEntryModal(kids[0].id), 120);
+        } else {
+          openChainPicker(entry.id);
+        }
+      });
+      wrap.appendChild(b);
+    }
+  }
+
+  function shortText(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n-1) + '…' : s; }
+
   function openEntryModal(id) {
     entryEditingId = id || null;
     const titleEl = document.getElementById('entryModalTitle');
@@ -1024,12 +1378,13 @@
       thIn.value = e.thought || '';
       acIn.value = e.action || '';
       acDateIn.value = e.actionDate ? toLocalInput(e.actionDate) : '';
-      resIn.value = e.result || ''; // может быть пусто — старые записи
+      resIn.value = e.result || '';
       editingTags = (e.tags || []).slice();
       delBtn.classList.remove('hidden');
       crEl.textContent = formatDate(e.created);
       upEl.textContent = formatDate(e.updated || e.created);
       updateMoveButtons();
+      renderChainBanners(e);
     } else {
       titleEl.textContent = 'Новая запись';
       dateIn.value = toLocalInput(nowIso());
@@ -1045,12 +1400,14 @@
       upEl.textContent = '—';
       document.getElementById('entryMoveUp').disabled = true;
       document.getElementById('entryMoveDown').disabled = true;
+      renderChainBanners(null);
     }
 
     renderTagEditorChips();
     renderTagSuggest();
     updateTagAddBtn();
     updateCalendarBtn();
+    updateContinueBtn();
 
     entryModal.classList.remove('hidden');
     setTimeout(() => { if (!id) evIn.focus(); }, 220);
@@ -1064,6 +1421,7 @@
 
   document.getElementById('entryCancel').addEventListener('click', closeEntryModal);
   document.getElementById('entryAction').addEventListener('input', updateCalendarBtn);
+  document.getElementById('entryResult').addEventListener('input', updateContinueBtn);
 
   document.getElementById('entryMoveUp').addEventListener('click', () => {
     if (!entryEditingId) return;
@@ -1109,8 +1467,11 @@
     }
   });
 
-  // ---- СОХРАНЕНИЕ ----
-  document.getElementById('entrySave').addEventListener('click', () => {
+  // ---- общая функция: собрать и сохранить из формы ----
+  function saveEntryFromForm() {
+    const errEl = document.getElementById('entryErr');
+    errEl.textContent = '';
+
     const dateVal = document.getElementById('entryDate').value;
     const event = document.getElementById('entryEvent').value.trim();
     const feeling = document.getElementById('entryFeeling').value.trim();
@@ -1121,12 +1482,11 @@
 
     const pendingTag = normalizeTag(tagInput.value);
     if (pendingTag) { addTagToEditor(pendingTag); tagInput.value = ''; }
-
     const tags = editingTags.slice();
 
     if (!action && !event && !feeling && !thought && !result && !tags.length) {
-      document.getElementById('entryErr').textContent = 'Заполни хотя бы одно поле';
-      return;
+      errEl.textContent = 'Заполни хотя бы одно поле';
+      return null;
     }
 
     let dateIso = nowIso();
@@ -1134,7 +1494,6 @@
       const d = new Date(dateVal);
       if (!isNaN(d.getTime())) dateIso = d.toISOString();
     }
-
     let actionDateIso = '';
     if (actionDateVal) {
       const d = new Date(actionDateVal);
@@ -1143,43 +1502,74 @@
 
     if (entryEditingId) {
       const e = getEntry(entryEditingId);
-      if (e) {
-        e.date = dateIso;
-        e.event = event;
-        e.feeling = feeling;
-        e.thought = thought;
-        e.action = action;
-        e.actionDate = actionDateIso;
-        e.result = result;
-        e.tags = tags;
-        e.updated = nowIso();
-      }
+      if (!e) return null;
+      e.date = dateIso;
+      e.event = event;
+      e.feeling = feeling;
+      e.thought = thought;
+      e.action = action;
+      e.actionDate = actionDateIso;
+      e.result = result;
+      e.tags = tags;
+      e.updated = nowIso();
+      Store.save();
+      return e;
     } else {
       const newId = uid();
-      Store.get().entries.push({
+      const fresh = {
         id: newId,
         date: dateIso,
         event, feeling, thought, action,
         actionDate: actionDateIso,
         result,
         tags,
+        linkedFrom: '',
         created: nowIso(),
         updated: nowIso()
-      });
+      };
+      Store.get().entries.push(fresh);
+      entryEditingId = newId;
       expandedEntries.add(newId);
       saveExpanded();
+      Store.save();
+      return fresh;
     }
-    Store.save();
+  }
+
+  // ---- СОХРАНЕНИЕ ----
+  document.getElementById('entrySave').addEventListener('click', () => {
+    const saved = saveEntryFromForm();
+    if (!saved) return;
     closeEntryModal();
     render();
     toast('Сохранено');
   });
 
+  // ---- СОЗДАТЬ ПРОДОЛЖЕНИЕ из редактора ----
+  document.getElementById('entryContinue').addEventListener('click', () => {
+    const resultVal = document.getElementById('entryResult').value.trim();
+    if (!resultVal) { toast('Сначала заполни Результат'); return; }
+    // сначала сохраняем текущую
+    const saved = saveEntryFromForm();
+    if (!saved) return;
+    // создаём продолжение
+    const child = createContinuationFromParent(saved);
+    if (!child) return;
+    closeEntryModal();
+    render();
+    setTimeout(() => openEntryModal(child.id), 150);
+    toast('Продолжение создано');
+  });
+
   document.getElementById('entryDelete').addEventListener('click', () => {
     if (!entryEditingId) return;
     const id = entryEditingId;
+    const kids = getChildren(id);
+    const msg = kids.length
+      ? 'У этой записи ' + kids.length + ' продолжение(й). Они переедут на родителя выше.'
+      : 'Это действие нельзя отменить.';
     closeEntryModal();
-    askConfirm('Удалить запись?', 'Это действие нельзя отменить.', () => {
+    askConfirm('Удалить запись?', msg, () => {
       deleteEntry(id);
       render();
       toast('Удалено');
@@ -1230,12 +1620,18 @@
 
   function buildExportJson() {
     return {
-      version: '3.2',
+      version: '4.0',
       app: 'Дневник',
       exported: nowIso(),
       schema: {
-        fields: ['event', 'feeling', 'thought', 'action', 'actionDate', 'result', 'tags'],
-        rules: ['Порядок полей: событие, чувство, мысль, действие (+когда), результат', 'result заполняется позже', 'actionDate — для Apple Календаря', 'Карточки можно сворачивать']
+        fields: ['event', 'feeling', 'thought', 'action', 'actionDate', 'result', 'tags', 'linkedFrom'],
+        rules: [
+          'result может превратиться в новое событие — см. linkedFrom',
+          'linkedFrom — id родительской записи (или пусто, если корень)',
+          'Порядок полей: событие, чувство, мысль, действие (+когда), результат',
+          'actionDate — для Apple Календаря',
+          'Карточки можно сворачивать'
+        ]
       },
       entries: Store.get().entries.map(e => ({
         id: e.id,
@@ -1247,6 +1643,7 @@
         actionDate: e.actionDate || '',
         result: e.result || '',
         tags: (e.tags || []).slice(),
+        linkedFrom: e.linkedFrom || '',
         created: e.created,
         updated: e.updated
       }))
@@ -1258,7 +1655,8 @@
     const entries = Store.get().entries;
     if (!entries.length) return '(пусто)';
     entries.forEach((e, i) => {
-      lines.push('═══ #' + (i + 1) + ' · ' + formatDate(e.date || e.created) + ' ═══');
+      const chainMark = e.linkedFrom ? '  ↳ продолжение' : '';
+      lines.push('═══ #' + (i + 1) + ' · ' + formatDate(e.date || e.created) + chainMark + ' ═══');
       if (e.tags && e.tags.length) lines.push('🏷 ' + e.tags.map(t => '#' + t).join(' '));
       if (e.event)   lines.push('🎯 Событие: ' + e.event);
       if (e.feeling) lines.push('💗 Чувство: ' + e.feeling);
@@ -1328,7 +1726,7 @@
     const ta = document.getElementById('exportTextarea');
     if (exportMode === 'json') {
       ta.value = JSON.stringify(buildExportJson(), null, 2);
-      document.getElementById('exportHint').textContent = 'Скопируй JSON — это полная выгрузка. Вставь чужой JSON и нажми «Импорт», чтобы подтянуть записи.';
+      document.getElementById('exportHint').textContent = 'Скопируй JSON — это полная выгрузка, включая цепочки. Вставь чужой JSON и нажми «Импорт».';
     } else if (exportMode === 'text') {
       ta.value = buildExportText();
       document.getElementById('exportHint').textContent = 'Читаемый вид — удобно перечитывать и делиться.';
@@ -1406,9 +1804,9 @@
         thought: typeof raw.thought === 'string' ? raw.thought : '',
         action: typeof raw.action === 'string' ? raw.action : '',
         actionDate: typeof raw.actionDate === 'string' ? raw.actionDate : '',
-        // старые экспорты без result — читаются как пусто
         result: typeof raw.result === 'string' ? raw.result : '',
         tags: Array.isArray(raw.tags) ? raw.tags.map(normalizeTag).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i) : [],
+        linkedFrom: typeof raw.linkedFrom === 'string' ? raw.linkedFrom : '',
         created: typeof raw.created === 'string' ? raw.created : nowIso(),
         updated: typeof raw.updated === 'string' ? raw.updated : nowIso()
       };
@@ -1420,6 +1818,11 @@
         existing.add(id);
         added++;
       }
+    });
+    // чистим битые linkedFrom после импорта
+    const ids = new Set(Store.get().entries.map(e => e.id));
+    Store.get().entries.forEach(e => {
+      if (e.linkedFrom && !ids.has(e.linkedFrom)) e.linkedFrom = '';
     });
     Store.save();
     render();
