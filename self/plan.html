@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>🧭 План</title>
 
-<meta name="description" content="План от результата: цель → действие перед результатом → цепочка шагов с мыслями, чувствами, знаниями и датами.">
+<meta name="description" content="План от результата и от старта одновременно: строим путь с двух сторон до пустоты в середине.">
 <meta name="theme-color" content="#0a0a0f">
 <meta name="color-scheme" content="dark">
 <meta property="og:title" content="🧭 План">
-<meta property="og:description" content="Строим путь от результата к первому шагу.">
+<meta property="og:description" content="Идём снизу вверх и сверху вниз, встречаемся в пустоте.">
 <meta property="og:image" content="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
 <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
@@ -24,8 +24,13 @@
   html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
   #app { display:flex; flex-direction:column; height:100dvh; width:100%; position:relative; overflow:hidden; }
 
-  /* TOP BAR */
-  .top-bar { display:flex; align-items:center; gap:8px; padding:12px 14px; background:#0a0a0f; border-bottom:1px solid #1c1c28; flex-shrink:0; z-index:20; }
+  /* TOP BAR — с safe-area сверху */
+  .top-bar {
+    display:flex; align-items:center; gap:8px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 12px 14px;
+    background:#0a0a0f; border-bottom:1px solid #1c1c28;
+    flex-shrink:0; z-index:20;
+  }
   .hdr-title { flex:1; font-size:20px; font-weight:700; letter-spacing:-.01em; }
   .hdr-title .colon { color:#7fffb4; }
   .hdr-link { font-size:12px; color:#6fa8ff; text-decoration:none; padding:6px 10px; border-radius:8px; background:rgba(111,168,255,.08); border:1px solid rgba(111,168,255,.28); white-space:nowrap; }
@@ -79,42 +84,131 @@
   .plan-tag:active { background:rgba(127,255,180,.22); border-color:#7fffb4; }
   .plan-tag::before { content:'#'; opacity:.5; margin-right:2px; }
 
-  .plan-meta { display:flex; align-items:center; gap:10px; padding:6px 82px 6px 40px; font-size:12px; color:#6b6b7b; border-top:1px solid rgba(255,255,255,.05); }
+  .plan-meta { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:6px 82px 6px 40px; font-size:12px; color:#6b6b7b; border-top:1px solid rgba(255,255,255,.05); }
   .plan-meta .pm-item { display:inline-flex; align-items:center; gap:4px; }
   .plan-meta .pm-num { color:#c8c8d4; font-variant-numeric:tabular-nums; font-weight:600; }
   .plan-meta .pm-num.done { color:#7fffb4; }
+  .plan-meta .pm-num.blue { color:#6fa8ff; }
+  .plan-meta .pm-num.green { color:#7fffb4; }
 
-  /* СВЁРНУТОЕ: превью первого шага */
-  .plan-preview { display:flex; gap:8px; padding:6px 0 4px 40px; }
-  .plan-preview-num { font-size:13px; color:#7fffb4; font-weight:700; flex:none; width:20px; text-align:center; }
-  .plan-preview-text { flex:1; min-width:0; font-size:13px; line-height:1.45; color:#c8c8d4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .plan-preview.empty { color:#4a4a58; font-style:italic; }
+  /* Таймлайн (в карточке и в модалке) */
+  .timeline { display:flex; flex-direction:column; gap:6px; }
 
-  /* РАЗВЁРНУТОЕ: список шагов */
-  .plan-steps { display:flex; flex-direction:column; gap:6px; padding:10px 6px 2px 40px; }
-  .plan-steps-empty { color:#4a4a58; font-size:13px; font-style:italic; padding:8px 0 4px 40px; }
+  .tl-anchor {
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #14141c;
+    border: 1px solid #262633;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .tl-anchor.tl-goal { border-color: rgba(127,255,180,.4); }
+  .tl-anchor.tl-before { border-color: rgba(127,255,180,.22); }
+  .tl-anchor.tl-start { border-color: rgba(255,209,102,.28); }
+  .tl-anchor-label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#6b6b7b; font-weight:600; }
+  .tl-anchor.tl-goal .tl-anchor-label { color:#7fffb4; }
+  .tl-anchor.tl-before .tl-anchor-label { color:#7fffb4; opacity:.75; }
+  .tl-anchor.tl-start .tl-anchor-label { color:#ffd166; }
+  .tl-anchor-value { font-size:13px; color:#e8e8f0; line-height:1.4; word-break:break-word; -webkit-user-select:text; user-select:text; }
+  .tl-anchor-value.empty { color:#4a4a58; font-style:italic; }
 
-  .step-item { position:relative; padding:10px 12px 10px 34px; border-radius:12px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); cursor:pointer; transition:.15s; text-align:left; width:100%; font-family:inherit; color:#e8e8f0; }
-  .step-item:active { background:rgba(127,255,180,.08); border-color:rgba(127,255,180,.4); }
-  .step-item::before {
-    content: attr(data-num);
-    position: absolute;
-    left: 8px; top: 12px;
-    width: 20px; height: 20px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 6px;
-    background: rgba(127,255,180,.12);
-    color: #7fffb4;
-    font-size: 11px;
-    font-weight: 700;
+  .tl-zone {
+    display:flex; flex-direction:column; gap:6px;
+    padding: 8px 0;
+  }
+
+  .tl-step {
+    display:flex; align-items:flex-start; gap:10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #14141c;
+    border: 1px solid #262633;
+    cursor:pointer;
+    transition: .15s;
+    position: relative;
+    text-align:left; width:100%;
+    font-family:inherit; color:#e8e8f0;
+  }
+  .tl-step:active { background: #22222e; }
+  .tl-step[data-anchor="start"] { border-left: 3px solid rgba(127,255,180,.55); }
+  .tl-step[data-anchor="end"] { border-left: 3px solid rgba(111,168,255,.55); }
+
+  .tl-step-num {
+    flex:none; width:24px; height:24px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:7px;
+    font-size:11px; font-weight:700;
     font-variant-numeric: tabular-nums;
   }
-  .step-action { font-size:13px; line-height:1.4; font-weight:600; color:#e8e8f0; word-break:break-word; margin-bottom:4px; }
-  .step-action.empty { color:#4a4a58; font-style:italic; font-weight:400; }
-  .step-meta { display:flex; flex-wrap:wrap; gap:6px; font-size:11px; color:#6b6b7b; }
-  .step-badge { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:6px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); }
-  .step-badge.sched { background:rgba(127,255,180,.08); border-color:rgba(127,255,180,.28); color:#7fffb4; font-variant-numeric:tabular-nums; }
-  .step-badge.sched.overdue { background:rgba(255,143,143,.1); border-color:rgba(255,143,143,.4); color:#ff8f8f; }
+  .tl-step[data-anchor="start"] .tl-step-num { background: rgba(127,255,180,.15); color:#7fffb4; }
+  .tl-step[data-anchor="end"] .tl-step-num { background: rgba(111,168,255,.15); color:#6fa8ff; }
+
+  .tl-step-info { flex:1; min-width:0; }
+  .tl-step-action { font-size:13px; line-height:1.4; color:#e8e8f0; word-break:break-word; }
+  .tl-step-action.empty { color:#4a4a58; font-style:italic; }
+  .tl-step-meta { margin-top:4px; display:flex; flex-wrap:wrap; gap:6px; font-size:11px; color:#6b6b7b; }
+  .tl-step-meta .sched { color:#ffd166; font-variant-numeric:tabular-nums; }
+  .tl-step-meta .sched.overdue { color:#ff8f8f; }
+  .tl-step-meta .badge { color:#6b6b7b; }
+
+  .tl-step-del {
+    flex:none; width:24px; height:24px;
+    border-radius:7px;
+    border:1px solid #262633;
+    background:transparent;
+    color:#6b6b7b;
+    font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-family:inherit; padding:0;
+    transition: .15s;
+  }
+  .tl-step-del:active { background: rgba(255,90,90,.15); color:#ff8f8f; border-color:#ff8f8f; }
+
+  .tl-add {
+    padding: 11px 14px;
+    border-radius: 11px;
+    border: 1px dashed;
+    font-size: 13px;
+    font-weight: 600;
+    cursor:pointer;
+    font-family:inherit;
+    text-align:left;
+    transition:.15s;
+    display:flex; align-items:center; gap:8px;
+    background:transparent;
+    width:100%;
+  }
+  .tl-add .tl-add-arrow { font-size:16px; flex:none; width:20px; text-align:center; }
+  .tl-add .tl-add-text { flex:1; min-width:0; }
+  .tl-add .tl-add-hint { font-size:11px; color:#6b6b7b; font-weight:400; display:block; margin-top:2px; }
+  .tl-add.end { border-color: rgba(111,168,255,.35); color:#6fa8ff; }
+  .tl-add.end:active { background: rgba(111,168,255,.15); border-style:solid; }
+  .tl-add.start { border-color: rgba(127,255,180,.35); color:#7fffb4; }
+  .tl-add.start:active { background: rgba(127,255,180,.15); border-style:solid; }
+
+  .tl-gap {
+    text-align:center;
+    font-size:11px;
+    color:#4a4a58;
+    font-style:italic;
+    padding: 14px 8px;
+    letter-spacing:.1em;
+    position:relative;
+  }
+  .tl-gap::before, .tl-gap::after {
+    content:'';
+    position:absolute;
+    left: 12%; right: 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+  }
+  .tl-gap::before { top: 0; }
+  .tl-gap::after { bottom: 0; }
+  .tl-gap.final {
+    color:#7fffb4;
+    font-style:normal;
+    font-weight:600;
+    letter-spacing:.05em;
+  }
 
   /* EMPTY */
   .empty-note { color:#4a4a58; font-size:14px; text-align:center; padding:50px 24px; line-height:1.8; white-space:pre-line; }
@@ -126,8 +220,17 @@
   .bottom-btn:active { transform:scale(.97); background:#1e1e2a; }
   .bottom-btn.primary { background:#7fffb4; color:#0a1a12; border-color:transparent; }
 
-  /* MODAL */
-  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:36px 16px 20px; overflow-y:auto; }
+  /* MODAL — с safe-area сверху */
+  .modal-overlay {
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.75);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    z-index:100;
+    display:flex; align-items:flex-start; justify-content:center;
+    padding: calc(36px + env(safe-area-inset-top, 0px)) 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    overflow-y:auto;
+  }
   .modal { background:#1e1e2a; border:1px solid #262633; border-radius:22px; padding:20px; width:100%; max-width:440px; display:flex; flex-direction:column; gap:13px; margin-bottom:20px; }
   .modal h3 { font-size:17px; font-weight:600; color:#e8e8f0; }
   .modal .hint { font-size:12px; color:#6b6b7b; line-height:1.4; min-height:16px; }
@@ -136,13 +239,14 @@
   .field-row { display:flex; flex-direction:column; gap:6px; }
   .field-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.06em; }
   .field-label.lbl-goal    { color:#7fffb4; }
-  .field-label.lbl-before  { color:#7fffb4; }
+  .field-label.lbl-before  { color:#7fffb4; opacity:.8; }
   .field-label.lbl-action  { color:#7fffb4; }
   .field-label.lbl-thought { color:#b48fff; }
   .field-label.lbl-feeling { color:#ff8fb4; }
   .field-label.lbl-know    { color:#6fa8ff; }
   .field-label.lbl-when    { color:#ffd166; }
   .field-label.lbl-tags    { color:#8890a0; }
+  .field-label.lbl-steps   { color:#7fffb4; }
 
   .text-input { padding:12px 14px; border:1px solid #262633; border-radius:14px; font-size:15px; outline:none; background:#14141c; color:#e8e8f0; font-family:inherit; width:100%; }
   .text-input:focus { border-color:#7fffb4; }
@@ -153,23 +257,37 @@
   .field-hint { font-size:11px; color:#6b6b7b; line-height:1.4; margin-top:2px; }
   .field-hint b { color:#7fffb4; font-weight:600; }
 
-  /* Steps list в редакторе плана */
-  .steps-editor { display:flex; flex-direction:column; gap:6px; }
-  .steps-editor-empty { font-size:12px; color:#6b6b7b; font-style:italic; padding:8px 2px; }
-  .step-editor-row { display:flex; align-items:center; gap:8px; padding:9px 10px 9px 32px; border-radius:10px; background:#14141c; border:1px solid #262633; position:relative; }
-  .step-editor-row::before { content: attr(data-num); position:absolute; left:8px; top:50%; transform:translateY(-50%); width:18px; height:18px; display:flex; align-items:center; justify-content:center; border-radius:5px; background:rgba(127,255,180,.12); color:#7fffb4; font-size:10px; font-weight:700; }
-  .step-editor-label { flex:1; min-width:0; font-size:13px; color:#c8c8d4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .step-editor-label.empty { color:#4a4a58; font-style:italic; }
-  .step-editor-btn { width:26px; height:26px; border-radius:7px; border:1px solid #262633; background:transparent; color:#8890a0; font-size:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; font-family:inherit; padding:0; }
-  .step-editor-btn:active { background:rgba(127,255,180,.12); color:#7fffb4; }
-  .step-editor-btn.del:active { background:rgba(255,90,90,.15); color:#ff8f8f; border-color:#ff8f8f; }
-  .add-step-inline { padding:10px 12px; border-radius:10px; border:1px dashed #262633; background:transparent; color:#8890a0; font-size:13px; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:6px; transition:.15s; }
-  .add-step-inline:active { color:#7fffb4; border-color:#7fffb4; }
-
   /* Кнопка "Следующий шаг" в редакторе шага */
-  .next-step-inline { padding:12px 14px; border-radius:12px; border:1px dashed rgba(127,255,180,.4); background:rgba(127,255,180,.06); color:#7fffb4; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:.15s; display:flex; align-items:center; justify-content:center; gap:6px; }
-  .next-step-inline:active:not(:disabled) { background:rgba(127,255,180,.18); border-style:solid; transform:scale(.98); }
+  .next-step-inline {
+    padding:12px 14px;
+    border-radius:12px;
+    border: 1px dashed;
+    background: transparent;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+    transition:.15s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    text-align:center;
+  }
+  .next-step-inline.start { border-color: rgba(127,255,180,.4); color:#7fffb4; background: rgba(127,255,180,.05); }
+  .next-step-inline.start:active:not(:disabled) { background: rgba(127,255,180,.18); border-style:solid; }
+  .next-step-inline.end { border-color: rgba(111,168,255,.4); color:#6fa8ff; background: rgba(111,168,255,.05); }
+  .next-step-inline.end:active:not(:disabled) { background: rgba(111,168,255,.18); border-style:solid; }
   .next-step-inline:disabled { opacity:.35; cursor:not-allowed; }
+
+  /* Anchor chip в редакторе шага */
+  .step-anchor-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 10px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:600;
+    align-self:flex-start;
+  }
+  .step-anchor-chip.start { background: rgba(127,255,180,.12); color:#7fffb4; border:1px solid rgba(127,255,180,.35); }
+  .step-anchor-chip.end { background: rgba(111,168,255,.12); color:#6fa8ff; border:1px solid rgba(111,168,255,.35); }
 
   /* Tag editor */
   .tag-editor { display:flex; flex-direction:column; gap:8px; padding:12px 14px; background:#14141c; border:1px solid #262633; border-radius:14px; transition:.15s; }
@@ -253,18 +371,17 @@
 
       <div class="field-row">
         <span class="field-label lbl-goal">🏁 Какой результат хочешь?</span>
-        <textarea id="planGoal" class="text-input textarea tall" placeholder="Опиши цель как будто она уже случилась." rows="3"></textarea>
+        <textarea id="planGoal" class="text-input textarea tall" placeholder="Опиши цель так, будто она уже случилась." rows="3"></textarea>
       </div>
 
       <div class="field-row">
-        <span class="field-label lbl-before">⏮ Какое действие было прямо перед результатом?</span>
-        <textarea id="planBefore" class="text-input textarea" placeholder="Что ты делаешь прямо на финише, когда цель достигнута?" rows="2"></textarea>
+        <span class="field-label lbl-before">⏮ Что делаешь прямо перед результатом?</span>
+        <textarea id="planBefore" class="text-input textarea" placeholder="Последнее действие перед финишем." rows="2"></textarea>
       </div>
 
       <div class="field-row">
-        <span class="field-label">🪜 Шаги к результату</span>
-        <div class="steps-editor" id="stepsEditor"></div>
-        <div class="field-hint">Первый шаг — с чего начнёшь. Дальше — цепочка до «перед финишем».</div>
+        <span class="field-label lbl-steps">🪜 Путь</span>
+        <div class="timeline" id="timeline"></div>
       </div>
 
       <div class="field-row">
@@ -298,9 +415,10 @@
   <div id="stepModal" class="modal-overlay hidden">
     <div class="modal">
       <h3 id="stepModalTitle">Шаг</h3>
+      <div id="stepAnchorChip"></div>
 
       <div class="field-row">
-        <span class="field-label lbl-action">🎯 Что делаю (шаг)</span>
+        <span class="field-label lbl-action">🎯 Что делаю</span>
         <textarea id="stepAction" class="text-input textarea tall" placeholder="Опиши шаг коротко и конкретно." rows="3"></textarea>
       </div>
 
@@ -325,9 +443,11 @@
       </div>
 
       <div class="field-row">
-        <span class="field-label">↳ Видишь следующий шаг?</span>
-        <button id="stepNext" class="next-step-inline" disabled>↳ Опиши следующий шаг</button>
-        <div class="field-hint">Сохранит текущий шаг и откроет новый — <b>как продолжение цепочки</b>.</div>
+        <span class="field-label" id="stepNextLabel">↳ Следующий шаг</span>
+        <button id="stepNext" class="next-step-inline start" disabled>
+          <span class="tl-add-arrow">↳</span>
+          <span class="tl-add-text" id="stepNextText">Опиши следующий шаг</span>
+        </button>
       </div>
 
       <div class="err" id="stepErr"></div>
@@ -406,6 +526,7 @@
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
   function shortText(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n-1) + '…' : s; }
+  function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n'); }
 
   function normalizeTag(raw) {
     if (typeof raw !== 'string') return '';
@@ -445,10 +566,16 @@
     function empty() { return { plans: [] }; }
     function read() { try { return localStorage.getItem(STORAGE_KEY); } catch (e) { ok = false; return null; } }
     function write(v) { try { localStorage.setItem(STORAGE_KEY, v); } catch (e) { ok = false; } }
-    function normStep(s) {
+
+    // Нормализация шага: старые данные без anchor/order становятся start-order
+    function normStep(s, idx) {
       if (!s || typeof s !== 'object') return null;
+      const anchor = (s.anchor === 'end' || s.anchor === 'start') ? s.anchor : 'start';
+      const order = (typeof s.order === 'number' && s.order > 0) ? s.order : (idx + 1);
       return {
         id: typeof s.id === 'string' && s.id ? s.id : stepUid(),
+        anchor,
+        order,
         action: typeof s.action === 'string' ? s.action : '',
         thought: typeof s.thought === 'string' ? s.thought : '',
         feeling: typeof s.feeling === 'string' ? s.feeling : '',
@@ -469,7 +596,7 @@
         if (typeof p.goal !== 'string') p.goal = '';
         if (typeof p.before !== 'string') p.before = '';
         if (!Array.isArray(p.steps)) p.steps = [];
-        p.steps = p.steps.map(normStep).filter(Boolean);
+        p.steps = p.steps.map((s, i) => normStep(s, i)).filter(Boolean);
         if (!Array.isArray(p.tags)) p.tags = [];
         p.tags = p.tags.map(normalizeTag).filter(Boolean).filter((t, i, a) => a.indexOf(t) === i);
         if (typeof p.created !== 'string') p.created = nowIso();
@@ -511,16 +638,6 @@
     saveExpanded();
     Store.save();
   }
-  function movePlanByIndex(id, delta) {
-    const list = Store.get().plans;
-    const i = list.findIndex(p => p.id === id);
-    if (i < 0) return false;
-    const ni = i + delta;
-    if (ni < 0 || ni >= list.length) return false;
-    const tmp = list[i]; list[i] = list[ni]; list[ni] = tmp;
-    Store.save();
-    return true;
-  }
   function movePlanToIndex(id, targetIndex) {
     const list = Store.get().plans;
     const from = list.findIndex(p => p.id === id);
@@ -531,6 +648,22 @@
     list.splice(to, 0, item);
     Store.save();
     return true;
+  }
+
+  // Получить шаги по anchor, отсортированные по order
+  function getSteps(plan, anchor) {
+    return (plan.steps || []).filter(s => s.anchor === anchor).sort((a, b) => a.order - b.order);
+  }
+  // Следующий order для нового шага в этой ветке
+  function nextOrder(plan, anchor) {
+    const arr = getSteps(plan, anchor);
+    let m = 0;
+    arr.forEach(s => { if (s.order > m) m = s.order; });
+    return m + 1;
+  }
+  // Найти конкретный шаг по id
+  function findStep(plan, stepId) {
+    return (plan.steps || []).find(s => s.id === stepId) || null;
   }
 
   /* ======================= .ICS ======================= */
@@ -544,7 +677,6 @@
       return d.getUTCFullYear() + pad2(d.getUTCMonth() + 1) + pad2(d.getUTCDate())
         + 'T' + pad2(d.getUTCHours()) + pad2(d.getUTCMinutes()) + pad2(d.getUTCSeconds()) + 'Z';
     }
-    const esc = s => String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
 
     const summary = (step.action || 'Шаг плана').replace(/\s+/g, ' ').slice(0, 200);
     const descLines = [];
@@ -580,7 +712,7 @@
     a.download = 'step-' + (step.id || 'x') + '.ics';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast('Открой файл в Safari — предложит добавить');
+    toast('Открой файл в Safari');
   }
 
   /* ======================= ТЕГИ ======================= */
@@ -653,6 +785,14 @@
       return !isNaN(d.getTime()) && d.getTime() < now;
     }).length;
   }
+  // Есть ли контакт между ветками? (можно считать что путь сошёлся)
+  function branchesMeet(plan) {
+    // эвристика: у верхней ветки order 1 — то же, что "before"?
+    // Можно не строго определять, а просто показать что gap уменьшается
+    const ends = getSteps(plan, 'end').length;
+    const starts = getSteps(plan, 'start').length;
+    return ends > 0 && starts > 0;
+  }
 
   function render() {
     cleanupActiveTags();
@@ -668,14 +808,14 @@
     if (!all.length) {
       const e = document.createElement('div');
       e.className = 'empty-note';
-      e.innerHTML = 'Пока пусто.\nНажми <b>+ Новый план</b>.\n\nСтроим путь в обратную сторону:\n🏁 <b>Какой результат хочешь?</b>\n⏮ <b>Что прямо перед финишем?</b>\n1️⃣ <b>Первый шаг</b> → мысли, чувства, знания, дата\n↳ и дальше <b>следующий шаг</b>…\n\nВ шапке — ссылка на обычный дневник.';
+      e.innerHTML = 'Пока пусто. Нажми <b>+ Новый план</b>.\n\nСтроим путь <b>с двух сторон</b>:\n\n🏁 Результат → ⏮ что перед ним →\n← шаги назад…\n\n⋯ пустота ⋯\n\n→ шаги вперёд…\n🚀 Старт\n\nВ шапке — ссылка на обычный дневник.';
       scrollEl.appendChild(e);
       return;
     }
     if (!visible.length) {
       const e = document.createElement('div');
       e.className = 'empty-note';
-      e.innerHTML = 'По фильтру ничего не найдено.\nСними фильтр — тапни «✕ Сбросить» сверху.';
+      e.innerHTML = 'По фильтру ничего не найдено.\nСними фильтр — «✕ Сбросить» сверху.';
       scrollEl.appendChild(e);
       return;
     }
@@ -690,7 +830,7 @@
   function buildPlanEl(plan, realIndex, filtering) {
     const expanded = isPlanExpanded(plan.id);
     const el = document.createElement('div');
-    el.className = 'plan-card' + (filtering ? ' filtering' : '') + (expanded ? ' expanded' : '');
+    el.className = 'plan-card' + (expanded ? ' expanded' : '');
     el.dataset.planId = plan.id;
     el.dataset.index = String(realIndex);
 
@@ -738,111 +878,290 @@
         const chip = document.createElement('span');
         chip.className = 'plan-tag';
         chip.textContent = t;
-        chip.title = 'Фильтровать';
         chip.addEventListener('click', (e) => { e.stopPropagation(); activeTags.add(t); render(); });
         tagsRow.appendChild(chip);
       });
       el.appendChild(tagsRow);
     }
 
-    // meta
-    const steps = plan.steps || [];
+    // мета
+    const ends = getSteps(plan, 'end');
+    const starts = getSteps(plan, 'start');
+    const total = ends.length + starts.length;
     const planned = countPlanned(plan);
     const overdue = countOverdue(plan);
 
     const meta = document.createElement('div');
     meta.className = 'plan-meta';
-
     const m1 = document.createElement('span');
     m1.className = 'pm-item';
-    m1.innerHTML = '🪜 шагов: <span class="pm-num">' + steps.length + '</span>';
+    m1.innerHTML = '🪜 шагов: <span class="pm-num">' + total + '</span>';
     meta.appendChild(m1);
 
+    if (starts.length) {
+      const mS = document.createElement('span');
+      mS.className = 'pm-item';
+      mS.innerHTML = '<span class="pm-num green">→' + starts.length + '</span>';
+      meta.appendChild(mS);
+    }
+    if (ends.length) {
+      const mE = document.createElement('span');
+      mE.className = 'pm-item';
+      mE.innerHTML = '<span class="pm-num blue">←' + ends.length + '</span>';
+      meta.appendChild(mE);
+    }
     if (planned) {
       const m2 = document.createElement('span');
       m2.className = 'pm-item';
-      m2.innerHTML = '📅 запланировано: <span class="pm-num ' + (planned === steps.length ? 'done' : '') + '">' + planned + '/' + steps.length + '</span>';
+      m2.innerHTML = '📅 <span class="pm-num ' + (planned === total ? 'done' : '') + '">' + planned + '/' + total + '</span>';
       meta.appendChild(m2);
     }
     if (overdue) {
       const m3 = document.createElement('span');
       m3.className = 'pm-item';
       m3.style.color = '#ff8f8f';
-      m3.textContent = '⚠ просрочено: ' + overdue;
+      m3.textContent = '⚠ ' + overdue;
       meta.appendChild(m3);
     }
     el.appendChild(meta);
 
-    if (expanded) {
-      // полный список шагов
-      if (!steps.length) {
-        const e = document.createElement('div');
-        e.className = 'plan-steps-empty';
-        e.textContent = 'Шагов ещё нет — нажми ✏️, чтобы добавить первый.';
-        el.appendChild(e);
-      } else {
-        const wrap = document.createElement('div');
-        wrap.className = 'plan-steps';
-        steps.forEach((step, i) => {
-          wrap.appendChild(buildStepItem(plan, step, i));
-        });
-        el.appendChild(wrap);
-      }
-    } else {
-      // превью первого шага
-      const first = steps[0];
-      const prev = document.createElement('div');
-      prev.className = 'plan-preview' + (first ? '' : ' empty');
-      const num = document.createElement('div');
-      num.className = 'plan-preview-num';
-      num.textContent = first ? '1️⃣' : '·';
-      prev.appendChild(num);
-      const txt = document.createElement('div');
-      txt.className = 'plan-preview-text';
-      txt.textContent = first ? (first.action || '(шаг без описания)') : 'нет шагов';
-      prev.appendChild(txt);
-      el.appendChild(prev);
-    }
+    // Таймлайн в карточке
+    const tlWrap = document.createElement('div');
+    tlWrap.className = 'timeline';
+    tlWrap.style.paddingTop = '10px';
+    buildTimelineInto(tlWrap, plan, { interactive: !filtering, editable: true });
+    el.appendChild(tlWrap);
 
     if (!filtering) attachPlanDrag(handle, el, plan, realIndex);
     return el;
   }
 
-  function buildStepItem(plan, step, idx) {
-    const btn = document.createElement('button');
-    btn.className = 'step-item';
-    btn.dataset.num = String(idx + 1);
-    btn.type = 'button';
+  /**
+   * Строит таймлайн внутрь контейнера.
+   * opts:
+   *   interactive — можно кликать
+   *   editable    — показывать кнопки добавления и удаления шагов
+   *   onChange    — callback после изменений (для перерисовки)
+   *   draftSteps  — если передан массив, работать с ним вместо plan.steps (для модалки)
+   */
+  function buildTimelineInto(container, plan, opts) {
+    opts = opts || {};
+    const interactive = opts.interactive !== false;
+    const editable = !!opts.editable;
+    const draftSteps = opts.draftSteps || null;
+    const onStepClick = opts.onStepClick || null;
 
-    const action = document.createElement('div');
-    action.className = 'step-action' + (step.action ? '' : ' empty');
-    action.textContent = step.action || '(без описания)';
-    btn.appendChild(action);
-
-    const meta = document.createElement('div');
-    meta.className = 'step-meta';
-
-    if (step.thought) meta.appendChild(makeBadge('🧠', shortText(step.thought, 24)));
-    if (step.feeling) meta.appendChild(makeBadge('💗', shortText(step.feeling, 24)));
-    if (step.knowledge) meta.appendChild(makeBadge('📚', shortText(step.knowledge, 24)));
-    if (step.scheduled) {
-      const isOverdue = new Date(step.scheduled).getTime() < Date.now();
-      const b = document.createElement('span');
-      b.className = 'step-badge sched' + (isOverdue ? ' overdue' : '');
-      b.textContent = '📅 ' + formatShort(step.scheduled);
-      meta.appendChild(b);
+    // работаем либо с черновиком, либо с реальным планом
+    function getArr(anchor) {
+      const src = draftSteps || plan.steps || [];
+      return src.filter(s => s.anchor === anchor).sort((a, b) => a.order - b.order);
     }
 
-    if (meta.children.length) btn.appendChild(meta);
+    // GOAL
+    const goalAnchor = document.createElement('div');
+    goalAnchor.className = 'tl-anchor tl-goal';
+    const gLbl = document.createElement('div');
+    gLbl.className = 'tl-anchor-label';
+    gLbl.textContent = '🏁 Результат';
+    goalAnchor.appendChild(gLbl);
+    const gVal = document.createElement('div');
+    gVal.className = 'tl-anchor-value' + (plan.goal ? '' : ' empty');
+    gVal.textContent = plan.goal || '(пока не описан)';
+    goalAnchor.appendChild(gVal);
+    container.appendChild(goalAnchor);
 
-    btn.addEventListener('click', () => openStepModal(plan.id, idx));
-    return btn;
+    // BEFORE (только если что-то есть)
+    if (plan.before) {
+      const bAnchor = document.createElement('div');
+      bAnchor.className = 'tl-anchor tl-before';
+      const bLbl = document.createElement('div');
+      bLbl.className = 'tl-anchor-label';
+      bLbl.textContent = '⏮ Перед финишем';
+      bAnchor.appendChild(bLbl);
+      const bVal = document.createElement('div');
+      bVal.className = 'tl-anchor-value';
+      bVal.textContent = plan.before;
+      bAnchor.appendChild(bVal);
+      container.appendChild(bAnchor);
+    }
+
+    // ================= END ZONE (сверху вниз) =================
+    const endZone = document.createElement('div');
+    endZone.className = 'tl-zone tl-zone-end';
+    const endSteps = getArr('end');
+    endSteps.forEach(s => endZone.appendChild(buildStepRow(plan, s, 'end', interactive, editable, onStepClick, opts.onChange, draftSteps)));
+    // кнопка добавления сверху — "что было до этого?" (снизу от всех end-шагов)
+    if (editable) {
+      const addEnd = document.createElement('button');
+      addEnd.type = 'button';
+      addEnd.className = 'tl-add end';
+      const arr = document.createElement('span'); arr.className = 'tl-add-arrow'; arr.textContent = '←';
+      addEnd.appendChild(arr);
+      const box = document.createElement('span'); box.className = 'tl-add-text';
+      box.textContent = endSteps.length ? 'Что было до этого?' : 'Шаг перед финишем';
+      const hint = document.createElement('span'); hint.className = 'tl-add-hint';
+      hint.textContent = endSteps.length ? 'продолжаем копать назад' : 'шаг, который был раньше';
+      box.appendChild(hint);
+      addEnd.appendChild(box);
+      addEnd.addEventListener('click', () => {
+        if (draftSteps) {
+          const order = (endSteps.reduce((m, s) => Math.max(m, s.order), 0)) + 1;
+          const fresh = { id: stepUid(), anchor: 'end', order, action: '', thought: '', feeling: '', knowledge: '', scheduled: '', created: nowIso(), updated: nowIso() };
+          draftSteps.push(fresh);
+          if (opts.onChange) opts.onChange();
+        } else if (opts.onAddStepRequest) {
+          opts.onAddStepRequest('end');
+        }
+      });
+      endZone.appendChild(addEnd);
+    }
+    container.appendChild(endZone);
+
+    // ================= GAP =================
+    const gap = document.createElement('div');
+    gap.className = 'tl-gap';
+    if (endSteps.length && !endSteps.length) {
+      // nothing
+    }
+    if (endSteps.length + getArr('start').length === 0) {
+      gap.textContent = '⋯ здесь появится путь ⋯';
+    } else if (endSteps.length && getArr('start').length) {
+      gap.textContent = '⋯ пока не сошлись ⋯';
+    } else {
+      gap.textContent = '⋯ пустота ⋯';
+    }
+    container.appendChild(gap);
+
+    // ================= START ZONE (снизу вверх) =================
+    const startZone = document.createElement('div');
+    startZone.className = 'tl-zone tl-zone-start';
+    const startSteps = getArr('start');
+    // Кнопка сверху — "что делаешь дальше?" (над самым верхним шагом)
+    if (editable) {
+      const addStart = document.createElement('button');
+      addStart.type = 'button';
+      addStart.className = 'tl-add start';
+      const arr = document.createElement('span'); arr.className = 'tl-add-arrow'; arr.textContent = '→';
+      addStart.appendChild(arr);
+      const box = document.createElement('span'); box.className = 'tl-add-text';
+      box.textContent = startSteps.length ? 'Что делаешь дальше?' : 'Первый шаг';
+      const hint = document.createElement('span'); hint.className = 'tl-add-hint';
+      hint.textContent = startSteps.length ? 'продолжаем идти вперёд' : 'с чего начнёшь';
+      box.appendChild(hint);
+      addStart.appendChild(box);
+      addStart.addEventListener('click', () => {
+        if (draftSteps) {
+          const order = (startSteps.reduce((m, s) => Math.max(m, s.order), 0)) + 1;
+          const fresh = { id: stepUid(), anchor: 'start', order, action: '', thought: '', feeling: '', knowledge: '', scheduled: '', created: nowIso(), updated: nowIso() };
+          draftSteps.push(fresh);
+          if (opts.onChange) opts.onChange();
+        } else if (opts.onAddStepRequest) {
+          opts.onAddStepRequest('start');
+        }
+      });
+      startZone.appendChild(addStart);
+    }
+    // Шаги снизу вверх: от высшего order к низшему
+    const startRev = startSteps.slice().reverse();
+    startRev.forEach(s => startZone.appendChild(buildStepRow(plan, s, 'start', interactive, editable, onStepClick, opts.onChange, draftSteps)));
+    container.appendChild(startZone);
+
+    // START ANCHOR (внизу)
+    const startAnchor = document.createElement('div');
+    startAnchor.className = 'tl-anchor tl-start';
+    const sLbl = document.createElement('div');
+    sLbl.className = 'tl-anchor-label';
+    sLbl.textContent = '🚀 Старт';
+    startAnchor.appendChild(sLbl);
+    const sVal = document.createElement('div');
+    sVal.className = 'tl-anchor-value';
+    const first = startSteps[0];
+    sVal.textContent = first && first.action ? ('Первый шаг: ' + first.action) : 'Точка, из которой идём';
+    startAnchor.appendChild(sVal);
+    container.appendChild(startAnchor);
   }
-  function makeBadge(icon, text) {
-    const b = document.createElement('span');
-    b.className = 'step-badge';
-    b.textContent = icon + ' ' + text;
-    return b;
+
+  function buildStepRow(plan, step, anchor, interactive, editable, onStepClick, onChange, draftSteps) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tl-step';
+    btn.dataset.anchor = anchor;
+
+    const num = document.createElement('div');
+    num.className = 'tl-step-num';
+    num.textContent = String(step.order);
+    btn.appendChild(num);
+
+    const info = document.createElement('div');
+    info.className = 'tl-step-info';
+    const act = document.createElement('div');
+    act.className = 'tl-step-action' + (step.action ? '' : ' empty');
+    act.textContent = step.action || '(без описания)';
+    info.appendChild(act);
+
+    const metaBits = [];
+    if (step.thought) metaBits.push({ icon: '🧠', text: shortText(step.thought, 22) });
+    if (step.feeling) metaBits.push({ icon: '💗', text: shortText(step.feeling, 22) });
+    if (step.knowledge) metaBits.push({ icon: '📚', text: shortText(step.knowledge, 22) });
+    if (step.scheduled) {
+      const isOverdue = new Date(step.scheduled).getTime() < Date.now();
+      metaBits.push({ icon: '📅', text: formatShort(step.scheduled), overdue: isOverdue, sched: true });
+    }
+    if (metaBits.length) {
+      const meta = document.createElement('div');
+      meta.className = 'tl-step-meta';
+      metaBits.forEach(b => {
+        const s = document.createElement('span');
+        s.className = b.sched ? ('sched' + (b.overdue ? ' overdue' : '')) : 'badge';
+        s.textContent = b.icon + ' ' + b.text;
+        meta.appendChild(s);
+      });
+      info.appendChild(meta);
+    }
+    btn.appendChild(info);
+
+    if (interactive && onStepClick) {
+      btn.addEventListener('click', () => onStepClick(step, anchor));
+    }
+    if (!interactive) {
+      btn.style.cursor = 'default';
+    }
+
+    // обёртка для удаления (используем div контейнер вместо одной кнопки)
+    const wrap = document.createElement('div');
+    wrap.style.display = 'flex';
+    wrap.style.alignItems = 'stretch';
+    wrap.style.gap = '6px';
+
+    btn.style.flex = '1';
+
+    wrap.appendChild(btn);
+
+    if (editable) {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'tl-step-del';
+      del.textContent = '×';
+      del.title = 'Удалить шаг';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (draftSteps) {
+          const idx = draftSteps.findIndex(x => x.id === step.id);
+          if (idx >= 0) draftSteps.splice(idx, 1);
+          if (onChange) onChange();
+        } else {
+          const idx = plan.steps.findIndex(x => x.id === step.id);
+          if (idx >= 0) {
+            plan.steps.splice(idx, 1);
+            plan.updated = nowIso();
+            Store.save();
+            if (onChange) onChange();
+          }
+        }
+      });
+      wrap.appendChild(del);
+    }
+    return wrap;
   }
 
   /* ======================= DRAG планов ======================= */
@@ -860,7 +1179,6 @@
       g.appendChild(t);
       return g;
     }
-
     function start(e) {
       if (e.button && e.button !== 0) return;
       pointerId = e.pointerId;
@@ -916,69 +1234,43 @@
   const planModal = document.getElementById('planModal');
   let planEditingId = null;
   let editingTags = [];
-  let editingSteps = []; // копия шагов при редактировании
+  let draftSteps = []; // копия шагов для редактирования
 
-  function renderStepsEditor() {
-    const wrap = document.getElementById('stepsEditor');
-    wrap.innerHTML = '';
-    if (!editingSteps.length) {
-      const e = document.createElement('div');
-      e.className = 'steps-editor-empty';
-      e.textContent = 'Пока нет шагов — добавь первый.';
-      wrap.appendChild(e);
-    } else {
-      editingSteps.forEach((s, i) => {
-        const row = document.createElement('div');
-        row.className = 'step-editor-row';
-        row.dataset.num = String(i + 1);
-        const lbl = document.createElement('div');
-        lbl.className = 'step-editor-label' + (s.action ? '' : ' empty');
-        lbl.textContent = s.action || '(без описания)';
-        row.appendChild(lbl);
-
-        const openBtn = document.createElement('button');
-        openBtn.className = 'step-editor-btn';
-        openBtn.textContent = '↗';
-        openBtn.title = 'Открыть';
-        openBtn.addEventListener('click', () => openStepModalForEditing(i));
-        row.appendChild(openBtn);
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'step-editor-btn del';
-        delBtn.textContent = '×';
-        delBtn.title = 'Удалить шаг';
-        delBtn.addEventListener('click', () => {
-          editingSteps.splice(i, 1);
-          renderStepsEditor();
-        });
-        row.appendChild(delBtn);
-
-        wrap.appendChild(row);
-      });
-    }
-
-    const addBtn = document.createElement('button');
-    addBtn.className = 'add-step-inline';
-    addBtn.type = 'button';
-    addBtn.textContent = '+ Добавить шаг';
-    addBtn.addEventListener('click', () => {
-      // создаём новый пустой шаг, сразу открываем его редактор "поверх"
-      const s = {
-        id: stepUid(),
-        action: '', thought: '', feeling: '', knowledge: '', scheduled: '',
-        created: nowIso(), updated: nowIso()
-      };
-      editingSteps.push(s);
-      renderStepsEditor();
-      openStepModalForEditing(editingSteps.length - 1);
+  function refreshDraftTimeline() {
+    const tl = document.getElementById('timeline');
+    tl.innerHTML = '';
+    const planLike = {
+      goal: document.getElementById('planGoal').value.trim(),
+      before: document.getElementById('planBefore').value.trim(),
+      steps: draftSteps
+    };
+    buildTimelineInto(tl, planLike, {
+      interactive: true,
+      editable: true,
+      draftSteps: draftSteps,
+      onChange: refreshDraftTimeline,
+      onStepClick: (step, anchor) => {
+        // открываем редактор шага в контексте черновика
+        openStepDraftEditor(step.id);
+      },
+      onAddStepRequest: (anchor) => {
+        // создаём новый шаг, сразу открываем редактор
+        const order = (draftSteps.filter(s => s.anchor === anchor).reduce((m, s) => Math.max(m, s.order), 0)) + 1;
+        const fresh = { id: stepUid(), anchor, order, action: '', thought: '', feeling: '', knowledge: '', scheduled: '', created: nowIso(), updated: nowIso() };
+        draftSteps.push(fresh);
+        refreshDraftTimeline();
+        openStepDraftEditor(fresh.id);
+      }
     });
-    wrap.appendChild(addBtn);
   }
 
-  function openStepModalForEditing(idx) {
-    // открываем редактор шага в контексте редактируемого плана (не сохранённого)
-    stepCtx = { mode: 'plan-draft', planId: null, stepIndex: idx };
-    fillStepForm(editingSteps[idx]);
+  function openStepDraftEditor(stepId) {
+    const step = draftSteps.find(s => s.id === stepId);
+    if (!step) return;
+    stepCtx = { mode: 'draft', stepId: stepId };
+    document.getElementById('stepModalTitle').textContent = step.anchor === 'start' ? ('Шаг ' + step.order + ' от старта') : ('Шаг ' + step.order + ' от финиша');
+    updateStepAnchorChip(step.anchor);
+    fillStepForm(step);
     stepModal.classList.remove('hidden');
   }
 
@@ -1055,7 +1347,7 @@
       goalIn.value = p.goal || '';
       beforeIn.value = p.before || '';
       editingTags = (p.tags || []).slice();
-      editingSteps = (p.steps || []).map(s => Object.assign({}, s));
+      draftSteps = (p.steps || []).map(s => Object.assign({}, s));
       delBtn.classList.remove('hidden');
       crEl.textContent = formatDate(p.created);
       upEl.textContent = formatDate(p.updated || p.created);
@@ -1064,13 +1356,17 @@
       goalIn.value = '';
       beforeIn.value = '';
       editingTags = [];
-      editingSteps = [];
+      draftSteps = [];
       delBtn.classList.add('hidden');
       crEl.textContent = '—';
       upEl.textContent = '—';
     }
 
-    renderStepsEditor();
+    // обновляем превью таймлайна при вводе goal/before
+    goalIn.oninput = refreshDraftTimeline;
+    beforeIn.oninput = refreshDraftTimeline;
+
+    refreshDraftTimeline();
     renderTagEditorChips();
     renderTagSuggest();
     updateTagAddBtn();
@@ -1082,7 +1378,7 @@
     planModal.classList.add('hidden');
     planEditingId = null;
     editingTags = [];
-    editingSteps = [];
+    draftSteps = [];
   }
 
   document.getElementById('planCancel').addEventListener('click', closePlanModal);
@@ -1125,7 +1421,7 @@
     if (pending) { addTagToEditor(pending); tagInput.value = ''; }
     const tags = editingTags.slice();
 
-    if (!goal && !before && !tags.length && !editingSteps.length) {
+    if (!goal && !before && !tags.length && !draftSteps.length) {
       err.textContent = 'Заполни хотя бы результат';
       return;
     }
@@ -1136,7 +1432,7 @@
       p.goal = goal;
       p.before = before;
       p.tags = tags;
-      p.steps = editingSteps.map(s => Object.assign({}, s));
+      p.steps = draftSteps.map(s => Object.assign({}, s));
       p.updated = nowIso();
     } else {
       const newId = uid();
@@ -1144,7 +1440,7 @@
         id: newId,
         goal, before,
         tags,
-        steps: editingSteps.map(s => Object.assign({}, s)),
+        steps: draftSteps.map(s => Object.assign({}, s)),
         created: nowIso(),
         updated: nowIso()
       });
@@ -1170,7 +1466,16 @@
 
   /* ======================= МОДАЛКА ШАГА ======================= */
   const stepModal = document.getElementById('stepModal');
-  let stepCtx = null; // { mode: 'plan'|'plan-draft', planId, stepIndex }
+  let stepCtx = null; // { mode: 'draft'|'plan', stepId, planId }
+
+  function updateStepAnchorChip(anchor) {
+    const wrap = document.getElementById('stepAnchorChip');
+    wrap.innerHTML = '';
+    const chip = document.createElement('span');
+    chip.className = 'step-anchor-chip ' + (anchor === 'start' ? 'start' : 'end');
+    chip.textContent = anchor === 'start' ? '→ от старта, идём вперёд' : '← от финиша, идём назад';
+    wrap.appendChild(chip);
+  }
 
   function fillStepForm(step) {
     document.getElementById('stepAction').value = step.action || '';
@@ -1181,6 +1486,22 @@
     document.getElementById('stepErr').textContent = '';
     updateStepCalendarBtn();
     updateStepNextBtn();
+
+    // настройка кнопки "следующий шаг" в зависимости от anchor
+    const btn = document.getElementById('stepNext');
+    const txt = document.getElementById('stepNextText');
+    const label = document.getElementById('stepNextLabel');
+    if (step.anchor === 'start') {
+      btn.classList.remove('end');
+      btn.classList.add('start');
+      txt.textContent = 'Опиши следующий шаг';
+      label.textContent = '↳ Что делаешь дальше?';
+    } else {
+      btn.classList.remove('start');
+      btn.classList.add('end');
+      txt.textContent = 'Опиши шаг, что был раньше';
+      label.textContent = '↰ Что было до этого?';
+    }
   }
 
   function readStepForm() {
@@ -1209,45 +1530,18 @@
   document.getElementById('stepScheduled').addEventListener('input', updateStepCalendarBtn);
   document.getElementById('stepAction').addEventListener('input', updateStepNextBtn);
 
-  function openStepModal(planId, stepIndex) {
-    const p = getPlan(planId);
-    if (!p || !p.steps[stepIndex]) return;
-    stepCtx = { mode: 'plan', planId, stepIndex };
-    document.getElementById('stepModalTitle').textContent = 'Шаг ' + (stepIndex + 1);
-    fillStepForm(p.steps[stepIndex]);
-    stepModal.classList.remove('hidden');
-  }
-
-  function openStepModalForNew(planId) {
-    // открываем редактор нового шага: шаг добавится в plan при сохранении
-    const p = getPlan(planId);
-    if (!p) return;
-    const fresh = {
-      id: stepUid(),
-      action: '', thought: '', feeling: '', knowledge: '', scheduled: '',
-      created: nowIso(), updated: nowIso()
-    };
-    p.steps.push(fresh);
-    Store.save();
-    stepCtx = { mode: 'plan', planId, stepIndex: p.steps.length - 1 };
-    document.getElementById('stepModalTitle').textContent = 'Шаг ' + (stepIndex + 1);
-    fillStepForm(fresh);
-    stepModal.classList.remove('hidden');
-    return fresh;
-  }
-
   function closeStepModal() {
     stepModal.classList.add('hidden');
     stepCtx = null;
   }
+
   document.getElementById('stepCancel').addEventListener('click', () => {
     const ctx = stepCtx;
     closeStepModal();
-    // если закрываем без сохранения — вернуть редактор плана если есть
-    if (ctx && ctx.mode === 'plan-draft') {
+    if (ctx && ctx.mode === 'draft') {
       // вернуться в редактор плана
       planModal.classList.remove('hidden');
-      renderStepsEditor();
+      refreshDraftTimeline();
     }
   });
 
@@ -1258,18 +1552,19 @@
     const err = document.getElementById('stepErr');
     if (!data.action) { err.textContent = 'Опиши шаг'; return; }
 
-    if (stepCtx.mode === 'plan-draft') {
-      // редактируем черновик в модалке плана
-      editingSteps[stepCtx.stepIndex] = Object.assign({}, editingSteps[stepCtx.stepIndex], data, { updated: nowIso() });
+    if (stepCtx.mode === 'draft') {
+      const step = draftSteps.find(s => s.id === stepCtx.stepId);
+      if (!step) return;
+      Object.assign(step, data, { updated: nowIso() });
       closeStepModal();
       planModal.classList.remove('hidden');
-      renderStepsEditor();
+      refreshDraftTimeline();
       return;
     }
     if (stepCtx.mode === 'plan') {
       const p = getPlan(stepCtx.planId);
       if (!p) return;
-      const s = p.steps[stepCtx.stepIndex];
+      const s = p.steps.find(x => x.id === stepCtx.stepId);
       if (!s) return;
       Object.assign(s, data, { updated: nowIso() });
       p.updated = nowIso();
@@ -1280,41 +1575,47 @@
     }
   });
 
-  // УДАЛЕНИЕ шага
+  // УДАЛЕНИЕ
   document.getElementById('stepDelete').addEventListener('click', () => {
     if (!stepCtx) return;
     const ctx = stepCtx;
-    if (ctx.mode === 'plan-draft') {
-      editingSteps.splice(ctx.stepIndex, 1);
+    if (ctx.mode === 'draft') {
+      const idx = draftSteps.findIndex(s => s.id === ctx.stepId);
+      if (idx >= 0) draftSteps.splice(idx, 1);
       closeStepModal();
       planModal.classList.remove('hidden');
-      renderStepsEditor();
+      refreshDraftTimeline();
       return;
     }
     if (ctx.mode === 'plan') {
       const p = getPlan(ctx.planId);
       if (!p) return;
-      const idx = ctx.stepIndex;
+      const idx = p.steps.findIndex(s => s.id === ctx.stepId);
       closeStepModal();
       askConfirm('Удалить шаг?', 'Только этот шаг.', () => {
-        p.steps.splice(idx, 1);
-        p.updated = nowIso();
-        Store.save();
-        render();
-        toast('Удалено');
+        if (idx >= 0) {
+          p.steps.splice(idx, 1);
+          p.updated = nowIso();
+          Store.save();
+          render();
+          toast('Удалено');
+        }
       });
     }
   });
 
-  // В КАЛЕНДАРЬ из редактора шага
+  // В КАЛЕНДАРЬ
   document.getElementById('stepCalendar').addEventListener('click', () => {
     if (!stepCtx) return;
     const data = readStepForm();
     if (!data.action || !data.scheduled) { toast('Нужно описание и дата'); return; }
-    // соберём временный plan для описания
+
     let plan = null;
-    if (stepCtx.mode === 'plan') plan = getPlan(stepCtx.planId);
-    else if (stepCtx.mode === 'plan-draft') {
+    let stepId = stepCtx.stepId;
+
+    if (stepCtx.mode === 'plan') {
+      plan = getPlan(stepCtx.planId);
+    } else if (stepCtx.mode === 'draft') {
       plan = {
         goal: document.getElementById('planGoal').value.trim(),
         before: document.getElementById('planBefore').value.trim(),
@@ -1322,7 +1623,7 @@
       };
     }
     const step = {
-      id: (stepCtx.mode === 'plan' ? getPlan(stepCtx.planId).steps[stepCtx.stepIndex].id : stepUid()),
+      id: stepId,
       action: data.action,
       thought: data.thought,
       feeling: data.feeling,
@@ -1332,25 +1633,38 @@
     downloadICSForStep(step, plan);
   });
 
-  // СЛЕДУЮЩИЙ ШАГ
+  // СЛЕДУЮЩИЙ / ПРЕДЫДУЩИЙ ШАГ
   document.getElementById('stepNext').addEventListener('click', () => {
     if (!stepCtx) return;
     const data = readStepForm();
     if (!data.action) { toast('Опиши текущий шаг'); return; }
 
-    if (stepCtx.mode === 'plan-draft') {
+    // определяем anchor текущего шага
+    let anchor = 'start';
+    if (stepCtx.mode === 'draft') {
+      const step = draftSteps.find(s => s.id === stepCtx.stepId);
+      if (!step) return;
+      anchor = step.anchor;
+    } else if (stepCtx.mode === 'plan') {
+      const p = getPlan(stepCtx.planId);
+      if (!p) return;
+      const s = p.steps.find(x => x.id === stepCtx.stepId);
+      if (!s) return;
+      anchor = s.anchor;
+    }
+
+    if (stepCtx.mode === 'draft') {
       // сохраняем текущий
-      editingSteps[stepCtx.stepIndex] = Object.assign({}, editingSteps[stepCtx.stepIndex], data, { updated: nowIso() });
-      // создаём новый
-      const fresh = {
-        id: stepUid(),
-        action: '', thought: '', feeling: '', knowledge: '', scheduled: '',
-        created: nowIso(), updated: nowIso()
-      };
-      editingSteps.push(fresh);
+      const step = draftSteps.find(s => s.id === stepCtx.stepId);
+      Object.assign(step, data, { updated: nowIso() });
+      // создаём новый шаг с тем же anchor
+      const order = (draftSteps.filter(s => s.anchor === anchor).reduce((m, s) => Math.max(m, s.order), 0)) + 1;
+      const fresh = { id: stepUid(), anchor, order, action: '', thought: '', feeling: '', knowledge: '', scheduled: '', created: nowIso(), updated: nowIso() };
+      draftSteps.push(fresh);
       // открываем редактор нового
-      stepCtx = { mode: 'plan-draft', stepIndex: editingSteps.length - 1 };
-      document.getElementById('stepModalTitle').textContent = 'Шаг ' + editingSteps.length;
+      stepCtx = { mode: 'draft', stepId: fresh.id };
+      document.getElementById('stepModalTitle').textContent = anchor === 'start' ? ('Шаг ' + order + ' от старта') : ('Шаг ' + order + ' от финиша');
+      updateStepAnchorChip(anchor);
       fillStepForm(fresh);
       toast('Добавлен следующий шаг');
       return;
@@ -1359,27 +1673,24 @@
     if (stepCtx.mode === 'plan') {
       const p = getPlan(stepCtx.planId);
       if (!p) return;
-      // сохраняем текущий
-      Object.assign(p.steps[stepCtx.stepIndex], data, { updated: nowIso() });
-      // создаём новый шаг
-      const fresh = {
-        id: stepUid(),
-        action: '', thought: '', feeling: '', knowledge: '', scheduled: '',
-        created: nowIso(), updated: nowIso()
-      };
+      const s = p.steps.find(x => x.id === stepCtx.stepId);
+      Object.assign(s, data, { updated: nowIso() });
+      // новый шаг
+      const order = (p.steps.filter(x => x.anchor === anchor).reduce((m, x) => Math.max(m, x.order), 0)) + 1;
+      const fresh = { id: stepUid(), anchor, order, action: '', thought: '', feeling: '', knowledge: '', scheduled: '', created: nowIso(), updated: nowIso() };
       p.steps.push(fresh);
       p.updated = nowIso();
       Store.save();
-      // переключаемся на новый
-      stepCtx = { mode: 'plan', planId: p.id, stepIndex: p.steps.length - 1 };
-      document.getElementById('stepModalTitle').textContent = 'Шаг ' + p.steps.length;
+      // открываем редактор нового
+      stepCtx = { mode: 'plan', planId: p.id, stepId: fresh.id };
+      document.getElementById('stepModalTitle').textContent = anchor === 'start' ? ('Шаг ' + order + ' от старта') : ('Шаг ' + order + ' от финиша');
+      updateStepAnchorChip(anchor);
       fillStepForm(fresh);
       render();
       toast('Добавлен следующий шаг');
     }
   });
 
-  // ESC / Ctrl+Enter
   stepModal.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -1393,19 +1704,70 @@
     }
   });
 
+  // Клик по шагу из карточки — открыть редактор шага в режиме 'plan'
+  document.addEventListener('click', (e) => {
+    // ничего, обработка внутри buildStepRow через onStepClick
+  });
+
+  // Дополнительный обработчик onStepClick для карточки: открывает редактор шага
+  function openStepFromCard(plan, step) {
+    stepCtx = { mode: 'plan', planId: plan.id, stepId: step.id };
+    document.getElementById('stepModalTitle').textContent = step.anchor === 'start' ? ('Шаг ' + step.order + ' от старта') : ('Шаг ' + step.order + ' от финиша');
+    updateStepAnchorChip(step.anchor);
+    fillStepForm(step);
+    stepModal.classList.remove('hidden');
+  }
+
+  // Переопределяем вызов из buildPlanEl: добавим onStepClick и onAddStepRequest через опции timeline
+  // Но buildTimelineInto уже вызывается в buildPlanEl — обновим туда
+  // (см. изменение: передать onStepClick и onAddStepRequest)
+
+  /* ======================= ПРАВИМ buildPlanEl ======================= */
+  // Перепишем встроенный вызов через хук: переопределим функцию buildTimelineInCard
+  function buildTimelineInCard(container, plan, filtering) {
+    buildTimelineInto(container, plan, {
+      interactive: !filtering,
+      editable: !filtering,
+      onStepClick: (step, anchor) => {
+        openStepFromCard(plan, step);
+      },
+      onAddStepRequest: (anchor) => {
+        const order = (plan.steps.filter(s => s.anchor === anchor).reduce((m, s) => Math.max(m, s.order), 0)) + 1;
+        const fresh = { id: stepUid(), anchor, order, action: '', thought: '', feeling: '', knowledge: '', scheduled: '', created: nowIso(), updated: nowIso() };
+        plan.steps.push(fresh);
+        plan.updated = nowIso();
+        Store.save();
+        stepCtx = { mode: 'plan', planId: plan.id, stepId: fresh.id };
+        document.getElementById('stepModalTitle').textContent = anchor === 'start' ? ('Шаг ' + order + ' от старта') : ('Шаг ' + order + ' от финиша');
+        updateStepAnchorChip(anchor);
+        fillStepForm(fresh);
+        stepModal.classList.remove('hidden');
+      },
+      onChange: () => { render(); }
+    });
+  }
+
+  // заменяем вызов в buildPlanEl
+  // (перезапишем часть функции через prototype hack — проще переписать buildPlanEl)
+
   /* ======================= ЭКСПОРТ ======================= */
   const exportModal = document.getElementById('exportModal');
   let exportMode = 'json';
 
   function buildExportJson() {
     return {
-      version: '1.0',
+      version: '2.0',
       app: 'План',
       exported: nowIso(),
       schema: {
         plan: ['id','goal','before','tags','steps[]','created','updated'],
-        step: ['id','action','thought','feeling','knowledge','scheduled','created','updated'],
-        rules: ['Обратное планирование: цель → действие перед финишем → цепочка шагов']
+        step: ['id','anchor (start|end)','order','action','thought','feeling','knowledge','scheduled','created','updated'],
+        rules: [
+          'Обратное планирование с двух сторон',
+          'anchor=start: идём вперёд от старта, order=1 — первый шаг',
+          'anchor=end: копаем назад от финиша, order=1 — ближайший к финишу',
+          'Пустота в середине — путь ещё не сошёлся'
+        ]
       },
       plans: Store.get().plans.map(p => ({
         id: p.id,
@@ -1414,6 +1776,8 @@
         tags: (p.tags || []).slice(),
         steps: (p.steps || []).map(s => ({
           id: s.id,
+          anchor: s.anchor,
+          order: s.order,
           action: s.action,
           thought: s.thought,
           feeling: s.feeling,
@@ -1439,13 +1803,30 @@
       if (p.before) lines.push('⏮ Перед финишем: ' + p.before);
       if (p.tags && p.tags.length) lines.push('🏷 ' + p.tags.map(t => '#' + t).join(' '));
       lines.push('');
-      (p.steps || []).forEach((s, j) => {
-        lines.push('  ' + (j + 1) + '. ' + (s.action || '(без описания)'));
-        if (s.thought) lines.push('     🧠 ' + s.thought);
-        if (s.feeling) lines.push('     💗 ' + s.feeling);
-        if (s.knowledge) lines.push('     📚 ' + s.knowledge);
-        if (s.scheduled) lines.push('     📅 ' + formatDate(s.scheduled));
-        lines.push('');
+
+      const ends = getSteps(p, 'end');
+      const starts = getSteps(p, 'start');
+
+      lines.push('   ← ветка от финиша (в прошлое)');
+      if (!ends.length) lines.push('     (нет)');
+      ends.forEach(s => {
+        lines.push('   [←' + s.order + '] ' + (s.action || '(без описания)'));
+        if (s.thought) lines.push('         🧠 ' + s.thought);
+        if (s.feeling) lines.push('         💗 ' + s.feeling);
+        if (s.knowledge) lines.push('         📚 ' + s.knowledge);
+        if (s.scheduled) lines.push('         📅 ' + formatDate(s.scheduled));
+      });
+      lines.push('');
+      lines.push('   ⋯ ПУСТОТА ⋯');
+      lines.push('');
+      lines.push('   → ветка от старта (в будущее)');
+      if (!starts.length) lines.push('     (нет)');
+      starts.forEach(s => {
+        lines.push('   [→' + s.order + '] ' + (s.action || '(без описания)'));
+        if (s.thought) lines.push('         🧠 ' + s.thought);
+        if (s.feeling) lines.push('         💗 ' + s.feeling);
+        if (s.knowledge) lines.push('         📚 ' + s.knowledge);
+        if (s.scheduled) lines.push('         📅 ' + formatDate(s.scheduled));
       });
       lines.push('');
     });
@@ -1461,13 +1842,10 @@
     });
     if (!withSched.length) return '';
     const parts = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Plan//RU','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
-    const pad = n => String(n).padStart(2, '0');
     function fmtUTC(d) {
-      return d.getUTCFullYear() + pad(d.getUTCMonth()+1) + pad(d.getUTCDate())
-        + 'T' + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + 'Z';
+      return d.getUTCFullYear() + pad2(d.getUTCMonth()+1) + pad2(d.getUTCDate())
+        + 'T' + pad2(d.getUTCHours()) + pad2(d.getUTCMinutes()) + pad2(d.getUTCSeconds()) + 'Z';
     }
-    const esc = s => String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
-
     withSched.forEach(({ step, plan }) => {
       const start = new Date(step.scheduled);
       if (isNaN(start.getTime())) return;
@@ -1479,6 +1857,8 @@
       if (step.thought) desc.push('🧠 ' + step.thought);
       if (step.feeling) desc.push('💗 ' + step.feeling);
       if (step.knowledge) desc.push('📚 ' + step.knowledge);
+      const dir = step.anchor === 'start' ? '→ от старта' : '← от финиша';
+      desc.push('(' + dir + ', шаг ' + step.order + ')');
 
       parts.push('BEGIN:VEVENT');
       parts.push('UID:' + esc((step.id || stepUid()) + '@plan.local'));
@@ -1501,10 +1881,10 @@
       document.getElementById('exportHint').textContent = 'Полная выгрузка. Вставь чужой JSON и нажми «Импорт».';
     } else if (exportMode === 'text') {
       ta.value = buildExportText();
-      document.getElementById('exportHint').textContent = 'Читаемый вид — удобно распечатать или переслать.';
+      document.getElementById('exportHint').textContent = 'Читаемый вид — две ветки и пустота между ними.';
     } else {
       ta.value = buildExportICS();
-      document.getElementById('exportHint').textContent = 'Все шаги с датой станут событиями Apple Календаря. Скачай и открой в Safari.';
+      document.getElementById('exportHint').textContent = 'Все шаги с датой → Apple Календарь. Скачай и открой в Safari.';
     }
     ta.readOnly = exportMode !== 'json';
   }
@@ -1571,16 +1951,22 @@
         goal: typeof raw.goal === 'string' ? raw.goal : '',
         before: typeof raw.before === 'string' ? raw.before : '',
         tags: Array.isArray(raw.tags) ? raw.tags.map(normalizeTag).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i) : [],
-        steps: Array.isArray(raw.steps) ? raw.steps.map(s => ({
-          id: typeof s.id === 'string' && s.id ? s.id : stepUid(),
-          action: typeof s.action === 'string' ? s.action : '',
-          thought: typeof s.thought === 'string' ? s.thought : '',
-          feeling: typeof s.feeling === 'string' ? s.feeling : '',
-          knowledge: typeof s.knowledge === 'string' ? s.knowledge : '',
-          scheduled: typeof s.scheduled === 'string' ? s.scheduled : '',
-          created: typeof s.created === 'string' ? s.created : nowIso(),
-          updated: typeof s.updated === 'string' ? s.updated : nowIso()
-        })) : [],
+        steps: Array.isArray(raw.steps) ? raw.steps.map((s, i) => {
+          if (!s || typeof s !== 'object') return null;
+          const anchor = (s.anchor === 'end' || s.anchor === 'start') ? s.anchor : 'start';
+          const order = (typeof s.order === 'number' && s.order > 0) ? s.order : (i + 1);
+          return {
+            id: typeof s.id === 'string' && s.id ? s.id : stepUid(),
+            anchor, order,
+            action: typeof s.action === 'string' ? s.action : '',
+            thought: typeof s.thought === 'string' ? s.thought : '',
+            feeling: typeof s.feeling === 'string' ? s.feeling : '',
+            knowledge: typeof s.knowledge === 'string' ? s.knowledge : '',
+            scheduled: typeof s.scheduled === 'string' ? s.scheduled : '',
+            created: typeof s.created === 'string' ? s.created : nowIso(),
+            updated: typeof s.updated === 'string' ? s.updated : nowIso()
+          };
+        }).filter(Boolean) : [],
         created: typeof raw.created === 'string' ? raw.created : nowIso(),
         updated: typeof raw.updated === 'string' ? raw.updated : nowIso()
       };
@@ -1600,6 +1986,116 @@
 
   /* ======================= ЗАПУСК ======================= */
   document.getElementById('addPlanBtn').addEventListener('click', () => openPlanModal(null));
+
+  // Переопределяем buildPlanEl, чтобы таймлайн в карточке работал с onStepClick и onAddStepRequest
+  // (переписываем через враппер — проще, чем дублировать)
+  // Мы уже определили buildTimelineInCard — но она не вызывается. Вызовем её из buildPlanEl.
+  // Пропатчим render: пусть buildPlanEl тоже использует buildTimelineInCard:
+  const _buildPlanEl_original = buildPlanEl;
+  // eslint-disable-next-line no-func-assign
+  buildPlanEl = function(plan, realIndex, filtering) {
+    const expanded = isPlanExpanded(plan.id);
+    const el = document.createElement('div');
+    el.className = 'plan-card' + (expanded ? ' expanded' : '');
+    el.dataset.planId = plan.id;
+    el.dataset.index = String(realIndex);
+
+    const handle = document.createElement('button');
+    handle.className = 'plan-handle';
+    handle.textContent = '⋮⋮';
+    if (filtering) handle.title = 'Отключено при фильтре';
+    el.appendChild(handle);
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'plan-toggle';
+    const chev = document.createElement('span'); chev.className = 'chev'; chev.textContent = '▸';
+    toggleBtn.appendChild(chev);
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePlanExpanded(plan.id);
+      render();
+    });
+    el.appendChild(toggleBtn);
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'plan-edit';
+    editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openPlanModal(plan.id); });
+    el.appendChild(editBtn);
+
+    const goalEl = document.createElement('div');
+    goalEl.className = 'plan-goal' + (plan.goal ? '' : ' empty');
+    goalEl.textContent = plan.goal || '(результат не задан)';
+    el.appendChild(goalEl);
+
+    if (plan.before) {
+      const bEl = document.createElement('div');
+      bEl.className = 'plan-before';
+      bEl.textContent = plan.before;
+      el.appendChild(bEl);
+    }
+
+    if (plan.tags && plan.tags.length) {
+      const tagsRow = document.createElement('div');
+      tagsRow.className = 'plan-tags';
+      plan.tags.forEach(t => {
+        const chip = document.createElement('span');
+        chip.className = 'plan-tag';
+        chip.textContent = t;
+        chip.addEventListener('click', (e) => { e.stopPropagation(); activeTags.add(t); render(); });
+        tagsRow.appendChild(chip);
+      });
+      el.appendChild(tagsRow);
+    }
+
+    const ends = getSteps(plan, 'end');
+    const starts = getSteps(plan, 'start');
+    const total = ends.length + starts.length;
+    const planned = countPlanned(plan);
+    const overdue = countOverdue(plan);
+
+    const meta = document.createElement('div');
+    meta.className = 'plan-meta';
+    const m1 = document.createElement('span');
+    m1.className = 'pm-item';
+    m1.innerHTML = '🪜 шагов: <span class="pm-num">' + total + '</span>';
+    meta.appendChild(m1);
+    if (starts.length) {
+      const mS = document.createElement('span');
+      mS.className = 'pm-item';
+      mS.innerHTML = '<span class="pm-num green">→' + starts.length + '</span>';
+      meta.appendChild(mS);
+    }
+    if (ends.length) {
+      const mE = document.createElement('span');
+      mE.className = 'pm-item';
+      mE.innerHTML = '<span class="pm-num blue">←' + ends.length + '</span>';
+      meta.appendChild(mE);
+    }
+    if (planned) {
+      const m2 = document.createElement('span');
+      m2.className = 'pm-item';
+      m2.innerHTML = '📅 <span class="pm-num ' + (planned === total ? 'done' : '') + '">' + planned + '/' + total + '</span>';
+      meta.appendChild(m2);
+    }
+    if (overdue) {
+      const m3 = document.createElement('span');
+      m3.className = 'pm-item';
+      m3.style.color = '#ff8f8f';
+      m3.textContent = '⚠ ' + overdue;
+      meta.appendChild(m3);
+    }
+    el.appendChild(meta);
+
+    const tlWrap = document.createElement('div');
+    tlWrap.className = 'timeline';
+    tlWrap.style.paddingTop = '10px';
+    buildTimelineInCard(tlWrap, plan, filtering);
+    el.appendChild(tlWrap);
+
+    if (!filtering) attachPlanDrag(handle, el, plan, realIndex);
+    return el;
+  };
 
   Store.load();
   loadExpanded();
