@@ -17,6 +17,20 @@
   .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; }
   .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
 
+  /* ======================= TAG FILTER BAR ======================= */
+  .tag-bar { display:flex; gap:6px; padding:8px 10px; background:#0a0a0f; border-bottom:1px solid #1c1c28; overflow-x:auto; flex-shrink:0; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .tag-bar::-webkit-scrollbar { display:none; }
+  .tag-bar.hidden { display:none; }
+  .tag-bar .tag-filter-chip { flex:none; padding:6px 12px; border-radius:999px; background:#14141c; border:1px solid #262633; font-size:13px; color:#8890a0; cursor:pointer; font-family:inherit; transition:.15s; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+  .tag-filter-chip:active { transform:scale(.96); }
+  .tag-filter-chip .tc-hash { color:#6fa8ff; opacity:.6; }
+  .tag-filter-chip.active { background:rgba(111,168,255,.18); border-color:rgba(111,168,255,.65); color:#c8d8ff; }
+  .tag-filter-chip.active .tc-hash { opacity:1; color:#6fa8ff; }
+  .tag-filter-chip .tc-count { font-size:10px; background:#262633; color:#8890a0; padding:1px 6px; border-radius:6px; font-variant-numeric:tabular-nums; }
+  .tag-filter-chip.active .tc-count { background:#6fa8ff; color:#06111f; }
+  .tag-filter-chip.clear-btn { background:transparent; border-style:dashed; color:#6b6b7b; }
+  .tag-filter-chip.clear-btn:active { color:#ff8f8f; border-color:#ff8f8f; }
+
   /* ======================= SCROLL ======================= */
   .scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 10px 110px; }
   .scroll::-webkit-scrollbar { display:none; }
@@ -25,6 +39,7 @@
   .entry-card { position:relative; border:1.5px solid rgba(111,168,255,.22); background: linear-gradient(160deg, rgba(30,39,64,.45), rgba(18,19,28,.7)); border-radius:18px; padding:14px 14px 10px; margin-bottom:12px; transition: box-shadow .15s, border-color .15s, background .15s; min-height:64px; touch-action:manipulation; }
   .entry-card.drop-target { border-color:#6fa8ff; background:rgba(111,168,255,.08); }
   .entry-card.dragging { opacity:.5; z-index:9999; box-shadow:0 20px 60px rgba(111,168,255,.45); }
+  .entry-card.filtered .entry-handle { opacity:.25; cursor:not-allowed; }
 
   .entry-handle { position:absolute; top:8px; left:8px; width:24px; height:30px; border-radius:6px; color:#4a4a58; font-size:16px; display:flex; align-items:center; justify-content:center; cursor:grab; transition:.15s; z-index:2; touch-action:none; background:transparent; border:none; font-family:inherit; padding:0; }
   .entry-handle:active { color:#6fa8ff; cursor:grabbing; }
@@ -33,7 +48,12 @@
   .entry-edit { position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.04); border:1px solid #262633; color:#6b6b7b; font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; z-index:2; font-family:inherit; padding:0; }
   .entry-edit:active { background:rgba(111,168,255,.15); color:#6fa8ff; border-color:#6fa8ff; }
 
-  .entry-date { text-align:center; font-size:12px; color:#8890a0; letter-spacing:.03em; padding:6px 44px 12px; border-bottom:1px solid rgba(255,255,255,.05); margin-bottom:10px; font-variant-numeric:tabular-nums; }
+  .entry-date { text-align:center; font-size:12px; color:#8890a0; letter-spacing:.03em; padding:6px 44px 4px; font-variant-numeric:tabular-nums; }
+  .entry-tags { display:flex; flex-wrap:wrap; gap:5px; padding:0 44px 12px; justify-content:center; border-bottom:1px solid rgba(255,255,255,.05); margin-bottom:10px; }
+  .entry-card.no-tags .entry-date { padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,.05); margin-bottom:10px; }
+  .entry-tag { padding:3px 9px; font-size:11px; border-radius:999px; background:rgba(111,168,255,.1); border:1px solid rgba(111,168,255,.28); color:#a8b8d8; cursor:pointer; transition:.15s; }
+  .entry-tag:active { background:rgba(111,168,255,.22); border-color:#6fa8ff; }
+  .entry-tag::before { content:'#'; opacity:.5; margin-right:2px; }
 
   .entry-body { display:flex; flex-direction:column; gap:2px; }
 
@@ -53,7 +73,6 @@
   .entry-field-value { font-size:14px; line-height:1.5; color:#e8e8f0; white-space:pre-wrap; word-break:break-word; -webkit-user-select:text; user-select:text; }
   .entry-empty { color:#4a4a58; font-size:13px; font-style:italic; padding:8px 0 4px 10px; }
 
-  /* drag ghost */
   .entry-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:.9; background:#1e1e2a; border:2px solid #6fa8ff; border-radius:18px; padding:10px 14px; display:flex; align-items:center; gap:10px; box-shadow:0 24px 60px rgba(0,0,0,.8); color:#e8e8f0; font-size:14px; }
 
   /* ======================= EMPTY ======================= */
@@ -79,12 +98,37 @@
   .field-label.lbl-feeling { color:#ff8fb4; }
   .field-label.lbl-thought { color:#b48fff; }
   .field-label.lbl-action  { color:#7fffb4; }
+  .field-label.lbl-tags    { color:#8890a0; }
 
   .text-input { padding:12px 14px; border:1px solid #262633; border-radius:14px; font-size:15px; outline:none; background:#14141c; color:#e8e8f0; font-family:inherit; width:100%; }
   .text-input:focus { border-color:#6fa8ff; }
   .text-input.textarea { min-height:64px; resize:vertical; -webkit-user-select:text; user-select:text; line-height:1.5; font-size:15px; }
   .text-input.textarea.tall { min-height:88px; }
   .text-input[type="datetime-local"] { color-scheme: dark; }
+
+  /* Tag editor in modal */
+  .tag-editor { display:flex; flex-direction:column; gap:8px; padding:12px 14px; background:#14141c; border:1px solid #262633; border-radius:14px; transition:.15s; }
+  .tag-editor:focus-within { border-color:#6fa8ff; }
+  .tag-editor-row { display:flex; gap:6px; align-items:center; }
+  .tag-editor-row input { flex:1; background:transparent; border:none; outline:none; color:#e8e8f0; font-size:15px; font-family:inherit; padding:0; -webkit-user-select:text; user-select:text; min-width:0; }
+  .tag-editor-row input::placeholder { color:#4a4a58; }
+  .tag-editor-row button { padding:7px 12px; border-radius:9px; border:none; background:rgba(111,168,255,.18); color:#6fa8ff; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; flex-shrink:0; transition:.15s; }
+  .tag-editor-row button:active { background:rgba(111,168,255,.32); }
+  .tag-editor-row button:disabled { opacity:.4; cursor:not-allowed; }
+
+  .tag-editor-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .tag-editor-chips:empty { display:none; }
+  .tag-editor-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:rgba(111,168,255,.14); border:1px solid rgba(111,168,255,.38); color:#c8d8ff; font-size:13px; }
+  .tag-editor-chip .t-hash { color:#6fa8ff; opacity:.7; }
+  .tag-editor-chip .t-x { cursor:pointer; color:#6fa8ff; font-size:15px; line-height:1; padding:0 2px; transition:.15s; }
+  .tag-editor-chip .t-x:active { color:#ff8f8f; transform:scale(1.2); }
+
+  .tag-suggest { display:flex; flex-wrap:wrap; gap:5px; padding-top:2px; }
+  .tag-suggest:empty { display:none; }
+  .tag-suggest-label { font-size:10px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.06em; width:100%; margin-bottom:2px; }
+  .tag-suggest-chip { padding:4px 10px; border-radius:999px; background:transparent; border:1px dashed #262633; color:#8890a0; font-size:12px; cursor:pointer; font-family:inherit; transition:.15s; }
+  .tag-suggest-chip:active { color:#6fa8ff; border-color:#6fa8ff; }
+  .tag-suggest-chip::before { content:'#'; opacity:.5; margin-right:2px; }
 
   .entry-dates { display:flex; flex-direction:column; gap:4px; padding:12px 14px; background:#14141c; border:1px solid #262633; border-radius:14px; font-size:12px; color:#8890a0; }
   .entry-dates .dt-row { display:flex; justify-content:space-between; gap:12px; }
@@ -100,9 +144,9 @@
   .modal-actions button.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
   .modal-actions button.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
   .modal-actions button.ghost { background:transparent; }
+  .modal-actions button.warn { background:rgba(255,180,111,.14); color:#ffb46f; border-color:rgba(255,180,111,.35); }
   .modal-actions button.move-btn { min-width:44px; padding:10px 12px; font-size:16px; }
 
-  /* export tabs */
   .export-tabs { display:flex; gap:4px; background:#14141c; padding:4px; border-radius:12px; border:1px solid #262633; }
   .export-tabs button { flex:1; padding:8px 12px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; border:none; background:transparent; color:#6b6b7b; font-family:inherit; transition:.15s; }
   .export-tabs button.active { background:#6fa8ff; color:#06111f; }
@@ -112,13 +156,13 @@
 
   .hidden { display:none !important; }
 
-  /* toast */
   .toast { position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 80px); transform:translate(-50%, 20px); z-index:500; background:#22222f; border:1px solid #262633; padding:11px 18px; border-radius:999px; font-size:14px; opacity:0; transition:opacity .22s, transform .22s; pointer-events:none; max-width:86vw; text-align:center; color:#e8e8f0; }
   .toast.show { opacity:1; transform:translate(-50%, 0); }
 
   @media (max-width:380px) {
     .hdr-title { font-size:18px; }
     .entry-date { padding-left:38px; padding-right:38px; font-size:11px; }
+    .entry-tags { padding-left:38px; padding-right:38px; }
   }
 </style>
 </head>
@@ -129,6 +173,9 @@
     <span class="hdr-count" id="hdrCount">0</span>
     <button class="icon-btn" id="exportBtn" title="Экспорт / Импорт">📤</button>
   </header>
+
+  <!-- фильтр по тегам -->
+  <div class="tag-bar hidden" id="tagBar"></div>
 
   <main class="scroll" id="scroll"></main>
 
@@ -164,6 +211,18 @@
       <div class="field-row">
         <span class="field-label lbl-action">⚡ Действие</span>
         <textarea id="entryAction" class="text-input textarea" placeholder="Что я сделал или сделаю?" rows="2"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-tags">🏷 Теги</span>
+        <div class="tag-editor">
+          <div class="tag-editor-chips" id="tagChipsEditor"></div>
+          <div class="tag-editor-row">
+            <input id="tagInput" type="text" placeholder="тег → Enter" autocomplete="off" spellcheck="false" maxlength="40">
+            <button id="tagAddBtn" type="button" disabled>＋</button>
+          </div>
+          <div class="tag-suggest" id="tagSuggest"></div>
+        </div>
       </div>
 
       <div class="field-row">
@@ -225,7 +284,7 @@
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'dnevnik_v1';
+  const STORAGE_KEY = 'dnevnik_v2';
   const TOAST_MS = 2600;
   const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
@@ -247,6 +306,16 @@
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '';
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  function normalizeTag(raw) {
+    if (typeof raw !== 'string') return '';
+    let t = raw.trim().replace(/^#+/, '').trim();
+    // заменяем запятые/пробелы на подчёркивание — но оставляем возможность пробелов
+    t = t.replace(/[,\u3000]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!t) return '';
+    if (t.length > 40) t = t.slice(0, 40);
+    return t.toLowerCase();
   }
 
   let toastEl = null, toastTimer = null;
@@ -296,6 +365,10 @@
         if (typeof e.created !== 'string') e.created = nowIso();
         if (typeof e.updated !== 'string') e.updated = e.created;
         if (typeof e.date !== 'string' || !e.date) e.date = e.created;
+        if (!Array.isArray(e.tags)) e.tags = [];
+        e.tags = e.tags.map(normalizeTag).filter(Boolean);
+        // удаляем дубли
+        e.tags = e.tags.filter((t, i) => e.tags.indexOf(t) === i);
       });
     }
     function save() { write(JSON.stringify(state)); }
@@ -305,18 +378,6 @@
   })();
 
   function getEntry(id) { return Store.get().entries.find(e => e.id === id) || null; }
-
-  function createEntry() {
-    const e = {
-      id: uid(),
-      date: nowIso(),
-      event: '', feeling: '', thought: '', action: '',
-      created: nowIso(), updated: nowIso()
-    };
-    Store.get().entries.push(e);
-    Store.save();
-    return e;
-  }
 
   function deleteEntry(id) {
     Store.get().entries = Store.get().entries.filter(e => e.id !== id);
@@ -347,37 +408,161 @@
   }
 
   /* =========================================================
+     ТЕГИ — агрегаты
+     ========================================================= */
+  function collectAllTags() {
+    // возвращает [{tag, count}] отсортированные по убыванию count, потом алфавит
+    const map = new Map();
+    Store.get().entries.forEach(e => {
+      (e.tags || []).forEach(t => {
+        map.set(t, (map.get(t) || 0) + 1);
+      });
+    });
+    return Array.from(map.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return a.tag.localeCompare(b.tag, 'ru');
+      });
+  }
+
+  // активные фильтры (множество тегов)
+  const activeTags = new Set();
+
+  function isFiltering() { return activeTags.size > 0; }
+
+  function entryMatchesFilter(entry) {
+    if (!isFiltering()) return true;
+    const tags = entry.tags || [];
+    for (const t of activeTags) {
+      if (tags.indexOf(t) === -1) return false;
+    }
+    return true;
+  }
+
+  function cleanupActiveTags() {
+    // если тег исчез из всех записей — убираем из активных
+    const existing = new Set();
+    Store.get().entries.forEach(e => (e.tags || []).forEach(t => existing.add(t)));
+    let removed = false;
+    Array.from(activeTags).forEach(t => {
+      if (!existing.has(t)) { activeTags.delete(t); removed = true; }
+    });
+    return removed;
+  }
+
+  /* =========================================================
+     РЕНДЕР ФИЛЬТР-БАРА
+     ========================================================= */
+  const tagBarEl = document.getElementById('tagBar');
+
+  function renderTagBar() {
+    const allTags = collectAllTags();
+    tagBarEl.innerHTML = '';
+
+    if (!allTags.length) {
+      tagBarEl.classList.add('hidden');
+      return;
+    }
+    tagBarEl.classList.remove('hidden');
+
+    allTags.forEach(({ tag, count }) => {
+      const btn = document.createElement('button');
+      btn.className = 'tag-filter-chip' + (activeTags.has(tag) ? ' active' : '');
+      btn.type = 'button';
+
+      const h = document.createElement('span');
+      h.className = 'tc-hash';
+      h.textContent = '#';
+      btn.appendChild(h);
+
+      const label = document.createElement('span');
+      label.textContent = tag;
+      btn.appendChild(label);
+
+      const c = document.createElement('span');
+      c.className = 'tc-count';
+      c.textContent = String(count);
+      btn.appendChild(c);
+
+      btn.addEventListener('click', () => {
+        if (activeTags.has(tag)) activeTags.delete(tag);
+        else activeTags.add(tag);
+        render();
+      });
+
+      tagBarEl.appendChild(btn);
+    });
+
+    if (isFiltering()) {
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'tag-filter-chip clear-btn';
+      clearBtn.type = 'button';
+      clearBtn.textContent = '✕ Сбросить';
+      clearBtn.addEventListener('click', () => {
+        activeTags.clear();
+        render();
+      });
+      tagBarEl.appendChild(clearBtn);
+    }
+  }
+
+  /* =========================================================
      РЕНДЕР ГЛАВНОГО ЭКРАНА
      ========================================================= */
   const scrollEl = document.getElementById('scroll');
   const hdrCount = document.getElementById('hdrCount');
 
   function render() {
-    scrollEl.innerHTML = '';
-    const entries = Store.get().entries;
-    hdrCount.textContent = String(entries.length);
+    cleanupActiveTags();
+    renderTagBar();
 
-    if (!entries.length) {
+    scrollEl.innerHTML = '';
+    const all = Store.get().entries;
+    const visible = all.filter(entryMatchesFilter);
+
+    // счётчик
+    if (isFiltering()) hdrCount.textContent = visible.length + '/' + all.length;
+    else hdrCount.textContent = String(all.length);
+
+    if (!all.length) {
       const e = document.createElement('div');
       e.className = 'empty-note';
-      e.innerHTML = 'Пока пусто.\nНажми <b>+ Запись</b>, чтобы начать дневник.\n\nКаждая запись — это 4 поля:\n🎯 <b>Событие</b>\n💗 <b>Чувство</b>\n🧠 <b>Мысль</b>\n⚡ <b>Действие</b>\n\nПотяни ⋮⋮ слева — переставить.\nТапни ✏️ — редактировать.';
+      e.innerHTML = 'Пока пусто.\nНажми <b>+ Запись</b>, чтобы начать дневник.\n\nКаждая запись — это 4 поля:\n🎯 <b>Событие</b>\n💗 <b>Чувство</b>\n🧠 <b>Мысль</b>\n⚡ <b>Действие</b>\n\n🏷 Добавляй <b>теги</b> и фильтруй записи по ним.';
       scrollEl.appendChild(e);
       return;
     }
-    entries.forEach((entry, i) => scrollEl.appendChild(buildEntryEl(entry, i)));
+
+    if (!visible.length) {
+      const e = document.createElement('div');
+      e.className = 'empty-note';
+      e.innerHTML = 'По фильтру ничего не найдено.\nСними фильтр — тапни «✕ Сбросить» сверху.';
+      scrollEl.appendChild(e);
+      return;
+    }
+
+    const filtering = isFiltering();
+    visible.forEach((entry, i) => {
+      // вычислим настоящий индекс в общем списке (для drag'а — не нужен при фильтре)
+      const realIndex = all.indexOf(entry);
+      scrollEl.appendChild(buildEntryEl(entry, realIndex, i, filtering));
+    });
   }
 
-  function buildEntryEl(entry, index) {
+  function buildEntryEl(entry, realIndex, visibleIndex, filtering) {
     const el = document.createElement('div');
-    el.className = 'entry-card';
+    el.className = 'entry-card' + (filtering ? ' filtered' : '');
     el.dataset.entryId = entry.id;
-    el.dataset.index = String(index);
+    el.dataset.index = String(realIndex); // реальный индекс — для drag, когда фильтра нет
 
     // ручка drag
     const handle = document.createElement('button');
     handle.className = 'entry-handle';
     handle.textContent = '⋮⋮';
     handle.setAttribute('aria-label', 'Переместить');
+    if (filtering) {
+      handle.title = 'Отключено при активном фильтре';
+    }
     el.appendChild(handle);
 
     // кнопка редактирования
@@ -396,6 +581,28 @@
     dateEl.className = 'entry-date';
     dateEl.textContent = formatDate(entry.date || entry.created);
     el.appendChild(dateEl);
+
+    // теги
+    const tags = entry.tags || [];
+    if (tags.length) {
+      const tagsRow = document.createElement('div');
+      tagsRow.className = 'entry-tags';
+      tags.forEach(t => {
+        const chip = document.createElement('span');
+        chip.className = 'entry-tag';
+        chip.textContent = t;
+        chip.title = 'Фильтровать по этому тегу';
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          activeTags.add(t);
+          render();
+        });
+        tagsRow.appendChild(chip);
+      });
+      el.appendChild(tagsRow);
+    } else {
+      el.classList.add('no-tags');
+    }
 
     // тело с полями
     const body = document.createElement('div');
@@ -446,7 +653,10 @@
     }
 
     el.appendChild(body);
-    attachEntryDrag(handle, el, entry, index);
+
+    if (!filtering) {
+      attachEntryDrag(handle, el, entry, realIndex);
+    }
     return el;
   }
 
@@ -548,6 +758,79 @@
      ========================================================= */
   const entryModal = document.getElementById('entryModal');
   let entryEditingId = null;
+  let editingTags = [];
+
+  function renderTagEditorChips() {
+    const wrap = document.getElementById('tagChipsEditor');
+    wrap.innerHTML = '';
+    editingTags.forEach((t, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-editor-chip';
+
+      const h = document.createElement('span');
+      h.className = 't-hash';
+      h.textContent = '#';
+      chip.appendChild(h);
+
+      const lbl = document.createElement('span');
+      lbl.textContent = t;
+      chip.appendChild(lbl);
+
+      const x = document.createElement('span');
+      x.className = 't-x';
+      x.textContent = '×';
+      x.addEventListener('click', () => {
+        editingTags.splice(i, 1);
+        renderTagEditorChips();
+        renderTagSuggest();
+      });
+      chip.appendChild(x);
+
+      wrap.appendChild(chip);
+    });
+  }
+
+  function renderTagSuggest() {
+    const wrap = document.getElementById('tagSuggest');
+    wrap.innerHTML = '';
+    const q = normalizeTag(document.getElementById('tagInput').value || '');
+    const allTags = collectAllTags().map(x => x.tag);
+    const candidates = allTags.filter(t => editingTags.indexOf(t) === -1 && (!q || t.indexOf(q) !== -1)).slice(0, 8);
+    if (!candidates.length) return;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'tag-suggest-label';
+    lbl.textContent = q ? 'Подходящие' : 'Уже есть';
+    wrap.appendChild(lbl);
+
+    candidates.forEach(t => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'tag-suggest-chip';
+      chip.textContent = t;
+      chip.addEventListener('click', () => {
+        addTagToEditor(t);
+      });
+      wrap.appendChild(chip);
+    });
+  }
+
+  function addTagToEditor(raw) {
+    const t = normalizeTag(raw);
+    if (!t) return false;
+    if (editingTags.indexOf(t) !== -1) return false;
+    editingTags.push(t);
+    renderTagEditorChips();
+    renderTagSuggest();
+    return true;
+  }
+
+  function updateTagAddBtn() {
+    const inp = document.getElementById('tagInput');
+    const btn = document.getElementById('tagAddBtn');
+    const v = normalizeTag(inp.value);
+    btn.disabled = !v || editingTags.indexOf(v) !== -1;
+  }
 
   function updateMoveButtons() {
     if (!entryEditingId) return;
@@ -569,8 +852,10 @@
     const crEl = document.getElementById('entryCreated');
     const upEl = document.getElementById('entryUpdated');
     const errEl = document.getElementById('entryErr');
+    const tagInput = document.getElementById('tagInput');
 
     errEl.textContent = '';
+    tagInput.value = '';
 
     if (id) {
       const e = getEntry(id);
@@ -581,6 +866,7 @@
       feIn.value = e.feeling || '';
       thIn.value = e.thought || '';
       acIn.value = e.action || '';
+      editingTags = (e.tags || []).slice();
       delBtn.classList.remove('hidden');
       crEl.textContent = formatDate(e.created);
       upEl.textContent = formatDate(e.updated || e.created);
@@ -592,12 +878,17 @@
       feIn.value = '';
       thIn.value = '';
       acIn.value = '';
+      editingTags = [];
       delBtn.classList.add('hidden');
       crEl.textContent = '—';
       upEl.textContent = '—';
       document.getElementById('entryMoveUp').disabled = true;
       document.getElementById('entryMoveDown').disabled = true;
     }
+
+    renderTagEditorChips();
+    renderTagSuggest();
+    updateTagAddBtn();
 
     entryModal.classList.remove('hidden');
     setTimeout(() => { if (!id) evIn.focus(); }, 220);
@@ -606,6 +897,7 @@
   function closeEntryModal() {
     entryModal.classList.add('hidden');
     entryEditingId = null;
+    editingTags = [];
   }
 
   document.getElementById('entryCancel').addEventListener('click', closeEntryModal);
@@ -625,6 +917,50 @@
     }
   });
 
+  /* ---- обработчики ввода тега ---- */
+  const tagInput = document.getElementById('tagInput');
+  tagInput.addEventListener('input', () => {
+    updateTagAddBtn();
+    renderTagSuggest();
+  });
+  tagInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
+      e.preventDefault();
+      const v = normalizeTag(tagInput.value);
+      if (v) {
+        addTagToEditor(v);
+        tagInput.value = '';
+        updateTagAddBtn();
+        renderTagSuggest();
+      }
+    } else if (e.key === 'Backspace' && !tagInput.value && editingTags.length) {
+      // backspace на пустом — удалить последний тег
+      editingTags.pop();
+      renderTagEditorChips();
+      renderTagSuggest();
+      updateTagAddBtn();
+    }
+  });
+  tagInput.addEventListener('blur', () => {
+    const v = normalizeTag(tagInput.value);
+    if (v) {
+      addTagToEditor(v);
+      tagInput.value = '';
+      updateTagAddBtn();
+      renderTagSuggest();
+    }
+  });
+  document.getElementById('tagAddBtn').addEventListener('click', () => {
+    const v = normalizeTag(tagInput.value);
+    if (!v) return;
+    if (addTagToEditor(v)) {
+      tagInput.value = '';
+      updateTagAddBtn();
+      renderTagSuggest();
+      tagInput.focus();
+    }
+  });
+
   document.getElementById('entrySave').addEventListener('click', () => {
     const dateVal = document.getElementById('entryDate').value;
     const event = document.getElementById('entryEvent').value.trim();
@@ -632,7 +968,16 @@
     const thought = document.getElementById('entryThought').value.trim();
     const action = document.getElementById('entryAction').value.trim();
 
-    if (!event && !feeling && !thought && !action) {
+    // если в поле тега осталось не добавленное — добавим
+    const pendingTag = normalizeTag(tagInput.value);
+    if (pendingTag) {
+      addTagToEditor(pendingTag);
+      tagInput.value = '';
+    }
+
+    const tags = editingTags.slice();
+
+    if (!event && !feeling && !thought && !action && !tags.length) {
       document.getElementById('entryErr').textContent = 'Заполни хотя бы одно поле';
       return;
     }
@@ -651,6 +996,7 @@
         e.feeling = feeling;
         e.thought = thought;
         e.action = action;
+        e.tags = tags;
         e.updated = nowIso();
       }
     } else {
@@ -658,6 +1004,7 @@
         id: uid(),
         date: dateIso,
         event, feeling, thought, action,
+        tags,
         created: nowIso(),
         updated: nowIso()
       };
@@ -680,7 +1027,6 @@
     });
   });
 
-  /* Ctrl/Cmd+Enter — быстрая сохранка */
   entryModal.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -696,11 +1042,11 @@
 
   function buildExportJson() {
     return {
-      version: '1.0',
+      version: '2.0',
       app: 'Дневник',
       exported: nowIso(),
       schema: {
-        fields: ['event', 'feeling', 'thought', 'action'],
+        fields: ['event', 'feeling', 'thought', 'action', 'tags'],
         rules: ['Порядок записей можно менять', 'Дата редактируется', 'Экспорт полный (для синхронизации)']
       },
       entries: Store.get().entries.map(e => ({
@@ -710,6 +1056,7 @@
         feeling: e.feeling,
         thought: e.thought,
         action: e.action,
+        tags: (e.tags || []).slice(),
         created: e.created,
         updated: e.updated
       }))
@@ -722,6 +1069,7 @@
     if (!entries.length) return '(пусто)';
     entries.forEach((e, i) => {
       lines.push('═══ #' + (i + 1) + ' · ' + formatDate(e.date || e.created) + ' ═══');
+      if (e.tags && e.tags.length) lines.push('🏷 ' + e.tags.map(t => '#' + t).join(' '));
       if (e.event)   lines.push('🎯 Событие: ' + e.event);
       if (e.feeling) lines.push('💗 Чувство: ' + e.feeling);
       if (e.thought) lines.push('🧠 Мысль: ' + e.thought);
@@ -736,7 +1084,7 @@
     ta.value = exportMode === 'json' ? JSON.stringify(buildExportJson(), null, 2) : buildExportText();
     ta.readOnly = exportMode !== 'json';
     document.getElementById('exportHint').textContent = exportMode === 'json'
-      ? 'Скопируй JSON — это полная выгрузка. Вставь чужой JSON и нажми «Импорт», чтобы подтянуть записи (новые добавятся, старые не тронутся).'
+      ? 'Скопируй JSON — это полная выгрузка. Вставь чужой JSON и нажми «Импорт», чтобы подтянуть записи (новые добавятся, старые обновятся по id).'
       : 'Читаемый вид — удобно перечитывать и делиться.';
   }
 
@@ -800,6 +1148,7 @@
         feeling: typeof raw.feeling === 'string' ? raw.feeling : '',
         thought: typeof raw.thought === 'string' ? raw.thought : '',
         action: typeof raw.action === 'string' ? raw.action : '',
+        tags: Array.isArray(raw.tags) ? raw.tags.map(normalizeTag).filter(Boolean).filter((t, i, a) => a.indexOf(t) === i) : [],
         created: typeof raw.created === 'string' ? raw.created : nowIso(),
         updated: typeof raw.updated === 'string' ? raw.updated : nowIso()
       };
