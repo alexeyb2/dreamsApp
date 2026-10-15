@@ -9,7 +9,7 @@
   html, body { height:100%; width:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#0a0a0f; color:#e8e8f0; }
   #app { display:flex; flex-direction:column; height:100dvh; width:100%; position:relative; overflow:hidden; }
 
-  /* ======================= TOP BAR ======================= */
+  /* TOP BAR */
   .top-bar { display:flex; align-items:center; gap:8px; padding:12px 14px; background:#0a0a0f; border-bottom:1px solid #1c1c28; flex-shrink:0; z-index:20; }
   .hdr-title { flex:1; font-size:20px; font-weight:700; letter-spacing:-.01em; }
   .hdr-title .colon { color:#6fa8ff; }
@@ -17,7 +17,7 @@
   .icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid #262633; background:#14141c; color:#e8e8f0; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; transition:.15s; flex-shrink:0; font-family:inherit; }
   .icon-btn:active { transform:scale(.94); background:#1e1e2a; }
 
-  /* ======================= TAG FILTER BAR ======================= */
+  /* TAG FILTER BAR */
   .tag-bar { display:flex; gap:6px; padding:8px 10px; background:#0a0a0f; border-bottom:1px solid #1c1c28; overflow-x:auto; flex-shrink:0; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .tag-bar::-webkit-scrollbar { display:none; }
   .tag-bar.hidden { display:none; }
@@ -31,11 +31,11 @@
   .tag-filter-chip.clear-btn { background:transparent; border-style:dashed; color:#6b6b7b; }
   .tag-filter-chip.clear-btn:active { color:#ff8f8f; border-color:#ff8f8f; }
 
-  /* ======================= SCROLL ======================= */
+  /* SCROLL */
   .scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 10px 110px; }
   .scroll::-webkit-scrollbar { display:none; }
 
-  /* ======================= CARD ======================= */
+  /* CARD */
   .entry-card { position:relative; border:1.5px solid rgba(111,168,255,.22); background: linear-gradient(160deg, rgba(30,39,64,.45), rgba(18,19,28,.7)); border-radius:18px; padding:14px 14px 10px; margin-bottom:12px; transition: box-shadow .15s, border-color .15s, background .15s; min-height:64px; touch-action:manipulation; }
   .entry-card.drop-target { border-color:#6fa8ff; background:rgba(111,168,255,.08); }
   .entry-card.dragging { opacity:.5; z-index:9999; box-shadow:0 20px 60px rgba(111,168,255,.45); }
@@ -43,7 +43,6 @@
 
   .entry-handle { position:absolute; top:8px; left:8px; width:24px; height:30px; border-radius:6px; color:#4a4a58; font-size:16px; display:flex; align-items:center; justify-content:center; cursor:grab; transition:.15s; z-index:2; touch-action:none; background:transparent; border:none; font-family:inherit; padding:0; }
   .entry-handle:active { color:#6fa8ff; cursor:grabbing; }
-  .entry-card.dragging .entry-handle { cursor:grabbing; }
 
   .entry-edit { position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.04); border:1px solid #262633; color:#6b6b7b; font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; z-index:2; font-family:inherit; padding:0; }
   .entry-edit:active { background:rgba(111,168,255,.15); color:#6fa8ff; border-color:#6fa8ff; }
@@ -58,34 +57,50 @@
   .entry-body { display:flex; flex-direction:column; gap:2px; }
 
   .entry-field { display:flex; gap:10px; padding:7px 0 7px 10px; border-left:2px solid transparent; }
+  .entry-field[data-kind="action"]  { border-left-color:rgba(127,255,180,.55); }
   .entry-field[data-kind="event"]   { border-left-color:rgba(111,168,255,.55); }
   .entry-field[data-kind="feeling"] { border-left-color:rgba(255,143,180,.55); }
   .entry-field[data-kind="thought"] { border-left-color:rgba(180,143,255,.55); }
-  .entry-field[data-kind="action"]  { border-left-color:rgba(127,255,180,.55); }
 
   .entry-field-icon { font-size:16px; line-height:1; flex:none; width:20px; text-align:center; padding-top:2px; }
   .entry-field-body { flex:1; min-width:0; }
   .entry-field-name { font-size:10px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:3px; font-weight:600; }
+  .entry-field[data-kind="action"]  .entry-field-name { color:#7fffb4; }
   .entry-field[data-kind="event"]   .entry-field-name { color:#6fa8ff; }
   .entry-field[data-kind="feeling"] .entry-field-name { color:#ff8fb4; }
   .entry-field[data-kind="thought"] .entry-field-name { color:#b48fff; }
-  .entry-field[data-kind="action"]  .entry-field-name { color:#7fffb4; }
   .entry-field-value { font-size:14px; line-height:1.5; color:#e8e8f0; white-space:pre-wrap; word-break:break-word; -webkit-user-select:text; user-select:text; }
   .entry-empty { color:#4a4a58; font-size:13px; font-style:italic; padding:8px 0 4px 10px; }
 
+  /* плашка даты действия на карточке */
+  .entry-action-date {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 7px; padding: 4px 10px;
+    border-radius: 8px;
+    background: rgba(127,255,180,.1);
+    border: 1px solid rgba(127,255,180,.32);
+    color: #7fffb4;
+    font-size: 12px;
+    cursor: pointer;
+    transition: .15s;
+    font-variant-numeric: tabular-nums;
+  }
+  .entry-action-date:active { background: rgba(127,255,180,.22); border-color:#7fffb4; transform:scale(.97); }
+  .entry-action-date::before { content:'📅'; font-size: 13px; }
+
   .entry-ghost { position:fixed; z-index:9999; pointer-events:none; opacity:.9; background:#1e1e2a; border:2px solid #6fa8ff; border-radius:18px; padding:10px 14px; display:flex; align-items:center; gap:10px; box-shadow:0 24px 60px rgba(0,0,0,.8); color:#e8e8f0; font-size:14px; }
 
-  /* ======================= EMPTY ======================= */
+  /* EMPTY */
   .empty-note { color:#4a4a58; font-size:14px; text-align:center; padding:50px 24px; line-height:1.8; white-space:pre-line; }
   .empty-note b { color:#8890a0; font-weight:600; }
 
-  /* ======================= BOTTOM PANEL ======================= */
+  /* BOTTOM PANEL */
   .bottom-panel { position:fixed; bottom:0; left:0; right:0; background:linear-gradient(180deg, rgba(10,10,15,0) 0%, #0a0a0f 30%); padding:10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); display:flex; gap:8px; z-index:50; }
   .bottom-btn { flex:1; height:48px; border-radius:14px; border:1px solid #262633; background:#14141c; font-size:14px; font-weight:600; color:#e8e8f0; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:5px; font-family:inherit; }
   .bottom-btn:active { transform:scale(.97); background:#1e1e2a; }
   .bottom-btn.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
 
-  /* ======================= MODAL ======================= */
+  /* MODAL */
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:100; display:flex; align-items:flex-start; justify-content:center; padding:40px 16px 20px; overflow-y:auto; }
   .modal { background:#1e1e2a; border:1px solid #262633; border-radius:22px; padding:20px; width:100%; max-width:420px; display:flex; flex-direction:column; gap:14px; margin-bottom:20px; }
   .modal h3 { font-size:17px; font-weight:600; color:#e8e8f0; }
@@ -94,19 +109,23 @@
 
   .field-row { display:flex; flex-direction:column; gap:6px; }
   .field-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.06em; }
+  .field-label.lbl-action  { color:#7fffb4; }
   .field-label.lbl-event   { color:#6fa8ff; }
   .field-label.lbl-feeling { color:#ff8fb4; }
   .field-label.lbl-thought { color:#b48fff; }
-  .field-label.lbl-action  { color:#7fffb4; }
   .field-label.lbl-tags    { color:#8890a0; }
+  .field-label.lbl-when    { color:#7fffb4; }
 
   .text-input { padding:12px 14px; border:1px solid #262633; border-radius:14px; font-size:15px; outline:none; background:#14141c; color:#e8e8f0; font-family:inherit; width:100%; }
   .text-input:focus { border-color:#6fa8ff; }
   .text-input.textarea { min-height:64px; resize:vertical; -webkit-user-select:text; user-select:text; line-height:1.5; font-size:15px; }
   .text-input.textarea.tall { min-height:88px; }
-  .text-input[type="datetime-local"] { color-scheme: dark; }
+  .text-input[type="datetime-local"] { color-scheme: dark; font-family:inherit; }
 
-  /* Tag editor in modal */
+  .field-hint { font-size:11px; color:#6b6b7b; line-height:1.4; margin-top:2px; }
+  .field-hint b { color:#7fffb4; font-weight:600; }
+
+  /* Tag editor */
   .tag-editor { display:flex; flex-direction:column; gap:8px; padding:12px 14px; background:#14141c; border:1px solid #262633; border-radius:14px; transition:.15s; }
   .tag-editor:focus-within { border-color:#6fa8ff; }
   .tag-editor-row { display:flex; gap:6px; align-items:center; }
@@ -144,7 +163,8 @@
   .modal-actions button.primary { background:#6fa8ff; color:#06111f; border-color:transparent; }
   .modal-actions button.danger { background:rgba(255,90,90,.14); color:#ff8f8f; border-color:rgba(255,90,90,.3); }
   .modal-actions button.ghost { background:transparent; }
-  .modal-actions button.warn { background:rgba(255,180,111,.14); color:#ffb46f; border-color:rgba(255,180,111,.35); }
+  .modal-actions button.cal { background:rgba(127,255,180,.14); color:#7fffb4; border-color:rgba(127,255,180,.35); }
+  .modal-actions button.cal:disabled { background:transparent; color:#4a4a58; border-color:#262633; opacity:1; }
   .modal-actions button.move-btn { min-width:44px; padding:10px 12px; font-size:16px; }
 
   .export-tabs { display:flex; gap:4px; background:#14141c; padding:4px; border-radius:12px; border:1px solid #262633; }
@@ -174,7 +194,6 @@
     <button class="icon-btn" id="exportBtn" title="Экспорт / Импорт">📤</button>
   </header>
 
-  <!-- фильтр по тегам -->
   <div class="tag-bar hidden" id="tagBar"></div>
 
   <main class="scroll" id="scroll"></main>
@@ -189,13 +208,24 @@
       <h3 id="entryModalTitle">Новая запись</h3>
 
       <div class="field-row">
-        <span class="field-label">Дата и время</span>
+        <span class="field-label">Дата записи</span>
         <input type="datetime-local" id="entryDate" class="text-input">
       </div>
 
       <div class="field-row">
+        <span class="field-label lbl-action">⚡ Действие</span>
+        <textarea id="entryAction" class="text-input textarea tall" placeholder="Что я сделал или сделаю? Что важно сделать?" rows="3"></textarea>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-when">📅 Когда выполнить</span>
+        <input type="datetime-local" id="entryActionDate" class="text-input">
+        <div class="field-hint">Если указать — можно нажать <b>«📅 В Календарь»</b> и добавить как событие в Apple Календарь (с напоминанием за 15 минут).</div>
+      </div>
+
+      <div class="field-row">
         <span class="field-label lbl-event">🎯 Событие</span>
-        <textarea id="entryEvent" class="text-input textarea tall" placeholder="Что произошло? Факт без оценок." rows="3"></textarea>
+        <textarea id="entryEvent" class="text-input textarea" placeholder="Что произошло? Факт без оценок." rows="2"></textarea>
       </div>
 
       <div class="field-row">
@@ -206,11 +236,6 @@
       <div class="field-row">
         <span class="field-label lbl-thought">🧠 Мысль</span>
         <textarea id="entryThought" class="text-input textarea" placeholder="Что я подумал? Какое убеждение прозвучало?" rows="2"></textarea>
-      </div>
-
-      <div class="field-row">
-        <span class="field-label lbl-action">⚡ Действие</span>
-        <textarea id="entryAction" class="text-input textarea" placeholder="Что я сделал или сделаю?" rows="2"></textarea>
       </div>
 
       <div class="field-row">
@@ -242,6 +267,7 @@
 
       <div class="modal-actions">
         <button id="entryDelete" class="danger">Удалить</button>
+        <button id="entryCalendar" class="cal" disabled>📅 В Календарь</button>
         <button id="entryCancel" class="ghost">Отмена</button>
         <button id="entrySave" class="primary">Сохранить</button>
       </div>
@@ -253,8 +279,9 @@
     <div class="modal">
       <h3>📤 Синхронизация</h3>
       <div class="export-tabs">
-        <button id="exportTabJson" class="active">JSON (для 3D / бэкапа)</button>
+        <button id="exportTabJson" class="active">JSON</button>
         <button id="exportTabText">Текст</button>
+        <button id="exportTabICS">Календарь (.ics)</button>
       </div>
       <textarea id="exportTextarea" class="export-textarea" readonly></textarea>
       <div class="hint" id="exportHint">Скопируй JSON — это полная выгрузка. Вставь чужой JSON и нажми «Импорт», чтобы подтянуть записи.</div>
@@ -288,9 +315,7 @@
   const TOAST_MS = 2600;
   const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
-  /* =========================================================
-     УТИЛИТЫ
-     ========================================================= */
+  /* ======================= УТИЛИТЫ ======================= */
   function uid() { return 'e_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3); }
   function nowIso() { return new Date().toISOString(); }
   function pad2(n) { return String(n).padStart(2, '0'); }
@@ -311,7 +336,6 @@
   function normalizeTag(raw) {
     if (typeof raw !== 'string') return '';
     let t = raw.trim().replace(/^#+/, '').trim();
-    // заменяем запятые/пробелы на подчёркивание — но оставляем возможность пробелов
     t = t.replace(/[,\u3000]+/g, ' ').replace(/\s+/g, ' ').trim();
     if (!t) return '';
     if (t.length > 40) t = t.slice(0, 40);
@@ -341,9 +365,7 @@
     cancel.addEventListener('click', hCancel);
   }
 
-  /* =========================================================
-     ХРАНИЛИЩЕ
-     ========================================================= */
+  /* ======================= ХРАНИЛИЩЕ ======================= */
   const Store = (function () {
     let state = null;
     let ok = true;
@@ -365,10 +387,9 @@
         if (typeof e.created !== 'string') e.created = nowIso();
         if (typeof e.updated !== 'string') e.updated = e.created;
         if (typeof e.date !== 'string' || !e.date) e.date = e.created;
+        if (typeof e.actionDate !== 'string' || !e.actionDate) e.actionDate = '';
         if (!Array.isArray(e.tags)) e.tags = [];
-        e.tags = e.tags.map(normalizeTag).filter(Boolean);
-        // удаляем дубли
-        e.tags = e.tags.filter((t, i) => e.tags.indexOf(t) === i);
+        e.tags = e.tags.map(normalizeTag).filter(Boolean).filter((t, i, a) => a.indexOf(t) === i);
       });
     }
     function save() { write(JSON.stringify(state)); }
@@ -378,12 +399,10 @@
   })();
 
   function getEntry(id) { return Store.get().entries.find(e => e.id === id) || null; }
-
   function deleteEntry(id) {
     Store.get().entries = Store.get().entries.filter(e => e.id !== id);
     Store.save();
   }
-
   function moveEntryByIndex(id, delta) {
     const list = Store.get().entries;
     const i = list.findIndex(e => e.id === id);
@@ -394,7 +413,6 @@
     Store.save();
     return true;
   }
-
   function moveEntryToIndex(id, targetIndex) {
     const list = Store.get().entries;
     const from = list.findIndex(e => e.id === id);
@@ -407,11 +425,90 @@
     return true;
   }
 
-  /* =========================================================
-     ТЕГИ — агрегаты
-     ========================================================= */
+  /* ======================= .ICS ДЛЯ APPLE КАЛЕНДАРЯ ======================= */
+  // Формат RFC 5545. Возвращает строку или null.
+  function buildICSFromEntry(entry) {
+    if (!entry) return null;
+    const startIso = entry.actionDate || entry.date || entry.created;
+    const start = new Date(startIso);
+    if (isNaN(start.getTime())) return null;
+
+    // длительность 1 час
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    function fmtUTC(d) {
+      return d.getUTCFullYear() + pad2(d.getUTCMonth() + 1) + pad2(d.getUTCDate())
+        + 'T' + pad2(d.getUTCHours()) + pad2(d.getUTCMinutes()) + pad2(d.getUTCSeconds()) + 'Z';
+    }
+
+    // содержимое
+    const summary = (entry.action || 'Запись дневника').replace(/\s+/g, ' ').slice(0, 200);
+
+    const descLines = [];
+    if (entry.event)   descLines.push('🎯 Событие: ' + entry.event);
+    if (entry.feeling) descLines.push('💗 Чувство: ' + entry.feeling);
+    if (entry.thought) descLines.push('🧠 Мысль: ' + entry.thought);
+    if (entry.tags && entry.tags.length) descLines.push('🏷 ' + entry.tags.map(t => '#' + t).join(' '));
+    if (entry.date && entry.date !== entry.actionDate) {
+      descLines.push('');
+      descLines.push('Запись создана: ' + formatDate(entry.date));
+    }
+    const desc = descLines.join('\n');
+
+    // RFC 5545 escaping: \\ ; , и переносы строк
+    const esc = s => String(s)
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\r?\n/g, '\\n');
+
+    const stamp = fmtUTC(new Date());
+    const icsUid = (entry.id || uid()) + '@dnevnik.local';
+
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Dnevnik//RU',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'BEGIN:VEVENT',
+      'UID:' + esc(icsUid),
+      'DTSTAMP:' + stamp,
+      'DTSTART:' + fmtUTC(start),
+      'DTEND:' + fmtUTC(end),
+      'SUMMARY:' + esc(summary),
+      'DESCRIPTION:' + esc(desc),
+      'BEGIN:VALARM',
+      'TRIGGER:-PT15M',
+      'ACTION:DISPLAY',
+      'DESCRIPTION:' + esc(summary),
+      'END:VALARM',
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ];
+
+    // .ics должен быть с CRLF
+    return lines.join('\r\n');
+  }
+
+  function downloadICSForEntry(entry, opts) {
+    opts = opts || {};
+    const ics = buildICSFromEntry(entry);
+    if (!ics) { toast('Не получилось собрать событие'); return; }
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dnevnik-' + (entry.id || 'event') + '.ics';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (!opts.silent) {
+      toast('Открывай файл в Safari — предложит добавить в Календарь');
+    }
+  }
+
+  /* ======================= ТЕГИ ======================= */
   function collectAllTags() {
-    // возвращает [{tag, count}] отсортированные по убыванию count, потом алфавит
     const map = new Map();
     Store.get().entries.forEach(e => {
       (e.tags || []).forEach(t => {
@@ -426,11 +523,8 @@
       });
   }
 
-  // активные фильтры (множество тегов)
   const activeTags = new Set();
-
   function isFiltering() { return activeTags.size > 0; }
-
   function entryMatchesFilter(entry) {
     if (!isFiltering()) return true;
     const tags = entry.tags || [];
@@ -439,31 +533,18 @@
     }
     return true;
   }
-
   function cleanupActiveTags() {
-    // если тег исчез из всех записей — убираем из активных
     const existing = new Set();
     Store.get().entries.forEach(e => (e.tags || []).forEach(t => existing.add(t)));
-    let removed = false;
-    Array.from(activeTags).forEach(t => {
-      if (!existing.has(t)) { activeTags.delete(t); removed = true; }
-    });
-    return removed;
+    Array.from(activeTags).forEach(t => { if (!existing.has(t)) activeTags.delete(t); });
   }
 
-  /* =========================================================
-     РЕНДЕР ФИЛЬТР-БАРА
-     ========================================================= */
+  /* ======================= TAG BAR ======================= */
   const tagBarEl = document.getElementById('tagBar');
-
   function renderTagBar() {
     const allTags = collectAllTags();
     tagBarEl.innerHTML = '';
-
-    if (!allTags.length) {
-      tagBarEl.classList.add('hidden');
-      return;
-    }
+    if (!allTags.length) { tagBarEl.classList.add('hidden'); return; }
     tagBarEl.classList.remove('hidden');
 
     allTags.forEach(({ tag, count }) => {
@@ -471,26 +552,15 @@
       btn.className = 'tag-filter-chip' + (activeTags.has(tag) ? ' active' : '');
       btn.type = 'button';
 
-      const h = document.createElement('span');
-      h.className = 'tc-hash';
-      h.textContent = '#';
-      btn.appendChild(h);
-
-      const label = document.createElement('span');
-      label.textContent = tag;
-      btn.appendChild(label);
-
-      const c = document.createElement('span');
-      c.className = 'tc-count';
-      c.textContent = String(count);
-      btn.appendChild(c);
+      const h = document.createElement('span'); h.className = 'tc-hash'; h.textContent = '#'; btn.appendChild(h);
+      const label = document.createElement('span'); label.textContent = tag; btn.appendChild(label);
+      const c = document.createElement('span'); c.className = 'tc-count'; c.textContent = String(count); btn.appendChild(c);
 
       btn.addEventListener('click', () => {
         if (activeTags.has(tag)) activeTags.delete(tag);
         else activeTags.add(tag);
         render();
       });
-
       tagBarEl.appendChild(btn);
     });
 
@@ -499,17 +569,12 @@
       clearBtn.className = 'tag-filter-chip clear-btn';
       clearBtn.type = 'button';
       clearBtn.textContent = '✕ Сбросить';
-      clearBtn.addEventListener('click', () => {
-        activeTags.clear();
-        render();
-      });
+      clearBtn.addEventListener('click', () => { activeTags.clear(); render(); });
       tagBarEl.appendChild(clearBtn);
     }
   }
 
-  /* =========================================================
-     РЕНДЕР ГЛАВНОГО ЭКРАНА
-     ========================================================= */
+  /* ======================= ГЛАВНЫЙ ЭКРАН ======================= */
   const scrollEl = document.getElementById('scroll');
   const hdrCount = document.getElementById('hdrCount');
 
@@ -521,18 +586,16 @@
     const all = Store.get().entries;
     const visible = all.filter(entryMatchesFilter);
 
-    // счётчик
     if (isFiltering()) hdrCount.textContent = visible.length + '/' + all.length;
     else hdrCount.textContent = String(all.length);
 
     if (!all.length) {
       const e = document.createElement('div');
       e.className = 'empty-note';
-      e.innerHTML = 'Пока пусто.\nНажми <b>+ Запись</b>, чтобы начать дневник.\n\nКаждая запись — это 4 поля:\n🎯 <b>Событие</b>\n💗 <b>Чувство</b>\n🧠 <b>Мысль</b>\n⚡ <b>Действие</b>\n\n🏷 Добавляй <b>теги</b> и фильтруй записи по ним.';
+      e.innerHTML = 'Пока пусто.\nНажми <b>+ Запись</b>, чтобы начать дневник.\n\nПорядок полей:\n⚡ <b>Действие</b> + 📅 <b>когда</b>\n🎯 <b>Событие</b>\n💗 <b>Чувство</b>\n🧠 <b>Мысль</b>\n\nДействие с датой можно отправить\nв <b>Apple Календарь</b> одной кнопкой.';
       scrollEl.appendChild(e);
       return;
     }
-
     if (!visible.length) {
       const e = document.createElement('div');
       e.className = 'empty-note';
@@ -542,47 +605,37 @@
     }
 
     const filtering = isFiltering();
-    visible.forEach((entry, i) => {
-      // вычислим настоящий индекс в общем списке (для drag'а — не нужен при фильтре)
+    visible.forEach((entry) => {
       const realIndex = all.indexOf(entry);
-      scrollEl.appendChild(buildEntryEl(entry, realIndex, i, filtering));
+      scrollEl.appendChild(buildEntryEl(entry, realIndex, filtering));
     });
   }
 
-  function buildEntryEl(entry, realIndex, visibleIndex, filtering) {
+  function buildEntryEl(entry, realIndex, filtering) {
     const el = document.createElement('div');
     el.className = 'entry-card' + (filtering ? ' filtered' : '');
     el.dataset.entryId = entry.id;
-    el.dataset.index = String(realIndex); // реальный индекс — для drag, когда фильтра нет
+    el.dataset.index = String(realIndex);
 
-    // ручка drag
     const handle = document.createElement('button');
     handle.className = 'entry-handle';
     handle.textContent = '⋮⋮';
     handle.setAttribute('aria-label', 'Переместить');
-    if (filtering) {
-      handle.title = 'Отключено при активном фильтре';
-    }
+    if (filtering) handle.title = 'Отключено при активном фильтре';
     el.appendChild(handle);
 
-    // кнопка редактирования
     const editBtn = document.createElement('button');
     editBtn.className = 'entry-edit';
     editBtn.textContent = '✏️';
     editBtn.setAttribute('aria-label', 'Править запись');
-    editBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openEntryModal(entry.id);
-    });
+    editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEntryModal(entry.id); });
     el.appendChild(editBtn);
 
-    // дата
     const dateEl = document.createElement('div');
     dateEl.className = 'entry-date';
     dateEl.textContent = formatDate(entry.date || entry.created);
     el.appendChild(dateEl);
 
-    // теги
     const tags = entry.tags || [];
     if (tags.length) {
       const tagsRow = document.createElement('div');
@@ -604,15 +657,14 @@
       el.classList.add('no-tags');
     }
 
-    // тело с полями
     const body = document.createElement('div');
     body.className = 'entry-body';
 
     const fields = [
+      { kind: 'action',  icon: '⚡', name: 'Действие', value: entry.action },
       { kind: 'event',   icon: '🎯', name: 'Событие',  value: entry.event },
       { kind: 'feeling', icon: '💗', name: 'Чувство',  value: entry.feeling },
-      { kind: 'thought', icon: '🧠', name: 'Мысль',    value: entry.thought },
-      { kind: 'action',  icon: '⚡', name: 'Действие', value: entry.action }
+      { kind: 'thought', icon: '🧠', name: 'Мысль',    value: entry.thought }
     ];
 
     let hasAny = false;
@@ -641,6 +693,19 @@
       vl.textContent = f.value;
       bd.appendChild(vl);
 
+      // для "Действия" — плашка с датой действия, если есть
+      if (f.kind === 'action' && entry.actionDate) {
+        const dtEl = document.createElement('span');
+        dtEl.className = 'entry-action-date';
+        dtEl.textContent = formatDate(entry.actionDate);
+        dtEl.title = 'Нажми, чтобы добавить в Календарь';
+        dtEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          downloadICSForEntry(entry);
+        });
+        bd.appendChild(dtEl);
+      }
+
       fEl.appendChild(bd);
       body.appendChild(fEl);
     });
@@ -654,36 +719,24 @@
 
     el.appendChild(body);
 
-    if (!filtering) {
-      attachEntryDrag(handle, el, entry, realIndex);
-    }
+    if (!filtering) attachEntryDrag(handle, el, entry, realIndex);
     return el;
   }
 
-  /* =========================================================
-     DRAG & DROP ДЛЯ СОРТИРОВКИ
-     ========================================================= */
+  /* ======================= DRAG & DROP ======================= */
   function attachEntryDrag(handle, el, entry, startIndex) {
-    let pointerId = null;
-    let dragging = false;
-    let ghost = null;
-    let currentIndex = startIndex;
-    let targetIndex = startIndex;
+    let pointerId = null, dragging = false, ghost = null;
+    let currentIndex = startIndex, targetIndex = startIndex;
 
     function makeGhost() {
       const g = document.createElement('div');
       g.className = 'entry-ghost';
       const em = document.createElement('div');
-      em.textContent = '📔';
-      em.style.fontSize = '22px';
+      em.textContent = '📔'; em.style.fontSize = '22px';
       g.appendChild(em);
       const t = document.createElement('div');
       t.textContent = formatDate(entry.date || entry.created);
-      t.style.fontSize = '14px';
-      t.style.maxWidth = '200px';
-      t.style.overflow = 'hidden';
-      t.style.textOverflow = 'ellipsis';
-      t.style.whiteSpace = 'nowrap';
+      t.style.cssText = 'font-size:14px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
       g.appendChild(t);
       return g;
     }
@@ -753,9 +806,7 @@
     handle.addEventListener('pointerdown', start);
   }
 
-  /* =========================================================
-     МОДАЛКА ЗАПИСИ
-     ========================================================= */
+  /* ======================= МОДАЛКА ЗАПИСИ ======================= */
   const entryModal = document.getElementById('entryModal');
   let entryEditingId = null;
   let editingTags = [];
@@ -766,26 +817,15 @@
     editingTags.forEach((t, i) => {
       const chip = document.createElement('span');
       chip.className = 'tag-editor-chip';
-
-      const h = document.createElement('span');
-      h.className = 't-hash';
-      h.textContent = '#';
-      chip.appendChild(h);
-
-      const lbl = document.createElement('span');
-      lbl.textContent = t;
-      chip.appendChild(lbl);
-
-      const x = document.createElement('span');
-      x.className = 't-x';
-      x.textContent = '×';
+      const h = document.createElement('span'); h.className = 't-hash'; h.textContent = '#'; chip.appendChild(h);
+      const lbl = document.createElement('span'); lbl.textContent = t; chip.appendChild(lbl);
+      const x = document.createElement('span'); x.className = 't-x'; x.textContent = '×';
       x.addEventListener('click', () => {
         editingTags.splice(i, 1);
         renderTagEditorChips();
         renderTagSuggest();
       });
       chip.appendChild(x);
-
       wrap.appendChild(chip);
     });
   }
@@ -808,9 +848,7 @@
       chip.type = 'button';
       chip.className = 'tag-suggest-chip';
       chip.textContent = t;
-      chip.addEventListener('click', () => {
-        addTagToEditor(t);
-      });
+      chip.addEventListener('click', () => addTagToEditor(t));
       wrap.appendChild(chip);
     });
   }
@@ -840,14 +878,22 @@
     document.getElementById('entryMoveDown').disabled = idx < 0 || idx >= list.length - 1;
   }
 
+  // кнопка "В Календарь" активна, если есть текст действия
+  function updateCalendarBtn() {
+    const action = document.getElementById('entryAction').value.trim();
+    const btn = document.getElementById('entryCalendar');
+    btn.disabled = !action;
+  }
+
   function openEntryModal(id) {
     entryEditingId = id || null;
     const titleEl = document.getElementById('entryModalTitle');
     const dateIn = document.getElementById('entryDate');
+    const acIn = document.getElementById('entryAction');
+    const acDateIn = document.getElementById('entryActionDate');
     const evIn = document.getElementById('entryEvent');
     const feIn = document.getElementById('entryFeeling');
     const thIn = document.getElementById('entryThought');
-    const acIn = document.getElementById('entryAction');
     const delBtn = document.getElementById('entryDelete');
     const crEl = document.getElementById('entryCreated');
     const upEl = document.getElementById('entryUpdated');
@@ -862,10 +908,11 @@
       if (!e) return;
       titleEl.textContent = 'Редактировать запись';
       dateIn.value = toLocalInput(e.date || e.created);
+      acIn.value = e.action || '';
+      acDateIn.value = e.actionDate ? toLocalInput(e.actionDate) : '';
       evIn.value = e.event || '';
       feIn.value = e.feeling || '';
       thIn.value = e.thought || '';
-      acIn.value = e.action || '';
       editingTags = (e.tags || []).slice();
       delBtn.classList.remove('hidden');
       crEl.textContent = formatDate(e.created);
@@ -874,10 +921,11 @@
     } else {
       titleEl.textContent = 'Новая запись';
       dateIn.value = toLocalInput(nowIso());
+      acIn.value = '';
+      acDateIn.value = '';
       evIn.value = '';
       feIn.value = '';
       thIn.value = '';
-      acIn.value = '';
       editingTags = [];
       delBtn.classList.add('hidden');
       crEl.textContent = '—';
@@ -889,9 +937,10 @@
     renderTagEditorChips();
     renderTagSuggest();
     updateTagAddBtn();
+    updateCalendarBtn();
 
     entryModal.classList.remove('hidden');
-    setTimeout(() => { if (!id) evIn.focus(); }, 220);
+    setTimeout(() => { if (!id) acIn.focus(); }, 220);
   }
 
   function closeEntryModal() {
@@ -902,27 +951,21 @@
 
   document.getElementById('entryCancel').addEventListener('click', closeEntryModal);
 
+  // Живое обновление состояния кнопки "В Календарь"
+  document.getElementById('entryAction').addEventListener('input', updateCalendarBtn);
+
   document.getElementById('entryMoveUp').addEventListener('click', () => {
     if (!entryEditingId) return;
-    if (moveEntryByIndex(entryEditingId, -1)) {
-      updateMoveButtons();
-      render();
-    }
+    if (moveEntryByIndex(entryEditingId, -1)) { updateMoveButtons(); render(); }
   });
   document.getElementById('entryMoveDown').addEventListener('click', () => {
     if (!entryEditingId) return;
-    if (moveEntryByIndex(entryEditingId, 1)) {
-      updateMoveButtons();
-      render();
-    }
+    if (moveEntryByIndex(entryEditingId, 1)) { updateMoveButtons(); render(); }
   });
 
-  /* ---- обработчики ввода тега ---- */
+  // ---- ТЕГИ в модалке ----
   const tagInput = document.getElementById('tagInput');
-  tagInput.addEventListener('input', () => {
-    updateTagAddBtn();
-    renderTagSuggest();
-  });
+  tagInput.addEventListener('input', () => { updateTagAddBtn(); renderTagSuggest(); });
   tagInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab') {
       e.preventDefault();
@@ -934,7 +977,6 @@
         renderTagSuggest();
       }
     } else if (e.key === 'Backspace' && !tagInput.value && editingTags.length) {
-      // backspace на пустом — удалить последний тег
       editingTags.pop();
       renderTagEditorChips();
       renderTagSuggest();
@@ -943,12 +985,7 @@
   });
   tagInput.addEventListener('blur', () => {
     const v = normalizeTag(tagInput.value);
-    if (v) {
-      addTagToEditor(v);
-      tagInput.value = '';
-      updateTagAddBtn();
-      renderTagSuggest();
-    }
+    if (v) { addTagToEditor(v); tagInput.value = ''; updateTagAddBtn(); renderTagSuggest(); }
   });
   document.getElementById('tagAddBtn').addEventListener('click', () => {
     const v = normalizeTag(tagInput.value);
@@ -961,23 +998,21 @@
     }
   });
 
+  // ---- СОХРАНЕНИЕ ----
   document.getElementById('entrySave').addEventListener('click', () => {
     const dateVal = document.getElementById('entryDate').value;
+    const actionDateVal = document.getElementById('entryActionDate').value;
+    const action = document.getElementById('entryAction').value.trim();
     const event = document.getElementById('entryEvent').value.trim();
     const feeling = document.getElementById('entryFeeling').value.trim();
     const thought = document.getElementById('entryThought').value.trim();
-    const action = document.getElementById('entryAction').value.trim();
 
-    // если в поле тега осталось не добавленное — добавим
     const pendingTag = normalizeTag(tagInput.value);
-    if (pendingTag) {
-      addTagToEditor(pendingTag);
-      tagInput.value = '';
-    }
+    if (pendingTag) { addTagToEditor(pendingTag); tagInput.value = ''; }
 
     const tags = editingTags.slice();
 
-    if (!event && !feeling && !thought && !action && !tags.length) {
+    if (!action && !event && !feeling && !thought && !tags.length) {
       document.getElementById('entryErr').textContent = 'Заполни хотя бы одно поле';
       return;
     }
@@ -988,27 +1023,34 @@
       if (!isNaN(d.getTime())) dateIso = d.toISOString();
     }
 
+    let actionDateIso = '';
+    if (actionDateVal) {
+      const d = new Date(actionDateVal);
+      if (!isNaN(d.getTime())) actionDateIso = d.toISOString();
+    }
+
     if (entryEditingId) {
       const e = getEntry(entryEditingId);
       if (e) {
         e.date = dateIso;
+        e.actionDate = actionDateIso;
+        e.action = action;
         e.event = event;
         e.feeling = feeling;
         e.thought = thought;
-        e.action = action;
         e.tags = tags;
         e.updated = nowIso();
       }
     } else {
-      const e = {
+      Store.get().entries.push({
         id: uid(),
         date: dateIso,
-        event, feeling, thought, action,
+        actionDate: actionDateIso,
+        action, event, feeling, thought,
         tags,
         created: nowIso(),
         updated: nowIso()
-      };
-      Store.get().entries.push(e);
+      });
     }
     Store.save();
     closeEntryModal();
@@ -1027,6 +1069,37 @@
     });
   });
 
+  // ---- Кнопка "В Календарь" ----
+  document.getElementById('entryCalendar').addEventListener('click', () => {
+    // Собираем "сырой" entry из полей формы, чтобы не сохранять в стор
+    const action = document.getElementById('entryAction').value.trim();
+    if (!action) { toast('Заполни Действие'); return; }
+
+    const dateVal = document.getElementById('entryDate').value;
+    const actionDateVal = document.getElementById('entryActionDate').value;
+
+    function parseLocal(v) {
+      if (!v) return '';
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? '' : d.toISOString();
+    }
+
+    const payload = {
+      id: entryEditingId || uid(),
+      date: parseLocal(dateVal) || nowIso(),
+      actionDate: parseLocal(actionDateVal) || '',
+      action: action,
+      event: document.getElementById('entryEvent').value.trim(),
+      feeling: document.getElementById('entryFeeling').value.trim(),
+      thought: document.getElementById('entryThought').value.trim(),
+      tags: editingTags.slice(),
+      created: nowIso(),
+      updated: nowIso()
+    };
+
+    downloadICSForEntry(payload);
+  });
+
   entryModal.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -1034,28 +1107,27 @@
     }
   });
 
-  /* =========================================================
-     ЭКСПОРТ / ИМПОРТ
-     ========================================================= */
+  /* ======================= ЭКСПОРТ / ИМПОРТ ======================= */
   const exportModal = document.getElementById('exportModal');
   let exportMode = 'json';
 
   function buildExportJson() {
     return {
-      version: '2.0',
+      version: '3.0',
       app: 'Дневник',
       exported: nowIso(),
       schema: {
-        fields: ['event', 'feeling', 'thought', 'action', 'tags'],
-        rules: ['Порядок записей можно менять', 'Дата редактируется', 'Экспорт полный (для синхронизации)']
+        fields: ['action', 'actionDate', 'event', 'feeling', 'thought', 'tags'],
+        rules: ['Действие — первое поле', 'actionDate — для Apple Календаря', 'Порядок записей можно менять', 'Экспорт полный (для синхронизации)']
       },
       entries: Store.get().entries.map(e => ({
         id: e.id,
         date: e.date,
+        actionDate: e.actionDate || '',
+        action: e.action,
         event: e.event,
         feeling: e.feeling,
         thought: e.thought,
-        action: e.action,
         tags: (e.tags || []).slice(),
         created: e.created,
         updated: e.updated
@@ -1070,28 +1142,90 @@
     entries.forEach((e, i) => {
       lines.push('═══ #' + (i + 1) + ' · ' + formatDate(e.date || e.created) + ' ═══');
       if (e.tags && e.tags.length) lines.push('🏷 ' + e.tags.map(t => '#' + t).join(' '));
+      if (e.action) {
+        const when = e.actionDate ? '  📅 ' + formatDate(e.actionDate) : '';
+        lines.push('⚡ Действие: ' + e.action + when);
+      }
       if (e.event)   lines.push('🎯 Событие: ' + e.event);
       if (e.feeling) lines.push('💗 Чувство: ' + e.feeling);
       if (e.thought) lines.push('🧠 Мысль: ' + e.thought);
-      if (e.action)  lines.push('⚡ Действие: ' + e.action);
       lines.push('');
     });
     return lines.join('\n').trim();
   }
 
+  // Один .ics со всеми записями, у которых есть actionDate и action
+  function buildExportICS() {
+    const withDates = Store.get().entries.filter(e => e.action && (e.actionDate || e.date));
+    if (!withDates.length) return '';
+
+    const parts = [];
+    parts.push('BEGIN:VCALENDAR');
+    parts.push('VERSION:2.0');
+    parts.push('PRODID:-//Dnevnik//RU');
+    parts.push('CALSCALE:GREGORIAN');
+    parts.push('METHOD:PUBLISH');
+
+    const pad = n => String(n).padStart(2, '0');
+    function fmtUTC(d) {
+      return d.getUTCFullYear() + pad(d.getUTCMonth()+1) + pad(d.getUTCDate())
+        + 'T' + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + pad(d.getUTCSeconds()) + 'Z';
+    }
+    const esc = s => String(s)
+      .replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+
+    withDates.forEach(e => {
+      const start = new Date(e.actionDate || e.date);
+      if (isNaN(start.getTime())) return;
+      const end = new Date(start.getTime() + 60*60*1000);
+
+      const summary = (e.action || 'Запись дневника').replace(/\s+/g, ' ').slice(0, 200);
+      const descLines = [];
+      if (e.event)   descLines.push('🎯 Событие: ' + e.event);
+      if (e.feeling) descLines.push('💗 Чувство: ' + e.feeling);
+      if (e.thought) descLines.push('🧠 Мысль: ' + e.thought);
+      if (e.tags && e.tags.length) descLines.push('🏷 ' + e.tags.map(t => '#'+t).join(' '));
+
+      parts.push('BEGIN:VEVENT');
+      parts.push('UID:' + esc((e.id || uid()) + '@dnevnik.local'));
+      parts.push('DTSTAMP:' + fmtUTC(new Date()));
+      parts.push('DTSTART:' + fmtUTC(start));
+      parts.push('DTEND:' + fmtUTC(end));
+      parts.push('SUMMARY:' + esc(summary));
+      parts.push('DESCRIPTION:' + esc(descLines.join('\n')));
+      parts.push('BEGIN:VALARM');
+      parts.push('TRIGGER:-PT15M');
+      parts.push('ACTION:DISPLAY');
+      parts.push('DESCRIPTION:' + esc(summary));
+      parts.push('END:VALARM');
+      parts.push('END:VEVENT');
+    });
+
+    parts.push('END:VCALENDAR');
+    return parts.join('\r\n');
+  }
+
   function updateExportText() {
     const ta = document.getElementById('exportTextarea');
-    ta.value = exportMode === 'json' ? JSON.stringify(buildExportJson(), null, 2) : buildExportText();
+    if (exportMode === 'json') {
+      ta.value = JSON.stringify(buildExportJson(), null, 2);
+      document.getElementById('exportHint').textContent = 'Скопируй JSON — это полная выгрузка. Вставь чужой JSON и нажми «Импорт», чтобы подтянуть записи.';
+    } else if (exportMode === 'text') {
+      ta.value = buildExportText();
+      document.getElementById('exportHint').textContent = 'Читаемый вид — удобно перечитывать и делиться.';
+    } else {
+      ta.value = buildExportICS();
+      document.getElementById('exportHint').textContent = 'Файл .ics для Apple Календаря — все действия с датой станут событиями. Нажми «Скачать» и открой в Safari, чтобы импортировать одним разом.';
+    }
     ta.readOnly = exportMode !== 'json';
-    document.getElementById('exportHint').textContent = exportMode === 'json'
-      ? 'Скопируй JSON — это полная выгрузка. Вставь чужой JSON и нажми «Импорт», чтобы подтянуть записи (новые добавятся, старые обновятся по id).'
-      : 'Читаемый вид — удобно перечитывать и делиться.';
   }
 
   function setExportTab(mode) {
     exportMode = mode;
     document.getElementById('exportTabJson').classList.toggle('active', mode === 'json');
     document.getElementById('exportTabText').classList.toggle('active', mode === 'text');
+    document.getElementById('exportTabICS').classList.toggle('active', mode === 'ics');
+    document.getElementById('exportImport').classList.toggle('hidden', mode !== 'json');
     updateExportText();
   }
 
@@ -1101,6 +1235,7 @@
   });
   document.getElementById('exportTabJson').addEventListener('click', () => setExportTab('json'));
   document.getElementById('exportTabText').addEventListener('click', () => setExportTab('text'));
+  document.getElementById('exportTabICS').addEventListener('click', () => setExportTab('ics'));
   document.getElementById('exportClose').addEventListener('click', () => exportModal.classList.add('hidden'));
 
   document.getElementById('exportCopy').addEventListener('click', () => {
@@ -1118,14 +1253,17 @@
     try {
       const ta = document.getElementById('exportTextarea');
       const isJson = exportMode === 'json';
-      const blob = new Blob([ta.value], { type: isJson ? 'application/json' : 'text/plain' });
+      const isIcs = exportMode === 'ics';
+      const mime = isJson ? 'application/json' : (isIcs ? 'text/calendar;charset=utf-8' : 'text/plain');
+      const ext = isJson ? 'json' : (isIcs ? 'ics' : 'txt');
+      const blob = new Blob([ta.value], { type: mime });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = isJson ? ('dnevnik_' + Date.now() + '.json') : ('dnevnik_' + Date.now() + '.txt');
+      a.download = 'dnevnik_' + Date.now() + '.' + ext;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast('Сохранено');
+      toast(isIcs ? 'Открой файл в Safari' : 'Сохранено');
     } catch (e) { toast('Ошибка'); }
   });
 
@@ -1144,11 +1282,12 @@
       const clean = {
         id,
         date: typeof raw.date === 'string' && raw.date ? raw.date : (raw.created || nowIso()),
+        actionDate: typeof raw.actionDate === 'string' ? raw.actionDate : '',
+        action: typeof raw.action === 'string' ? raw.action : '',
         event: typeof raw.event === 'string' ? raw.event : '',
         feeling: typeof raw.feeling === 'string' ? raw.feeling : '',
         thought: typeof raw.thought === 'string' ? raw.thought : '',
-        action: typeof raw.action === 'string' ? raw.action : '',
-        tags: Array.isArray(raw.tags) ? raw.tags.map(normalizeTag).filter(Boolean).filter((t, i, a) => a.indexOf(t) === i) : [],
+        tags: Array.isArray(raw.tags) ? raw.tags.map(normalizeTag).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i) : [],
         created: typeof raw.created === 'string' ? raw.created : nowIso(),
         updated: typeof raw.updated === 'string' ? raw.updated : nowIso()
       };
@@ -1166,9 +1305,7 @@
     toast('Импорт: +' + added + ' новых, ' + updated + ' обновлено');
   });
 
-  /* =========================================================
-     ЗАПУСК
-     ========================================================= */
+  /* ======================= ЗАПУСК ======================= */
   document.getElementById('addEntryBtn').addEventListener('click', () => {
     openEntryModal(null);
   });
