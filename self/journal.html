@@ -5,35 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>📔 Дневник</title>
 
-<!-- Описание для поиска и превью -->
-<meta name="description" content="Личный дневник: событие, чувство, мысль, действие. Теги, фильтры, экспорт и добавление действий в Apple Календарь.">
-<meta name="author" content="Дневник">
+<meta name="description" content="Личный дневник: событие, чувство, мысль, действие, результат. Теги, фильтры, экспорт и добавление действий в Apple Календарь.">
 <meta name="theme-color" content="#0a0a0f">
 <meta name="color-scheme" content="dark">
-
-<!-- Open Graph (для превью в мессенджерах) -->
 <meta property="og:title" content="📔 Дневник">
-<meta property="og:description" content="Событие · Чувство · Мысль · Действие — с тегами и календарём.">
-<meta property="og:type" content="website">
+<meta property="og:description" content="Событие · Чувство · Мысль · Действие · Результат">
 <meta property="og:image" content="logo.png">
-
-<!-- Apple: иконка на домашнем экране -->
 <link rel="apple-touch-icon" href="logo.png">
 <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
-<link rel="apple-touch-icon" sizes="152x152" href="logo.png">
-<link rel="apple-touch-icon" sizes="120x120" href="logo.png">
-
-<!-- Apple: PWA-режим (если добавить на домашний экран) -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Дневник">
-
-<!-- Apple: телефонные ссылки -->
 <meta name="format-detection" content="telephone=no">
-
-<!-- Обычная favicon -->
 <link rel="icon" type="image/png" href="logo.png">
-
 
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
@@ -92,7 +76,7 @@
   .entry-tag:active { background:rgba(111,168,255,.22); border-color:#6fa8ff; }
   .entry-tag::before { content:'#'; opacity:.5; margin-right:2px; }
 
-  /* preview (свёрнутый вид) */
+  /* preview */
   .entry-preview { display:flex; gap:8px; padding:2px 0 6px 10px; border-left:2px solid rgba(255,255,255,.06); align-items:flex-start; }
   .entry-preview-icon { font-size:14px; line-height:1.4; flex:none; width:18px; text-align:center; }
   .entry-preview-text { flex:1; min-width:0; font-size:13px; line-height:1.45; color:#c8c8d4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -106,6 +90,7 @@
   .entry-field[data-kind="feeling"] { border-left-color:rgba(255,143,180,.55); }
   .entry-field[data-kind="thought"] { border-left-color:rgba(180,143,255,.55); }
   .entry-field[data-kind="action"]  { border-left-color:rgba(127,255,180,.55); }
+  .entry-field[data-kind="result"]  { border-left-color:rgba(255,209,102,.55); }
 
   .entry-field-icon { font-size:16px; line-height:1; flex:none; width:20px; text-align:center; padding-top:2px; }
   .entry-field-body { flex:1; min-width:0; }
@@ -114,6 +99,7 @@
   .entry-field[data-kind="feeling"] .entry-field-name { color:#ff8fb4; }
   .entry-field[data-kind="thought"] .entry-field-name { color:#b48fff; }
   .entry-field[data-kind="action"]  .entry-field-name { color:#7fffb4; }
+  .entry-field[data-kind="result"]  .entry-field-name { color:#ffd166; }
   .entry-field-value { font-size:14px; line-height:1.5; color:#e8e8f0; white-space:pre-wrap; word-break:break-word; -webkit-user-select:text; user-select:text; }
   .entry-empty { color:#4a4a58; font-size:13px; font-style:italic; padding:8px 0 4px 10px; }
 
@@ -153,10 +139,11 @@
 
   .field-row { display:flex; flex-direction:column; gap:6px; }
   .field-label { font-size:11px; color:#6b6b7b; text-transform:uppercase; letter-spacing:.06em; }
-  .field-label.lbl-action  { color:#7fffb4; }
   .field-label.lbl-event   { color:#6fa8ff; }
   .field-label.lbl-feeling { color:#ff8fb4; }
   .field-label.lbl-thought { color:#b48fff; }
+  .field-label.lbl-action  { color:#7fffb4; }
+  .field-label.lbl-result  { color:#ffd166; }
   .field-label.lbl-tags    { color:#8890a0; }
   .field-label.lbl-when    { color:#7fffb4; }
 
@@ -280,6 +267,11 @@
         <span class="field-label lbl-when">📅 Когда выполнить</span>
         <input type="datetime-local" id="entryActionDate" class="text-input">
         <div class="field-hint">Если указать — можно нажать <b>«📅 В Календарь»</b> и добавить как событие в Apple Календарь (с напоминанием за 15 минут).</div>
+      </div>
+
+      <div class="field-row">
+        <span class="field-label lbl-result">✅ Результат</span>
+        <textarea id="entryResult" class="text-input textarea" placeholder="Что получилось? Чем закончилось? Заполняется позже." rows="2"></textarea>
       </div>
 
       <div class="field-row">
@@ -425,10 +417,13 @@
         state = { entries: Array.isArray(p.entries) ? p.entries : [] };
       } catch (e) { state = empty(); }
       state.entries.forEach(e => {
+        // === МИГРАЦИЯ СТАРЫХ ЗАПИСЕЙ ===
         if (typeof e.event !== 'string') e.event = '';
         if (typeof e.feeling !== 'string') e.feeling = '';
         if (typeof e.thought !== 'string') e.thought = '';
         if (typeof e.action !== 'string') e.action = '';
+        // НОВОЕ ПОЛЕ: если нет result — создаём пустым (старые записи не ломаются)
+        if (typeof e.result !== 'string') e.result = '';
         if (typeof e.created !== 'string') e.created = nowIso();
         if (typeof e.updated !== 'string') e.updated = e.created;
         if (typeof e.date !== 'string' || !e.date) e.date = e.created;
@@ -514,6 +509,7 @@
     if (entry.event)   descLines.push('🎯 Событие: ' + entry.event);
     if (entry.feeling) descLines.push('💗 Чувство: ' + entry.feeling);
     if (entry.thought) descLines.push('🧠 Мысль: ' + entry.thought);
+    if (entry.result)  descLines.push('✅ Результат: ' + entry.result);
     if (entry.tags && entry.tags.length) descLines.push('🏷 ' + entry.tags.map(t => '#' + t).join(' '));
     if (entry.date && entry.date !== entry.actionDate) {
       descLines.push('');
@@ -638,12 +634,14 @@
   const hdrCount = document.getElementById('hdrCount');
 
   // превью для свёрнутой карточки — первое непустое поле
+  // теперь с учётом "Результат" — он в конце очереди
   function getPreviewInfo(entry) {
     const order = [
       { icon: '🎯', value: entry.event },
       { icon: '💗', value: entry.feeling },
       { icon: '🧠', value: entry.thought },
-      { icon: '⚡', value: entry.action }
+      { icon: '⚡', value: entry.action },
+      { icon: '✅', value: entry.result }
     ];
     for (const f of order) {
       const v = (f.value || '').replace(/\s+/g, ' ').trim();
@@ -669,7 +667,7 @@
     if (!all.length) {
       const e = document.createElement('div');
       e.className = 'empty-note';
-      e.innerHTML = 'Пока пусто.\nНажми <b>+ Запись</b>, чтобы начать дневник.\n\nПорядок полей:\n🎯 <b>Событие</b>\n💗 <b>Чувство</b>\n🧠 <b>Мысль</b>\n⚡ <b>Действие</b> + 📅 <b>когда</b>\n\nДействие с датой можно отправить\nв <b>Apple Календарь</b> одной кнопкой.\nКарточки <b>сворачиваются</b> шевроном ▸.';
+      e.innerHTML = 'Пока пусто.\nНажми <b>+ Запись</b>, чтобы начать дневник.\n\nПорядок полей:\n🎯 <b>Событие</b>\n💗 <b>Чувство</b>\n🧠 <b>Мысль</b>\n⚡ <b>Действие</b> + 📅 <b>когда</b>\n✅ <b>Результат</b>\n\nДействие с датой можно отправить\nв <b>Apple Календарь</b> одной кнопкой.\nКарточки <b>сворачиваются</b> шевроном ▸.';
       scrollEl.appendChild(e);
       return;
     }
@@ -696,7 +694,6 @@
     el.dataset.entryId = entry.id;
     el.dataset.index = String(realIndex);
 
-    // ручка drag
     const handle = document.createElement('button');
     handle.className = 'entry-handle';
     handle.textContent = '⋮⋮';
@@ -704,7 +701,6 @@
     if (filtering) handle.title = 'Отключено при активном фильтре';
     el.appendChild(handle);
 
-    // кнопка сворачивания
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'entry-toggle';
     toggleBtn.setAttribute('aria-label', expanded ? 'Свернуть' : 'Развернуть');
@@ -720,7 +716,6 @@
     });
     el.appendChild(toggleBtn);
 
-    // кнопка редактирования
     const editBtn = document.createElement('button');
     editBtn.className = 'entry-edit';
     editBtn.textContent = '✏️';
@@ -728,13 +723,11 @@
     editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEntryModal(entry.id); });
     el.appendChild(editBtn);
 
-    // дата
     const dateEl = document.createElement('div');
     dateEl.className = 'entry-date';
     dateEl.textContent = formatDate(entry.date || entry.created);
     el.appendChild(dateEl);
 
-    // теги
     const tags = entry.tags || [];
     if (tags.length) {
       const tagsRow = document.createElement('div');
@@ -757,15 +750,16 @@
     }
 
     if (expanded) {
-      // --- полный вид ---
       const body = document.createElement('div');
       body.className = 'entry-body';
 
+      // порядок: событие, чувство, мысль, действие, результат
       const fields = [
         { kind: 'event',   icon: '🎯', name: 'Событие',  value: entry.event },
         { kind: 'feeling', icon: '💗', name: 'Чувство',  value: entry.feeling },
         { kind: 'thought', icon: '🧠', name: 'Мысль',    value: entry.thought },
-        { kind: 'action',  icon: '⚡', name: 'Действие', value: entry.action }
+        { kind: 'action',  icon: '⚡', name: 'Действие', value: entry.action },
+        { kind: 'result',  icon: '✅', name: 'Результат', value: entry.result }
       ];
 
       let hasAny = false;
@@ -794,6 +788,7 @@
         vl.textContent = f.value;
         bd.appendChild(vl);
 
+        // дата-плашка появляется под действием
         if (f.kind === 'action' && entry.actionDate) {
           const dtEl = document.createElement('span');
           dtEl.className = 'entry-action-date';
@@ -819,7 +814,6 @@
 
       el.appendChild(body);
     } else {
-      // --- свёрнутый вид: одна строка-превью ---
       const info = getPreviewInfo(entry);
       const prev = document.createElement('div');
       prev.className = 'entry-preview' + (info ? '' : ' empty');
@@ -1010,6 +1004,7 @@
     const thIn = document.getElementById('entryThought');
     const acIn = document.getElementById('entryAction');
     const acDateIn = document.getElementById('entryActionDate');
+    const resIn = document.getElementById('entryResult');
     const delBtn = document.getElementById('entryDelete');
     const crEl = document.getElementById('entryCreated');
     const upEl = document.getElementById('entryUpdated');
@@ -1029,6 +1024,7 @@
       thIn.value = e.thought || '';
       acIn.value = e.action || '';
       acDateIn.value = e.actionDate ? toLocalInput(e.actionDate) : '';
+      resIn.value = e.result || ''; // может быть пусто — старые записи
       editingTags = (e.tags || []).slice();
       delBtn.classList.remove('hidden');
       crEl.textContent = formatDate(e.created);
@@ -1042,6 +1038,7 @@
       thIn.value = '';
       acIn.value = '';
       acDateIn.value = '';
+      resIn.value = '';
       editingTags = [];
       delBtn.classList.add('hidden');
       crEl.textContent = '—';
@@ -1120,13 +1117,14 @@
     const thought = document.getElementById('entryThought').value.trim();
     const action = document.getElementById('entryAction').value.trim();
     const actionDateVal = document.getElementById('entryActionDate').value;
+    const result = document.getElementById('entryResult').value.trim();
 
     const pendingTag = normalizeTag(tagInput.value);
     if (pendingTag) { addTagToEditor(pendingTag); tagInput.value = ''; }
 
     const tags = editingTags.slice();
 
-    if (!action && !event && !feeling && !thought && !tags.length) {
+    if (!action && !event && !feeling && !thought && !result && !tags.length) {
       document.getElementById('entryErr').textContent = 'Заполни хотя бы одно поле';
       return;
     }
@@ -1152,6 +1150,7 @@
         e.thought = thought;
         e.action = action;
         e.actionDate = actionDateIso;
+        e.result = result;
         e.tags = tags;
         e.updated = nowIso();
       }
@@ -1162,11 +1161,11 @@
         date: dateIso,
         event, feeling, thought, action,
         actionDate: actionDateIso,
+        result,
         tags,
         created: nowIso(),
         updated: nowIso()
       });
-      // новая запись — сразу раскрываем
       expandedEntries.add(newId);
       saveExpanded();
     }
@@ -1209,6 +1208,7 @@
       event: document.getElementById('entryEvent').value.trim(),
       feeling: document.getElementById('entryFeeling').value.trim(),
       thought: document.getElementById('entryThought').value.trim(),
+      result: document.getElementById('entryResult').value.trim(),
       tags: editingTags.slice(),
       created: nowIso(),
       updated: nowIso()
@@ -1230,12 +1230,12 @@
 
   function buildExportJson() {
     return {
-      version: '3.1',
+      version: '3.2',
       app: 'Дневник',
       exported: nowIso(),
       schema: {
-        fields: ['event', 'feeling', 'thought', 'action', 'actionDate', 'tags'],
-        rules: ['Порядок полей на карточке: событие, чувство, мысль, действие', 'actionDate — для Apple Календаря', 'Карточки можно сворачивать', 'Экспорт полный (для синхронизации)']
+        fields: ['event', 'feeling', 'thought', 'action', 'actionDate', 'result', 'tags'],
+        rules: ['Порядок полей: событие, чувство, мысль, действие (+когда), результат', 'result заполняется позже', 'actionDate — для Apple Календаря', 'Карточки можно сворачивать']
       },
       entries: Store.get().entries.map(e => ({
         id: e.id,
@@ -1245,6 +1245,7 @@
         thought: e.thought,
         action: e.action,
         actionDate: e.actionDate || '',
+        result: e.result || '',
         tags: (e.tags || []).slice(),
         created: e.created,
         updated: e.updated
@@ -1266,6 +1267,7 @@
         const when = e.actionDate ? '  📅 ' + formatDate(e.actionDate) : '';
         lines.push('⚡ Действие: ' + e.action + when);
       }
+      if (e.result)  lines.push('✅ Результат: ' + e.result);
       lines.push('');
     });
     return lines.join('\n').trim();
@@ -1300,6 +1302,7 @@
       if (e.event)   descLines.push('🎯 Событие: ' + e.event);
       if (e.feeling) descLines.push('💗 Чувство: ' + e.feeling);
       if (e.thought) descLines.push('🧠 Мысль: ' + e.thought);
+      if (e.result)  descLines.push('✅ Результат: ' + e.result);
       if (e.tags && e.tags.length) descLines.push('🏷 ' + e.tags.map(t => '#'+t).join(' '));
 
       parts.push('BEGIN:VEVENT');
@@ -1403,6 +1406,8 @@
         thought: typeof raw.thought === 'string' ? raw.thought : '',
         action: typeof raw.action === 'string' ? raw.action : '',
         actionDate: typeof raw.actionDate === 'string' ? raw.actionDate : '',
+        // старые экспорты без result — читаются как пусто
+        result: typeof raw.result === 'string' ? raw.result : '',
         tags: Array.isArray(raw.tags) ? raw.tags.map(normalizeTag).filter(Boolean).filter((t,i,a)=>a.indexOf(t)===i) : [],
         created: typeof raw.created === 'string' ? raw.created : nowIso(),
         updated: typeof raw.updated === 'string' ? raw.updated : nowIso()
