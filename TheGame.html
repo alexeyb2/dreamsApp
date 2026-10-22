@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Шахматная доска · Мир</title>
+<title>Шахматы · Притяжение и отталкивание</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -13,7 +13,6 @@
     -webkit-tap-highlight-color:transparent;
   }
   input,textarea,select,button{-webkit-user-select:auto;user-select:auto;font-family:inherit}
-
   .wrap{max-width:900px;margin:0 auto}
 
   header{
@@ -23,10 +22,7 @@
   }
   .clockbox{display:flex;align-items:center;gap:10px}
   #phase{font-size:26px}
-  #clock{
-    font-size:28px;font-weight:800;letter-spacing:2px;
-    font-variant-numeric:tabular-nums;color:#fff;
-  }
+  #clock{font-size:28px;font-weight:800;letter-spacing:2px;font-variant-numeric:tabular-nums;color:#fff}
   .ctrls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   button{
     font-size:13px;font-weight:600;color:#f0f0f0;
@@ -39,30 +35,39 @@
     background:linear-gradient(180deg,#8b6bff,#6a45e0);
     border-color:#a68bff;box-shadow:0 0 14px rgba(139,107,255,.5);
   }
+  button.force-btn{
+    background:linear-gradient(180deg,#ff9c5b,#e05f2a);
+    border-color:#ffb97a;color:#1a0a00;
+    box-shadow:0 0 14px rgba(255,140,80,.5);
+    font-weight:800;
+  }
 
-  /* ═══ ДОСКА ═══ */
+  .auto-toggle{
+    display:flex;align-items:center;gap:6px;
+    padding:6px 10px;background:#1a1a1a;border:1px solid #333;
+    border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;
+    user-select:none;
+  }
+  .auto-toggle input{cursor:pointer}
+  .auto-toggle.on{border-color:#ffb97a;background:rgba(255,140,80,.15);color:#ffd0a0}
+
+  /* ── ДОСКА ── */
   .board-outer{
     padding:20px;
     background:linear-gradient(160deg,#1a1a1a,#0d0d0d);
-    border:2px solid #333;
-    border-radius:14px;
+    border:2px solid #333;border-radius:14px;
     box-shadow:0 12px 40px rgba(0,0,0,.7),inset 0 0 40px rgba(0,0,0,.9);
   }
   .board{
     display:grid;
     grid-template-columns:repeat(8,1fr);
     grid-template-rows:repeat(8,1fr);
-    aspect-ratio:1;
-    border-radius:4px;
-    overflow:hidden;
+    aspect-ratio:1;border-radius:4px;overflow:hidden;
     box-shadow:0 0 0 2px #000;
   }
   .cell{
-    position:relative;
-    display:flex;flex-wrap:wrap;
-    align-content:flex-start;
-    gap:2px;padding:3px;
-    overflow:hidden;
+    position:relative;display:flex;flex-wrap:wrap;
+    align-content:flex-start;gap:2px;padding:3px;overflow:hidden;
   }
   .cell.light{background:#e8e8e8}
   .cell.dark{background:#1a1a1a}
@@ -80,54 +85,46 @@
   .cell.light .label-rank,.cell.light .label-file{color:#1a1a1a}
   .cell.dark  .label-rank,.cell.dark  .label-file{color:#e8e8e8}
 
-  /* ═══ ТОКЕН ═══ */
+  /* ── ТОКЕН ── */
   .token{
     position:relative;
     display:flex;flex-direction:column;align-items:center;
     padding:2px 5px;border-radius:6px;
-    background:rgba(255,255,255,.94);
-    color:#111;
+    background:rgba(255,255,255,.94);color:#111;
     box-shadow:0 2px 4px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.2);
     cursor:grab;
     transition:transform .12s,box-shadow .12s,opacity .12s;
-    max-width:100%;min-width:0;
-    z-index:2;
+    max-width:100%;min-width:0;z-index:2;
     touch-action:none;
   }
   .token:active{cursor:grabbing}
   .token.fixed{
-    cursor:pointer;
-    background:rgba(255,240,200,.95);
+    cursor:pointer;background:rgba(255,240,200,.95);
     box-shadow:0 2px 4px rgba(0,0,0,.5),0 0 0 1px rgba(180,140,40,.6);
   }
-  .token.dragging{
-    opacity:.35;
-    pointer-events:none;
-    transform:scale(.9);
+  .token.dragging{opacity:.35;pointer-events:none;transform:scale(.9)}
+  .token.just-moved{animation:bounce .5s ease 2}
+  @keyframes bounce{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(-6px)}
   }
   .token .em{font-size:20px;line-height:1;pointer-events:none}
   .token .nm{
-    font-size:8.5px;font-weight:700;line-height:1.1;
-    margin-top:1px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    max-width:100%;pointer-events:none;
+    font-size:8.5px;font-weight:700;line-height:1.1;margin-top:1px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
+    pointer-events:none;
   }
   .token .lock{
-    position:absolute;top:-5px;left:-5px;
-    font-size:9px;line-height:1;
-    background:#232323;color:#fff;
-    padding:1px 3px;border-radius:4px;
-    border:1px solid rgba(255,255,255,.3);
-    pointer-events:none;
+    position:absolute;top:-5px;left:-5px;font-size:9px;line-height:1;
+    background:#232323;color:#fff;padding:1px 3px;border-radius:4px;
+    border:1px solid rgba(255,255,255,.3);pointer-events:none;
   }
   .token .badge{
     position:absolute;top:-5px;right:-5px;
     min-width:14px;height:14px;padding:0 3px;
-    font-size:8px;font-weight:900;color:#000;
-    border-radius:7px;
+    font-size:8px;font-weight:900;color:#000;border-radius:7px;
     display:flex;align-items:center;justify-content:center;
-    border:1px solid rgba(255,255,255,.7);
-    pointer-events:none;
+    border:1px solid rgba(255,255,255,.7);pointer-events:none;
   }
 
   .hint{
@@ -153,7 +150,7 @@
     .label-file{bottom:1px;right:1px}
   }
 
-  /* ═══ МОДАЛКИ ═══ */
+  /* ── МОДАЛКИ ── */
   .modal{
     position:fixed;inset:0;display:none;align-items:center;justify-content:center;
     background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:100;padding:14px;
@@ -189,14 +186,12 @@
   .modal-foot button{flex:1;padding:10px}
   .modal-foot .danger{
     flex:0 0 auto;padding:10px 14px;
-    background:rgba(255,80,80,.15);
-    border-color:rgba(255,80,80,.45);color:#ffb3b3;
+    background:rgba(255,80,80,.15);border-color:rgba(255,80,80,.45);color:#ffb3b3;
   }
 
   .form-group{display:flex;flex-direction:column;gap:6px}
   .form-group > span{font-size:12px;opacity:.75;font-weight:600}
-  .form-group input[type=text],
-  .form-group input[type=number]{
+  .form-group input[type=text],.form-group input[type=number]{
     width:100%;background:#101010;border:1px solid #333;
     border-radius:10px;padding:9px 12px;color:#f0f0f0;font-size:14px;outline:none;
   }
@@ -237,6 +232,19 @@
     white-space:nowrap;
   }
   .imp-avg.empty{opacity:.35;background:#1f1f1f;border-color:#333}
+  .imp-force{
+    font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;
+    white-space:nowrap;border:1px solid;
+  }
+  .imp-force.pos{
+    background:rgba(139,107,255,.2);border-color:rgba(139,107,255,.55);color:#c9b6ff;
+  }
+  .imp-force.neg{
+    background:rgba(255,80,80,.15);border-color:rgba(255,80,80,.5);color:#ff9a9a;
+  }
+  .imp-force.zero{
+    background:#1a1a1a;border-color:#333;color:#666;
+  }
   .imp-body{display:none;padding:4px 12px 12px;flex-direction:column;gap:8px}
   .imp.open .imp-body{display:flex}
 
@@ -301,6 +309,27 @@
   }
 
   footer{text-align:center;font-size:11px;opacity:.3;margin-top:14px}
+
+  /* ── ТОСТ ── */
+  .toast{
+    position:fixed;top:16px;left:50%;transform:translate(-50%,-30px);
+    background:linear-gradient(180deg,#ff9c5b,#e05f2a);color:#1a0a00;
+    padding:10px 18px;border-radius:12px;font-size:13px;font-weight:800;
+    box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 20px rgba(255,140,80,.6);
+    z-index:200;opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  .force-legend{
+    text-align:center;font-size:11px;opacity:.55;
+    margin:0 0 10px;line-height:1.6;
+  }
+  .force-legend code{
+    background:#1a1a1a;padding:2px 6px;border-radius:4px;
+    border:1px solid #333;font-size:10.5px;
+  }
 </style>
 </head>
 <body>
@@ -314,17 +343,22 @@
       <button id="playBtn">▶</button>
       <button class="speed primary" data-s="1">×1</button>
       <button class="speed" data-s="5">×5</button>
-      <button id="addPersonBtn">👤 Человек</button>
-      <button id="addHouseBtn">🏠 Дом</button>
-      <button id="addPlaceBtn">🏬 Место</button>
+      <button class="force-btn" id="forceBtn" title="Применить один тик притяжения/отталкивания">🧲</button>
+      <label class="auto-toggle" id="autoToggle">
+        <input type="checkbox" id="autoForce">
+        ⚡ Авто
+      </label>
+      <button id="addPersonBtn">👤</button>
+      <button id="addHouseBtn">🏠</button>
+      <button id="addPlaceBtn">🏬</button>
       <button id="resetBtn">🔄</button>
     </div>
   </header>
 
   <div class="hint">
-    🏁 <b>Настоящая шахматная доска 8×8</b> · a1–h8.<br>
-    🏠 <b>Дома стоят на месте</b> (🔒). 👤 Люди и 🏬 места <b>двигаются</b> — тащи мышкой или пальцем.<br>
-    Клик по 👤 → его <b>insideMe</b>. Клик по 🏠/🏬 → что о нём думают.
+    🏁 <b>Доска 8×8</b> · a1–h8. 👤 люди двигаются, 🏠 дома стоят (🔒).<br>
+    🧲 <b>Закон притяжения и отталкивания</b>: человек делает шаг к объекту при тяге, от объекта — при отторжении.<br>
+    Клик по 👤 → insideMe · клик по 🏠/🏬 → что о нём думают.
   </div>
 
   <div class="board-outer">
@@ -334,20 +368,20 @@
   <footer>Сохраняется в localStorage 💾</footer>
 </div>
 
-<!-- ═══ Person modal ═══ -->
+<div class="toast" id="toast"></div>
+
+<!-- Person modal -->
 <div class="modal" id="personModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
       <div class="modal-emoji" id="pmEmoji">👤</div>
       <div>
         <div class="modal-name" id="pmName">—</div>
-        <div class="modal-sub">insideMe · что чувствует и думает</div>
+        <div class="modal-sub">insideMe · чувства и силы</div>
       </div>
       <button class="modal-close" id="pmClose">✕</button>
     </div>
-    <div class="modal-body">
-      <div id="impressionsList"></div>
-    </div>
+    <div class="modal-body"><div id="impressionsList"></div></div>
     <div class="modal-foot">
       <button id="pmClear">Очистить</button>
       <button id="pmDone" class="primary">Готово</button>
@@ -355,7 +389,7 @@
   </div>
 </div>
 
-<!-- ═══ Place modal ═══ -->
+<!-- Place modal -->
 <div class="modal" id="placeModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
@@ -377,7 +411,7 @@
   </div>
 </div>
 
-<!-- ═══ Add / edit object modal ═══ -->
+<!-- Add / edit modal -->
 <div class="modal" id="addObjModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
@@ -400,7 +434,7 @@
       </div>
       <label class="checkbox-row" id="aoFixedRow">
         <input type="checkbox" id="aoFixed">
-        <span><strong>🏠 это дом</strong> — стоит на месте, нельзя двигать</span>
+        <span><strong>🏠 закрепить</strong> — не двигается (дом)</span>
       </label>
       <div class="form-group" id="aoGeoGroup">
         <span>📍 Координаты (необязательно)</span>
@@ -431,13 +465,15 @@ const PERSON_EMOJI = ['👤','🥳','😘','😍','🥰','🤩','😶‍🌫️'
 const HOUSE_EMOJI  = ['🏠','🏡','🏘️','🏚️','🏰','🏯','⛪','🕌'];
 const PLACE_EMOJI  = ['🏬','🏥','🎬','🏫','🏪','🎮','🌳','🏖️','🎪','📚','🍔','🏦','🎨'];
 
-const KEY = 'world-chess-v4';
+const KEY = 'world-chess-v5-force';
+const FORCE_THRESHOLD = 1.5;   // минимальная |валентность| для шага
 
 /* ══════════════ STATE ══════════════ */
 const defaultState = () => ({
   time: 420,
   running: false,
   speed: 1,
+  autoForce: false,
   objects: [],
   impressions: {}
 });
@@ -448,7 +484,7 @@ function loadState(){
     const s = JSON.parse(raw);
     if(!s || !Array.isArray(s.objects)) return null;
     if(!s.impressions) s.impressions = {};
-    return { ...defaultState(), ...s, running: false };
+    return { ...defaultState(), ...s, running:false };
   }catch(e){ return null; }
 }
 let state = loadState() || defaultState();
@@ -456,6 +492,7 @@ let editingObjId = null;
 let addKind = null;
 let currentPersonId = null;
 let currentPlaceId = null;
+let lastForceHour = -1;
 
 /* ══════════════ ХЕЛПЕРЫ ══════════════ */
 function esc(s){
@@ -475,6 +512,16 @@ function findFirstEmptyCell(){
     }
   }
   return null;
+}
+function cellToRC(cellId){
+  return {
+    col: 'abcdefgh'.indexOf(cellId[0]),
+    row: 8 - Number(cellId.slice(1))
+  };
+}
+function rcToCell(col, row){
+  if(col < 0 || col > 7 || row < 0 || row > 7) return null;
+  return 'abcdefgh'[col] + (8 - row);
 }
 function yandexUrl(lat, lng){
   return `https://yandex.ru/maps/?ll=${lng},${lat}&z=17&pt=${lng},${lat},pm2rdm`;
@@ -508,6 +555,141 @@ function avgColor(avg){
   return 'rgba(255,80,80,.98)';
 }
 
+/* ══════════════ СИЛА ПРИТЯЖЕНИЯ ══════════════ */
+// валентность: +тянет, -отталкивает. Диапазон ≈ [-10; +10]
+function valence(imp){
+  if(!imp || !isFilled(imp)) return 0;
+  return (imp.evaluation + imp.narrative - imp.judgment - imp.rumination) / 2;
+}
+function forceClass(v){
+  if(!v || Math.abs(v) < 0.1) return 'zero';
+  return v > 0 ? 'pos' : 'neg';
+}
+function forceLabel(v){
+  if(!v || Math.abs(v) < 0.1) return '0';
+  return (v > 0 ? '+' : '') + v.toFixed(1);
+}
+function forceIcon(v){
+  if(!v || Math.abs(v) < 0.1) return '·';
+  return v > 0 ? '🧲' : '💥';
+}
+
+function strongestForceFor(personId){
+  const person = getObject(personId);
+  if(!person || person.kind !== 'person') return null;
+  let best = null;
+  state.objects.forEach(target => {
+    if(target.id === personId) return;
+    const imp = getImpression(personId, target.id);
+    const v = valence(imp);
+    if(Math.abs(v) < FORCE_THRESHOLD) return;
+    if(!best || Math.abs(v) > Math.abs(best.v)){
+      best = { targetId: target.id, v };
+    }
+  });
+  return best;
+}
+
+function tryMoveToward(mover, target){
+  const m = cellToRC(mover.cellId);
+  const t = cellToRC(target.cellId);
+  if(m.col === t.col && m.row === t.row) return false;
+  const dirs = [];
+  if(t.col > m.col) dirs.push([1, 0]);
+  if(t.col < m.col) dirs.push([-1, 0]);
+  if(t.row > m.row) dirs.push([0, 1]);
+  if(t.row < m.row) dirs.push([0, -1]);
+  for(const [dc, dr] of dirs){
+    const newCell = rcToCell(m.col + dc, m.row + dr);
+    if(newCell && isCellEmpty(newCell, mover.id)){
+      mover.cellId = newCell;
+      return true;
+    }
+  }
+  // второе направление (в обход)
+  for(const [dc, dr] of dirs){
+    const alt = rcToCell(m.col + dc * 2, m.row + dr * 2);
+    const mid = rcToCell(m.col + dc, m.row + dr);
+    if(alt && mid && isCellEmpty(mid, mover.id) && isCellEmpty(alt, mover.id)){
+      // слишком далеко за один шаг — пропускаем
+    }
+  }
+  return false;
+}
+
+function tryMoveAway(mover, threat){
+  const m = cellToRC(mover.cellId);
+  const t = cellToRC(threat.cellId);
+  const oldDist = Math.abs(m.col - t.col) + Math.abs(m.row - t.row);
+  const dirs = [];
+  if(t.col > m.col) dirs.push([-1, 0]);
+  if(t.col < m.col) dirs.push([1, 0]);
+  if(t.row > m.row) dirs.push([0, -1]);
+  if(t.row < m.row) dirs.push([0, 1]);
+  // плюс перпендикуляры
+  dirs.push([0, -1], [0, 1], [-1, 0], [1, 0]);
+  const seen = new Set();
+  for(const [dc, dr] of dirs){
+    const key = dc + ',' + dr;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    const newCell = rcToCell(m.col + dc, m.row + dr);
+    if(!newCell || !isCellEmpty(newCell, mover.id)) continue;
+    const n = cellToRC(newCell);
+    const newDist = Math.abs(n.col - t.col) + Math.abs(n.row - t.row);
+    if(newDist > oldDist){
+      mover.cellId = newCell;
+      return true;
+    }
+  }
+  return false;
+}
+
+function applyForceTick(){
+  const persons = state.objects.filter(o => o.kind === 'person' && !o.fixed);
+  let attracted = 0, repelled = 0, blocked = 0;
+  const movedIds = [];
+
+  persons.forEach(p => {
+    const best = strongestForceFor(p.id);
+    if(!best) return;
+    const target = getObject(best.targetId);
+    if(!target) return;
+    const ok = best.v > 0 ? tryMoveToward(p, target) : tryMoveAway(p, target);
+    if(ok){
+      movedIds.push(p.id);
+      if(best.v > 0) attracted++; else repelled++;
+    } else {
+      blocked++;
+    }
+  });
+
+  if(movedIds.length){
+    save();
+    renderBoard();
+    // подсветить перемещённых
+    requestAnimationFrame(() => {
+      movedIds.forEach(id => {
+        const el = boardEl.querySelector(`[data-obj-id="${id}"]`);
+        if(el){
+          el.classList.add('just-moved');
+          setTimeout(() => el.classList.remove('just-moved'), 1100);
+        }
+      });
+    });
+  }
+
+  return { attracted, repelled, blocked };
+}
+
+function showToast(text){
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(showToast._tid);
+  showToast._tid = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
 /* ══════════════ BOARD ══════════════ */
 const boardEl = document.getElementById('board');
 const clockEl = document.getElementById('clock');
@@ -521,11 +703,9 @@ function renderBoard(){
       const rank = 8 - row;
       const cellId = file + rank;
       const isLight = (row + col) % 2 === 0;
-
       const cell = document.createElement('div');
       cell.className = 'cell ' + (isLight ? 'light' : 'dark');
       cell.dataset.cellId = cellId;
-
       if(col === 0){
         const l = document.createElement('span');
         l.className = 'label-rank'; l.textContent = rank;
@@ -536,7 +716,6 @@ function renderBoard(){
         l.className = 'label-file'; l.textContent = file;
         cell.appendChild(l);
       }
-
       state.objects.filter(o => o.cellId === cellId).forEach(o => cell.appendChild(makeToken(o)));
       boardEl.appendChild(cell);
     }
@@ -558,24 +737,20 @@ function makeToken(obj){
     }
   }
   const lock = obj.fixed ? '<span class="lock">🔒</span>' : '';
-
   el.innerHTML = `${badge}${lock}<span class="em">${esc(obj.emoji)}</span><span class="nm">${esc(obj.name)}</span>`;
 
-  // ── pointer-drag: works on desktop AND mobile ──
   if(!obj.fixed){
     el.addEventListener('pointerdown', e => {
       dragStart = { x: e.clientX, y: e.clientY, obj, el, moved: false };
       el.setPointerCapture?.(e.pointerId);
     });
   }
-
   el.addEventListener('click', e => {
     e.stopPropagation();
-    if(Date.now() - lastDragEnd < 220) return; // suppress click after drag
+    if(Date.now() - lastDragEnd < 220) return;
     if(obj.kind === 'person') openPersonModal(obj.id);
     else openPlaceModal(obj.id);
   });
-
   return el;
 }
 
@@ -589,14 +764,12 @@ document.addEventListener('pointermove', e => {
   if(d > 8){
     dragStart.moved = true;
     dragStart.el.classList.add('dragging');
-    // highlight cell under pointer
     const target = document.elementFromPoint(e.clientX, e.clientY);
     const cell = target?.closest?.('.cell');
     document.querySelectorAll('.cell.dragover').forEach(c => c.classList.remove('dragover'));
     if(cell && cell.dataset.cellId !== dragStart.obj.cellId) cell.classList.add('dragover');
   }
 });
-
 document.addEventListener('pointerup', e => {
   if(!dragStart) return;
   if(dragStart.moved){
@@ -611,7 +784,6 @@ document.addEventListener('pointerup', e => {
   }
   dragStart = null;
 });
-
 document.addEventListener('pointercancel', () => {
   if(dragStart){
     dragStart.el.classList.remove('dragging');
@@ -619,14 +791,12 @@ document.addEventListener('pointercancel', () => {
     dragStart = null;
   }
 });
-
 function moveObject(objId, cellId){
   const obj = getObject(objId);
   if(!obj || obj.fixed) return;
   if(obj.cellId === cellId) return;
   obj.cellId = cellId;
-  save();
-  renderBoard();
+  save(); renderBoard();
 }
 
 /* ══════════════ ЧАСЫ ══════════════ */
@@ -651,6 +821,20 @@ function loop(now){
     if(state.time >= 1440) state.time -= 1440;
   }
   updateClock();
+
+  // Авто-тик притяжения: раз в игровой час
+  if(state.running && state.autoForce){
+    const hour = Math.floor(state.time / 60);
+    if(hour !== lastForceHour){
+      lastForceHour = hour;
+      const r = applyForceTick();
+      if(r.attracted + r.repelled > 0){
+        showToast(`🧲 ${r.attracted} · 💥 ${r.repelled}${r.blocked ? ' · 🚫 ' + r.blocked : ''}`);
+      }
+    }
+  } else {
+    lastForceHour = Math.floor(state.time / 60);
+  }
   requestAnimationFrame(loop);
 }
 
@@ -669,6 +853,34 @@ document.querySelectorAll('.speed').forEach(b => {
     save();
   });
 });
+document.getElementById('forceBtn').addEventListener('click', () => {
+  if(state.objects.filter(o => o.kind === 'person').length === 0){
+    showToast('Нет людей на доске');
+    return;
+  }
+  const r = applyForceTick();
+  if(r.attracted + r.repelled === 0){
+    if(r.blocked) showToast(`🚫 Все ходы заблокированы (${r.blocked})`);
+    else showToast('🤷 Силы слишком слабы (|F| < 1.5)');
+  } else {
+    showToast(`🧲 ${r.attracted} · 💥 ${r.repelled}${r.blocked ? ' · 🚫 ' + r.blocked : ''}`);
+  }
+});
+
+const autoForceEl = document.getElementById('autoForce');
+const autoToggleEl = document.getElementById('autoToggle');
+autoForceEl.checked = state.autoForce;
+autoToggleEl.classList.toggle('on', state.autoForce);
+autoForceEl.addEventListener('change', () => {
+  state.autoForce = autoForceEl.checked;
+  autoToggleEl.classList.toggle('on', state.autoForce);
+  save();
+  if(state.autoForce){
+    showToast('⚡ Авто-притяжение включено');
+    lastForceHour = Math.floor(state.time / 60);
+  }
+});
+
 document.getElementById('addPersonBtn').addEventListener('click', () => openAddObjModal('person'));
 document.getElementById('addHouseBtn').addEventListener('click', () => openAddObjModal('house'));
 document.getElementById('addPlaceBtn').addEventListener('click', () => openAddObjModal('place'));
@@ -678,10 +890,11 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   state = defaultState();
   closePersonModal(); closePlaceModal(); closeAddObjModal();
   playBtn.textContent = '▶';
+  autoForceEl.checked = false; autoToggleEl.classList.remove('on');
   renderBoard(); updateClock(true); save();
 });
 
-/* ══════════════ МОДАЛКА ЧЕЛОВЕКА ══════════════ */
+/* ══════════════ ЧЕЛОВЕК ══════════════ */
 const personModal = document.getElementById('personModal');
 const pmEmoji = document.getElementById('pmEmoji');
 const pmName  = document.getElementById('pmName');
@@ -711,6 +924,7 @@ function buildImpressionsList(pid){
     const imp = getImpression(pid, target.id);
     const filled = isFilled(imp);
     const a = impAvg(imp);
+    const v = valence(imp);
 
     const item = document.createElement('div');
     item.className = 'imp' + (filled ? ' filled' : '');
@@ -718,6 +932,7 @@ function buildImpressionsList(pid){
       <div class="imp-head">
         <span class="imp-ico">${esc(target.emoji)}</span>
         <span class="imp-nm">${esc(target.name)}${target.fixed ? ' 🔒' : ''}</span>
+        <span class="imp-force ${forceClass(v)}">${forceIcon(v)} ${forceLabel(v)}</span>
         <span class="imp-avg ${filled ? '' : 'empty'}">${filled ? a.toFixed(1) : '—'}</span>
       </div>
       <div class="imp-body"></div>
@@ -725,12 +940,12 @@ function buildImpressionsList(pid){
     const body = item.querySelector('.imp-body');
 
     C2_KEYS.forEach(k => {
-      const v = imp ? imp[k] : 0;
+      const val = imp ? imp[k] : 0;
       const wrap = document.createElement('div');
       wrap.className = 'param';
       wrap.innerHTML = `
-        <div class="param-row"><span>${C2_LABELS[k]}</span><span class="param-val">${v}</span></div>
-        <input type="range" min="0" max="10" value="${v}" step="1">
+        <div class="param-row"><span>${C2_LABELS[k]}</span><span class="param-val">${val}</span></div>
+        <input type="range" min="0" max="10" value="${val}" step="1">
       `;
       const s = wrap.querySelector('input');
       const vEl = wrap.querySelector('.param-val');
@@ -746,12 +961,12 @@ function buildImpressionsList(pid){
       {key:'feelings',label:'💗 Чувства',ph:'что чувствует…'},
       {key:'actions',label:'🏃 Действия',ph:'что делает…'}
     ].forEach(f => {
-      const v = imp ? (imp[f.key] || '') : '';
+      const val = imp ? (imp[f.key] || '') : '';
       const wrap = document.createElement('div');
       wrap.className = 'param';
       wrap.innerHTML = `
         <div class="param-row"><span>${f.label}</span></div>
-        <input type="text" placeholder="${esc(f.ph)}" maxlength="40" value="${esc(v)}">
+        <input type="text" placeholder="${esc(f.ph)}" maxlength="40" value="${esc(val)}">
       `;
       const inp = wrap.querySelector('input');
       inp.addEventListener('input', () => {
@@ -787,16 +1002,20 @@ function refreshImpMeta(item, pid, tid){
   const imp = getImpression(pid, tid);
   const filled = isFilled(imp);
   const a = impAvg(imp);
-  const el = item.querySelector('.imp-avg');
+  const v = valence(imp);
+  const avgEl = item.querySelector('.imp-avg');
+  const forceEl = item.querySelector('.imp-force');
   if(filled){
-    el.textContent = a.toFixed(1);
-    el.classList.remove('empty');
+    avgEl.textContent = a.toFixed(1);
+    avgEl.classList.remove('empty');
     item.classList.add('filled');
   } else {
-    el.textContent = '—';
-    el.classList.add('empty');
+    avgEl.textContent = '—';
+    avgEl.classList.add('empty');
     item.classList.remove('filled');
   }
+  forceEl.className = 'imp-force ' + forceClass(v);
+  forceEl.textContent = forceIcon(v) + ' ' + forceLabel(v);
 }
 function closePersonModal(){
   currentPersonId = null;
@@ -814,7 +1033,7 @@ document.getElementById('pmClear').addEventListener('click', () => {
 });
 personModal.addEventListener('click', e => { if(e.target === personModal) closePersonModal(); });
 
-/* ══════════════ МОДАЛКА МЕСТА ══════════════ */
+/* ══════════════ МЕСТО ══════════════ */
 const placeModal = document.getElementById('placeModal');
 const plEmoji = document.getElementById('plEmoji');
 const plName  = document.getElementById('plName');
@@ -828,7 +1047,7 @@ function openPlaceModal(pid){
   currentPlaceId = pid;
   plEmoji.textContent = p.emoji;
   plName.textContent = p.name;
-  plSub.textContent = p.kind === 'house' ? '🏠 дом · что о нём думают' : '🏬 место · что о нём думают';
+  plSub.textContent = p.fixed ? '🏠 дом · что о нём думают' : '🏬 место · что о нём думают';
 
   const people = state.objects.filter(o => o.kind === 'person');
   let sum = 0, count = 0;
@@ -838,7 +1057,7 @@ function openPlaceModal(pid){
     if(imp && isFilled(imp)){
       const a = impAvg(imp);
       sum += a; count++;
-      rows.push({ person, avg: a });
+      rows.push({ person, avg: a, v: valence(imp) });
     }
   });
   let html = '';
@@ -852,9 +1071,11 @@ function openPlaceModal(pid){
     </div>`;
     rows.forEach(r => {
       const c = avgColor(r.avg);
+      const fCls = forceClass(r.v);
       html += `<div class="person-row">
         <span class="pr-em">${esc(r.person.emoji)}</span>
         <span class="pr-nm">${esc(r.person.name)}</span>
+        <span class="imp-force ${fCls}" style="font-size:10px;padding:2px 6px;border-radius:5px;border:1px solid">${forceIcon(r.v)} ${forceLabel(r.v)}</span>
         <span class="pr-avg" style="${c ? 'background:'+c+';color:#000;' : ''}">${r.avg.toFixed(1)}</span>
       </div>`;
     });
@@ -867,7 +1088,6 @@ function openPlaceModal(pid){
   } else {
     plGeoBox.style.display = 'none';
   }
-
   placeModal.classList.add('open');
 }
 function closePlaceModal(){
@@ -893,7 +1113,7 @@ document.getElementById('plEdit').addEventListener('click', () => {
 });
 placeModal.addEventListener('click', e => { if(e.target === placeModal) closePlaceModal(); });
 
-/* ══════════════ ADD / EDIT MODAL ══════════════ */
+/* ══════════════ ADD / EDIT ══════════════ */
 const addObjModal = document.getElementById('addObjModal');
 const aoPreview = document.getElementById('aoPreview');
 const aoTitle = document.getElementById('aoTitle');
@@ -928,10 +1148,9 @@ aoEmoji.addEventListener('input', () => {
 function openAddObjModal(kind){
   editingObjId = null;
   addKind = kind;
-
   if(kind === 'person'){
     aoTitle.textContent = 'Новый человек';
-    aoSubtitle.textContent = 'двигается по доске';
+    aoSubtitle.textContent = 'двигается · чувствует';
     aoEmoji.value = '👤'; aoPreview.textContent = '👤';
     aoFixed.checked = false;
     aoFixedRow.style.display = 'none';
@@ -947,7 +1166,7 @@ function openAddObjModal(kind){
     buildEmojiSuggest(HOUSE_EMOJI);
   } else {
     aoTitle.textContent = 'Новое место';
-    aoSubtitle.textContent = '🏬 двигается (или закрепи как дом)';
+    aoSubtitle.textContent = '🏬 двигается · можно закрепить';
     aoEmoji.value = '🏬'; aoPreview.textContent = '🏬';
     aoFixed.checked = false;
     aoFixedRow.style.display = '';
@@ -974,11 +1193,9 @@ function openEditObjModal(id){
   aoLng.value = obj.geo ? obj.geo.lng : '';
   aoGeoGroup.style.display = obj.kind === 'person' ? 'none' : '';
   aoSaveBtn.textContent = 'Сохранить';
-
   if(obj.kind === 'person') buildEmojiSuggest(PERSON_EMOJI);
   else if(obj.kind === 'house') buildEmojiSuggest(HOUSE_EMOJI);
   else buildEmojiSuggest(PLACE_EMOJI);
-
   addObjModal.classList.add('open');
 }
 function closeAddObjModal(){
@@ -1020,8 +1237,7 @@ aoSaveBtn.addEventListener('click', () => {
       id: 'obj_' + Date.now() + '_' + Math.floor(Math.random()*1000),
       emoji, name, cellId,
       kind: addKind || 'place',
-      fixed,
-      geo
+      fixed, geo
     });
   }
   save();
