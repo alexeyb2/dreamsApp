@@ -3,354 +3,240 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Мир · Геоточки · insideMe</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-
+<title>Шахматная доска · Мир</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
     font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    background:radial-gradient(circle at 20% 0%,#2b1f4a 0%,#120d22 45%,#08060f 100%);
-    color:#eae6ff;min-height:100vh;padding:16px;
+    background:radial-gradient(circle at 50% 0%,#141414 0%,#050505 70%);
+    color:#f0f0f0;min-height:100vh;padding:14px;
     -webkit-tap-highlight-color:transparent;
   }
-  input, textarea, select, button{
-    -webkit-user-select:auto; user-select:auto;
-    font-family:inherit;
-  }
+  input,textarea,select,button{-webkit-user-select:auto;user-select:auto;font-family:inherit}
 
-  .wrap{max-width:1100px;margin:0 auto}
+  .wrap{max-width:900px;margin:0 auto}
 
   header{
-    background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.02));
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:22px;padding:14px 18px;margin-bottom:14px;
-    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
-    backdrop-filter:blur(8px);
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    padding:12px 16px;background:#151515;border:1px solid #2a2a2a;
+    border-radius:14px;margin-bottom:12px;
   }
-  .clockbox{display:flex;align-items:center;gap:12px}
-  #phase{font-size:28px;line-height:1;filter:drop-shadow(0 0 10px rgba(255,220,120,.6))}
+  .clockbox{display:flex;align-items:center;gap:10px}
+  #phase{font-size:26px}
   #clock{
-    font-size:34px;font-weight:800;letter-spacing:2px;
-    background:linear-gradient(180deg,#fff,#b9a4ff);
-    -webkit-background-clip:text;background-clip:text;color:transparent;
-    font-variant-numeric:tabular-nums;
+    font-size:28px;font-weight:800;letter-spacing:2px;
+    font-variant-numeric:tabular-nums;color:#fff;
   }
-  .ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .ctrls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   button{
-    font-size:13.5px;font-weight:600;color:#eae6ff;
-    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
-    border-radius:12px;padding:8px 12px;cursor:pointer;transition:.15s;
+    font-size:13px;font-weight:600;color:#f0f0f0;
+    background:#232323;border:1px solid #333;border-radius:10px;
+    padding:8px 12px;cursor:pointer;transition:.15s;
   }
-  button:hover:not(:disabled){background:rgba(255,255,255,.16);transform:translateY(-1px)}
-  button:active:not(:disabled){transform:translateY(0)}
-  button:disabled{cursor:not-allowed}
-  button.on{
+  button:hover:not(:disabled){background:#2f2f2f}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  button.primary{
     background:linear-gradient(180deg,#8b6bff,#6a45e0);
-    border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.55);
+    border-color:#a68bff;box-shadow:0 0 14px rgba(139,107,255,.5);
   }
-  #playBtn{font-size:16px;min-width:46px}
 
-  .bar{
-    width:100%;height:6px;border-radius:99px;background:rgba(255,255,255,.08);
-    overflow:hidden;margin-top:4px;
+  /* ═══ ДОСКА ═══ */
+  .board-outer{
+    padding:20px;
+    background:linear-gradient(160deg,#1a1a1a,#0d0d0d);
+    border:2px solid #333;
+    border-radius:14px;
+    box-shadow:0 12px 40px rgba(0,0,0,.7),inset 0 0 40px rgba(0,0,0,.9);
   }
-  #progress{
-    height:100%;width:0%;border-radius:99px;
-    background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
-    transition:width .1s linear;
+  .board{
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    grid-template-rows:repeat(8,1fr);
+    aspect-ratio:1;
+    border-radius:4px;
+    overflow:hidden;
+    box-shadow:0 0 0 2px #000;
+  }
+  .cell{
+    position:relative;
+    display:flex;flex-wrap:wrap;
+    align-content:flex-start;
+    gap:2px;padding:3px;
+    overflow:hidden;
+  }
+  .cell.light{background:#e8e8e8}
+  .cell.dark{background:#1a1a1a}
+  .cell.dragover{
+    box-shadow:inset 0 0 0 3px #8b6bff,inset 0 0 24px rgba(139,107,255,.7);
+    z-index:3;
+  }
+
+  .label-rank,.label-file{
+    position:absolute;font-size:9px;font-weight:800;
+    opacity:.6;pointer-events:none;z-index:1;
+  }
+  .label-rank{top:2px;left:3px}
+  .label-file{bottom:2px;right:3px}
+  .cell.light .label-rank,.cell.light .label-file{color:#1a1a1a}
+  .cell.dark  .label-rank,.cell.dark  .label-file{color:#e8e8e8}
+
+  /* ═══ ТОКЕН ═══ */
+  .token{
+    position:relative;
+    display:flex;flex-direction:column;align-items:center;
+    padding:2px 5px;border-radius:6px;
+    background:rgba(255,255,255,.94);
+    color:#111;
+    box-shadow:0 2px 4px rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.2);
+    cursor:grab;
+    transition:transform .12s,box-shadow .12s,opacity .12s;
+    max-width:100%;min-width:0;
+    z-index:2;
+    touch-action:none;
+  }
+  .token:active{cursor:grabbing}
+  .token.fixed{
+    cursor:pointer;
+    background:rgba(255,240,200,.95);
+    box-shadow:0 2px 4px rgba(0,0,0,.5),0 0 0 1px rgba(180,140,40,.6);
+  }
+  .token.dragging{
+    opacity:.35;
+    pointer-events:none;
+    transform:scale(.9);
+  }
+  .token .em{font-size:20px;line-height:1;pointer-events:none}
+  .token .nm{
+    font-size:8.5px;font-weight:700;line-height:1.1;
+    margin-top:1px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:100%;pointer-events:none;
+  }
+  .token .lock{
+    position:absolute;top:-5px;left:-5px;
+    font-size:9px;line-height:1;
+    background:#232323;color:#fff;
+    padding:1px 3px;border-radius:4px;
+    border:1px solid rgba(255,255,255,.3);
+    pointer-events:none;
+  }
+  .token .badge{
+    position:absolute;top:-5px;right:-5px;
+    min-width:14px;height:14px;padding:0 3px;
+    font-size:8px;font-weight:900;color:#000;
+    border-radius:7px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(255,255,255,.7);
+    pointer-events:none;
   }
 
   .hint{
-    text-align:center;font-size:12px;opacity:.55;margin-bottom:12px;line-height:1.65;
+    text-align:center;font-size:12px;opacity:.6;
+    margin:10px 0 12px;line-height:1.6;
   }
-  .hint b{opacity:.9;color:#c9b6ff}
-
-  .board{
-    padding:10px;
-    background:linear-gradient(160deg,rgba(70,45,120,.55),rgba(20,12,45,.85));
-    border:2px solid rgba(160,120,255,.35);
-    border-radius:22px;
-    box-shadow:
-      inset 0 0 40px rgba(0,0,0,.55),
-      0 10px 40px rgba(0,0,0,.5);
-  }
-  .grid{
-    display:grid;gap:5px;
-    grid-template-columns:repeat(4, minmax(0,1fr));
-  }
-  .grid.empty{grid-template-columns:1fr}
-
-  .cell{
-    position:relative;
-    min-height:165px;
-    padding:9px;
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,.10);
-    display:flex;flex-direction:column;gap:6px;
-    transition:.15s;
-  }
-  .cell.cb-light{
-    background:linear-gradient(160deg,rgba(140,118,200,.28),rgba(95,75,160,.18));
-    border-color:rgba(180,160,240,.35);
-  }
-  .cell.cb-dark{
-    background:linear-gradient(160deg,rgba(45,32,82,.72),rgba(25,16,55,.70));
-    border-color:rgba(110,90,180,.28);
-  }
-  .cell.dragover{
-    border-color:#a68bff;
-    box-shadow:0 8px 32px rgba(139,107,255,.55),0 0 0 1px #a68bff inset;
-    transform:translateY(-2px);
-  }
-
-  .cell-head{
-    display:flex;align-items:center;gap:7px;
-    font-size:12.5px;font-weight:700;
-    padding-right:44px;
-    min-height:32px;
-  }
-  .cell-head .ico{font-size:20px;line-height:1;flex-shrink:0}
-  .cell-head .nm-wrap{min-width:0;overflow:hidden;flex:1}
-  .cell-head .nm-title{
-    display:block;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .cell-head .sub{
-    font-size:9.5px;font-weight:500;opacity:.5;
-    display:block;margin-top:1px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .cell-geo-pin{
-    font-size:11px;opacity:.75;
-    filter:drop-shadow(0 0 4px rgba(255,120,120,.8));
-  }
-  .cell-avg{
-    font-size:10px;font-weight:800;
-    padding:2px 6px;border-radius:8px;
-    background:rgba(160,120,255,.25);
-    border:1px solid rgba(160,120,255,.45);
-    white-space:nowrap;
-    flex-shrink:0;
-  }
-  .cell-avg.empty{
-    background:rgba(255,255,255,.05);
-    border-color:rgba(255,255,255,.1);
-    opacity:.4;
-  }
-
-  .cell-actions{
-    position:absolute;top:6px;right:6px;
-    display:flex;gap:3px;z-index:2;
-  }
-  .cell-actions button{
-    width:20px;height:20px;padding:0;font-size:10px;
-    background:rgba(255,255,255,.1);
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:7px;cursor:pointer;transition:.15s;
-    display:flex;align-items:center;justify-content:center;
-    color:#eae6ff;opacity:.6;
-  }
-  .cell-actions button:hover{opacity:1;background:rgba(255,255,255,.2);transform:none}
-  .cell-actions .del{
-    background:rgba(255,80,80,.15);
-    border-color:rgba(255,80,80,.4);color:#ff9999;
-  }
-
-  .zone{
-    display:flex;flex-wrap:wrap;gap:6px;
-    align-content:flex-start;flex:1;
-    border-radius:10px;padding:2px;
-    min-height:0;
-  }
-  .zone:empty::after{
-    content:'пусто';
-    font-size:10px;opacity:.2;
-    align-self:center;margin:auto;
-  }
-
-  .add-cell{
-    border:2px dashed rgba(160,120,255,.4);
-    background:linear-gradient(160deg,rgba(139,107,255,.06),rgba(255,255,255,.01));
-    align-items:center;justify-content:center;cursor:pointer;
-    transition:.2s;min-height:165px;
-  }
-  .add-cell:hover{
-    border-color:#a68bff;
-    background:linear-gradient(160deg,rgba(139,107,255,.18),rgba(255,255,255,.02));
-    transform:translateY(-2px);
-    box-shadow:0 8px 24px rgba(139,107,255,.3);
-  }
-  .add-inner{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
-  .add-plus{font-size:30px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.7))}
-  .add-text{font-size:12px;font-weight:600;opacity:.75;letter-spacing:.3px;text-align:center}
-
-  .grid.empty .add-cell{min-height:220px;border-radius:18px}
-  .grid.empty .add-plus{font-size:48px}
-  .grid.empty .add-text{font-size:15px;opacity:.85}
-
-  .person{
-    position:relative;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:5px 8px;border-radius:12px;
-    background:rgba(255,255,255,.10);
-    border:1px solid rgba(255,255,255,.12);
-    cursor:grab;transition:.15s;
-    animation:pop .25s ease;
-    box-shadow:0 2px 0 rgba(0,0,0,.25),0 4px 8px rgba(0,0,0,.35);
-  }
-  @keyframes pop{from{transform:scale(.6) translateY(2px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
-  .person:hover{
-    background:rgba(255,255,255,.2);
-    transform:translateY(-3px) scale(1.05);
-    box-shadow:0 6px 0 rgba(0,0,0,.2),0 10px 18px rgba(0,0,0,.45);
-  }
-  .person:active{cursor:grabbing}
-  .person.dragging{opacity:.35}
-  .person .em{font-size:24px;line-height:1;pointer-events:none}
-  .person .nm{font-size:9px;margin-top:2px;opacity:.75;pointer-events:none;white-space:nowrap}
-  .person .badge{
-    position:absolute;top:-6px;right:-6px;
-    min-width:17px;height:17px;padding:0 4px;
-    border-radius:9px;font-size:9.5px;font-weight:800;color:#0a0616;
-    display:flex;align-items:center;justify-content:center;
-    border:1px solid rgba(255,255,255,.35);
-    box-shadow:0 2px 6px rgba(0,0,0,.5);pointer-events:none;
-  }
-
-  footer{
-    text-align:center;font-size:11.5px;opacity:.4;margin-top:20px;padding-bottom:10px;
-  }
+  .hint b{color:#c9b6ff}
 
   @media (max-width:640px){
     body{padding:8px}
-    header{padding:10px 12px;border-radius:16px;margin-bottom:10px}
-    #clock{font-size:26px}
-    #phase{font-size:22px}
-    .hint{font-size:11px;margin-bottom:8px}
-    .board{padding:6px;border-radius:16px}
-    .grid{grid-template-columns:repeat(5, minmax(0,1fr));gap:3px}
-    .grid.empty{grid-template-columns:1fr}
-    .cell{padding:4px;min-height:78px;border-radius:8px;gap:2px}
-    .cell-head{font-size:9px;gap:2px;min-height:14px;padding-right:22px}
-    .cell-head .ico{font-size:14px}
-    .cell-head .sub{display:none}
-    .cell-head .nm-title{font-size:9px;line-height:1.1}
-    .cell-avg{font-size:8px;padding:0 3px;line-height:1.4}
-    .cell-actions{top:2px;right:2px;gap:2px}
-    .cell-actions button{width:13px;height:13px;font-size:7px;border-radius:4px}
-    .person{padding:3px 4px;border-radius:8px}
-    .person .em{font-size:16px}
-    .person .nm{font-size:7px;margin-top:1px}
-    .person .badge{min-width:13px;height:13px;font-size:7.5px;padding:0 2px;top:-4px;right:-4px}
-    .zone{gap:2px;padding:1px}
-    .add-cell{min-height:78px}
-    .add-plus{font-size:22px}
-    .add-text{font-size:9px}
-    .grid.empty .add-cell{min-height:180px}
-    .grid.empty .add-plus{font-size:40px}
-    .grid.empty .add-text{font-size:13px}
+    header{padding:10px 12px;border-radius:12px}
+    #clock{font-size:22px}#phase{font-size:20px}
+    .ctrls button{padding:6px 9px;font-size:11.5px}
+    .board-outer{padding:8px;border-radius:10px}
+    .cell{padding:1px;gap:1px}
+    .token{padding:1px 2px;border-radius:4px}
+    .token .em{font-size:13px}
+    .token .nm{display:none}
+    .token .lock{font-size:7px;padding:0 2px;top:-3px;left:-3px}
+    .token .badge{font-size:6.5px;min-width:11px;height:11px;padding:0 2px;top:-3px;right:-3px}
+    .label-rank,.label-file{font-size:7px;opacity:.5}
+    .label-rank{top:1px;left:1px}
+    .label-file{bottom:1px;right:1px}
   }
 
-  /* ── МОДАЛКИ ── */
+  /* ═══ МОДАЛКИ ═══ */
   .modal{
     position:fixed;inset:0;display:none;align-items:center;justify-content:center;
-    background:rgba(5,3,15,.8);backdrop-filter:blur(6px);z-index:100;padding:14px;
+    background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:100;padding:14px;
   }
   .modal.open{display:flex}
   .modal-card{
-    width:100%;max-width:520px;max-height:94vh;overflow:hidden;
+    width:100%;max-width:480px;max-height:92vh;
     display:flex;flex-direction:column;
-    background:linear-gradient(160deg,#241a44,#140e2a);
-    border:1px solid rgba(160,120,255,.35);
-    border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.6);
-    animation:pop .2s ease;
+    background:linear-gradient(160deg,#1a1a1a,#080808);
+    border:1px solid #333;border-radius:16px;overflow:hidden;
+    box-shadow:0 24px 60px rgba(0,0,0,.8);
   }
-  .modal-card.wide{max-width:760px}
-
   .modal-head{
-    display:flex;align-items:center;gap:12px;padding:14px 18px;
-    border-bottom:1px solid rgba(255,255,255,.08);
-    flex-shrink:0;
+    display:flex;align-items:center;gap:12px;
+    padding:14px 16px;border-bottom:1px solid #222;flex-shrink:0;
   }
-  .modal-emoji{font-size:32px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.5))}
-  .modal-name{font-size:17px;font-weight:800}
+  .modal-emoji{font-size:30px}
+  .modal-name{font-size:16px;font-weight:800}
   .modal-sub{font-size:11px;opacity:.55;margin-top:2px}
   .modal-close{
-    margin-left:auto;background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.15);border-radius:10px;
-    width:32px;height:32px;color:#eae6ff;font-size:14px;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
+    margin-left:auto;width:30px;height:30px;padding:0;font-size:14px;
+    border-radius:8px;background:#232323;border:1px solid #333;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
   }
   .modal-body{
     padding:12px 14px;display:flex;flex-direction:column;gap:10px;
     overflow-y:auto;flex:1;
   }
   .modal-foot{
-    display:flex;gap:10px;padding:12px 16px;
-    border-top:1px solid rgba(255,255,255,.08);
-    flex-shrink:0;
+    display:flex;gap:8px;padding:12px 14px;
+    border-top:1px solid #222;flex-shrink:0;
   }
   .modal-foot button{flex:1;padding:10px}
-  .modal-foot .primary{
-    background:linear-gradient(180deg,#8b6bff,#6a45e0);
-    border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.5);
-  }
   .modal-foot .danger{
+    flex:0 0 auto;padding:10px 14px;
     background:rgba(255,80,80,.15);
     border-color:rgba(255,80,80,.45);color:#ffb3b3;
-    flex:0 0 auto;padding-left:16px;padding-right:16px;
   }
 
-  .loc-row{
+  .form-group{display:flex;flex-direction:column;gap:6px}
+  .form-group > span{font-size:12px;opacity:.75;font-weight:600}
+  .form-group input[type=text],
+  .form-group input[type=number]{
+    width:100%;background:#101010;border:1px solid #333;
+    border-radius:10px;padding:9px 12px;color:#f0f0f0;font-size:14px;outline:none;
+  }
+  .form-group input:focus{border-color:#8b6bff}
+
+  .emoji-suggest{display:flex;flex-wrap:wrap;gap:6px}
+  .emoji-btn{
+    width:34px;height:34px;padding:0;font-size:19px;
+    background:#1a1a1a;border:1px solid #333;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .emoji-btn.on{background:rgba(139,107,255,.4);border-color:#8b6bff}
+
+  .checkbox-row{
     display:flex;align-items:center;gap:10px;
-    background:rgba(139,107,255,.12);
-    border:1px solid rgba(139,107,255,.3);
-    border-radius:14px;padding:9px 12px;
-    font-size:13px;flex-wrap:wrap;
+    padding:10px 12px;background:#101010;border:1px solid #333;
+    border-radius:10px;cursor:pointer;font-size:13px;line-height:1.35;
   }
-  .loc-row .lbl{opacity:.6;font-size:11.5px;flex-shrink:0}
-  .loc-row select{
-    flex:1;background:rgba(0,0,0,.25);color:#eae6ff;
-    border:1px solid rgba(255,255,255,.18);border-radius:10px;
-    padding:6px 8px;font-size:13px;
-    outline:none;cursor:pointer;min-width:120px;
-  }
-  .loc-row select:focus{border-color:#a68bff}
-  .loc-row .geo-link{
-    font-size:11.5px;padding:5px 9px;border-radius:8px;
-    background:rgba(255,120,120,.15);
-    border:1px solid rgba(255,120,120,.4);
-    color:#ffb3b3;cursor:pointer;text-decoration:none;
-    white-space:nowrap;
-  }
-  .loc-row .geo-link:hover{background:rgba(255,120,120,.25);transform:none}
+  .checkbox-row input{cursor:pointer;transform:scale(1.3)}
+  .checkbox-row strong{color:#ffd280}
 
   .imp{
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.10);
-    border-radius:14px;overflow:hidden;transition:.15s;
+    background:#141414;border:1px solid #262626;
+    border-radius:12px;overflow:hidden;transition:.15s;
   }
-  .imp.filled{border-color:rgba(160,120,255,.4);background:rgba(160,120,255,.06)}
-  .imp.open{border-color:#a68bff;box-shadow:0 0 16px rgba(139,107,255,.3)}
+  .imp.filled{border-color:rgba(139,107,255,.4)}
+  .imp.open{border-color:#8b6bff}
   .imp-head{
-    display:flex;align-items:center;gap:9px;
-    padding:10px 12px;cursor:pointer;
-    font-size:13px;font-weight:600;
+    display:flex;align-items:center;gap:8px;
+    padding:10px 12px;cursor:pointer;font-size:13px;font-weight:600;
   }
-  .imp-head:hover{background:rgba(255,255,255,.05)}
-  .imp-head .imp-ico{font-size:20px;line-height:1;flex-shrink:0}
-  .imp-head .imp-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .imp-head .imp-avg{
-    font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:8px;
-    background:rgba(160,120,255,.25);border:1px solid rgba(160,120,255,.45);
+  .imp-head:hover{background:#1e1e1e}
+  .imp-ico{font-size:18px}
+  .imp-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .imp-avg{
+    font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:6px;
+    background:rgba(139,107,255,.25);border:1px solid rgba(139,107,255,.5);
     white-space:nowrap;
   }
-  .imp-head .imp-avg.empty{background:rgba(255,255,255,.05);opacity:.4}
-  .imp-head .caret{font-size:10px;opacity:.6;transition:.2s;display:inline-block}
-  .imp.open .caret{transform:rotate(90deg)}
+  .imp-avg.empty{opacity:.35;background:#1f1f1f;border-color:#333}
   .imp-body{display:none;padding:4px 12px 12px;flex-direction:column;gap:8px}
   .imp.open .imp-body{display:flex}
 
@@ -361,144 +247,64 @@
   }
   .param-val{
     font-variant-numeric:tabular-nums;
-    background:rgba(160,120,255,.25);border:1px solid rgba(160,120,255,.4);
-    padding:0 7px;border-radius:7px;font-size:11px;min-width:24px;text-align:center;
+    background:rgba(139,107,255,.25);border:1px solid rgba(139,107,255,.5);
+    padding:0 7px;border-radius:6px;font-size:11px;min-width:22px;text-align:center;
   }
-
   .param input[type=range]{
     width:100%;height:26px;background:transparent;
     -webkit-appearance:none;appearance:none;outline:none;
-    cursor:pointer;touch-action:pan-y;margin:0;
+    cursor:pointer;touch-action:pan-y;
   }
   .param input[type=range]::-webkit-slider-runnable-track{
-    height:8px;border-radius:99px;
+    height:6px;border-radius:99px;
     background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
   }
   .param input[type=range]::-moz-range-track{
-    height:8px;border-radius:99px;
+    height:6px;border-radius:99px;
     background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
   }
   .param input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;width:24px;height:24px;border-radius:50%;
-    background:#fff;border:3px solid #a06bff;
-    box-shadow:0 0 12px rgba(160,107,255,.9);
-    margin-top:-8px;cursor:grab;
+    -webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+    background:#fff;border:3px solid #8b6bff;
+    box-shadow:0 0 10px rgba(139,107,255,.9);margin-top:-8px;cursor:grab;
   }
   .param input[type=range]::-moz-range-thumb{
-    width:24px;height:24px;border-radius:50%;
-    background:#fff;border:3px solid #a06bff;
-    box-shadow:0 0 12px rgba(160,107,255,.9);cursor:grab;
+    width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid #8b6bff;
+    box-shadow:0 0 10px rgba(139,107,255,.9);cursor:grab;
   }
-
   .param input[type=text]{
-    width:100%;background:rgba(0,0,0,.25);
-    border:1px solid rgba(255,255,255,.15);border-radius:10px;
-    padding:7px 10px;color:#eae6ff;font-size:13px;
-    outline:none;transition:.15s;
+    width:100%;background:#0a0a0a;border:1px solid #333;
+    border-radius:8px;padding:7px 10px;color:#f0f0f0;font-size:13px;outline:none;
   }
-  .param input[type=text]:focus{border-color:#a06bff;background:rgba(0,0,0,.35)}
+  .param input[type=text]:focus{border-color:#8b6bff}
 
-  .emoji-suggest{display:flex;flex-wrap:wrap;gap:6px}
-  .emoji-btn{
-    width:34px;height:34px;padding:0;font-size:20px;
-    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);
-    border-radius:10px;cursor:pointer;transition:.15s;
-    display:flex;align-items:center;justify-content:center;
+  .geo-link{
+    display:inline-block;margin-top:4px;font-size:11.5px;
+    padding:5px 10px;border-radius:8px;
+    background:rgba(255,120,120,.15);border:1px solid rgba(255,120,120,.4);
+    color:#ffb3b3;text-decoration:none;
   }
-  .emoji-btn:hover{background:rgba(255,255,255,.15);transform:translateY(-1px)}
-  .emoji-btn.on{background:rgba(139,107,255,.4);border-color:#a68bff}
+  .geo-link:hover{background:rgba(255,120,120,.25)}
 
-  .form-group{display:flex;flex-direction:column;gap:6px}
-  .form-group > span{font-size:12px;opacity:.75;font-weight:600}
-  .form-group input[type=text],
-  .form-group input[type=number]{
-    width:100%;background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.18);border-radius:12px;
-    padding:9px 12px;color:#eae6ff;font-size:14px;
-    outline:none;transition:.15s;
-  }
-  .form-group input:focus{border-color:#a68bff;background:rgba(255,255,255,.1)}
-  .form-group select{
-    width:100%;background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.18);border-radius:12px;
-    padding:9px 12px;color:#eae6ff;font-size:14px;
-    outline:none;cursor:pointer;
-  }
-  .form-group select:focus{border-color:#a68bff}
+  .empty-hint{text-align:center;opacity:.5;padding:20px;font-size:13px}
 
-  /* ── Гео-секция ── */
-  .geo-box{
-    background:rgba(255,120,120,.05);
-    border:1px solid rgba(255,120,120,.2);
-    border-radius:14px;padding:10px;
-    display:flex;flex-direction:column;gap:8px;
+  .person-row{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 12px;background:#141414;
+    border:1px solid #262626;border-radius:10px;font-size:13px;
   }
-  .geo-title{
-    font-size:12.5px;font-weight:700;
-    color:#ffb3b3;
-    display:flex;align-items:center;gap:6px;
+  .person-row .pr-em{font-size:20px}
+  .person-row .pr-nm{flex:1}
+  .person-row .pr-avg{
+    font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;
+    background:rgba(139,107,255,.25);border:1px solid rgba(139,107,255,.5);
   }
-  .geo-coords{
-    display:grid;grid-template-columns:1fr 1fr;gap:8px;
-  }
-  .geo-coords input{
-    width:100%;background:rgba(0,0,0,.3);
-    border:1px solid rgba(255,255,255,.15);border-radius:10px;
-    padding:7px 9px;color:#eae6ff;font-size:13px;
-    outline:none;font-variant-numeric:tabular-nums;
-  }
-  .geo-coords input:focus{border-color:#ff8888}
-  .geo-buttons{
-    display:flex;flex-wrap:wrap;gap:6px;
-  }
-  .geo-buttons button{
-    font-size:11.5px;padding:6px 10px;
-    background:rgba(255,120,120,.12);
-    border-color:rgba(255,120,120,.35);color:#ffd0d0;
-  }
-  .geo-buttons button:hover{background:rgba(255,120,120,.25);transform:none}
-  .geo-preview{
-    height:120px;border-radius:10px;overflow:hidden;
-    background:#0a0616;
-    display:none;
-  }
-  .geo-preview.show{display:block}
-  #geoPreviewMap{width:100%;height:100%}
 
-  /* ── Модалка карты ── */
-  #pickerMap{width:100%;height:100%}
-  .map-modal-card{
-    width:100%;max-width:900px;height:92vh;max-height:92vh;
-    display:flex;flex-direction:column;
-    background:linear-gradient(160deg,#241a44,#140e2a);
-    border:1px solid rgba(160,120,255,.35);
-    border-radius:22px;overflow:hidden;
-  }
-  .map-body{flex:1;position:relative;min-height:0}
-  .map-controls{
-    display:flex;gap:8px;padding:10px 16px;
-    border-top:1px solid rgba(255,255,255,.08);
-    flex-wrap:wrap;align-items:center;
-  }
-  .map-controls input{
-    flex:1;min-width:160px;
-    background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);
-    border-radius:10px;padding:8px 10px;color:#eae6ff;font-size:12.5px;
-    outline:none;
-  }
-  .map-controls input:focus{border-color:#a68bff}
-  .map-controls .coords-mini{
-    font-size:11px;opacity:.6;font-variant-numeric:tabular-nums;
-    white-space:nowrap;
-  }
-  .map-hint{
-    font-size:11.5px;opacity:.6;padding:6px 16px 0;
-  }
+  footer{text-align:center;font-size:11px;opacity:.3;margin-top:14px}
 </style>
 </head>
 <body>
 <div class="wrap">
-
   <header>
     <div class="clockbox">
       <div id="phase">☀️</div>
@@ -506,164 +312,113 @@
     </div>
     <div class="ctrls">
       <button id="playBtn">▶</button>
-      <button class="speed" data-s="1">×1</button>
+      <button class="speed primary" data-s="1">×1</button>
       <button class="speed" data-s="5">×5</button>
-      <button class="speed" data-s="20">×20</button>
-      <button id="addPersonBtn" disabled title="Сначала добавь место ➕">👤</button>
+      <button id="addPersonBtn">👤 Человек</button>
+      <button id="addHouseBtn">🏠 Дом</button>
+      <button id="addPlaceBtn">🏬 Место</button>
       <button id="resetBtn">🔄</button>
     </div>
-    <div class="bar"><div id="progress"></div></div>
   </header>
 
   <div class="hint">
-    🏁 <b>Доска</b> · у мест есть реальные <b>гео-координаты</b>.<br>
-    Клик по смайлику → его insideMe. <b>★ X.X</b> — среднее по группе.<br>
-    <b>⚙</b> у места — редактировать, <b>📍</b> — открыть в Яндекс.Картах.
+    🏁 <b>Настоящая шахматная доска 8×8</b> · a1–h8.<br>
+    🏠 <b>Дома стоят на месте</b> (🔒). 👤 Люди и 🏬 места <b>двигаются</b> — тащи мышкой или пальцем.<br>
+    Клик по 👤 → его <b>insideMe</b>. Клик по 🏠/🏬 → что о нём думают.
   </div>
 
-  <div class="board">
-    <div class="grid empty" id="grid"></div>
+  <div class="board-outer">
+    <div class="board" id="board"></div>
   </div>
 
-  <footer>Всё сохраняется в localStorage 💾</footer>
+  <footer>Сохраняется в localStorage 💾</footer>
 </div>
 
-<!-- ══ Модалка insideMe ══ -->
+<!-- ═══ Person modal ═══ -->
 <div class="modal" id="personModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
-      <div class="modal-emoji" id="pmEmoji">🥳</div>
+      <div class="modal-emoji" id="pmEmoji">👤</div>
       <div>
-        <div class="modal-name" id="pmName">Я</div>
-        <div class="modal-sub">insideMe · восприятие мест</div>
+        <div class="modal-name" id="pmName">—</div>
+        <div class="modal-sub">insideMe · что чувствует и думает</div>
       </div>
-      <button class="modal-close" id="pmClose" type="button">✕</button>
+      <button class="modal-close" id="pmClose">✕</button>
     </div>
     <div class="modal-body">
-      <div class="loc-row">
-        <span class="lbl">📍 где:</span>
-        <select id="pmLoc"></select>
-        <a id="pmGeoLink" class="geo-link" target="_blank" rel="noopener" style="display:none">🗺 Яндекс</a>
-      </div>
       <div id="impressionsList"></div>
     </div>
     <div class="modal-foot">
-      <button id="pmClear" type="button">Очистить всё</button>
-      <button id="pmDone" type="button" class="primary">Готово</button>
+      <button id="pmClear">Очистить</button>
+      <button id="pmDone" class="primary">Готово</button>
     </div>
   </div>
 </div>
 
-<!-- ══ Модалка добавить/редактировать место ══ -->
-<div class="modal" id="addCellModal" aria-hidden="true">
+<!-- ═══ Place modal ═══ -->
+<div class="modal" id="placeModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
-      <div class="modal-emoji" id="acPreview">🏬</div>
+      <div class="modal-emoji" id="plEmoji">🏬</div>
       <div>
-        <div class="modal-name" id="acTitle">Новое место</div>
-        <div class="modal-sub">Клетка на доске</div>
+        <div class="modal-name" id="plName">—</div>
+        <div class="modal-sub" id="plSub">Что о нём думают</div>
       </div>
-      <button class="modal-close" id="acClose" type="button">✕</button>
+      <button class="modal-close" id="plClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="placeAggregate"></div>
+      <div id="plGeoBox" style="display:none"></div>
+    </div>
+    <div class="modal-foot">
+      <button id="plEdit">⚙ Редактировать</button>
+      <button id="plDelete" class="danger">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Add / edit object modal ═══ -->
+<div class="modal" id="addObjModal" aria-hidden="true">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-emoji" id="aoPreview">👤</div>
+      <div>
+        <div class="modal-name" id="aoTitle">Новый объект</div>
+        <div class="modal-sub" id="aoSubtitle">Добавить на доску</div>
+      </div>
+      <button class="modal-close" id="aoClose">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-group">
         <span>Эмодзи</span>
-        <div class="emoji-suggest" id="acEmojiSuggest"></div>
-        <input type="text" id="acEmoji" placeholder="🏬 или вставь своё" maxlength="6">
+        <div class="emoji-suggest" id="aoEmojiSuggest"></div>
+        <input type="text" id="aoEmoji" placeholder="🏬 или вставь своё" maxlength="6">
       </div>
       <div class="form-group">
         <span>Название</span>
-        <input type="text" id="acName" placeholder="например, Магазин" maxlength="30">
+        <input type="text" id="aoName" placeholder="например, Магазин" maxlength="30">
       </div>
-      <div class="form-group">
-        <span>Подпись (опционально)</span>
-        <input type="text" id="acSub" placeholder="например, магазин у дома" maxlength="30">
-      </div>
-
-      <div class="geo-box">
-        <div class="geo-title">📍 Геопозиция <span style="opacity:.5;font-weight:400;font-size:11px">(необязательно)</span></div>
-        <div class="geo-coords">
-          <input type="number" id="acLat" placeholder="широта, напр. 55.751244" step="any">
-          <input type="number" id="acLng" placeholder="долгота, напр. 37.618423" step="any">
-        </div>
-        <div class="geo-buttons">
-          <button type="button" id="acPickMap">🗺 Указать на карте</button>
-          <button type="button" id="acMyLoc">📍 Я здесь</button>
-          <button type="button" id="acParseYandex">🔗 Из ссылки Яндекса</button>
-        </div>
-        <div class="geo-preview" id="acGeoPreview">
-          <div id="acGeoPreviewMap"></div>
+      <label class="checkbox-row" id="aoFixedRow">
+        <input type="checkbox" id="aoFixed">
+        <span><strong>🏠 это дом</strong> — стоит на месте, нельзя двигать</span>
+      </label>
+      <div class="form-group" id="aoGeoGroup">
+        <span>📍 Координаты (необязательно)</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input type="number" id="aoLat" placeholder="широта" step="any">
+          <input type="number" id="aoLng" placeholder="долгота" step="any">
         </div>
       </div>
     </div>
     <div class="modal-foot">
-      <button id="acCancel" type="button">Отмена</button>
-      <button id="acAdd" type="button" class="primary">Добавить</button>
+      <button id="aoCancel">Отмена</button>
+      <button id="aoSave" class="primary">Сохранить</button>
     </div>
   </div>
 </div>
-
-<!-- ══ Модалка добавить человека ══ -->
-<div class="modal" id="addPersonModal" aria-hidden="true">
-  <div class="modal-card" onclick="event.stopPropagation()">
-    <div class="modal-head">
-      <div class="modal-emoji" id="apPreview">👤</div>
-      <div>
-        <div class="modal-name">Новый человек</div>
-        <div class="modal-sub">Фигура на доске</div>
-      </div>
-      <button class="modal-close" id="apClose" type="button">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <span>Эмодзи</span>
-        <div class="emoji-suggest" id="apEmojiSuggest"></div>
-        <input type="text" id="apEmoji" placeholder="🙂 или вставь своё" maxlength="6">
-      </div>
-      <div class="form-group">
-        <span>Имя</span>
-        <input type="text" id="apName" placeholder="например, Кот" maxlength="20">
-      </div>
-      <div class="form-group">
-        <span>Где стоит</span>
-        <select id="apLoc"></select>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button id="apCancel" type="button">Отмена</button>
-      <button id="apAdd" type="button" class="primary">Добавить</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ Модалка выбора точки на карте ══ -->
-<div class="modal" id="mapPickerModal" aria-hidden="true">
-  <div class="map-modal-card" onclick="event.stopPropagation()">
-    <div class="modal-head">
-      <div class="modal-emoji">🗺</div>
-      <div>
-        <div class="modal-name">Выбор точки</div>
-        <div class="modal-sub">Клик по карте или перетащи маркер</div>
-      </div>
-      <button class="modal-close" id="mpClose" type="button">✕</button>
-    </div>
-    <div class="map-hint">Фиолетовые маркеры — уже существующие места (нажми на маркер, чтобы увидеть название).</div>
-    <div class="map-body"><div id="pickerMap"></div></div>
-    <div class="map-controls">
-      <span class="coords-mini" id="mpCoords">—</span>
-      <input type="text" id="mpPaste" placeholder="Или вставь ссылку Яндекс.Карт и Enter">
-      <button id="mpLoc" type="button">📍 Я здесь</button>
-      <button id="mpCancel" type="button">Отмена</button>
-      <button id="mpConfirm" type="button" class="primary">Готово</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <script>
-/* ══════════════ ПРЕСЕТЫ ══════════════ */
+/* ══════════════ КОНСТАНТЫ ══════════════ */
 const C2_KEYS = ['judgment','evaluation','narrative','rumination','control'];
 const C2_LABELS = {
   judgment:'🗣️ Суждение',
@@ -672,52 +427,61 @@ const C2_LABELS = {
   rumination:'🔁 Руминация',
   control:'🎛️ Контроль'
 };
-const CELL_EMOJI_SUGGEST = ['🏬','🏥','🎬','🏫','🏪','🎮','🌳','🏖️','🎪','📚','🍔','🏦','🎨'];
-const PERSON_EMOJI_SUGGEST = ['👤','👦','👧','🐱','🐶','🧑‍🦱','👴','👵','🧒','👨','👩'];
+const PERSON_EMOJI = ['👤','🥳','😘','😍','🥰','🤩','😶‍🌫️','👦','👧','🧑‍🦱','👴','👵'];
+const HOUSE_EMOJI  = ['🏠','🏡','🏘️','🏚️','🏰','🏯','⛪','🕌'];
+const PLACE_EMOJI  = ['🏬','🏥','🎬','🏫','🏪','🎮','🌳','🏖️','🎪','📚','🍔','🏦','🎨'];
 
-const KEY = 'world-chess-v3-geo';
-const DAY_START = 420, WORK_END = 1020, SLEEP = 1260;
+const KEY = 'world-chess-v4';
 
-/* ══════════════ СОСТОЯНИЕ ══════════════ */
+/* ══════════════ STATE ══════════════ */
 const defaultState = () => ({
-  time: DAY_START,
+  time: 420,
   running: false,
   speed: 1,
-  cells: [],
-  persons: [],
-  impressions: {},
-  schemaVersion: 3
+  objects: [],
+  impressions: {}
 });
 function loadState(){
   try{
     const raw = localStorage.getItem(KEY);
     if(!raw) return null;
     const s = JSON.parse(raw);
-    if(!s || !Array.isArray(s.cells) || !Array.isArray(s.persons)) return null;
+    if(!s || !Array.isArray(s.objects)) return null;
     if(!s.impressions) s.impressions = {};
-    // нормализуем cell.geo
-    s.cells.forEach(c => {
-      if(!('geo' in c)) c.geo = null;
-      if(c.geo && (typeof c.geo.lat !== 'number' || typeof c.geo.lng !== 'number')) c.geo = null;
-    });
-    return { ...defaultState(), ...s, running:false };
+    return { ...defaultState(), ...s, running: false };
   }catch(e){ return null; }
 }
 let state = loadState() || defaultState();
-let editingPersonId = null;
-let editingCellId = null;
+let editingObjId = null;
+let addKind = null;
+let currentPersonId = null;
+let currentPlaceId = null;
 
 /* ══════════════ ХЕЛПЕРЫ ══════════════ */
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function getCell(id){ return state.cells.find(c => c.id === id); }
-function getPerson(id){ return state.persons.find(p => p.id === id); }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function getObject(id){ return state.objects.find(o => o.id === id); }
+function isCellEmpty(cellId, exceptId){
+  return !state.objects.some(o => o.cellId === cellId && o.id !== exceptId);
+}
+function findFirstEmptyCell(){
+  for(let row = 0; row < 8; row++){
+    for(let col = 0; col < 8; col++){
+      const id = 'abcdefgh'[col] + (8 - row);
+      if(isCellEmpty(id)) return id;
+    }
+  }
+  return null;
+}
+function yandexUrl(lat, lng){
+  return `https://yandex.ru/maps/?ll=${lng},${lat}&z=17&pt=${lng},${lat},pm2rdm`;
+}
 
-function getImpression(personId, cellId){
-  const imp = (state.impressions[personId] || {})[cellId];
+function getImpression(pid, tid){
+  const imp = (state.impressions[pid] || {})[tid];
   if(!imp) return null;
   const out = {};
   C2_KEYS.forEach(k => out[k] = imp[k] || 0);
@@ -730,266 +494,139 @@ function impAvg(imp){
   if(!imp) return 0;
   return C2_KEYS.reduce((s,k) => s + (imp[k] || 0), 0) / C2_KEYS.length;
 }
-function isImpressionFilled(imp){
+function isFilled(imp){
   if(!imp) return false;
   if(imp.thought || imp.feelings || imp.actions) return true;
   return C2_KEYS.some(k => imp[k] > 0);
 }
-function cellGroupAvg(cellId){
-  let sum = 0, count = 0;
-  for(const pid in state.impressions){
-    const imp = state.impressions[pid][cellId];
-    if(imp && isImpressionFilled(imp)){ sum += impAvg(imp); count++; }
-  }
-  return count ? { avg: sum/count, count } : null;
-}
 function avgColor(avg){
-  if(avg == null) return null;
-  if(avg <= 0.5) return null;
-  if(avg <= 2)   return 'rgba(100,180,255,0.9)';
-  if(avg <= 4)   return 'rgba(100,220,150,0.9)';
-  if(avg <= 6)   return 'rgba(255,220,100,0.95)';
-  if(avg <= 8)   return 'rgba(255,150,80,0.95)';
-  return 'rgba(255,80,80,0.98)';
+  if(avg == null || avg <= 0.5) return null;
+  if(avg <= 2) return 'rgba(100,180,255,.9)';
+  if(avg <= 4) return 'rgba(100,220,150,.9)';
+  if(avg <= 6) return 'rgba(255,220,100,.95)';
+  if(avg <= 8) return 'rgba(255,150,80,.95)';
+  return 'rgba(255,80,80,.98)';
 }
 
-/* гео-хелперы */
-function yandexUrl(lat, lng){
-  return `https://yandex.ru/maps/?ll=${lng},${lat}&z=17&pt=${lng},${lat},pm2rdm`;
-}
-function parseYandexUrl(raw){
-  if(!raw) return null;
-  let url = String(raw).trim();
-  if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
-  try{
-    const u = new URL(url);
-    if(!/(^|\.)yandex\./i.test(u.hostname)) return null;
-    const ll = u.searchParams.get('ll');
-    if(ll){
-      const [lng, lat] = ll.split(',').map(Number);
-      if(isFinite(lat) && isFinite(lng)) return { lat, lng };
-    }
-    const pt = u.searchParams.get('pt');
-    if(pt){
-      const parts = pt.split(',');
-      if(parts.length >= 2){
-        const lng = Number(parts[0]), lat = Number(parts[1]);
-        if(isFinite(lat) && isFinite(lng)) return { lat, lng };
+/* ══════════════ BOARD ══════════════ */
+const boardEl = document.getElementById('board');
+const clockEl = document.getElementById('clock');
+const phaseEl = document.getElementById('phase');
+
+function renderBoard(){
+  boardEl.innerHTML = '';
+  for(let row = 0; row < 8; row++){
+    for(let col = 0; col < 8; col++){
+      const file = 'abcdefgh'[col];
+      const rank = 8 - row;
+      const cellId = file + rank;
+      const isLight = (row + col) % 2 === 0;
+
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + (isLight ? 'light' : 'dark');
+      cell.dataset.cellId = cellId;
+
+      if(col === 0){
+        const l = document.createElement('span');
+        l.className = 'label-rank'; l.textContent = rank;
+        cell.appendChild(l);
       }
-    }
-    // в пути тоже бывает координаты
-    const m = u.pathname.match(/(\d+\.\d+),(\d+\.\d+)/);
-    if(m){ return { lat: Number(m[1]), lng: Number(m[2]) }; }
-  }catch(e){}
-  return null;
-}
+      if(row === 7){
+        const l = document.createElement('span');
+        l.className = 'label-file'; l.textContent = file;
+        cell.appendChild(l);
+      }
 
-/* ══════════════ DOM ══════════════ */
-const gridEl     = document.getElementById('grid');
-const clockEl    = document.getElementById('clock');
-const phaseEl    = document.getElementById('phase');
-const progressEl = document.getElementById('progress');
-const addPersonBtn = document.getElementById('addPersonBtn');
-
-function updateAddPersonBtn(){
-  const has = state.cells.length > 0;
-  addPersonBtn.disabled = !has;
-  addPersonBtn.style.opacity = has ? '1' : '0.35';
-  addPersonBtn.title = has ? 'Добавить человека' : 'Сначала добавь место ➕';
-}
-
-function colorCheckerboard(){
-  const tiles = [...gridEl.children];
-  if(!tiles.length) return;
-  const cs = getComputedStyle(gridEl);
-  let cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length;
-  if(cols < 1) cols = 1;
-  tiles.forEach((el, i) => {
-    const row = Math.floor(i / cols);
-    const col = i % cols;
-    const light = (row + col) % 2 === 0;
-    el.classList.toggle('cb-light', light);
-    el.classList.toggle('cb-dark', !light);
-  });
-}
-let resizeTimer = null;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(colorCheckerboard, 80);
-});
-
-/* ══════════════ ТОКЕН ══════════════ */
-function makePersonToken(p){
-  const el = document.createElement('div');
-  el.className = 'person';
-  el.draggable = true;
-  el.dataset.personId = p.id;
-
-  const imp = getImpression(p.id, p.cellId);
-  let badgeHtml = '';
-  if(imp && isImpressionFilled(imp)){
-    const a = impAvg(imp);
-    const col = avgColor(a);
-    if(col){
-      badgeHtml = `<div class="badge" style="background:${col}" title="Среднее по текущему месту: ${a.toFixed(1)}/10">${a.toFixed(1)}</div>`;
+      state.objects.filter(o => o.cellId === cellId).forEach(o => cell.appendChild(makeToken(o)));
+      boardEl.appendChild(cell);
     }
   }
-  el.innerHTML = `${badgeHtml}<div class="em">${esc(p.emoji)}</div><div class="nm">${esc(p.name)}</div>`;
+}
 
-  el.addEventListener('dragstart', e => {
-    e.dataTransfer.setData('text/plain', 'person:' + p.id);
-    e.dataTransfer.effectAllowed = 'move';
-    el.classList.add('dragging');
-  });
-  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+function makeToken(obj){
+  const el = document.createElement('div');
+  el.className = 'token' + (obj.fixed ? ' fixed' : '');
+  el.dataset.objId = obj.id;
+
+  let badge = '';
+  if(obj.kind === 'person'){
+    const imp = getImpression(obj.id, obj.cellId);
+    if(imp && isFilled(imp)){
+      const a = impAvg(imp);
+      const c = avgColor(a);
+      if(c) badge = `<span class="badge" style="background:${c}">${a.toFixed(1)}</span>`;
+    }
+  }
+  const lock = obj.fixed ? '<span class="lock">🔒</span>' : '';
+
+  el.innerHTML = `${badge}${lock}<span class="em">${esc(obj.emoji)}</span><span class="nm">${esc(obj.name)}</span>`;
+
+  // ── pointer-drag: works on desktop AND mobile ──
+  if(!obj.fixed){
+    el.addEventListener('pointerdown', e => {
+      dragStart = { x: e.clientX, y: e.clientY, obj, el, moved: false };
+      el.setPointerCapture?.(e.pointerId);
+    });
+  }
+
   el.addEventListener('click', e => {
     e.stopPropagation();
-    openPersonModal(p.id);
+    if(Date.now() - lastDragEnd < 220) return; // suppress click after drag
+    if(obj.kind === 'person') openPersonModal(obj.id);
+    else openPlaceModal(obj.id);
   });
+
   return el;
 }
 
-/* ══════════════ КЛЕТКА ══════════════ */
-function makeCellCard(cell){
-  const card = document.createElement('div');
-  card.className = 'cell';
-  card.dataset.cellId = cell.id;
+/* ══════════════ POINTER DRAG ══════════════ */
+let dragStart = null;
+let lastDragEnd = 0;
 
-  const groupAvg = cellGroupAvg(cell.id);
-  const avgText = groupAvg ? `★ ${groupAvg.avg.toFixed(1)}` : '—';
-  const avgClass = groupAvg ? '' : 'empty';
-  const avgTitle = groupAvg
-    ? `Среднее по ${groupAvg.count} человек`
-    : 'Пока никто не думает об этом месте';
-
-  const hasGeo = !!(cell.geo && isFinite(cell.geo.lat) && isFinite(cell.geo.lng));
-  const pinHtml = hasGeo ? `<span class="cell-geo-pin" title="Есть координаты">📍</span>` : '';
-
-  card.innerHTML = `
-    <div class="cell-actions">
-      <button class="edit" type="button" title="Редактировать">⚙</button>
-      <button class="del" type="button" title="Удалить">✕</button>
-    </div>
-    <div class="cell-head">
-      <span class="ico">${esc(cell.emoji)}</span>
-      <div class="nm-wrap">
-        <span class="nm-title">${esc(cell.name)} ${pinHtml}</span>
-        <span class="sub">${esc(cell.sub || '')}</span>
-      </div>
-      <span class="cell-avg ${avgClass}" title="${esc(avgTitle)}">${avgText}</span>
-    </div>
-    <div class="zone" data-zone="${cell.id}"></div>
-  `;
-
-  const zone = card.querySelector('.zone');
-
-  card.addEventListener('dragover', e => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    card.classList.add('dragover');
-  });
-  card.addEventListener('dragleave', e => {
-    if(!card.contains(e.relatedTarget)) card.classList.remove('dragover');
-  });
-  card.addEventListener('drop', e => {
-    e.preventDefault();
-    card.classList.remove('dragover');
-    const data = e.dataTransfer.getData('text/plain');
-    if(data.startsWith('person:')){
-      movePerson(data.slice(7), cell.id);
-    }
-  });
-  zone.addEventListener('click', e => e.stopPropagation());
-
-  card.querySelector('.edit').addEventListener('click', e => {
-    e.stopPropagation();
-    openEditCellModal(cell.id);
-  });
-  card.querySelector('.del').addEventListener('click', e => {
-    e.stopPropagation();
-    if(confirm(`Удалить «${cell.name}»?\nВпечатления о нём пропадут.`)){
-      deleteCell(cell.id);
-    }
-  });
-
-  return card;
-}
-
-function makeAddCellTile(){
-  const t = document.createElement('div');
-  t.className = 'cell add-cell';
-  t.innerHTML = `
-    <div class="add-inner">
-      <div class="add-plus">➕</div>
-      <div class="add-text">Добавить место</div>
-    </div>
-  `;
-  t.addEventListener('click', () => openAddCellModal(null));
-  return t;
-}
-
-function renderBoard(){
-  gridEl.innerHTML = '';
-  gridEl.classList.toggle('empty', state.cells.length === 0);
-
-  state.cells.forEach(cell => gridEl.appendChild(makeCellCard(cell)));
-  gridEl.appendChild(makeAddCellTile());
-
-  requestAnimationFrame(() => {
-    colorCheckerboard();
-    state.persons.forEach(p => {
-      if(!p.cellId) return;
-      const zone = gridEl.querySelector(`[data-zone="${p.cellId}"]`);
-      if(zone) zone.appendChild(makePersonToken(p));
-    });
-    updateAddPersonBtn();
-  });
-}
-
-function refreshPersonToken(pid){
-  const p = getPerson(pid);
-  if(!p || !p.cellId) return;
-  const zone = gridEl.querySelector(`[data-zone="${p.cellId}"]`);
-  if(!zone) return;
-  const old = zone.querySelector(`[data-person-id="${pid}"]`);
-  const fresh = makePersonToken(p);
-  if(old) old.replaceWith(fresh);
-  else zone.appendChild(fresh);
-}
-
-function refreshCellAvg(cellId){
-  if(!cellId) return;
-  const card = gridEl.querySelector(`[data-cell-id="${cellId}"]`);
-  if(!card) return;
-  const avgEl = card.querySelector('.cell-avg');
-  if(!avgEl) return;
-  const g = cellGroupAvg(cellId);
-  if(g){
-    avgEl.textContent = `★ ${g.avg.toFixed(1)}`;
-    avgEl.classList.remove('empty');
-    avgEl.title = `Среднее по ${g.count} человек`;
-  }else{
-    avgEl.textContent = '—';
-    avgEl.classList.add('empty');
-    avgEl.title = 'Пока никто не думает об этом месте';
+document.addEventListener('pointermove', e => {
+  if(!dragStart) return;
+  const d = Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y);
+  if(d > 8){
+    dragStart.moved = true;
+    dragStart.el.classList.add('dragging');
+    // highlight cell under pointer
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = target?.closest?.('.cell');
+    document.querySelectorAll('.cell.dragover').forEach(c => c.classList.remove('dragover'));
+    if(cell && cell.dataset.cellId !== dragStart.obj.cellId) cell.classList.add('dragover');
   }
-}
+});
 
-function movePerson(pid, cellId){
-  const p = getPerson(pid);
-  if(!p || p.cellId === cellId) return;
-  p.cellId = cellId;
-  save(); renderBoard();
-}
-
-function deleteCell(cellId){
-  state.cells = state.cells.filter(c => c.id !== cellId);
-  const fallback = state.cells[0]?.id || null;
-  state.persons.forEach(p => { if(p.cellId === cellId) p.cellId = fallback; });
-  for(const pid in state.impressions){
-    delete state.impressions[pid][cellId];
+document.addEventListener('pointerup', e => {
+  if(!dragStart) return;
+  if(dragStart.moved){
+    dragStart.el.classList.remove('dragging');
+    document.querySelectorAll('.cell.dragover').forEach(c => c.classList.remove('dragover'));
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = target?.closest?.('.cell');
+    if(cell && cell.dataset.cellId){
+      moveObject(dragStart.obj.id, cell.dataset.cellId);
+    }
+    lastDragEnd = Date.now();
   }
-  save(); renderBoard();
+  dragStart = null;
+});
+
+document.addEventListener('pointercancel', () => {
+  if(dragStart){
+    dragStart.el.classList.remove('dragging');
+    document.querySelectorAll('.cell.dragover').forEach(c => c.classList.remove('dragover'));
+    dragStart = null;
+  }
+});
+
+function moveObject(objId, cellId){
+  const obj = getObject(objId);
+  if(!obj || obj.fixed) return;
+  if(obj.cellId === cellId) return;
+  obj.cellId = cellId;
+  save();
+  renderBoard();
 }
 
 /* ══════════════ ЧАСЫ ══════════════ */
@@ -1001,11 +638,8 @@ function updateClock(force){
   const hh = String(Math.floor(m/60)).padStart(2,'0');
   const mm = String(m%60).padStart(2,'0');
   clockEl.textContent = `${hh}:${mm}`;
-  progressEl.style.width = (m / 1440 * 100).toFixed(2) + '%';
-  const slot = (state.time >= DAY_START && state.time < WORK_END) ? 'day'
-             : (state.time >= WORK_END && state.time < SLEEP) ? 'evening'
-             : 'night';
-  phaseEl.textContent = slot === 'night' ? '🌙' : slot === 'day' ? '☀️' : '🌇';
+  const h = Math.floor(m/60);
+  phaseEl.textContent = h >= 6 && h < 18 ? '☀️' : h >= 18 && h < 22 ? '🌇' : '🌙';
 }
 const MIN_PER_MS = 1/200;
 let lastFrame = performance.now();
@@ -1025,133 +659,93 @@ const playBtn = document.getElementById('playBtn');
 playBtn.addEventListener('click', () => {
   state.running = !state.running;
   playBtn.textContent = state.running ? '⏸' : '▶';
-  playBtn.classList.toggle('on', state.running);
   save();
 });
-document.querySelectorAll('.speed').forEach(btn => {
-  btn.addEventListener('click', () => {
-    state.speed = Number(btn.dataset.s);
-    document.querySelectorAll('.speed').forEach(b => b.classList.toggle('on', b === btn));
+document.querySelectorAll('.speed').forEach(b => {
+  b.addEventListener('click', () => {
+    state.speed = Number(b.dataset.s);
+    document.querySelectorAll('.speed').forEach(x => x.classList.remove('primary'));
+    b.classList.add('primary');
     save();
   });
 });
-addPersonBtn.addEventListener('click', () => {
-  if(state.cells.length === 0){ alert('Сначала добавь место ➕'); return; }
-  openAddPersonModal();
-});
+document.getElementById('addPersonBtn').addEventListener('click', () => openAddObjModal('person'));
+document.getElementById('addHouseBtn').addEventListener('click', () => openAddObjModal('house'));
+document.getElementById('addPlaceBtn').addEventListener('click', () => openAddObjModal('place'));
 document.getElementById('resetBtn').addEventListener('click', () => {
   if(!confirm('Сбросить всё?')) return;
   localStorage.removeItem(KEY);
   state = defaultState();
-  closePersonModal(); closeAddCellModal(); closeAddPersonModal(); closeMapPicker();
-  playBtn.textContent = '▶'; playBtn.classList.remove('on');
-  document.querySelectorAll('.speed').forEach(b => b.classList.toggle('on', b.dataset.s === '1'));
+  closePersonModal(); closePlaceModal(); closeAddObjModal();
+  playBtn.textContent = '▶';
   renderBoard(); updateClock(true); save();
 });
 
-/* ══════════════ МОДАЛКА insideMe ══════════════ */
+/* ══════════════ МОДАЛКА ЧЕЛОВЕКА ══════════════ */
 const personModal = document.getElementById('personModal');
-const pmEmoji  = document.getElementById('pmEmoji');
-const pmName   = document.getElementById('pmName');
-const pmLoc    = document.getElementById('pmLoc');
-const pmGeoLink= document.getElementById('pmGeoLink');
+const pmEmoji = document.getElementById('pmEmoji');
+const pmName  = document.getElementById('pmName');
 const impListEl = document.getElementById('impressionsList');
 
 function openPersonModal(pid){
-  const p = getPerson(pid);
+  const p = getObject(pid);
   if(!p) return;
-  editingPersonId = pid;
-
+  currentPersonId = pid;
   pmEmoji.textContent = p.emoji;
   pmName.textContent = p.name;
-
-  pmLoc.innerHTML = state.cells.map(c =>
-    `<option value="${esc(c.id)}" ${c.id === p.cellId ? 'selected' : ''}>${esc(c.emoji)} ${esc(c.name)}${c.geo ? ' 📍' : ''}</option>`
-  ).join('');
-
-  updatePmGeoLink(p.cellId);
-
-  pmLoc.onchange = () => {
-    const newCell = pmLoc.value;
-    if(newCell && getCell(newCell)){
-      p.cellId = newCell;
-      updatePmGeoLink(newCell);
-      save();
-      renderBoard();
-    }
-  };
-
   buildImpressionsList(pid);
   personModal.classList.add('open');
-  personModal.setAttribute('aria-hidden', 'false');
 }
-function updatePmGeoLink(cellId){
-  const c = getCell(cellId);
-  if(c && c.geo && isFinite(c.geo.lat)){
-    pmGeoLink.href = yandexUrl(c.geo.lat, c.geo.lng);
-    pmGeoLink.style.display = '';
-  }else{
-    pmGeoLink.style.display = 'none';
-  }
-}
-
 function buildImpressionsList(pid){
   impListEl.innerHTML = '';
-  if(state.cells.length === 0){
-    impListEl.innerHTML = '<div style="text-align:center;opacity:.5;padding:20px;font-size:13px">Нет мест. Добавь место ➕</div>';
+  const others = state.objects.filter(o => o.id !== pid);
+  if(!others.length){
+    impListEl.innerHTML = '<div class="empty-hint">Нет других объектов.</div>';
     return;
   }
-  state.cells.forEach(cell => {
-    const imp = getImpression(pid, cell.id);
-    const filled = isImpressionFilled(imp);
+  const ordered = [
+    ...others.filter(o => o.kind !== 'person'),
+    ...others.filter(o => o.kind === 'person')
+  ];
+  ordered.forEach(target => {
+    const imp = getImpression(pid, target.id);
+    const filled = isFilled(imp);
     const a = impAvg(imp);
 
     const item = document.createElement('div');
     item.className = 'imp' + (filled ? ' filled' : '');
-    item.dataset.cellId = cell.id;
-
-    const avgText = filled ? a.toFixed(1) : '—';
-    const avgClass = filled ? '' : 'empty';
-    const geoIcon = (cell.geo && isFinite(cell.geo.lat)) ? ' 📍' : '';
-
     item.innerHTML = `
       <div class="imp-head">
-        <span class="imp-ico">${esc(cell.emoji)}</span>
-        <span class="imp-nm">${esc(cell.name)}${geoIcon}</span>
-        <span class="imp-avg ${avgClass}">${avgText}</span>
-        <span class="caret">▶</span>
+        <span class="imp-ico">${esc(target.emoji)}</span>
+        <span class="imp-nm">${esc(target.name)}${target.fixed ? ' 🔒' : ''}</span>
+        <span class="imp-avg ${filled ? '' : 'empty'}">${filled ? a.toFixed(1) : '—'}</span>
       </div>
       <div class="imp-body"></div>
     `;
-
     const body = item.querySelector('.imp-body');
 
     C2_KEYS.forEach(k => {
-      const v = imp ? (imp[k] || 0) : 0;
+      const v = imp ? imp[k] : 0;
       const wrap = document.createElement('div');
       wrap.className = 'param';
       wrap.innerHTML = `
         <div class="param-row"><span>${C2_LABELS[k]}</span><span class="param-val">${v}</span></div>
         <input type="range" min="0" max="10" value="${v}" step="1">
       `;
-      const slider = wrap.querySelector('input');
-      const valEl  = wrap.querySelector('.param-val');
-      slider.addEventListener('input', () => {
-        valEl.textContent = slider.value;
-        updateImpression(pid, cell.id, k, Number(slider.value));
-        refreshImpAvgAndFilled(item, pid, cell.id);
-        refreshPersonToken(pid);
-        refreshCellAvg(cell.id);
+      const s = wrap.querySelector('input');
+      const vEl = wrap.querySelector('.param-val');
+      s.addEventListener('input', () => {
+        vEl.textContent = s.value;
+        setImp(pid, target.id, k, Number(s.value));
+        refreshImpMeta(item, pid, target.id);
       });
       body.appendChild(wrap);
     });
 
-    const texts = [
-      { key:'thought',  label:'💭 Мысли',    ph:'о чём думает…' },
-      { key:'feelings', label:'💗 Чувства',  ph:'что чувствует…' },
-      { key:'actions',  label:'🏃 Действия', ph:'что делает…' }
-    ];
-    texts.forEach(f => {
+    [ {key:'thought',label:'💭 Мысли',ph:'о чём думает…'},
+      {key:'feelings',label:'💗 Чувства',ph:'что чувствует…'},
+      {key:'actions',label:'🏃 Действия',ph:'что делает…'}
+    ].forEach(f => {
       const v = imp ? (imp[f.key] || '') : '';
       const wrap = document.createElement('div');
       wrap.className = 'param';
@@ -1159,433 +753,293 @@ function buildImpressionsList(pid){
         <div class="param-row"><span>${f.label}</span></div>
         <input type="text" placeholder="${esc(f.ph)}" maxlength="40" value="${esc(v)}">
       `;
-      const input = wrap.querySelector('input');
-      input.addEventListener('input', () => {
-        updateImpressionText(pid, cell.id, f.key, input.value);
-        refreshImpAvgAndFilled(item, pid, cell.id);
-        refreshPersonToken(pid);
-        refreshCellAvg(cell.id);
+      const inp = wrap.querySelector('input');
+      inp.addEventListener('input', () => {
+        setImpText(pid, target.id, f.key, inp.value);
+        refreshImpMeta(item, pid, target.id);
       });
       body.appendChild(wrap);
     });
 
-    if(cell.geo && isFinite(cell.geo.lat)){
-      const linkWrap = document.createElement('div');
-      linkWrap.style.cssText = 'margin-top:4px';
-      linkWrap.innerHTML = `<a class="geo-link" target="_blank" rel="noopener" href="${yandexUrl(cell.geo.lat, cell.geo.lng)}">🗺 Открыть место в Яндекс.Картах</a>`;
-      body.appendChild(linkWrap);
+    if(target.geo && isFinite(target.geo.lat)){
+      const w = document.createElement('div');
+      w.innerHTML = `<a class="geo-link" target="_blank" rel="noopener" href="${yandexUrl(target.geo.lat, target.geo.lng)}">🗺 Яндекс.Карты</a>`;
+      body.appendChild(w);
     }
 
     item.querySelector('.imp-head').addEventListener('click', () => item.classList.toggle('open'));
     impListEl.appendChild(item);
   });
 }
-
-function updateImpression(pid, cellId, key, value){
+function setImp(pid, tid, k, v){
   state.impressions[pid] = state.impressions[pid] || {};
-  state.impressions[pid][cellId] = state.impressions[pid][cellId] || {};
-  state.impressions[pid][cellId][key] = value;
+  state.impressions[pid][tid] = state.impressions[pid][tid] || {};
+  state.impressions[pid][tid][k] = v;
   save();
 }
-function updateImpressionText(pid, cellId, key, value){
+function setImpText(pid, tid, k, v){
   state.impressions[pid] = state.impressions[pid] || {};
-  state.impressions[pid][cellId] = state.impressions[pid][cellId] || {};
-  state.impressions[pid][cellId][key] = value;
+  state.impressions[pid][tid] = state.impressions[pid][tid] || {};
+  state.impressions[pid][tid][k] = v;
   save();
 }
-function refreshImpAvgAndFilled(item, pid, cellId){
-  const imp = getImpression(pid, cellId);
-  const filled = isImpressionFilled(imp);
+function refreshImpMeta(item, pid, tid){
+  const imp = getImpression(pid, tid);
+  const filled = isFilled(imp);
   const a = impAvg(imp);
   const el = item.querySelector('.imp-avg');
   if(filled){
     el.textContent = a.toFixed(1);
     el.classList.remove('empty');
     item.classList.add('filled');
-  }else{
+  } else {
     el.textContent = '—';
     el.classList.add('empty');
     item.classList.remove('filled');
   }
 }
 function closePersonModal(){
-  editingPersonId = null;
+  currentPersonId = null;
   personModal.classList.remove('open');
-  personModal.setAttribute('aria-hidden', 'true');
+  renderBoard();
 }
-document.getElementById('pmClose').addEventListener('click', () => { closePersonModal(); renderBoard(); });
-document.getElementById('pmDone').addEventListener('click',  () => { closePersonModal(); renderBoard(); });
+document.getElementById('pmClose').addEventListener('click', closePersonModal);
+document.getElementById('pmDone').addEventListener('click', closePersonModal);
 document.getElementById('pmClear').addEventListener('click', () => {
-  if(!editingPersonId) return;
+  if(!currentPersonId) return;
   if(!confirm('Очистить все впечатления?')) return;
-  delete state.impressions[editingPersonId];
+  delete state.impressions[currentPersonId];
   save();
-  buildImpressionsList(editingPersonId);
+  buildImpressionsList(currentPersonId);
+});
+personModal.addEventListener('click', e => { if(e.target === personModal) closePersonModal(); });
+
+/* ══════════════ МОДАЛКА МЕСТА ══════════════ */
+const placeModal = document.getElementById('placeModal');
+const plEmoji = document.getElementById('plEmoji');
+const plName  = document.getElementById('plName');
+const plSub   = document.getElementById('plSub');
+const placeAgg = document.getElementById('placeAggregate');
+const plGeoBox = document.getElementById('plGeoBox');
+
+function openPlaceModal(pid){
+  const p = getObject(pid);
+  if(!p) return;
+  currentPlaceId = pid;
+  plEmoji.textContent = p.emoji;
+  plName.textContent = p.name;
+  plSub.textContent = p.kind === 'house' ? '🏠 дом · что о нём думают' : '🏬 место · что о нём думают';
+
+  const people = state.objects.filter(o => o.kind === 'person');
+  let sum = 0, count = 0;
+  const rows = [];
+  people.forEach(person => {
+    const imp = getImpression(person.id, pid);
+    if(imp && isFilled(imp)){
+      const a = impAvg(imp);
+      sum += a; count++;
+      rows.push({ person, avg: a });
+    }
+  });
+  let html = '';
+  if(count === 0){
+    html = '<div class="empty-hint">Пока никто не думает об этом месте.</div>';
+  } else {
+    html += `<div class="person-row" style="background:rgba(139,107,255,.15);border-color:rgba(139,107,255,.5)">
+      <span class="pr-em">★</span>
+      <span class="pr-nm">Среднее по ${count}</span>
+      <span class="pr-avg">${(sum/count).toFixed(1)}</span>
+    </div>`;
+    rows.forEach(r => {
+      const c = avgColor(r.avg);
+      html += `<div class="person-row">
+        <span class="pr-em">${esc(r.person.emoji)}</span>
+        <span class="pr-nm">${esc(r.person.name)}</span>
+        <span class="pr-avg" style="${c ? 'background:'+c+';color:#000;' : ''}">${r.avg.toFixed(1)}</span>
+      </div>`;
+    });
+  }
+  placeAgg.innerHTML = html;
+
+  if(p.geo && isFinite(p.geo.lat)){
+    plGeoBox.style.display = '';
+    plGeoBox.innerHTML = `<a class="geo-link" target="_blank" rel="noopener" href="${yandexUrl(p.geo.lat, p.geo.lng)}">📍 ${p.geo.lat.toFixed(5)}, ${p.geo.lng.toFixed(5)} · Яндекс.Карты</a>`;
+  } else {
+    plGeoBox.style.display = 'none';
+  }
+
+  placeModal.classList.add('open');
+}
+function closePlaceModal(){
+  currentPlaceId = null;
+  placeModal.classList.remove('open');
   renderBoard();
+}
+document.getElementById('plClose').addEventListener('click', closePlaceModal);
+document.getElementById('plDelete').addEventListener('click', () => {
+  if(!currentPlaceId) return;
+  if(!confirm('Удалить объект?')) return;
+  state.objects = state.objects.filter(o => o.id !== currentPlaceId);
+  for(const pid in state.impressions) delete state.impressions[pid][currentPlaceId];
+  delete state.impressions[currentPlaceId];
+  save();
+  closePlaceModal();
 });
-personModal.addEventListener('click', e => {
-  if(e.target === personModal){ closePersonModal(); renderBoard(); }
+document.getElementById('plEdit').addEventListener('click', () => {
+  if(!currentPlaceId) return;
+  const id = currentPlaceId;
+  closePlaceModal();
+  openEditObjModal(id);
 });
+placeModal.addEventListener('click', e => { if(e.target === placeModal) closePlaceModal(); });
 
-/* ══════════════ МОДАЛКА места (добавить/редактировать) ══════════════ */
-const addCellModal = document.getElementById('addCellModal');
-const acEmojiEl = document.getElementById('acEmoji');
-const acNameEl  = document.getElementById('acName');
-const acSubEl   = document.getElementById('acSub');
-const acLatEl   = document.getElementById('acLat');
-const acLngEl   = document.getElementById('acLng');
-const acPreview = document.getElementById('acPreview');
-const acTitle   = document.getElementById('acTitle');
-const acAddBtn  = document.getElementById('acAdd');
-const acGeoPreview = document.getElementById('acGeoPreview');
+/* ══════════════ ADD / EDIT MODAL ══════════════ */
+const addObjModal = document.getElementById('addObjModal');
+const aoPreview = document.getElementById('aoPreview');
+const aoTitle = document.getElementById('aoTitle');
+const aoSubtitle = document.getElementById('aoSubtitle');
+const aoEmoji = document.getElementById('aoEmoji');
+const aoName = document.getElementById('aoName');
+const aoFixed = document.getElementById('aoFixed');
+const aoFixedRow = document.getElementById('aoFixedRow');
+const aoGeoGroup = document.getElementById('aoGeoGroup');
+const aoLat = document.getElementById('aoLat');
+const aoLng = document.getElementById('aoLng');
+const aoSaveBtn = document.getElementById('aoSave');
 
-let previewMap = null;
-let previewMarker = null;
-
-(function(){
-  const wrap = document.getElementById('acEmojiSuggest');
-  CELL_EMOJI_SUGGEST.forEach(em => {
+function buildEmojiSuggest(list){
+  const wrap = document.getElementById('aoEmojiSuggest');
+  wrap.innerHTML = '';
+  list.forEach(em => {
     const b = document.createElement('button');
-    b.type='button'; b.className='emoji-btn'; b.textContent=em;
+    b.type = 'button'; b.className = 'emoji-btn'; b.textContent = em;
     b.addEventListener('click', () => {
-      acEmojiEl.value = em;
-      acPreview.textContent = em;
+      aoEmoji.value = em;
+      aoPreview.textContent = em;
       wrap.querySelectorAll('.emoji-btn').forEach(x => x.classList.toggle('on', x === b));
     });
     wrap.appendChild(b);
   });
-})();
-acEmojiEl.addEventListener('input', () => {
-  acPreview.textContent = acEmojiEl.value.trim() || '📍';
+}
+aoEmoji.addEventListener('input', () => {
+  aoPreview.textContent = aoEmoji.value.trim() || '📍';
 });
 
-function readGeoFromInputs(){
-  const lat = parseFloat(acLatEl.value);
-  const lng = parseFloat(acLngEl.value);
-  if(isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180){
-    return { lat, lng };
+function openAddObjModal(kind){
+  editingObjId = null;
+  addKind = kind;
+
+  if(kind === 'person'){
+    aoTitle.textContent = 'Новый человек';
+    aoSubtitle.textContent = 'двигается по доске';
+    aoEmoji.value = '👤'; aoPreview.textContent = '👤';
+    aoFixed.checked = false;
+    aoFixedRow.style.display = 'none';
+    aoGeoGroup.style.display = 'none';
+    buildEmojiSuggest(PERSON_EMOJI);
+  } else if(kind === 'house'){
+    aoTitle.textContent = 'Новый дом';
+    aoSubtitle.textContent = '🏠 стоит на месте';
+    aoEmoji.value = '🏠'; aoPreview.textContent = '🏠';
+    aoFixed.checked = true;
+    aoFixedRow.style.display = '';
+    aoGeoGroup.style.display = '';
+    buildEmojiSuggest(HOUSE_EMOJI);
+  } else {
+    aoTitle.textContent = 'Новое место';
+    aoSubtitle.textContent = '🏬 двигается (или закрепи как дом)';
+    aoEmoji.value = '🏬'; aoPreview.textContent = '🏬';
+    aoFixed.checked = false;
+    aoFixedRow.style.display = '';
+    aoGeoGroup.style.display = '';
+    buildEmojiSuggest(PLACE_EMOJI);
   }
-  return null;
+  aoName.value = ''; aoLat.value = ''; aoLng.value = '';
+  aoSaveBtn.textContent = 'Добавить';
+  addObjModal.classList.add('open');
+  setTimeout(() => aoName.focus(), 60);
 }
-function setGeoInputs(geo){
-  if(geo){ acLatEl.value = geo.lat.toFixed(6); acLngEl.value = geo.lng.toFixed(6); }
-  else { acLatEl.value = ''; acLngEl.value = ''; }
-  refreshGeoPreview();
+function openEditObjModal(id){
+  const obj = getObject(id);
+  if(!obj) return;
+  editingObjId = id;
+  addKind = obj.kind;
+  aoTitle.textContent = 'Редактировать';
+  aoSubtitle.textContent = obj.kind === 'person' ? 'человек' : (obj.fixed ? '🏠 дом' : '🏬 место');
+  aoEmoji.value = obj.emoji; aoPreview.textContent = obj.emoji;
+  aoName.value = obj.name;
+  aoFixed.checked = !!obj.fixed;
+  aoFixedRow.style.display = obj.kind === 'person' ? 'none' : '';
+  aoLat.value = obj.geo ? obj.geo.lat : '';
+  aoLng.value = obj.geo ? obj.geo.lng : '';
+  aoGeoGroup.style.display = obj.kind === 'person' ? 'none' : '';
+  aoSaveBtn.textContent = 'Сохранить';
+
+  if(obj.kind === 'person') buildEmojiSuggest(PERSON_EMOJI);
+  else if(obj.kind === 'house') buildEmojiSuggest(HOUSE_EMOJI);
+  else buildEmojiSuggest(PLACE_EMOJI);
+
+  addObjModal.classList.add('open');
 }
-
-function refreshGeoPreview(){
-  const geo = readGeoFromInputs();
-  if(!geo){
-    acGeoPreview.classList.remove('show');
-    return;
-  }
-  acGeoPreview.classList.add('show');
-  // отложим, чтобы контейнер успел получить размер
-  setTimeout(() => {
-    if(!previewMap){
-      previewMap = L.map('acGeoPreviewMap', {
-        zoomControl: false, attributionControl: false, dragging: false,
-        scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false
-      }).setView([geo.lat, geo.lng], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(previewMap);
-    }else{
-      previewMap.setView([geo.lat, geo.lng], 15);
-    }
-    if(previewMarker) previewMap.removeLayer(previewMarker);
-    previewMarker = L.marker([geo.lat, geo.lng]).addTo(previewMap);
-    previewMap.invalidateSize();
-  }, 50);
+function closeAddObjModal(){
+  addObjModal.classList.remove('open');
+  editingObjId = null;
+  addKind = null;
 }
+document.getElementById('aoClose').addEventListener('click', closeAddObjModal);
+document.getElementById('aoCancel').addEventListener('click', closeAddObjModal);
+addObjModal.addEventListener('click', e => { if(e.target === addObjModal) closeAddObjModal(); });
 
-acLatEl.addEventListener('input', refreshGeoPreview);
-acLngEl.addEventListener('input', refreshGeoPreview);
-
-function openAddCellModal(cellId){
-  editingCellId = cellId || null;
-  if(cellId){
-    const c = getCell(cellId);
-    if(!c) return;
-    acTitle.textContent = 'Редактировать место';
-    acAddBtn.textContent = 'Сохранить';
-    acEmojiEl.value = c.emoji;
-    acNameEl.value = c.name;
-    acSubEl.value = c.sub || '';
-    acPreview.textContent = c.emoji;
-    setGeoInputs(c.geo || null);
-  }else{
-    acTitle.textContent = 'Новое место';
-    acAddBtn.textContent = 'Добавить';
-    acEmojiEl.value = '🏬';
-    acNameEl.value = '';
-    acSubEl.value = '';
-    acPreview.textContent = '🏬';
-    setGeoInputs(null);
-  }
-  document.querySelectorAll('#acEmojiSuggest .emoji-btn')
-    .forEach(b => b.classList.toggle('on', b.textContent === acEmojiEl.value));
-  addCellModal.classList.add('open');
-  addCellModal.setAttribute('aria-hidden', 'false');
-  setTimeout(() => acNameEl.focus(), 50);
-}
-function closeAddCellModal(){
-  editingCellId = null;
-  addCellModal.classList.remove('open');
-  addCellModal.setAttribute('aria-hidden', 'true');
-}
-
-document.getElementById('acClose').addEventListener('click', closeAddCellModal);
-document.getElementById('acCancel').addEventListener('click', closeAddCellModal);
-
-acAddBtn.addEventListener('click', () => {
-  const emoji = (acEmojiEl.value || '').trim() || '📍';
-  const name  = (acNameEl.value || '').trim();
-  const sub   = (acSubEl.value || '').trim();
+aoSaveBtn.addEventListener('click', () => {
+  const emoji = (aoEmoji.value || '').trim() || '📍';
+  const name  = (aoName.value || '').trim();
   if(!name){
-    acNameEl.focus();
-    acNameEl.style.borderColor = '#ff8888';
-    setTimeout(() => { acNameEl.style.borderColor = ''; }, 800);
+    aoName.focus();
+    aoName.style.borderColor = '#ff8888';
+    setTimeout(() => aoName.style.borderColor = '', 800);
     return;
   }
-  const geo = readGeoFromInputs();
-  if(editingCellId){
-    const c = getCell(editingCellId);
-    if(c){
-      c.emoji = emoji; c.name = name; c.sub = sub; c.geo = geo;
+  const lat = parseFloat(aoLat.value);
+  const lng = parseFloat(aoLng.value);
+  const geo = (isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180)
+    ? { lat, lng } : null;
+  const fixed = (addKind === 'person') ? false : aoFixed.checked;
+
+  if(editingObjId){
+    const obj = getObject(editingObjId);
+    if(obj){
+      obj.emoji = emoji;
+      obj.name = name;
+      obj.geo = geo;
+      if(obj.kind !== 'person') obj.fixed = fixed;
     }
-  }else{
-    state.cells.push({
-      id: 'cell_' + Date.now() + '_' + Math.floor(Math.random()*1000),
-      emoji, name, sub, geo
+  } else {
+    const cellId = findFirstEmptyCell();
+    if(!cellId){ alert('Нет свободных клеток'); return; }
+    state.objects.push({
+      id: 'obj_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+      emoji, name, cellId,
+      kind: addKind || 'place',
+      fixed,
+      geo
     });
   }
   save();
+  closeAddObjModal();
   renderBoard();
-  closeAddCellModal();
-});
-addCellModal.addEventListener('click', e => {
-  if(e.target === addCellModal) closeAddCellModal();
-});
-
-/* Кнопки гео в модалке места */
-document.getElementById('acPickMap').addEventListener('click', () => {
-  const cur = readGeoFromInputs();
-  openMapPicker(cur ? cur.lat : null, cur ? cur.lng : null, (lat, lng) => {
-    acLatEl.value = lat.toFixed(6);
-    acLngEl.value = lng.toFixed(6);
-    refreshGeoPreview();
-  });
-});
-document.getElementById('acMyLoc').addEventListener('click', () => {
-  if(!navigator.geolocation){ alert('Геолокация не поддерживается'); return; }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      acLatEl.value = pos.coords.latitude.toFixed(6);
-      acLngEl.value = pos.coords.longitude.toFixed(6);
-      refreshGeoPreview();
-    },
-    err => alert('Не удалось получить координаты: ' + err.message),
-    { enableHighAccuracy: true, timeout: 8000 }
-  );
-});
-document.getElementById('acParseYandex').addEventListener('click', () => {
-  const raw = prompt('Вставь ссылку из Яндекс.Карт (вида https://yandex.ru/maps/?ll=37.6,55.7 или с pt=...)');
-  if(!raw) return;
-  const geo = parseYandexUrl(raw);
-  if(!geo){ alert('Не удалось разобрать ссылку. Нужна ссылка с параметрами ll= или pt=.\nКороткие ссылки (yandex.ru/maps/-/XXX) не парсятся — открой и скопируй длинную.'); return; }
-  acLatEl.value = geo.lat.toFixed(6);
-  acLngEl.value = geo.lng.toFixed(6);
-  refreshGeoPreview();
-});
-
-/* ══════════════ МОДАЛКА КАРТЫ ВЫБОРА ══════════════ */
-const mapPickerModal = document.getElementById('mapPickerModal');
-const mpCoords = document.getElementById('mpCoords');
-const mpPaste  = document.getElementById('mpPaste');
-
-let pickerMap = null;
-let pickerMarker = null;
-let pickerLat = null, pickerLng = null;
-let pickerCallback = null;
-
-function ensurePickerMap(){
-  if(pickerMap) return;
-  pickerMap = L.map('pickerMap').setView([55.751244, 37.618423], 4);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, attribution: '© OpenStreetMap'
-  }).addTo(pickerMap);
-
-  // существующие точки
-  state.cells.forEach(c => {
-    if(c.geo && isFinite(c.geo.lat)){
-      L.circleMarker([c.geo.lat, c.geo.lng], {
-        radius: 7, color: '#a68bff', fillColor: '#8b6bff', fillOpacity: 0.55, weight: 2
-      }).addTo(pickerMap).bindPopup(esc(c.emoji + ' ' + c.name));
-    }
-  });
-
-  pickerMap.on('click', e => {
-    pickerLat = e.latlng.lat;
-    pickerLng = e.latlng.lng;
-    updatePickerMarker();
-    updatePickerCoords();
-  });
-}
-
-function updatePickerMarker(){
-  if(!pickerMap) return;
-  if(pickerMarker){ pickerMap.removeLayer(pickerMarker); pickerMarker = null; }
-  if(pickerLat != null){
-    pickerMarker = L.marker([pickerLat, pickerLng], { draggable: true })
-      .addTo(pickerMap)
-      .on('dragend', e => {
-        const ll = e.target.getLatLng();
-        pickerLat = ll.lat; pickerLng = ll.lng;
-        updatePickerCoords();
-      });
-  }
-}
-function updatePickerCoords(){
-  mpCoords.textContent = (pickerLat != null)
-    ? `📍 ${pickerLat.toFixed(5)}, ${pickerLng.toFixed(5)}`
-    : '📍 точка не выбрана';
-}
-
-function openMapPicker(lat, lng, onConfirm){
-  pickerCallback = onConfirm;
-  pickerLat = lat; pickerLng = lng;
-
-  mapPickerModal.classList.add('open');
-  mapPickerModal.setAttribute('aria-hidden', 'false');
-
-  setTimeout(() => {
-    ensurePickerMap();
-    pickerMap.invalidateSize();
-    if(pickerLat != null){
-      pickerMap.setView([pickerLat, pickerLng], 16);
-    }else{
-      // попробуем показать уже существующие
-      const withGeo = state.cells.find(c => c.geo && isFinite(c.geo.lat));
-      if(withGeo) pickerMap.setView([withGeo.geo.lat, withGeo.geo.lng], 12);
-      else pickerMap.setView([55.751244, 37.618423], 10);
-    }
-    updatePickerMarker();
-    updatePickerCoords();
-  }, 120);
-}
-
-function closeMapPicker(){
-  mapPickerModal.classList.remove('open');
-  mapPickerModal.setAttribute('aria-hidden', 'true');
-  pickerCallback = null;
-}
-
-document.getElementById('mpClose').addEventListener('click', closeMapPicker);
-document.getElementById('mpCancel').addEventListener('click', closeMapPicker);
-document.getElementById('mpConfirm').addEventListener('click', () => {
-  if(pickerLat == null){ alert('Поставь точку на карте'); return; }
-  if(pickerCallback) pickerCallback(pickerLat, pickerLng);
-  closeMapPicker();
-});
-document.getElementById('mpLoc').addEventListener('click', () => {
-  if(!navigator.geolocation){ alert('Геолокация не поддерживается'); return; }
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      pickerLat = pos.coords.latitude;
-      pickerLng = pos.coords.longitude;
-      if(pickerMap){ pickerMap.setView([pickerLat, pickerLng], 16); }
-      updatePickerMarker(); updatePickerCoords();
-    },
-    err => alert('Геолокация: ' + err.message),
-    { enableHighAccuracy: true, timeout: 8000 }
-  );
-});
-mpPaste.addEventListener('keydown', e => {
-  if(e.key !== 'Enter') return;
-  const geo = parseYandexUrl(mpPaste.value);
-  if(!geo){ alert('Не удалось разобрать ссылку'); return; }
-  pickerLat = geo.lat; pickerLng = geo.lng;
-  if(pickerMap) pickerMap.setView([pickerLat, pickerLng], 17);
-  updatePickerMarker(); updatePickerCoords();
-  mpPaste.value = '';
-});
-
-mapPickerModal.addEventListener('click', e => {
-  if(e.target === mapPickerModal) closeMapPicker();
-});
-
-/* ══════════════ МОДАЛКА человека ══════════════ */
-const addPersonModal = document.getElementById('addPersonModal');
-const apEmojiEl = document.getElementById('apEmoji');
-const apNameEl  = document.getElementById('apName');
-const apLoc     = document.getElementById('apLoc');
-const apPreview = document.getElementById('apPreview');
-
-(function(){
-  const wrap = document.getElementById('apEmojiSuggest');
-  PERSON_EMOJI_SUGGEST.forEach(em => {
-    const b = document.createElement('button');
-    b.type='button'; b.className='emoji-btn'; b.textContent=em;
-    b.addEventListener('click', () => {
-      apEmojiEl.value = em;
-      apPreview.textContent = em;
-      wrap.querySelectorAll('.emoji-btn').forEach(x => x.classList.toggle('on', x === b));
-    });
-    wrap.appendChild(b);
-  });
-})();
-apEmojiEl.addEventListener('input', () => {
-  apPreview.textContent = apEmojiEl.value.trim() || '👤';
-});
-
-function openAddPersonModal(){
-  if(state.cells.length === 0){ alert('Сначала добавь место ➕'); return; }
-  apEmojiEl.value = '👤'; apNameEl.value = ''; apPreview.textContent = '👤';
-  apLoc.innerHTML = state.cells.map(c =>
-    `<option value="${esc(c.id)}">${esc(c.emoji)} ${esc(c.name)}${c.geo ? ' 📍' : ''}</option>`
-  ).join('');
-  document.querySelectorAll('#apEmojiSuggest .emoji-btn')
-    .forEach(b => b.classList.toggle('on', b.textContent === '👤'));
-  addPersonModal.classList.add('open');
-  addPersonModal.setAttribute('aria-hidden', 'false');
-  setTimeout(() => apNameEl.focus(), 50);
-}
-function closeAddPersonModal(){
-  addPersonModal.classList.remove('open');
-  addPersonModal.setAttribute('aria-hidden', 'true');
-}
-document.getElementById('apClose').addEventListener('click', closeAddPersonModal);
-document.getElementById('apCancel').addEventListener('click', closeAddPersonModal);
-document.getElementById('apAdd').addEventListener('click', () => {
-  const emoji = (apEmojiEl.value || '').trim() || '👤';
-  const name  = (apNameEl.value || '').trim();
-  const cellId = apLoc.value;
-  if(!name || !cellId){ apNameEl.focus(); return; }
-  state.persons.push({
-    id: 'person_' + Date.now() + '_' + Math.floor(Math.random()*1000),
-    emoji, name, cellId
-  });
-  save(); renderBoard(); closeAddPersonModal();
-});
-addPersonModal.addEventListener('click', e => {
-  if(e.target === addPersonModal) closeAddPersonModal();
 });
 
 /* ══════════════ ESC ══════════════ */
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  if(mapPickerModal.classList.contains('open')){ closeMapPicker(); return; }
-  if(addCellModal.classList.contains('open')){ closeAddCellModal(); return; }
-  if(addPersonModal.classList.contains('open')){ closeAddPersonModal(); return; }
-  if(personModal.classList.contains('open')){ closePersonModal(); renderBoard(); }
+  if(addObjModal.classList.contains('open')) { closeAddObjModal(); return; }
+  if(personModal.classList.contains('open')) { closePersonModal(); return; }
+  if(placeModal.classList.contains('open')) { closePlaceModal(); return; }
 });
 
 /* ══════════════ СТАРТ ══════════════ */
 setInterval(save, 4000);
 window.addEventListener('beforeunload', save);
-
-document.querySelectorAll('.speed').forEach(b => b.classList.toggle('on', Number(b.dataset.s) === state.speed));
-playBtn.textContent = state.running ? '⏸' : '▶';
-playBtn.classList.toggle('on', state.running);
 
 renderBoard();
 updateClock(true);
