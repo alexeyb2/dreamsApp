@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Мир · Шахматная доска · empty</title>
+<title>Мир · Геоточки · insideMe</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -12,10 +16,9 @@
     color:#eae6ff;min-height:100vh;padding:16px;
     -webkit-tap-highlight-color:transparent;
   }
-  /* ── ФИКС ПОЛЗУНКОВ: разрешаем выделение и скролл инпутов ── */
   input, textarea, select, button{
-    -webkit-user-select: auto;
-    user-select: auto;
+    -webkit-user-select:auto; user-select:auto;
+    font-family:inherit;
   }
 
   .wrap{max-width:1100px;margin:0 auto}
@@ -37,7 +40,7 @@
   }
   .ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   button{
-    font-family:inherit;font-size:13.5px;font-weight:600;color:#eae6ff;
+    font-size:13.5px;font-weight:600;color:#eae6ff;
     background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
     border-radius:12px;padding:8px 12px;cursor:pointer;transition:.15s;
   }
@@ -65,7 +68,6 @@
   }
   .hint b{opacity:.9;color:#c9b6ff}
 
-  /* ── ДОСКА ── */
   .board{
     padding:10px;
     background:linear-gradient(160deg,rgba(70,45,120,.55),rgba(20,12,45,.85));
@@ -79,11 +81,8 @@
     display:grid;gap:5px;
     grid-template-columns:repeat(4, minmax(0,1fr));
   }
-  .grid.empty{
-    grid-template-columns:1fr;
-  }
+  .grid.empty{grid-template-columns:1fr}
 
-  /* ── КЛЕТКА ── */
   .cell{
     position:relative;
     min-height:165px;
@@ -110,7 +109,7 @@
   .cell-head{
     display:flex;align-items:center;gap:7px;
     font-size:12.5px;font-weight:700;
-    padding-right:20px;
+    padding-right:44px;
     min-height:32px;
   }
   .cell-head .ico{font-size:20px;line-height:1;flex-shrink:0}
@@ -123,6 +122,10 @@
     font-size:9.5px;font-weight:500;opacity:.5;
     display:block;margin-top:1px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .cell-geo-pin{
+    font-size:11px;opacity:.75;
+    filter:drop-shadow(0 0 4px rgba(255,120,120,.8));
   }
   .cell-avg{
     font-size:10px;font-weight:800;
@@ -138,15 +141,23 @@
     opacity:.4;
   }
 
-  .cell-del{
+  .cell-actions{
     position:absolute;top:6px;right:6px;
-    width:20px;height:20px;padding:0;font-size:10px;
-    background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.4);
-    color:#ff9999;border-radius:7px;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-    z-index:2;opacity:.55;transition:.15s;
+    display:flex;gap:3px;z-index:2;
   }
-  .cell-del:hover{opacity:1;background:rgba(255,80,80,.35);transform:none}
+  .cell-actions button{
+    width:20px;height:20px;padding:0;font-size:10px;
+    background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.25);
+    border-radius:7px;cursor:pointer;transition:.15s;
+    display:flex;align-items:center;justify-content:center;
+    color:#eae6ff;opacity:.6;
+  }
+  .cell-actions button:hover{opacity:1;background:rgba(255,255,255,.2);transform:none}
+  .cell-actions .del{
+    background:rgba(255,80,80,.15);
+    border-color:rgba(255,80,80,.4);color:#ff9999;
+  }
 
   .zone{
     display:flex;flex-wrap:wrap;gap:6px;
@@ -160,7 +171,6 @@
     align-self:center;margin:auto;
   }
 
-  /* ➕ плитка */
   .add-cell{
     border:2px dashed rgba(160,120,255,.4);
     background:linear-gradient(160deg,rgba(139,107,255,.06),rgba(255,255,255,.01));
@@ -181,7 +191,6 @@
   .grid.empty .add-plus{font-size:48px}
   .grid.empty .add-text{font-size:15px;opacity:.85}
 
-  /* ── ЧЕЛОВЕК ── */
   .person{
     position:relative;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -215,7 +224,6 @@
     text-align:center;font-size:11.5px;opacity:.4;margin-top:20px;padding-bottom:10px;
   }
 
-  /* ── МОБИЛКА: 5 клеток в ряд ── */
   @media (max-width:640px){
     body{padding:8px}
     header{padding:10px 12px;border-radius:16px;margin-bottom:10px}
@@ -226,12 +234,13 @@
     .grid{grid-template-columns:repeat(5, minmax(0,1fr));gap:3px}
     .grid.empty{grid-template-columns:1fr}
     .cell{padding:4px;min-height:78px;border-radius:8px;gap:2px}
-    .cell-head{font-size:9px;gap:2px;min-height:14px;padding-right:13px}
+    .cell-head{font-size:9px;gap:2px;min-height:14px;padding-right:22px}
     .cell-head .ico{font-size:14px}
     .cell-head .sub{display:none}
     .cell-head .nm-title{font-size:9px;line-height:1.1}
     .cell-avg{font-size:8px;padding:0 3px;line-height:1.4}
-    .cell-del{width:14px;height:14px;font-size:8px;top:2px;right:2px;border-radius:5px}
+    .cell-actions{top:2px;right:2px;gap:2px}
+    .cell-actions button{width:13px;height:13px;font-size:7px;border-radius:4px}
     .person{padding:3px 4px;border-radius:8px}
     .person .em{font-size:16px}
     .person .nm{font-size:7px;margin-top:1px}
@@ -252,13 +261,15 @@
   }
   .modal.open{display:flex}
   .modal-card{
-    width:100%;max-width:480px;max-height:92vh;overflow:hidden;
+    width:100%;max-width:520px;max-height:94vh;overflow:hidden;
     display:flex;flex-direction:column;
     background:linear-gradient(160deg,#241a44,#140e2a);
     border:1px solid rgba(160,120,255,.35);
     border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.6);
     animation:pop .2s ease;
   }
+  .modal-card.wide{max-width:760px}
+
   .modal-head{
     display:flex;align-items:center;gap:12px;padding:14px 18px;
     border-bottom:1px solid rgba(255,255,255,.08);
@@ -287,28 +298,40 @@
     background:linear-gradient(180deg,#8b6bff,#6a45e0);
     border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.5);
   }
+  .modal-foot .danger{
+    background:rgba(255,80,80,.15);
+    border-color:rgba(255,80,80,.45);color:#ffb3b3;
+    flex:0 0 auto;padding-left:16px;padding-right:16px;
+  }
 
   .loc-row{
     display:flex;align-items:center;gap:10px;
     background:rgba(139,107,255,.12);
     border:1px solid rgba(139,107,255,.3);
     border-radius:14px;padding:9px 12px;
-    font-size:13px;
+    font-size:13px;flex-wrap:wrap;
   }
   .loc-row .lbl{opacity:.6;font-size:11.5px;flex-shrink:0}
   .loc-row select{
     flex:1;background:rgba(0,0,0,.25);color:#eae6ff;
     border:1px solid rgba(255,255,255,.18);border-radius:10px;
-    padding:6px 8px;font-family:inherit;font-size:13px;
-    outline:none;cursor:pointer;min-width:0;
+    padding:6px 8px;font-size:13px;
+    outline:none;cursor:pointer;min-width:120px;
   }
   .loc-row select:focus{border-color:#a68bff}
+  .loc-row .geo-link{
+    font-size:11.5px;padding:5px 9px;border-radius:8px;
+    background:rgba(255,120,120,.15);
+    border:1px solid rgba(255,120,120,.4);
+    color:#ffb3b3;cursor:pointer;text-decoration:none;
+    white-space:nowrap;
+  }
+  .loc-row .geo-link:hover{background:rgba(255,120,120,.25);transform:none}
 
   .imp{
     background:rgba(255,255,255,.04);
     border:1px solid rgba(255,255,255,.10);
-    border-radius:14px;overflow:hidden;
-    transition:.15s;
+    border-radius:14px;overflow:hidden;transition:.15s;
   }
   .imp.filled{border-color:rgba(160,120,255,.4);background:rgba(160,120,255,.06)}
   .imp.open{border-color:#a68bff;box-shadow:0 0 16px rgba(139,107,255,.3)}
@@ -319,26 +342,16 @@
   }
   .imp-head:hover{background:rgba(255,255,255,.05)}
   .imp-head .imp-ico{font-size:20px;line-height:1;flex-shrink:0}
-  .imp-head .imp-nm{
-    flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
+  .imp-head .imp-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .imp-head .imp-avg{
-    font-size:10.5px;font-weight:800;
-    padding:2px 7px;border-radius:8px;
-    background:rgba(160,120,255,.25);
-    border:1px solid rgba(160,120,255,.45);
+    font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:8px;
+    background:rgba(160,120,255,.25);border:1px solid rgba(160,120,255,.45);
     white-space:nowrap;
   }
   .imp-head .imp-avg.empty{background:rgba(255,255,255,.05);opacity:.4}
-  .imp-head .caret{
-    font-size:10px;opacity:.6;transition:.2s;
-    display:inline-block;
-  }
+  .imp-head .caret{font-size:10px;opacity:.6;transition:.2s;display:inline-block}
   .imp.open .caret{transform:rotate(90deg)}
-  .imp-body{
-    display:none;padding:4px 12px 12px;
-    flex-direction:column;gap:8px;
-  }
+  .imp-body{display:none;padding:4px 12px 12px;flex-direction:column;gap:8px}
   .imp.open .imp-body{display:flex}
 
   .param{display:flex;flex-direction:column;gap:4px}
@@ -352,17 +365,10 @@
     padding:0 7px;border-radius:7px;font-size:11px;min-width:24px;text-align:center;
   }
 
-  /* ── ФИКС: ползунок большой, трек отдельно, touch-friendly ── */
   .param input[type=range]{
-    width:100%;
-    height:26px;
-    background:transparent;
-    -webkit-appearance:none;
-    appearance:none;
-    outline:none;
-    cursor:pointer;
-    touch-action:pan-y;
-    margin:0;
+    width:100%;height:26px;background:transparent;
+    -webkit-appearance:none;appearance:none;outline:none;
+    cursor:pointer;touch-action:pan-y;margin:0;
   }
   .param input[type=range]::-webkit-slider-runnable-track{
     height:8px;border-radius:99px;
@@ -373,24 +379,21 @@
     background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
   }
   .param input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;
-    width:24px;height:24px;border-radius:50%;
+    -webkit-appearance:none;width:24px;height:24px;border-radius:50%;
     background:#fff;border:3px solid #a06bff;
     box-shadow:0 0 12px rgba(160,107,255,.9);
-    margin-top:-8px;
-    cursor:grab;
+    margin-top:-8px;cursor:grab;
   }
   .param input[type=range]::-moz-range-thumb{
     width:24px;height:24px;border-radius:50%;
     background:#fff;border:3px solid #a06bff;
-    box-shadow:0 0 12px rgba(160,107,255,.9);
-    cursor:grab;
+    box-shadow:0 0 12px rgba(160,107,255,.9);cursor:grab;
   }
 
   .param input[type=text]{
     width:100%;background:rgba(0,0,0,.25);
     border:1px solid rgba(255,255,255,.15);border-radius:10px;
-    padding:7px 10px;color:#eae6ff;font-size:13px;font-family:inherit;
+    padding:7px 10px;color:#eae6ff;font-size:13px;
     outline:none;transition:.15s;
   }
   .param input[type=text]:focus{border-color:#a06bff;background:rgba(0,0,0,.35)}
@@ -406,23 +409,91 @@
   .emoji-btn.on{background:rgba(139,107,255,.4);border-color:#a68bff}
 
   .form-group{display:flex;flex-direction:column;gap:6px}
-  .form-group > span{
-    font-size:12px;opacity:.75;font-weight:600;
-  }
-  .form-group input[type=text]{
+  .form-group > span{font-size:12px;opacity:.75;font-weight:600}
+  .form-group input[type=text],
+  .form-group input[type=number]{
     width:100%;background:rgba(255,255,255,.06);
     border:1px solid rgba(255,255,255,.18);border-radius:12px;
-    padding:9px 12px;color:#eae6ff;font-size:14px;font-family:inherit;
+    padding:9px 12px;color:#eae6ff;font-size:14px;
     outline:none;transition:.15s;
   }
-  .form-group input[type=text]:focus{border-color:#a68bff;background:rgba(255,255,255,.1)}
+  .form-group input:focus{border-color:#a68bff;background:rgba(255,255,255,.1)}
   .form-group select{
     width:100%;background:rgba(255,255,255,.06);
     border:1px solid rgba(255,255,255,.18);border-radius:12px;
-    padding:9px 12px;color:#eae6ff;font-size:14px;font-family:inherit;
+    padding:9px 12px;color:#eae6ff;font-size:14px;
     outline:none;cursor:pointer;
   }
   .form-group select:focus{border-color:#a68bff}
+
+  /* ── Гео-секция ── */
+  .geo-box{
+    background:rgba(255,120,120,.05);
+    border:1px solid rgba(255,120,120,.2);
+    border-radius:14px;padding:10px;
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .geo-title{
+    font-size:12.5px;font-weight:700;
+    color:#ffb3b3;
+    display:flex;align-items:center;gap:6px;
+  }
+  .geo-coords{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  }
+  .geo-coords input{
+    width:100%;background:rgba(0,0,0,.3);
+    border:1px solid rgba(255,255,255,.15);border-radius:10px;
+    padding:7px 9px;color:#eae6ff;font-size:13px;
+    outline:none;font-variant-numeric:tabular-nums;
+  }
+  .geo-coords input:focus{border-color:#ff8888}
+  .geo-buttons{
+    display:flex;flex-wrap:wrap;gap:6px;
+  }
+  .geo-buttons button{
+    font-size:11.5px;padding:6px 10px;
+    background:rgba(255,120,120,.12);
+    border-color:rgba(255,120,120,.35);color:#ffd0d0;
+  }
+  .geo-buttons button:hover{background:rgba(255,120,120,.25);transform:none}
+  .geo-preview{
+    height:120px;border-radius:10px;overflow:hidden;
+    background:#0a0616;
+    display:none;
+  }
+  .geo-preview.show{display:block}
+  #geoPreviewMap{width:100%;height:100%}
+
+  /* ── Модалка карты ── */
+  #pickerMap{width:100%;height:100%}
+  .map-modal-card{
+    width:100%;max-width:900px;height:92vh;max-height:92vh;
+    display:flex;flex-direction:column;
+    background:linear-gradient(160deg,#241a44,#140e2a);
+    border:1px solid rgba(160,120,255,.35);
+    border-radius:22px;overflow:hidden;
+  }
+  .map-body{flex:1;position:relative;min-height:0}
+  .map-controls{
+    display:flex;gap:8px;padding:10px 16px;
+    border-top:1px solid rgba(255,255,255,.08);
+    flex-wrap:wrap;align-items:center;
+  }
+  .map-controls input{
+    flex:1;min-width:160px;
+    background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);
+    border-radius:10px;padding:8px 10px;color:#eae6ff;font-size:12.5px;
+    outline:none;
+  }
+  .map-controls input:focus{border-color:#a68bff}
+  .map-controls .coords-mini{
+    font-size:11px;opacity:.6;font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  .map-hint{
+    font-size:11.5px;opacity:.6;padding:6px 16px 0;
+  }
 </style>
 </head>
 <body>
@@ -445,9 +516,9 @@
   </header>
 
   <div class="hint">
-    🏁 <b>Шахматная доска</b> · по умолчанию пусто.<br>
-    Добавь <b>➕ место</b> и <b>👤 человека</b>. Клик по смайлику → его insideMe.<br>
-    <b>★ X.X</b> на клетке — среднее по всей группе, кто думает про это место.
+    🏁 <b>Доска</b> · у мест есть реальные <b>гео-координаты</b>.<br>
+    Клик по смайлику → его insideMe. <b>★ X.X</b> — среднее по группе.<br>
+    <b>⚙</b> у места — редактировать, <b>📍</b> — открыть в Яндекс.Картах.
   </div>
 
   <div class="board">
@@ -457,7 +528,7 @@
   <footer>Всё сохраняется в localStorage 💾</footer>
 </div>
 
-<!-- ══ Модалка: insideMe человека ══ -->
+<!-- ══ Модалка insideMe ══ -->
 <div class="modal" id="personModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
@@ -472,6 +543,7 @@
       <div class="loc-row">
         <span class="lbl">📍 где:</span>
         <select id="pmLoc"></select>
+        <a id="pmGeoLink" class="geo-link" target="_blank" rel="noopener" style="display:none">🗺 Яндекс</a>
       </div>
       <div id="impressionsList"></div>
     </div>
@@ -482,13 +554,13 @@
   </div>
 </div>
 
-<!-- ══ Модалка: добавить место ══ -->
+<!-- ══ Модалка добавить/редактировать место ══ -->
 <div class="modal" id="addCellModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
       <div class="modal-emoji" id="acPreview">🏬</div>
       <div>
-        <div class="modal-name">Новое место</div>
+        <div class="modal-name" id="acTitle">Новое место</div>
         <div class="modal-sub">Клетка на доске</div>
       </div>
       <button class="modal-close" id="acClose" type="button">✕</button>
@@ -507,6 +579,22 @@
         <span>Подпись (опционально)</span>
         <input type="text" id="acSub" placeholder="например, магазин у дома" maxlength="30">
       </div>
+
+      <div class="geo-box">
+        <div class="geo-title">📍 Геопозиция <span style="opacity:.5;font-weight:400;font-size:11px">(необязательно)</span></div>
+        <div class="geo-coords">
+          <input type="number" id="acLat" placeholder="широта, напр. 55.751244" step="any">
+          <input type="number" id="acLng" placeholder="долгота, напр. 37.618423" step="any">
+        </div>
+        <div class="geo-buttons">
+          <button type="button" id="acPickMap">🗺 Указать на карте</button>
+          <button type="button" id="acMyLoc">📍 Я здесь</button>
+          <button type="button" id="acParseYandex">🔗 Из ссылки Яндекса</button>
+        </div>
+        <div class="geo-preview" id="acGeoPreview">
+          <div id="acGeoPreviewMap"></div>
+        </div>
+      </div>
     </div>
     <div class="modal-foot">
       <button id="acCancel" type="button">Отмена</button>
@@ -515,7 +603,7 @@
   </div>
 </div>
 
-<!-- ══ Модалка: добавить человека ══ -->
+<!-- ══ Модалка добавить человека ══ -->
 <div class="modal" id="addPersonModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
@@ -548,6 +636,32 @@
   </div>
 </div>
 
+<!-- ══ Модалка выбора точки на карте ══ -->
+<div class="modal" id="mapPickerModal" aria-hidden="true">
+  <div class="map-modal-card" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-emoji">🗺</div>
+      <div>
+        <div class="modal-name">Выбор точки</div>
+        <div class="modal-sub">Клик по карте или перетащи маркер</div>
+      </div>
+      <button class="modal-close" id="mpClose" type="button">✕</button>
+    </div>
+    <div class="map-hint">Фиолетовые маркеры — уже существующие места (нажми на маркер, чтобы увидеть название).</div>
+    <div class="map-body"><div id="pickerMap"></div></div>
+    <div class="map-controls">
+      <span class="coords-mini" id="mpCoords">—</span>
+      <input type="text" id="mpPaste" placeholder="Или вставь ссылку Яндекс.Карт и Enter">
+      <button id="mpLoc" type="button">📍 Я здесь</button>
+      <button id="mpCancel" type="button">Отмена</button>
+      <button id="mpConfirm" type="button" class="primary">Готово</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
 <script>
 /* ══════════════ ПРЕСЕТЫ ══════════════ */
 const C2_KEYS = ['judgment','evaluation','narrative','rumination','control'];
@@ -558,11 +672,10 @@ const C2_LABELS = {
   rumination:'🔁 Руминация',
   control:'🎛️ Контроль'
 };
-
 const CELL_EMOJI_SUGGEST = ['🏬','🏥','🎬','🏫','🏪','🎮','🌳','🏖️','🎪','📚','🍔','🏦','🎨'];
 const PERSON_EMOJI_SUGGEST = ['👤','👦','👧','🐱','🐶','🧑‍🦱','👴','👵','🧒','👨','👩'];
 
-const KEY = 'world-chess-v2-empty';
+const KEY = 'world-chess-v3-geo';
 const DAY_START = 420, WORK_END = 1020, SLEEP = 1260;
 
 /* ══════════════ СОСТОЯНИЕ ══════════════ */
@@ -570,12 +683,11 @@ const defaultState = () => ({
   time: DAY_START,
   running: false,
   speed: 1,
-  cells: [],       // пусто
-  persons: [],     // пусто
+  cells: [],
+  persons: [],
   impressions: {},
-  schemaVersion: 2
+  schemaVersion: 3
 });
-
 function loadState(){
   try{
     const raw = localStorage.getItem(KEY);
@@ -583,12 +695,17 @@ function loadState(){
     const s = JSON.parse(raw);
     if(!s || !Array.isArray(s.cells) || !Array.isArray(s.persons)) return null;
     if(!s.impressions) s.impressions = {};
+    // нормализуем cell.geo
+    s.cells.forEach(c => {
+      if(!('geo' in c)) c.geo = null;
+      if(c.geo && (typeof c.geo.lat !== 'number' || typeof c.geo.lng !== 'number')) c.geo = null;
+    });
     return { ...defaultState(), ...s, running:false };
   }catch(e){ return null; }
 }
-
 let state = loadState() || defaultState();
 let editingPersonId = null;
+let editingCellId = null;
 
 /* ══════════════ ХЕЛПЕРЫ ══════════════ */
 function esc(s){
@@ -622,9 +739,7 @@ function cellGroupAvg(cellId){
   let sum = 0, count = 0;
   for(const pid in state.impressions){
     const imp = state.impressions[pid][cellId];
-    if(imp && isImpressionFilled(imp)){
-      sum += impAvg(imp); count++;
-    }
+    if(imp && isImpressionFilled(imp)){ sum += impAvg(imp); count++; }
   }
   return count ? { avg: sum/count, count } : null;
 }
@@ -636,6 +751,37 @@ function avgColor(avg){
   if(avg <= 6)   return 'rgba(255,220,100,0.95)';
   if(avg <= 8)   return 'rgba(255,150,80,0.95)';
   return 'rgba(255,80,80,0.98)';
+}
+
+/* гео-хелперы */
+function yandexUrl(lat, lng){
+  return `https://yandex.ru/maps/?ll=${lng},${lat}&z=17&pt=${lng},${lat},pm2rdm`;
+}
+function parseYandexUrl(raw){
+  if(!raw) return null;
+  let url = String(raw).trim();
+  if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  try{
+    const u = new URL(url);
+    if(!/(^|\.)yandex\./i.test(u.hostname)) return null;
+    const ll = u.searchParams.get('ll');
+    if(ll){
+      const [lng, lat] = ll.split(',').map(Number);
+      if(isFinite(lat) && isFinite(lng)) return { lat, lng };
+    }
+    const pt = u.searchParams.get('pt');
+    if(pt){
+      const parts = pt.split(',');
+      if(parts.length >= 2){
+        const lng = Number(parts[0]), lat = Number(parts[1]);
+        if(isFinite(lat) && isFinite(lng)) return { lat, lng };
+      }
+    }
+    // в пути тоже бывает координаты
+    const m = u.pathname.match(/(\d+\.\d+),(\d+\.\d+)/);
+    if(m){ return { lat: Number(m[1]), lng: Number(m[2]) }; }
+  }catch(e){}
+  return null;
 }
 
 /* ══════════════ DOM ══════════════ */
@@ -652,7 +798,6 @@ function updateAddPersonBtn(){
   addPersonBtn.title = has ? 'Добавить человека' : 'Сначала добавь место ➕';
 }
 
-/* шахматная раскраска */
 function colorCheckerboard(){
   const tiles = [...gridEl.children];
   if(!tiles.length) return;
@@ -673,7 +818,7 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(colorCheckerboard, 80);
 });
 
-/* ══════════════ ТОКЕН ЧЕЛОВЕКА ══════════════ */
+/* ══════════════ ТОКЕН ══════════════ */
 function makePersonToken(p){
   const el = document.createElement('div');
   el.className = 'person';
@@ -697,12 +842,10 @@ function makePersonToken(p){
     el.classList.add('dragging');
   });
   el.addEventListener('dragend', () => el.classList.remove('dragging'));
-
   el.addEventListener('click', e => {
     e.stopPropagation();
     openPersonModal(p.id);
   });
-
   return el;
 }
 
@@ -719,12 +862,18 @@ function makeCellCard(cell){
     ? `Среднее по ${groupAvg.count} человек`
     : 'Пока никто не думает об этом месте';
 
+  const hasGeo = !!(cell.geo && isFinite(cell.geo.lat) && isFinite(cell.geo.lng));
+  const pinHtml = hasGeo ? `<span class="cell-geo-pin" title="Есть координаты">📍</span>` : '';
+
   card.innerHTML = `
-    <button class="cell-del" type="button" title="Удалить место">✕</button>
+    <div class="cell-actions">
+      <button class="edit" type="button" title="Редактировать">⚙</button>
+      <button class="del" type="button" title="Удалить">✕</button>
+    </div>
     <div class="cell-head">
       <span class="ico">${esc(cell.emoji)}</span>
       <div class="nm-wrap">
-        <span class="nm-title">${esc(cell.name)}</span>
+        <span class="nm-title">${esc(cell.name)} ${pinHtml}</span>
         <span class="sub">${esc(cell.sub || '')}</span>
       </div>
       <span class="cell-avg ${avgClass}" title="${esc(avgTitle)}">${avgText}</span>
@@ -747,14 +896,16 @@ function makeCellCard(cell){
     card.classList.remove('dragover');
     const data = e.dataTransfer.getData('text/plain');
     if(data.startsWith('person:')){
-      const pid = data.slice(7);
-      movePerson(pid, cell.id);
+      movePerson(data.slice(7), cell.id);
     }
   });
-
   zone.addEventListener('click', e => e.stopPropagation());
 
-  card.querySelector('.cell-del').addEventListener('click', e => {
+  card.querySelector('.edit').addEventListener('click', e => {
+    e.stopPropagation();
+    openEditCellModal(cell.id);
+  });
+  card.querySelector('.del').addEventListener('click', e => {
     e.stopPropagation();
     if(confirm(`Удалить «${cell.name}»?\nВпечатления о нём пропадут.`)){
       deleteCell(cell.id);
@@ -773,11 +924,10 @@ function makeAddCellTile(){
       <div class="add-text">Добавить место</div>
     </div>
   `;
-  t.addEventListener('click', openAddCellModal);
+  t.addEventListener('click', () => openAddCellModal(null));
   return t;
 }
 
-/* ══════════════ РЕНДЕР ══════════════ */
 function renderBoard(){
   gridEl.innerHTML = '';
   gridEl.classList.toggle('empty', state.cells.length === 0);
@@ -829,8 +979,7 @@ function movePerson(pid, cellId){
   const p = getPerson(pid);
   if(!p || p.cellId === cellId) return;
   p.cellId = cellId;
-  save();
-  renderBoard();
+  save(); renderBoard();
 }
 
 function deleteCell(cellId){
@@ -840,8 +989,7 @@ function deleteCell(cellId){
   for(const pid in state.impressions){
     delete state.impressions[pid][cellId];
   }
-  save();
-  renderBoard();
+  save(); renderBoard();
 }
 
 /* ══════════════ ЧАСЫ ══════════════ */
@@ -859,7 +1007,6 @@ function updateClock(force){
              : 'night';
   phaseEl.textContent = slot === 'night' ? '🌙' : slot === 'day' ? '☀️' : '🌇';
 }
-
 const MIN_PER_MS = 1/200;
 let lastFrame = performance.now();
 function loop(now){
@@ -875,14 +1022,12 @@ function loop(now){
 
 /* ══════════════ КНОПКИ ══════════════ */
 const playBtn = document.getElementById('playBtn');
-
 playBtn.addEventListener('click', () => {
   state.running = !state.running;
   playBtn.textContent = state.running ? '⏸' : '▶';
   playBtn.classList.toggle('on', state.running);
   save();
 });
-
 document.querySelectorAll('.speed').forEach(btn => {
   btn.addEventListener('click', () => {
     state.speed = Number(btn.dataset.s);
@@ -890,35 +1035,26 @@ document.querySelectorAll('.speed').forEach(btn => {
     save();
   });
 });
-
 addPersonBtn.addEventListener('click', () => {
-  if(state.cells.length === 0){
-    alert('Сначала добавь место ➕');
-    return;
-  }
+  if(state.cells.length === 0){ alert('Сначала добавь место ➕'); return; }
   openAddPersonModal();
 });
-
 document.getElementById('resetBtn').addEventListener('click', () => {
   if(!confirm('Сбросить всё?')) return;
   localStorage.removeItem(KEY);
   state = defaultState();
-  closePersonModal();
-  closeAddCellModal();
-  closeAddPersonModal();
-  playBtn.textContent = '▶';
-  playBtn.classList.remove('on');
+  closePersonModal(); closeAddCellModal(); closeAddPersonModal(); closeMapPicker();
+  playBtn.textContent = '▶'; playBtn.classList.remove('on');
   document.querySelectorAll('.speed').forEach(b => b.classList.toggle('on', b.dataset.s === '1'));
-  renderBoard();
-  updateClock(true);
-  save();
+  renderBoard(); updateClock(true); save();
 });
 
-/* ══════════════ МОДАЛКА: insideMe ══════════════ */
+/* ══════════════ МОДАЛКА insideMe ══════════════ */
 const personModal = document.getElementById('personModal');
 const pmEmoji  = document.getElementById('pmEmoji');
 const pmName   = document.getElementById('pmName');
 const pmLoc    = document.getElementById('pmLoc');
+const pmGeoLink= document.getElementById('pmGeoLink');
 const impListEl = document.getElementById('impressionsList');
 
 function openPersonModal(pid){
@@ -930,32 +1066,41 @@ function openPersonModal(pid){
   pmName.textContent = p.name;
 
   pmLoc.innerHTML = state.cells.map(c =>
-    `<option value="${esc(c.id)}" ${c.id === p.cellId ? 'selected' : ''}>${esc(c.emoji)} ${esc(c.name)}</option>`
+    `<option value="${esc(c.id)}" ${c.id === p.cellId ? 'selected' : ''}>${esc(c.emoji)} ${esc(c.name)}${c.geo ? ' 📍' : ''}</option>`
   ).join('');
+
+  updatePmGeoLink(p.cellId);
 
   pmLoc.onchange = () => {
     const newCell = pmLoc.value;
     if(newCell && getCell(newCell)){
       p.cellId = newCell;
+      updatePmGeoLink(newCell);
       save();
       renderBoard();
     }
   };
 
   buildImpressionsList(pid);
-
   personModal.classList.add('open');
   personModal.setAttribute('aria-hidden', 'false');
+}
+function updatePmGeoLink(cellId){
+  const c = getCell(cellId);
+  if(c && c.geo && isFinite(c.geo.lat)){
+    pmGeoLink.href = yandexUrl(c.geo.lat, c.geo.lng);
+    pmGeoLink.style.display = '';
+  }else{
+    pmGeoLink.style.display = 'none';
+  }
 }
 
 function buildImpressionsList(pid){
   impListEl.innerHTML = '';
-
   if(state.cells.length === 0){
     impListEl.innerHTML = '<div style="text-align:center;opacity:.5;padding:20px;font-size:13px">Нет мест. Добавь место ➕</div>';
     return;
   }
-
   state.cells.forEach(cell => {
     const imp = getImpression(pid, cell.id);
     const filled = isImpressionFilled(imp);
@@ -967,11 +1112,12 @@ function buildImpressionsList(pid){
 
     const avgText = filled ? a.toFixed(1) : '—';
     const avgClass = filled ? '' : 'empty';
+    const geoIcon = (cell.geo && isFinite(cell.geo.lat)) ? ' 📍' : '';
 
     item.innerHTML = `
       <div class="imp-head">
         <span class="imp-ico">${esc(cell.emoji)}</span>
-        <span class="imp-nm">${esc(cell.name)}</span>
+        <span class="imp-nm">${esc(cell.name)}${geoIcon}</span>
         <span class="imp-avg ${avgClass}">${avgText}</span>
         <span class="caret">▶</span>
       </div>
@@ -980,16 +1126,12 @@ function buildImpressionsList(pid){
 
     const body = item.querySelector('.imp-body');
 
-    // Слайдеры
     C2_KEYS.forEach(k => {
       const v = imp ? (imp[k] || 0) : 0;
       const wrap = document.createElement('div');
       wrap.className = 'param';
       wrap.innerHTML = `
-        <div class="param-row">
-          <span>${C2_LABELS[k]}</span>
-          <span class="param-val">${v}</span>
-        </div>
+        <div class="param-row"><span>${C2_LABELS[k]}</span><span class="param-val">${v}</span></div>
         <input type="range" min="0" max="10" value="${v}" step="1">
       `;
       const slider = wrap.querySelector('input');
@@ -1004,7 +1146,6 @@ function buildImpressionsList(pid){
       body.appendChild(wrap);
     });
 
-    // Мысли / Чувства / Действия
     const texts = [
       { key:'thought',  label:'💭 Мысли',    ph:'о чём думает…' },
       { key:'feelings', label:'💗 Чувства',  ph:'что чувствует…' },
@@ -1028,10 +1169,14 @@ function buildImpressionsList(pid){
       body.appendChild(wrap);
     });
 
-    item.querySelector('.imp-head').addEventListener('click', () => {
-      item.classList.toggle('open');
-    });
+    if(cell.geo && isFinite(cell.geo.lat)){
+      const linkWrap = document.createElement('div');
+      linkWrap.style.cssText = 'margin-top:4px';
+      linkWrap.innerHTML = `<a class="geo-link" target="_blank" rel="noopener" href="${yandexUrl(cell.geo.lat, cell.geo.lng)}">🗺 Открыть место в Яндекс.Картах</a>`;
+      body.appendChild(linkWrap);
+    }
 
+    item.querySelector('.imp-head').addEventListener('click', () => item.classList.toggle('open'));
     impListEl.appendChild(item);
   });
 }
@@ -1063,18 +1208,16 @@ function refreshImpAvgAndFilled(item, pid, cellId){
     item.classList.remove('filled');
   }
 }
-
 function closePersonModal(){
   editingPersonId = null;
   personModal.classList.remove('open');
   personModal.setAttribute('aria-hidden', 'true');
 }
-
 document.getElementById('pmClose').addEventListener('click', () => { closePersonModal(); renderBoard(); });
 document.getElementById('pmDone').addEventListener('click',  () => { closePersonModal(); renderBoard(); });
 document.getElementById('pmClear').addEventListener('click', () => {
   if(!editingPersonId) return;
-  if(!confirm('Очистить все впечатления этого человека?')) return;
+  if(!confirm('Очистить все впечатления?')) return;
   delete state.impressions[editingPersonId];
   save();
   buildImpressionsList(editingPersonId);
@@ -1084,12 +1227,20 @@ personModal.addEventListener('click', e => {
   if(e.target === personModal){ closePersonModal(); renderBoard(); }
 });
 
-/* ══════════════ МОДАЛКА: добавить место ══════════════ */
+/* ══════════════ МОДАЛКА места (добавить/редактировать) ══════════════ */
 const addCellModal = document.getElementById('addCellModal');
 const acEmojiEl = document.getElementById('acEmoji');
 const acNameEl  = document.getElementById('acName');
 const acSubEl   = document.getElementById('acSub');
+const acLatEl   = document.getElementById('acLat');
+const acLngEl   = document.getElementById('acLng');
 const acPreview = document.getElementById('acPreview');
+const acTitle   = document.getElementById('acTitle');
+const acAddBtn  = document.getElementById('acAdd');
+const acGeoPreview = document.getElementById('acGeoPreview');
+
+let previewMap = null;
+let previewMarker = null;
 
 (function(){
   const wrap = document.getElementById('acEmojiSuggest');
@@ -1108,24 +1259,84 @@ acEmojiEl.addEventListener('input', () => {
   acPreview.textContent = acEmojiEl.value.trim() || '📍';
 });
 
-function openAddCellModal(){
-  acEmojiEl.value = '🏬';
-  acNameEl.value = '';
-  acSubEl.value = '';
-  acPreview.textContent = '🏬';
+function readGeoFromInputs(){
+  const lat = parseFloat(acLatEl.value);
+  const lng = parseFloat(acLngEl.value);
+  if(isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180){
+    return { lat, lng };
+  }
+  return null;
+}
+function setGeoInputs(geo){
+  if(geo){ acLatEl.value = geo.lat.toFixed(6); acLngEl.value = geo.lng.toFixed(6); }
+  else { acLatEl.value = ''; acLngEl.value = ''; }
+  refreshGeoPreview();
+}
+
+function refreshGeoPreview(){
+  const geo = readGeoFromInputs();
+  if(!geo){
+    acGeoPreview.classList.remove('show');
+    return;
+  }
+  acGeoPreview.classList.add('show');
+  // отложим, чтобы контейнер успел получить размер
+  setTimeout(() => {
+    if(!previewMap){
+      previewMap = L.map('acGeoPreviewMap', {
+        zoomControl: false, attributionControl: false, dragging: false,
+        scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false
+      }).setView([geo.lat, geo.lng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(previewMap);
+    }else{
+      previewMap.setView([geo.lat, geo.lng], 15);
+    }
+    if(previewMarker) previewMap.removeLayer(previewMarker);
+    previewMarker = L.marker([geo.lat, geo.lng]).addTo(previewMap);
+    previewMap.invalidateSize();
+  }, 50);
+}
+
+acLatEl.addEventListener('input', refreshGeoPreview);
+acLngEl.addEventListener('input', refreshGeoPreview);
+
+function openAddCellModal(cellId){
+  editingCellId = cellId || null;
+  if(cellId){
+    const c = getCell(cellId);
+    if(!c) return;
+    acTitle.textContent = 'Редактировать место';
+    acAddBtn.textContent = 'Сохранить';
+    acEmojiEl.value = c.emoji;
+    acNameEl.value = c.name;
+    acSubEl.value = c.sub || '';
+    acPreview.textContent = c.emoji;
+    setGeoInputs(c.geo || null);
+  }else{
+    acTitle.textContent = 'Новое место';
+    acAddBtn.textContent = 'Добавить';
+    acEmojiEl.value = '🏬';
+    acNameEl.value = '';
+    acSubEl.value = '';
+    acPreview.textContent = '🏬';
+    setGeoInputs(null);
+  }
   document.querySelectorAll('#acEmojiSuggest .emoji-btn')
-    .forEach(b => b.classList.toggle('on', b.textContent === '🏬'));
+    .forEach(b => b.classList.toggle('on', b.textContent === acEmojiEl.value));
   addCellModal.classList.add('open');
   addCellModal.setAttribute('aria-hidden', 'false');
   setTimeout(() => acNameEl.focus(), 50);
 }
 function closeAddCellModal(){
+  editingCellId = null;
   addCellModal.classList.remove('open');
   addCellModal.setAttribute('aria-hidden', 'true');
 }
+
 document.getElementById('acClose').addEventListener('click', closeAddCellModal);
 document.getElementById('acCancel').addEventListener('click', closeAddCellModal);
-document.getElementById('acAdd').addEventListener('click', () => {
+
+acAddBtn.addEventListener('click', () => {
   const emoji = (acEmojiEl.value || '').trim() || '📍';
   const name  = (acNameEl.value || '').trim();
   const sub   = (acSubEl.value || '').trim();
@@ -1135,10 +1346,18 @@ document.getElementById('acAdd').addEventListener('click', () => {
     setTimeout(() => { acNameEl.style.borderColor = ''; }, 800);
     return;
   }
-  state.cells.push({
-    id: 'cell_' + Date.now() + '_' + Math.floor(Math.random()*1000),
-    emoji, name, sub: sub || ''
-  });
+  const geo = readGeoFromInputs();
+  if(editingCellId){
+    const c = getCell(editingCellId);
+    if(c){
+      c.emoji = emoji; c.name = name; c.sub = sub; c.geo = geo;
+    }
+  }else{
+    state.cells.push({
+      id: 'cell_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+      emoji, name, sub, geo
+    });
+  }
   save();
   renderBoard();
   closeAddCellModal();
@@ -1147,7 +1366,154 @@ addCellModal.addEventListener('click', e => {
   if(e.target === addCellModal) closeAddCellModal();
 });
 
-/* ══════════════ МОДАЛКА: добавить человека ══════════════ */
+/* Кнопки гео в модалке места */
+document.getElementById('acPickMap').addEventListener('click', () => {
+  const cur = readGeoFromInputs();
+  openMapPicker(cur ? cur.lat : null, cur ? cur.lng : null, (lat, lng) => {
+    acLatEl.value = lat.toFixed(6);
+    acLngEl.value = lng.toFixed(6);
+    refreshGeoPreview();
+  });
+});
+document.getElementById('acMyLoc').addEventListener('click', () => {
+  if(!navigator.geolocation){ alert('Геолокация не поддерживается'); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      acLatEl.value = pos.coords.latitude.toFixed(6);
+      acLngEl.value = pos.coords.longitude.toFixed(6);
+      refreshGeoPreview();
+    },
+    err => alert('Не удалось получить координаты: ' + err.message),
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+});
+document.getElementById('acParseYandex').addEventListener('click', () => {
+  const raw = prompt('Вставь ссылку из Яндекс.Карт (вида https://yandex.ru/maps/?ll=37.6,55.7 или с pt=...)');
+  if(!raw) return;
+  const geo = parseYandexUrl(raw);
+  if(!geo){ alert('Не удалось разобрать ссылку. Нужна ссылка с параметрами ll= или pt=.\nКороткие ссылки (yandex.ru/maps/-/XXX) не парсятся — открой и скопируй длинную.'); return; }
+  acLatEl.value = geo.lat.toFixed(6);
+  acLngEl.value = geo.lng.toFixed(6);
+  refreshGeoPreview();
+});
+
+/* ══════════════ МОДАЛКА КАРТЫ ВЫБОРА ══════════════ */
+const mapPickerModal = document.getElementById('mapPickerModal');
+const mpCoords = document.getElementById('mpCoords');
+const mpPaste  = document.getElementById('mpPaste');
+
+let pickerMap = null;
+let pickerMarker = null;
+let pickerLat = null, pickerLng = null;
+let pickerCallback = null;
+
+function ensurePickerMap(){
+  if(pickerMap) return;
+  pickerMap = L.map('pickerMap').setView([55.751244, 37.618423], 4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  }).addTo(pickerMap);
+
+  // существующие точки
+  state.cells.forEach(c => {
+    if(c.geo && isFinite(c.geo.lat)){
+      L.circleMarker([c.geo.lat, c.geo.lng], {
+        radius: 7, color: '#a68bff', fillColor: '#8b6bff', fillOpacity: 0.55, weight: 2
+      }).addTo(pickerMap).bindPopup(esc(c.emoji + ' ' + c.name));
+    }
+  });
+
+  pickerMap.on('click', e => {
+    pickerLat = e.latlng.lat;
+    pickerLng = e.latlng.lng;
+    updatePickerMarker();
+    updatePickerCoords();
+  });
+}
+
+function updatePickerMarker(){
+  if(!pickerMap) return;
+  if(pickerMarker){ pickerMap.removeLayer(pickerMarker); pickerMarker = null; }
+  if(pickerLat != null){
+    pickerMarker = L.marker([pickerLat, pickerLng], { draggable: true })
+      .addTo(pickerMap)
+      .on('dragend', e => {
+        const ll = e.target.getLatLng();
+        pickerLat = ll.lat; pickerLng = ll.lng;
+        updatePickerCoords();
+      });
+  }
+}
+function updatePickerCoords(){
+  mpCoords.textContent = (pickerLat != null)
+    ? `📍 ${pickerLat.toFixed(5)}, ${pickerLng.toFixed(5)}`
+    : '📍 точка не выбрана';
+}
+
+function openMapPicker(lat, lng, onConfirm){
+  pickerCallback = onConfirm;
+  pickerLat = lat; pickerLng = lng;
+
+  mapPickerModal.classList.add('open');
+  mapPickerModal.setAttribute('aria-hidden', 'false');
+
+  setTimeout(() => {
+    ensurePickerMap();
+    pickerMap.invalidateSize();
+    if(pickerLat != null){
+      pickerMap.setView([pickerLat, pickerLng], 16);
+    }else{
+      // попробуем показать уже существующие
+      const withGeo = state.cells.find(c => c.geo && isFinite(c.geo.lat));
+      if(withGeo) pickerMap.setView([withGeo.geo.lat, withGeo.geo.lng], 12);
+      else pickerMap.setView([55.751244, 37.618423], 10);
+    }
+    updatePickerMarker();
+    updatePickerCoords();
+  }, 120);
+}
+
+function closeMapPicker(){
+  mapPickerModal.classList.remove('open');
+  mapPickerModal.setAttribute('aria-hidden', 'true');
+  pickerCallback = null;
+}
+
+document.getElementById('mpClose').addEventListener('click', closeMapPicker);
+document.getElementById('mpCancel').addEventListener('click', closeMapPicker);
+document.getElementById('mpConfirm').addEventListener('click', () => {
+  if(pickerLat == null){ alert('Поставь точку на карте'); return; }
+  if(pickerCallback) pickerCallback(pickerLat, pickerLng);
+  closeMapPicker();
+});
+document.getElementById('mpLoc').addEventListener('click', () => {
+  if(!navigator.geolocation){ alert('Геолокация не поддерживается'); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      pickerLat = pos.coords.latitude;
+      pickerLng = pos.coords.longitude;
+      if(pickerMap){ pickerMap.setView([pickerLat, pickerLng], 16); }
+      updatePickerMarker(); updatePickerCoords();
+    },
+    err => alert('Геолокация: ' + err.message),
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+});
+mpPaste.addEventListener('keydown', e => {
+  if(e.key !== 'Enter') return;
+  const geo = parseYandexUrl(mpPaste.value);
+  if(!geo){ alert('Не удалось разобрать ссылку'); return; }
+  pickerLat = geo.lat; pickerLng = geo.lng;
+  if(pickerMap) pickerMap.setView([pickerLat, pickerLng], 17);
+  updatePickerMarker(); updatePickerCoords();
+  mpPaste.value = '';
+});
+
+mapPickerModal.addEventListener('click', e => {
+  if(e.target === mapPickerModal) closeMapPicker();
+});
+
+/* ══════════════ МОДАЛКА человека ══════════════ */
 const addPersonModal = document.getElementById('addPersonModal');
 const apEmojiEl = document.getElementById('apEmoji');
 const apNameEl  = document.getElementById('apName');
@@ -1172,15 +1538,10 @@ apEmojiEl.addEventListener('input', () => {
 });
 
 function openAddPersonModal(){
-  if(state.cells.length === 0){
-    alert('Сначала добавь место ➕');
-    return;
-  }
-  apEmojiEl.value = '👤';
-  apNameEl.value = '';
-  apPreview.textContent = '👤';
+  if(state.cells.length === 0){ alert('Сначала добавь место ➕'); return; }
+  apEmojiEl.value = '👤'; apNameEl.value = ''; apPreview.textContent = '👤';
   apLoc.innerHTML = state.cells.map(c =>
-    `<option value="${esc(c.id)}">${esc(c.emoji)} ${esc(c.name)}</option>`
+    `<option value="${esc(c.id)}">${esc(c.emoji)} ${esc(c.name)}${c.geo ? ' 📍' : ''}</option>`
   ).join('');
   document.querySelectorAll('#apEmojiSuggest .emoji-btn')
     .forEach(b => b.classList.toggle('on', b.textContent === '👤'));
@@ -1198,17 +1559,12 @@ document.getElementById('apAdd').addEventListener('click', () => {
   const emoji = (apEmojiEl.value || '').trim() || '👤';
   const name  = (apNameEl.value || '').trim();
   const cellId = apLoc.value;
-  if(!name || !cellId){
-    apNameEl.focus();
-    return;
-  }
+  if(!name || !cellId){ apNameEl.focus(); return; }
   state.persons.push({
     id: 'person_' + Date.now() + '_' + Math.floor(Math.random()*1000),
     emoji, name, cellId
   });
-  save();
-  renderBoard();
-  closeAddPersonModal();
+  save(); renderBoard(); closeAddPersonModal();
 });
 addPersonModal.addEventListener('click', e => {
   if(e.target === addPersonModal) closeAddPersonModal();
@@ -1217,6 +1573,7 @@ addPersonModal.addEventListener('click', e => {
 /* ══════════════ ESC ══════════════ */
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
+  if(mapPickerModal.classList.contains('open')){ closeMapPicker(); return; }
   if(addCellModal.classList.contains('open')){ closeAddCellModal(); return; }
   if(addPersonModal.classList.contains('open')){ closeAddPersonModal(); return; }
   if(personModal.classList.contains('open')){ closePersonModal(); renderBoard(); }
