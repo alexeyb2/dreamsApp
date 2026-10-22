@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Семья: Распорядок дня · Канал 2 + Кастомные места</title>
+<title>Семья: Шахматная доска · Канал 2</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -59,50 +59,96 @@
   }
   .hint b{opacity:.9;color:#c9b6ff}
 
-  .grid{
-    display:grid;gap:14px;
-    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  /* ── ДОСКА ── */
+  .board{
+    padding:10px;
+    background:
+      linear-gradient(160deg,rgba(70,45,120,.55),rgba(20,12,45,.85));
+    border:2px solid rgba(160,120,255,.35);
+    border-radius:22px;
+    box-shadow:
+      inset 0 0 40px rgba(0,0,0,.55),
+      0 10px 40px rgba(0,0,0,.5),
+      0 0 0 1px rgba(160,120,255,.12);
   }
+  .grid{
+    display:grid;gap:5px;
+    grid-template-columns:repeat(4, 1fr);
+  }
+  @media (max-width:760px){ .grid{grid-template-columns:repeat(2, 1fr);} }
+
+  /* ── КЛЕТКА ── */
   .loc{
-    background:linear-gradient(160deg,rgba(255,255,255,.075),rgba(255,255,255,.015));
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:20px;padding:13px;
-    display:flex;flex-direction:column;gap:10px;
-    min-height:150px;transition:.18s;position:relative;
+    position:relative;
+    aspect-ratio:1;
+    padding:10px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,.10);
+    display:flex;flex-direction:column;gap:8px;
+    min-height:0;
+    transition:.18s;
+    overflow:visible;
+  }
+  .loc.cb-light{
+    background:linear-gradient(160deg,rgba(140,118,200,.28),rgba(95,75,160,.18));
+    border-color:rgba(180,160,240,.35);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 24px rgba(160,120,255,.10);
+  }
+  .loc.cb-dark{
+    background:linear-gradient(160deg,rgba(45,32,82,.72),rgba(25,16,55,.70));
+    border-color:rgba(110,90,180,.28);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), inset 0 0 28px rgba(0,0,0,.35);
   }
   .loc::before{
     content:'';position:absolute;inset:0;opacity:0;transition:.2s;pointer-events:none;
-    background:radial-gradient(circle at 50% 0%,rgba(160,120,255,.25),transparent 70%);
+    background:radial-gradient(circle at 50% 0%,rgba(180,140,255,.3),transparent 70%);
     border-radius:inherit;
   }
   .loc:hover::before{opacity:1}
   .loc.dragover{
     border-color:#a68bff;transform:translateY(-3px);
-    box-shadow:0 8px 32px rgba(139,107,255,.45),0 0 0 1px #a68bff inset;
+    box-shadow:0 8px 32px rgba(139,107,255,.55),0 0 0 1px #a68bff inset;
   }
-  .loc.sleep{background:linear-gradient(160deg,rgba(70,60,140,.35),rgba(20,15,50,.4))}
-  .loc.work{background:linear-gradient(160deg,rgba(255,170,80,.11),rgba(255,255,255,.015))}
-  .loc.custom{background:linear-gradient(160deg,rgba(90,220,190,.12),rgba(255,255,255,.015))}
 
-  .loc-head{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700;padding-right:26px}
-  .loc-head .ico{font-size:22px;line-height:1}
-  .loc-head .sub{font-size:10.5px;font-weight:500;opacity:.5;display:block;margin-top:2px}
+  /* подсветка типов — только тонкая рамка/свечение, не фон */
+  .loc.work  { border-color:rgba(255,190,100,.45); box-shadow:inset 0 0 30px rgba(255,170,80,.12); }
+  .loc.sleep { border-color:rgba(140,170,255,.5);  box-shadow:inset 0 0 34px rgba(100,140,255,.18); }
+  .loc.custom{ border-color:rgba(100,230,200,.45); box-shadow:inset 0 0 30px rgba(80,220,190,.15); }
+
+  .loc-head{
+    display:flex;align-items:center;gap:8px;
+    font-size:12.5px;font-weight:700;
+    padding-right:22px;
+    min-height:34px;
+  }
+  .loc-head .ico{font-size:22px;line-height:1;flex-shrink:0}
+  .loc-head .nm-wrap{min-width:0;overflow:hidden}
+  .loc-head .nm-title{
+    display:block;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .loc-head .sub{
+    font-size:9.5px;font-weight:500;opacity:.5;
+    display:block;margin-top:1px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
 
   .loc-del{
-    position:absolute;top:8px;right:8px;
+    position:absolute;top:6px;right:6px;
     width:22px;height:22px;padding:0;font-size:11px;
     background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.4);
     color:#ff9999;border-radius:8px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
-    z-index:2;opacity:.6;transition:.15s;
+    z-index:2;opacity:.55;transition:.15s;
   }
   .loc-del:hover{opacity:1;background:rgba(255,80,80,.3);transform:none}
 
-  /* ➕ плитка */
+  /* ➕ пустая клетка */
   .add-loc{
     border:2px dashed rgba(160,120,255,.4);
-    background:linear-gradient(160deg,rgba(139,107,255,.08),rgba(255,255,255,.01));
+    background:linear-gradient(160deg,rgba(139,107,255,.06),rgba(255,255,255,.01));
     align-items:center;justify-content:center;cursor:pointer;
+    aspect-ratio:1;
     transition:.2s;
   }
   .add-loc:hover{
@@ -111,70 +157,79 @@
     transform:translateY(-2px);
     box-shadow:0 8px 24px rgba(139,107,255,.3);
   }
-  .add-inner{display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
-  .add-plus{font-size:36px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.7))}
-  .add-text{font-size:12.5px;font-weight:600;opacity:.7;letter-spacing:.3px}
+  .add-inner{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+  .add-plus{font-size:32px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.7))}
+  .add-text{font-size:12px;font-weight:600;opacity:.7;letter-spacing:.3px;text-align:center}
 
   .zone{
-    display:flex;flex-wrap:wrap;gap:7px;min-height:74px;
+    display:flex;flex-wrap:wrap;gap:6px;
     align-content:flex-start;flex:1;
-    border-radius:14px;padding:4px;
+    min-height:0;
+    border-radius:10px;padding:2px;
     transition:.15s;
   }
   .zone:empty::after{
     content:'пусто';
-    font-size:11px;opacity:.22;align-self:center;margin:auto;
+    font-size:10.5px;opacity:.2;
+    align-self:center;margin:auto;
   }
 
+  /* ── ФИГУРА (смайлик) ── */
   .tok{
     position:relative;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:7px 9px;border-radius:15px;
+    padding:5px 7px;border-radius:12px;
     background:rgba(255,255,255,.10);
     border:1px solid rgba(255,255,255,.10);
     cursor:grab;transition:.15s;
     animation:pop .25s ease;
+    box-shadow:
+      0 2px 0 rgba(0,0,0,.25),
+      0 4px 8px rgba(0,0,0,.35);
   }
-  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
-  .tok:hover{background:rgba(255,255,255,.2);transform:translateY(-2px) scale(1.05)}
+  @keyframes pop{from{transform:scale(.6) translateY(2px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+  .tok:hover{
+    background:rgba(255,255,255,.2);
+    transform:translateY(-3px) scale(1.05);
+    box-shadow:0 6px 0 rgba(0,0,0,.2), 0 10px 18px rgba(0,0,0,.45);
+  }
   .tok:active{cursor:grabbing}
   .tok.dragging{opacity:.35}
-  .tok .em{font-size:27px;line-height:1;pointer-events:none}
-  .tok .nm{font-size:10px;margin-top:4px;opacity:.75;pointer-events:none;white-space:nowrap}
+  .tok .em{font-size:24px;line-height:1;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+  .tok .nm{font-size:9px;margin-top:2px;opacity:.75;pointer-events:none;white-space:nowrap}
   .tok.sel{
     background:linear-gradient(180deg,#8b6bff,#6a45e0);
-    border-color:#c9b6ff;box-shadow:0 0 20px rgba(139,107,255,.8);
+    border-color:#c9b6ff;
+    box-shadow:0 0 22px rgba(139,107,255,.9), 0 3px 0 rgba(0,0,0,.3);
     transform:scale(1.08);
   }
 
-  /* бейдж Канала 2 */
   .tok .c2badge{
-    position:absolute;top:-7px;right:-7px;
-    min-width:18px;height:18px;padding:0 4px;
-    border-radius:9px;font-size:10px;font-weight:800;color:#0a0616;
+    position:absolute;top:-6px;right:-6px;
+    min-width:17px;height:17px;padding:0 4px;
+    border-radius:9px;font-size:9.5px;font-weight:800;color:#0a0616;
     display:flex;align-items:center;justify-content:center;
     border:1px solid rgba(255,255,255,.35);
     box-shadow:0 2px 6px rgba(0,0,0,.5);pointer-events:none;
   }
   .tok .thought{
-    position:absolute;top:-16px;left:50%;transform:translateX(-50%);
-    font-size:11px;line-height:1;white-space:nowrap;
-    background:rgba(10,6,22,.85);border:1px solid rgba(160,120,255,.4);
-    padding:2px 6px;border-radius:9px;pointer-events:none;
-    max-width:90px;overflow:hidden;text-overflow:ellipsis;
+    position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+    font-size:10px;line-height:1;white-space:nowrap;
+    background:rgba(10,6,22,.9);border:1px solid rgba(160,120,255,.4);
+    padding:2px 5px;border-radius:8px;pointer-events:none;
+    max-width:80px;overflow:hidden;text-overflow:ellipsis;
     box-shadow:0 2px 8px rgba(0,0,0,.5);
   }
 
-  /* чипы бабушки */
   .grandma-chips{
-    display:flex;flex-direction:column;gap:2px;margin-top:5px;
+    display:flex;flex-direction:column;gap:2px;margin-top:3px;
     max-width:100%;
   }
   .g-chip{
-    font-size:8.5px;line-height:1.2;
+    font-size:8px;line-height:1.15;
     background:rgba(160,120,255,.22);border:1px solid rgba(160,120,255,.4);
-    border-radius:6px;padding:1px 4px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:82px;
+    border-radius:5px;padding:1px 3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;
     pointer-events:none;
   }
   .g-chip.thoughts{background:rgba(100,180,255,.22);border-color:rgba(100,180,255,.4)}
@@ -250,7 +305,6 @@
     border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.5);
   }
 
-  /* секция бабушки */
   .grandma-section{
     display:none;flex-direction:column;gap:10px;
     padding:12px;border-radius:16px;
@@ -261,9 +315,7 @@
     font-size:12.5px;font-weight:800;letter-spacing:.4px;
     color:#ffc0e8;margin-bottom:2px;
   }
-  .grandma-section .param-row span:first-child{font-size:12.5px;opacity:.9}
 
-  /* эмодзи-подсказки */
   .emoji-suggest{display:flex;flex-wrap:wrap;gap:6px}
   .emoji-btn{
     width:34px;height:34px;padding:0;font-size:20px;
@@ -295,19 +347,20 @@
   </header>
 
   <div class="hint">
-    Перетаскивай смайликов мышкой (или <b>тапни смайлика → тапни по дому</b>).<br>
-    <b>➕</b> — добавить своё место (🏬 магазин, 🏥 больница, 🎬 кино…).<br>
-    <b>📝</b> — режим наблюдения: тап по смайлику → параметры Канала 2. У <b>🤩 бабушки</b> ещё и 💭 Мысли / 💗 Чувства / 🏃 Действия.<br>
-    Бейдж на смайлике = средний уровень Канала 2 (0–10). Это <b>наблюдение, не оценка</b>.<br>
+    Поле — <b>шахматная доска</b> 🏁. Клетки чередуются, смайлики «стоят» как фигуры.<br>
+    Таскай мышкой или <b>тапни смайлика → тапни по клетке</b>. <b>➕</b> — добавить своё место.<br>
+    <b>📝</b> — режим Канала 2: тап по смайлику → параметры. У <b>🤩 бабушки</b> ещё 💭/💗/🏃.<br>
     <b>7:00–17:00</b> работа и садик · <b>17:00–21:00</b> дома · <b>21:00–7:00</b> сон 😴
   </div>
 
-  <div class="grid" id="grid"></div>
+  <div class="board">
+    <div class="grid" id="grid"></div>
+  </div>
 
-  <footer>Прогресс, места и параметры сохраняются в localStorage 💾</footer>
+  <footer>Прогресс, места и параметры — в localStorage 💾</footer>
 </div>
 
-<!-- Модалка Канала 2 (+ бабушка) -->
+<!-- Модалка Канала 2 -->
 <div class="modal" id="modal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
@@ -343,8 +396,6 @@
         <div class="param-row"><span>💭 О чём думает</span></div>
         <input type="text" id="f-thought" placeholder="🚌, 💰, 💼, 👩…" maxlength="20">
       </div>
-
-      <!-- 🤩 Внутренний мир бабушки -->
       <div class="grandma-section" id="grandmaSection">
         <div class="grandma-title">🤩 Внутренний мир бабушки</div>
         <div class="param">
@@ -375,7 +426,7 @@
       <div class="modal-emoji" id="alPreview">🏬</div>
       <div>
         <div class="modal-name">Новое место</div>
-        <div class="modal-sub">Добавить локацию на поле</div>
+        <div class="modal-sub">Добавить клетку на доску</div>
       </div>
       <button class="modal-close" id="alClose" type="button">✕</button>
     </div>
@@ -422,7 +473,6 @@ const BASE_LOCATIONS = [
 ];
 
 const EMOJI_SUGGESTIONS = ['🏬','🏥','🎬','🏫','🏪','🎮','🌳','🏖️','🎪','📚','🍔','⛽','🏦','🎨','🏛️'];
-
 const C2_KEYS = ['judgment','evaluation','narrative','rumination','control'];
 
 const KEY = 'family-schedule-game-v2';
@@ -457,19 +507,12 @@ let state = loadState() || defaultState();
 let selected = null;
 let editingMember = null;
 
-/* ══════════════ ХЕЛПЕРЫ ══════════════ */
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-
-function getAllLocations(){
-  return [...BASE_LOCATIONS, ...(state.customLocations || [])];
-}
-
-function isCustomLocation(id){
-  return (state.customLocations || []).some(c => c.id === id);
-}
+function getAllLocations(){ return [...BASE_LOCATIONS, ...(state.customLocations || [])]; }
+function isCustomLocation(id){ return (state.customLocations || []).some(c => c.id === id); }
 
 /* ══════════════ РАСПИСАНИЕ ══════════════ */
 function getSlot(min){
@@ -477,7 +520,6 @@ function getSlot(min){
   if(min >= WORK_END  && min < SLEEP)    return 'evening';
   return 'night';
 }
-
 const PLAN = {
   day:     { me:'myhome', vika:'sad', papa:'work1', mama:'work1', baba:'work2', ded:'work2' },
   evening: { me:'myhome', papa:'myhome', mama:'myhome', vika:'vikahome', baba:'vikahome', ded:'vikahome' },
@@ -489,23 +531,16 @@ function applySchedule(){
   const next = {};
   MEMBERS.forEach(m => {
     const cur = state.placements[m.id];
-    // смайликов в кастомных местах не дёргаем
-    if(cur && isCustomLocation(cur)){
-      next[m.id] = cur;
-    }else{
-      next[m.id] = plan[m.id] || cur || 'myhome';
-    }
+    if(cur && isCustomLocation(cur)) next[m.id] = cur;
+    else next[m.id] = plan[m.id] || cur || 'myhome';
   });
   state.placements = next;
   state.slot = getSlot(state.time);
 }
 
-/* ══════════════ СОХРАНЕНИЕ ══════════════ */
-function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
-}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
-/* ══════════════ C2 HELPERS ══════════════ */
+/* ══════════════ C2 ══════════════ */
 function getC2(memberId){
   const c = state.c2[memberId] || {};
   return {
@@ -517,11 +552,7 @@ function getC2(memberId){
     thought:    c.thought    || ''
   };
 }
-
-function c2Average(c){
-  return C2_KEYS.reduce((s,k)=>s + (c[k]||0), 0) / C2_KEYS.length;
-}
-
+function c2Average(c){ return C2_KEYS.reduce((s,k)=>s + (c[k]||0), 0) / C2_KEYS.length; }
 function c2Color(avg){
   if(avg <= 0.5) return null;
   if(avg <= 2)   return 'rgba(100,180,255,0.9)';
@@ -537,6 +568,28 @@ const clockEl    = document.getElementById('clock');
 const phaseEl    = document.getElementById('phase');
 const progressEl = document.getElementById('progress');
 
+/* ══════════════ ШАХМАТНАЯ РАСКРАСКА ══════════════ */
+function colorCheckerboard(){
+  const tiles = [...gridEl.children];
+  if(!tiles.length) return;
+  const cs = getComputedStyle(gridEl);
+  let cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean).length;
+  if(cols < 1) cols = 1;
+  tiles.forEach((el, i) => {
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const isLight = (row + col) % 2 === 0;
+    el.classList.toggle('cb-light', isLight);
+    el.classList.toggle('cb-dark', !isLight);
+  });
+}
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(colorCheckerboard, 100);
+});
+
 /* ══════════════ ТОКЕН ══════════════ */
 function makeToken(m){
   const c2 = getC2(m.id);
@@ -550,14 +603,12 @@ function makeToken(m){
   let badgeHtml = '';
   if(badgeColor){
     const display = Math.round(avg * 10) / 10;
-    badgeHtml = `<div class="c2badge" style="background:${badgeColor}" title="Средний Канал 2: ${display}/10">${display}</div>`;
+    badgeHtml = `<div class="c2badge" style="background:${badgeColor}" title="Канал 2: ${display}/10">${display}</div>`;
   }
-
   let thoughtHtml = '';
   if(c2.thought && c2.thought.trim()){
     thoughtHtml = `<div class="thought" title="${esc(c2.thought)}">💭 ${esc(c2.thought)}</div>`;
   }
-
   let grandmaHtml = '';
   if(m.id === 'baba'){
     const g = state.grandma || {};
@@ -568,24 +619,20 @@ function makeToken(m){
     if(chips.length) grandmaHtml = `<div class="grandma-chips">${chips.join('')}</div>`;
   }
 
-  el.innerHTML = `${thoughtHtml}${badgeHtml}<div class="em">${m.emoji}</.classList.add('draggingdiv><div class="nm">${m.name}</div>${grandmaHtml}`;
+  el.innerHTML = `${thoughtHtml}${badgeHtml}<div class="em">${m.emoji}</div><div class="nm">${m.name}</div>${grandmaHtml}`;
 
   el.addEventListener('dragstart', e => {
     e.dataTransfer.setData('text/plain', m.id);
     e.dataTransfer.effectAllowed = 'move';
-    el');
+    el.classList.add('dragging');
     selected = null;
   });
   el.addEventListener('dragend', () => el.classList.remove('dragging'));
 
   el.addEventListener('click', e => {
     e.stopPropagation();
-    if(state.observationMode){
-      openEditor(m.id);
-    }else{
-      selected = (selected === m.id) ? null : m.id;
-      render();
-    }
+    if(state.observationMode) openEditor(m.id);
+    else { selected = (selected === m.id) ? null : m.id; render(); }
   });
 
   return el;
@@ -602,15 +649,13 @@ function render(){
     });
   });
 }
-
 function place(memberId, locId){
   if(!memberId || !locId) return;
   state.placements[memberId] = locId;
-  save();
-  render();
+  save(); render();
 }
 
-/* ══════════════ GRID: построение ══════════════ */
+/* ══════════════ GRID ══════════════ */
 function createLocCard(loc){
   const card = document.createElement('div');
   card.className = 'loc ' + (loc.cls || '') + (loc.isCustom ? ' custom' : '');
@@ -624,7 +669,10 @@ function createLocCard(loc){
     ${delBtn}
     <div class="loc-head">
       <span class="ico">${esc(loc.emoji)}</span>
-      <div>${esc(loc.name)}<span class="sub">${esc(loc.sub || '')}</span></div>
+      <div class="nm-wrap">
+        <span class="nm-title">${esc(loc.name)}</span>
+        <span class="sub">${esc(loc.sub || '')}</span>
+      </div>
     </div>
     <div class="zone" data-zone="${loc.id}"></div>
   `;
@@ -645,7 +693,6 @@ function createLocCard(loc){
     const id = e.dataTransfer.getData('text/plain');
     if(id) place(id, loc.id);
   });
-
   card.addEventListener('click', e => {
     if(selected){
       e.stopPropagation();
@@ -658,9 +705,7 @@ function createLocCard(loc){
   if(loc.isCustom){
     card.querySelector('.loc-del').addEventListener('click', e => {
       e.stopPropagation();
-      if(confirm(`Удалить «${loc.name}»?\nСмайлики из него вернутся по расписанию.`)){
-        deleteCustomLocation(loc.id);
-      }
+      if(confirm(`Удалить «${loc.name}»?`)) deleteCustomLocation(loc.id);
     });
   }
 
@@ -684,19 +729,17 @@ function rebuildGrid(){
   gridEl.innerHTML = '';
   getAllLocations().forEach(loc => gridEl.appendChild(createLocCard(loc)));
   gridEl.appendChild(createAddTile());
+  // после вставки — красим в шашечки
+  requestAnimationFrame(colorCheckerboard);
 }
 
 function deleteCustomLocation(locId){
   const plan = PLAN[getSlot(state.time)];
   MEMBERS.forEach(m => {
-    if(state.placements[m.id] === locId){
-      state.placements[m.id] = plan[m.id] || 'myhome';
-    }
+    if(state.placements[m.id] === locId) state.placements[m.id] = plan[m.id] || 'myhome';
   });
   state.customLocations = (state.customLocations || []).filter(c => c.id !== locId);
-  save();
-  rebuildGrid();
-  render();
+  save(); rebuildGrid(); render();
 }
 
 /* ══════════════ ЧАСЫ ══════════════ */
@@ -705,12 +748,10 @@ function updateClock(force){
   const m = Math.floor(state.time) % 1440;
   if(!force && m === lastShown) return;
   lastShown = m;
-
   const hh = String(Math.floor(m / 60)).padStart(2,'0');
   const mm = String(m % 60).padStart(2,'0');
   clockEl.textContent = `${hh}:${mm}`;
   progressEl.style.width = (m / 1440 * 100).toFixed(2) + '%';
-
   const slot = getSlot(state.time);
   phaseEl.textContent = slot === 'night' ? '🌙' : slot === 'day' ? '☀️' : '🌇';
 }
@@ -721,16 +762,12 @@ let lastFrame = performance.now();
 function loop(now){
   const dt = Math.min(now - lastFrame, 250);
   lastFrame = now;
-
   if(state.running){
     state.time += dt * MIN_PER_MS * state.speed;
     if(state.time >= 1440) state.time -= 1440;
-
     const slot = getSlot(state.time);
     if(slot !== state.slot){
-      applySchedule();
-      save();
-      render();
+      applySchedule(); save(); render();
     }
   }
   updateClock();
@@ -758,8 +795,7 @@ obsBtn.addEventListener('click', () => {
 document.querySelectorAll('.speed').forEach(btn => {
   btn.addEventListener('click', () => {
     state.speed = Number(btn.dataset.s);
-    document.querySelectorAll('.speed').forEach(b =>
-      b.classList.toggle('on', b === btn));
+    document.querySelectorAll('.speed').forEach(b => b.classList.toggle('on', b === btn));
     save();
   });
 });
@@ -768,20 +804,12 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   if(!confirm('Сбросить всё: время, места, параметры?')) return;
   localStorage.removeItem(KEY);
   state = defaultState();
-  selected = null;
-  editingMember = null;
-  playBtn.textContent = '▶';
-  playBtn.classList.remove('on');
+  selected = null; editingMember = null;
+  playBtn.textContent = '▶'; playBtn.classList.remove('on');
   obsBtn.classList.remove('on');
-  document.querySelectorAll('.speed').forEach(b =>
-    b.classList.toggle('on', b.dataset.s === '1'));
-  closeEditor();
-  closeAddLocation();
-  applySchedule();
-  rebuildGrid();
-  render();
-  updateClock(true);
-  save();
+  document.querySelectorAll('.speed').forEach(b => b.classList.toggle('on', b.dataset.s === '1'));
+  closeEditor(); closeAddLocation();
+  applySchedule(); rebuildGrid(); render(); updateClock(true); save();
 });
 
 /* ══════════════ МОДАЛКА КАНАЛ 2 ══════════════ */
@@ -791,16 +819,13 @@ function openEditor(memberId){
   editingMember = memberId;
   const m = MEMBERS.find(x => x.id === memberId);
   const c2 = getC2(memberId);
-
   document.getElementById('mEmoji').textContent = m.emoji;
   document.getElementById('mName').textContent = m.name;
-
   C2_KEYS.forEach(k => {
     document.getElementById('s-' + k).value = c2[k];
     document.getElementById('v-' + k).textContent = c2[k];
   });
   document.getElementById('f-thought').value = c2.thought || '';
-
   const gs = document.getElementById('grandmaSection');
   if(memberId === 'baba'){
     gs.style.display = 'flex';
@@ -808,29 +833,21 @@ function openEditor(memberId){
     document.getElementById('f-g-thoughts').value = g.thoughts || '';
     document.getElementById('f-g-feelings').value = g.feelings || '';
     document.getElementById('f-g-actions').value  = g.actions  || '';
-  }else{
-    gs.style.display = 'none';
-  }
-
+  }else{ gs.style.display = 'none'; }
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
 }
-
 function closeEditor(){
   editingMember = null;
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden', 'true');
 }
-
 function saveEditor(){
   if(!editingMember) return;
   const c = {};
-  C2_KEYS.forEach(k => {
-    c[k] = Number(document.getElementById('s-' + k).value) || 0;
-  });
+  C2_KEYS.forEach(k => { c[k] = Number(document.getElementById('s-' + k).value) || 0; });
   c.thought = (document.getElementById('f-thought').value || '').trim();
   state.c2[editingMember] = c;
-
   if(editingMember === 'baba'){
     state.grandma = {
       thoughts: (document.getElementById('f-g-thoughts').value || '').trim(),
@@ -838,17 +855,13 @@ function saveEditor(){
       actions:  (document.getElementById('f-g-actions').value  || '').trim()
     };
   }
-
-  save();
-  render();
+  save(); render();
 }
-
 C2_KEYS.forEach(k => {
   const slider = document.getElementById('s-' + k);
   const label  = document.getElementById('v-' + k);
   slider.addEventListener('input', () => { label.textContent = slider.value; });
 });
-
 document.getElementById('mClose').addEventListener('click', () => { saveEditor(); closeEditor(); });
 document.getElementById('mSave').addEventListener('click',  () => { saveEditor(); closeEditor(); });
 document.getElementById('mClear').addEventListener('click', () => {
@@ -863,7 +876,6 @@ document.getElementById('mClear').addEventListener('click', () => {
     document.getElementById('f-g-actions').value  = '';
   }
 });
-
 modal.addEventListener('click', e => {
   if(e.target === modal){ saveEditor(); closeEditor(); }
 });
@@ -878,13 +890,10 @@ const alPreview = document.getElementById('alPreview');
 let customCounter = Date.now();
 function genCustomId(){ return 'custom_' + (customCounter++); }
 
-// подсказки эмодзи
 const suggestWrap = document.getElementById('emojiSuggest');
 EMOJI_SUGGESTIONS.forEach(em => {
   const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'emoji-btn';
-  b.textContent = em;
+  b.type = 'button'; b.className = 'emoji-btn'; b.textContent = em;
   b.addEventListener('click', () => {
     alEmojiEl.value = em;
     alPreview.textContent = em || '📍';
@@ -892,31 +901,24 @@ EMOJI_SUGGESTIONS.forEach(em => {
   });
   suggestWrap.appendChild(b);
 });
-
 alEmojiEl.addEventListener('input', () => {
   alPreview.textContent = alEmojiEl.value.trim() || '📍';
 });
 
 function openAddLocation(){
-  alEmojiEl.value = '🏬';
-  alNameEl.value  = '';
-  alSubEl.value   = '';
+  alEmojiEl.value = '🏬'; alNameEl.value = ''; alSubEl.value = '';
   alPreview.textContent = '🏬';
-  document.querySelectorAll('.emoji-btn').forEach(b =>
-    b.classList.toggle('on', b.textContent === '🏬'));
+  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('on', b.textContent === '🏬'));
   addLocModal.classList.add('open');
   addLocModal.setAttribute('aria-hidden', 'false');
   setTimeout(() => alNameEl.focus(), 50);
 }
-
 function closeAddLocation(){
   addLocModal.classList.remove('open');
   addLocModal.setAttribute('aria-hidden', 'true');
 }
-
 document.getElementById('alClose').addEventListener('click', closeAddLocation);
 document.getElementById('alCancel').addEventListener('click', closeAddLocation);
-
 document.getElementById('alAdd').addEventListener('click', () => {
   const emoji = (alEmojiEl.value || '').trim() || '📍';
   const name  = (alNameEl.value  || '').trim();
@@ -927,27 +929,14 @@ document.getElementById('alAdd').addEventListener('click', () => {
     setTimeout(()=>{ alNameEl.style.borderColor = ''; }, 800);
     return;
   }
-
   state.customLocations = state.customLocations || [];
-  state.customLocations.push({
-    id: genCustomId(),
-    emoji,
-    name,
-    sub: sub || 'своё место',
-    cls: '',
-    isCustom: true
-  });
-  save();
-  rebuildGrid();
-  render();
-  closeAddLocation();
+  state.customLocations.push({ id: genCustomId(), emoji, name, sub: sub || 'своё место', cls:'', isCustom:true });
+  save(); rebuildGrid(); render(); closeAddLocation();
 });
-
 addLocModal.addEventListener('click', e => {
   if(e.target === addLocModal) closeAddLocation();
 });
 
-/* Esc */
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
   if(addLocModal.classList.contains('open')){ closeAddLocation(); return; }
@@ -958,14 +947,10 @@ document.addEventListener('keydown', e => {
 setInterval(save, 4000);
 window.addEventListener('beforeunload', save);
 
-if(!state.placements || !Object.keys(state.placements).length ||
-   state.slot !== getSlot(state.time)){
+if(!state.placements || !Object.keys(state.placements).length || state.slot !== getSlot(state.time)){
   applySchedule();
 }
-
-document.querySelectorAll('.speed').forEach(b =>
-  b.classList.toggle('on', Number(b.dataset.s) === state.speed));
-
+document.querySelectorAll('.speed').forEach(b => b.classList.toggle('on', Number(b.dataset.s) === state.speed));
 playBtn.textContent = state.running ? '⏸' : '▶';
 playBtn.classList.toggle('on', state.running);
 obsBtn.classList.toggle('on', state.observationMode);
