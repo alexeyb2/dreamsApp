@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Семья: Распорядок дня</title>
+<title>Семья: Распорядок дня · Канал 2</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -14,7 +14,6 @@
   }
   .wrap{max-width:1100px;margin:0 auto}
 
-  /* ── ШАПКА ── */
   header{
     background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.12);
@@ -56,11 +55,10 @@
   }
 
   .hint{
-    text-align:center;font-size:12.5px;opacity:.55;margin-bottom:14px;line-height:1.6;
+    text-align:center;font-size:12.5px;opacity:.55;margin-bottom:14px;line-height:1.7;
   }
   .hint b{opacity:.9;color:#c9b6ff}
 
-  /* ── ЛОКАЦИИ ── */
   .grid{
     display:grid;gap:14px;
     grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
@@ -70,11 +68,13 @@
     border:1px solid rgba(255,255,255,.12);
     border-radius:20px;padding:13px;
     display:flex;flex-direction:column;gap:10px;
-    min-height:150px;transition:.18s;position:relative;overflow:hidden;
+    min-height:150px;transition:.18s;position:relative;
+    /* overflow:hidden убран, чтобы бейджи/пузыри не обрезались */
   }
   .loc::before{
     content:'';position:absolute;inset:0;opacity:0;transition:.2s;pointer-events:none;
     background:radial-gradient(circle at 50% 0%,rgba(160,120,255,.25),transparent 70%);
+    border-radius:inherit;
   }
   .loc:hover::before{opacity:1}
   .loc.dragover{
@@ -100,6 +100,7 @@
   }
 
   .tok{
+    position:relative;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     padding:7px 9px;border-radius:15px;
     background:rgba(255,255,255,.10);
@@ -119,8 +120,91 @@
     transform:scale(1.08);
   }
 
+  /* ── КАНАЛ 2: бейдж и пузырь мысли ── */
+  .tok .c2badge{
+    position:absolute;top:-7px;right:-7px;
+    min-width:18px;height:18px;padding:0 4px;
+    border-radius:9px;font-size:10px;font-weight:800;color:#0a0616;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(255,255,255,.35);
+    box-shadow:0 2px 6px rgba(0,0,0,.5);pointer-events:none;
+  }
+  .tok .thought{
+    position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+    font-size:11px;line-height:1;white-space:nowrap;
+    background:rgba(10,6,22,.85);border:1px solid rgba(160,120,255,.4);
+    padding:2px 6px;border-radius:9px;pointer-events:none;
+    max-width:90px;overflow:hidden;text-overflow:ellipsis;
+    box-shadow:0 2px 8px rgba(0,0,0,.5);
+  }
+
   footer{
     text-align:center;font-size:11.5px;opacity:.4;margin-top:22px;padding-bottom:10px;
+  }
+
+  /* ── МОДАЛКА ── */
+  .modal{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(5,3,15,.78);backdrop-filter:blur(6px);z-index:100;padding:16px;
+  }
+  .modal.open{display:flex}
+  .modal-card{
+    width:100%;max-width:440px;max-height:90vh;overflow:auto;
+    background:linear-gradient(160deg,#241a44,#140e2a);
+    border:1px solid rgba(160,120,255,.35);
+    border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.6);
+    animation:pop .2s ease;
+  }
+  .modal-head{
+    display:flex;align-items:center;gap:12px;padding:16px 18px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .modal-emoji{font-size:34px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.5))}
+  .modal-name{font-size:18px;font-weight:800}
+  .modal-sub{font-size:11px;opacity:.5;margin-top:2px}
+  .modal-close{
+    margin-left:auto;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.15);border-radius:10px;
+    width:32px;height:32px;color:#eae6ff;font-size:14px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .modal-body{padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+  .param{display:flex;flex-direction:column;gap:6px}
+  .param-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600}
+  .param-val{
+    font-variant-numeric:tabular-nums;
+    background:rgba(160,120,255,.25);border:1px solid rgba(160,120,255,.4);
+    padding:1px 8px;border-radius:8px;font-size:12px;min-width:26px;text-align:center;
+  }
+  .param input[type=range]{
+    width:100%;height:6px;border-radius:99px;appearance:none;-webkit-appearance:none;
+    background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
+    outline:none;cursor:pointer;
+  }
+  .param input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:2px solid #a06bff;box-shadow:0 0 10px rgba(160,107,255,.8);
+    cursor:grab;
+  }
+  .param input[type=range]::-moz-range-thumb{
+    width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid #a06bff;
+    cursor:grab;
+  }
+  .param.thought input[type=text]{
+    width:100%;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.18);border-radius:12px;
+    padding:9px 12px;color:#eae6ff;font-size:14px;font-family:inherit;
+    outline:none;transition:.15s;
+  }
+  .param.thought input[type=text]:focus{border-color:#a06bff;background:rgba(255,255,255,.1)}
+  .modal-foot{
+    display:flex;gap:10px;padding:14px 18px;
+    border-top:1px solid rgba(255,255,255,.08);
+  }
+  .modal-foot button{flex:1}
+  .modal-foot .primary{
+    background:linear-gradient(180deg,#8b6bff,#6a45e0);
+    border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.5);
   }
 </style>
 </head>
@@ -137,6 +221,7 @@
       <button class="speed" data-s="1">×1</button>
       <button class="speed" data-s="5">×5</button>
       <button class="speed" data-s="20">×20</button>
+      <button id="obsBtn" title="Режим наблюдения за Каналом 2">📝</button>
       <button id="resetBtn">🔄 Сброс</button>
     </div>
     <div class="bar"><div id="progress"></div></div>
@@ -144,12 +229,58 @@
 
   <div class="hint">
     Перетаскивай смайликов мышкой (или <b>тапни смайлика → тапни по дому</b>).<br>
+    <b>📝</b> — режим наблюдения: тап по смайлику → параметры Канала 2 + «💭 о чём думает».<br>
+    Бейдж на смайлике = средний уровень Канала 2 (0–10). Это <b>наблюдение, не оценка</b>.<br>
     <b>7:00–17:00</b> работа и садик · <b>17:00–21:00</b> дома · <b>21:00–7:00</b> сон 😴
   </div>
 
   <div class="grid" id="grid"></div>
 
-  <footer>Прогресс сохраняется автоматически в localStorage 💾</footer>
+  <footer>Прогресс и параметры сохраняются в localStorage 💾</footer>
+</div>
+
+<!-- Модалка Канала 2 -->
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-emoji" id="mEmoji">🥳</div>
+      <div>
+        <div class="modal-name" id="mName">Я</div>
+        <div class="modal-sub">Канал 2 · наблюдение</div>
+      </div>
+      <button class="modal-close" id="mClose" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="param">
+        <div class="param-row"><span>🗣️ Суждение</span><span class="param-val" id="v-judgment">0</span></div>
+        <input type="range" min="0" max="10" value="0" id="s-judgment">
+      </div>
+      <div class="param">
+        <div class="param-row"><span>⚖️ Оценка</span><span class="param-val" id="v-evaluation">0</span></div>
+        <input type="range" min="0" max="10" value="0" id="s-evaluation">
+      </div>
+      <div class="param">
+        <div class="param-row"><span>📖 Нарратив</span><span class="param-val" id="v-narrative">0</span></div>
+        <input type="range" min="0" max="10" value="0" id="s-narrative">
+      </div>
+      <div class="param">
+        <div class="param-row"><span>🔁 Руминация</span><span class="param-val" id="v-rumination">0</span></div>
+        <input type="range" min="0" max="10" value="0" id="s-rumination">
+      </div>
+      <div class="param">
+        <div class="param-row"><span>🎛️ Контроль</span><span class="param-val" id="v-control">0</span></div>
+        <input type="range" min="0" max="10" value="0" id="s-control">
+      </div>
+      <div class="param thought">
+        <div class="param-row"><span>💭 О чём думает</span></div>
+        <input type="text" id="f-thought" placeholder="🚌, 💰, 💼, 👩…" maxlength="20">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button id="mClear" type="button">Очистить</button>
+      <button id="mSave" type="button" class="primary">Готово</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -172,10 +303,12 @@ const LOCATIONS = [
   { id:'sleep',    emoji:'🛏️', name:'Сон',                sub:'21:00 – 7:00', cls:'sleep' },
 ];
 
+const C2_KEYS = ['judgment','evaluation','narrative','rumination','control'];
+
 const KEY = 'family-schedule-game-v1';
-const DAY_START = 420;   // 07:00
-const WORK_END  = 1020;  // 17:00
-const SLEEP     = 1260;  // 21:00
+const DAY_START = 420;
+const WORK_END  = 1020;
+const SLEEP     = 1260;
 
 /* ══════════════ СОСТОЯНИЕ ══════════════ */
 const defaultState = () => ({
@@ -183,7 +316,9 @@ const defaultState = () => ({
   speed: 1,
   running: false,
   slot: null,
-  placements: {}
+  placements: {},
+  c2: {},               // { memberId: {judgment,evaluation,narrative,rumination,control,thought} }
+  observationMode: false
 });
 
 function loadState(){
@@ -198,12 +333,13 @@ function loadState(){
 
 let state = loadState() || defaultState();
 let selected = null;
+let editingMember = null;
 
 /* ══════════════ РАСПИСАНИЕ ══════════════ */
 function getSlot(min){
-  if(min >= DAY_START && min < WORK_END) return 'day';      // 7–17
-  if(min >= WORK_END  && min < SLEEP)    return 'evening';  // 17–21
-  return 'night';                                            // 21–7
+  if(min >= DAY_START && min < WORK_END) return 'day';
+  if(min >= WORK_END  && min < SLEEP)    return 'evening';
+  return 'night';
 }
 
 const PLAN = {
@@ -221,6 +357,33 @@ function applySchedule(){
 /* ══════════════ СОХРАНЕНИЕ ══════════════ */
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+}
+
+/* ══════════════ C2 HELPERS ══════════════ */
+function getC2(memberId){
+  const c = state.c2[memberId] || {};
+  return {
+    judgment:   c.judgment   || 0,
+    evaluation: c.evaluation || 0,
+    narrative:  c.narrative  || 0,
+    rumination: c.rumination || 0,
+    control:    c.control    || 0,
+    thought:    c.thought    || ''
+  };
+}
+
+function c2Average(c){
+  const sum = C2_KEYS.reduce((s,k)=>s + (c[k]||0), 0);
+  return sum / C2_KEYS.length;
+}
+
+function c2Color(avg){
+  if(avg <= 0.5) return null; // не показывать
+  if(avg <= 2)   return 'rgba(100,180,255,0.9)';
+  if(avg <= 4)   return 'rgba(100,220,150,0.9)';
+  if(avg <= 6)   return 'rgba(255,220,100,0.95)';
+  if(avg <= 8)   return 'rgba(255,150,80,0.95)';
+  return 'rgba(255,80,80,0.98)';
 }
 
 /* ══════════════ ПОСТРОЕНИЕ DOM ══════════════ */
@@ -244,7 +407,6 @@ LOCATIONS.forEach(loc => {
 
   const zone = card.querySelector('.zone');
 
-  /* drag & drop */
   card.addEventListener('dragover', e => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -260,7 +422,6 @@ LOCATIONS.forEach(loc => {
     if(id) place(id, loc.id);
   });
 
-  /* тап-режим */
   card.addEventListener('click', e => {
     if(selected){
       e.stopPropagation();
@@ -271,12 +432,28 @@ LOCATIONS.forEach(loc => {
   zone.addEventListener('click', e => e.stopPropagation());
 });
 
-/* ══════════════ ТОКЕН СМАЙЛИКА ══════════════ */
+/* ══════════════ ТОКЕН ══════════════ */
 function makeToken(m){
+  const c2 = getC2(m.id);
+  const avg = c2Average(c2);
+  const badgeColor = c2Color(avg);
+
   const el = document.createElement('div');
   el.className = 'tok' + (selected === m.id ? ' sel' : '');
   el.draggable = true;
-  el.innerHTML = `<div class="em">${m.emoji}</div><div class="nm">${m.name}</div>`;
+
+  let badgeHtml = '';
+  if(badgeColor){
+    const display = Math.round(avg * 10) / 10;
+    badgeHtml = `<div class="c2badge" style="background:${badgeColor}" title="Средний Канал 2: ${display}/10">${display}</div>`;
+  }
+
+  let thoughtHtml = '';
+  if(c2.thought && c2.thought.trim()){
+    thoughtHtml = `<div class="thought" title="${c2.thought.trim()}">💭 ${c2.thought.trim()}</div>`;
+  }
+
+  el.innerHTML = `${thoughtHtml}${badgeHtml}<div class="em">${m.emoji}</div><div class="nm">${m.name}</div>`;
 
   el.addEventListener('dragstart', e => {
     e.dataTransfer.setData('text/plain', m.id);
@@ -288,8 +465,12 @@ function makeToken(m){
 
   el.addEventListener('click', e => {
     e.stopPropagation();
-    selected = (selected === m.id) ? null : m.id;
-    render();
+    if(state.observationMode){
+      openEditor(m.id);
+    }else{
+      selected = (selected === m.id) ? null : m.id;
+      render();
+    }
   });
 
   return el;
@@ -330,7 +511,7 @@ function updateClock(force){
 }
 
 /* ══════════════ ИГРОВОЙ ЦИКЛ ══════════════ */
-const MIN_PER_MS = 1 / 200;  // 1 игровая минута за 200 мс при ×1
+const MIN_PER_MS = 1 / 200;
 
 let lastFrame = performance.now();
 function loop(now){
@@ -354,6 +535,7 @@ function loop(now){
 
 /* ══════════════ КНОПКИ ══════════════ */
 const playBtn = document.getElementById('playBtn');
+const obsBtn  = document.getElementById('obsBtn');
 
 playBtn.addEventListener('click', () => {
   state.running = !state.running;
@@ -362,10 +544,20 @@ playBtn.addEventListener('click', () => {
   save();
 });
 
+obsBtn.addEventListener('click', () => {
+  state.observationMode = !state.observationMode;
+  obsBtn.classList.toggle('on', state.observationMode);
+  if(state.observationMode){
+    selected = null;
+    render();
+  }
+  save();
+});
+
 document.querySelectorAll('.speed').forEach(btn => {
   btn.addEventListener('click', () => {
     state.speed = Number(btn.dataset.s);
-    document.querySelectorAll('.speed').forEach(b =>
+Member    document.querySelectorAll('.speed').forEach(b =>
       b.classList.toggle('on', b === btn));
     save();
   });
@@ -375,21 +567,102 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   localStorage.removeItem(KEY);
   state = defaultState();
   selected = null;
+  editing = null;
   playBtn.textContent = '▶';
   playBtn.classList.remove('on');
+  obsBtn.classList.remove('on');
   document.querySelectorAll('.speed').forEach(b =>
     b.classList.toggle('on', b.dataset.s === '1'));
+  closeEditor();
   applySchedule();
   render();
   updateClock(true);
   save();
 });
 
-/* периодическое автосохранение */
+/* ══════════════ МОДАЛКА КАНАЛ 2 ══════════════ */
+const modal = document.getElementById('modal');
+
+function openEditor(memberId){
+  editingMember = memberId;
+  const m = MEMBERS.find(x => x.id === memberId);
+  const c2 = getC2(memberId);
+
+  document.getElementById('mEmoji').textContent = m.emoji;
+  document.getElementById('mName').textContent = m.name;
+
+  C2_KEYS.forEach(k => {
+    document.getElementById('s-' + k).value = c2[k];
+    document.getElementById('v-' + k).textContent = c2[k];
+  });
+  document.getElementById('f-thought').value = c2.thought || '';
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeEditor(){
+  editingMember = null;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function saveEditor(){
+  if(!editingMember) return;
+  const c = {};
+  C2_KEYS.forEach(k => {
+    c[k] = Number(document.getElementById('s-' + k).value) || 0;
+  });
+  c.thought = (document.getElementById('f-thought').value || '').trim();
+  state.c2[editingMember] = c;
+  save();
+  render();
+}
+
+C2_KEYS.forEach(k => {
+  const slider = document.getElementById('s-' + k);
+  const label  = document.getElementById('v-' + k);
+  slider.addEventListener('input', () => {
+    label.textContent = slider.value;
+  });
+});
+
+document.getElementById('mClose').addEventListener('click', () => {
+  saveEditor();
+  closeEditor();
+});
+
+document.getElementById('mSave').addEventListener('click', () => {
+  saveEditor();
+  closeEditor();
+});
+
+document.getElementById('mClear').addEventListener('click', () => {
+  C2_KEYS.forEach(k => {
+    document.getElementById('s-' + k).value = 0;
+    document.getElementById('v-' + k).textContent = 0;
+  });
+  document.getElementById('f-thought').value = '';
+});
+
+modal.addEventListener('click', e => {
+  if(e.target === modal){
+    saveEditor();
+    closeEditor();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && modal.classList.contains('open')){
+    saveEditor();
+    closeEditor();
+  }
+});
+
+/* ══════════════ СТАРТ ══════════════ */
 setInterval(save, 4000);
 window.addEventListener('beforeunload', save);
 
-/* ══════════════ СТАРТ ══════════════ */
 if(!state.placements || !Object.keys(state.placements).length ||
    state.slot !== getSlot(state.time)){
   applySchedule();
@@ -400,6 +673,7 @@ document.querySelectorAll('.speed').forEach(b =>
 
 playBtn.textContent = state.running ? '⏸' : '▶';
 playBtn.classList.toggle('on', state.running);
+obsBtn.classList.toggle('on', state.observationMode);
 
 render();
 updateClock(true);
