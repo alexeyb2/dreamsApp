@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Семья: Распорядок дня · Канал 2</title>
+<title>Семья: Распорядок дня · Канал 2 + Кастомные места</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -69,7 +69,6 @@
     border-radius:20px;padding:13px;
     display:flex;flex-direction:column;gap:10px;
     min-height:150px;transition:.18s;position:relative;
-    /* overflow:hidden убран, чтобы бейджи/пузыри не обрезались */
   }
   .loc::before{
     content:'';position:absolute;inset:0;opacity:0;transition:.2s;pointer-events:none;
@@ -83,10 +82,38 @@
   }
   .loc.sleep{background:linear-gradient(160deg,rgba(70,60,140,.35),rgba(20,15,50,.4))}
   .loc.work{background:linear-gradient(160deg,rgba(255,170,80,.11),rgba(255,255,255,.015))}
+  .loc.custom{background:linear-gradient(160deg,rgba(90,220,190,.12),rgba(255,255,255,.015))}
 
-  .loc-head{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700}
+  .loc-head{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700;padding-right:26px}
   .loc-head .ico{font-size:22px;line-height:1}
   .loc-head .sub{font-size:10.5px;font-weight:500;opacity:.5;display:block;margin-top:2px}
+
+  .loc-del{
+    position:absolute;top:8px;right:8px;
+    width:22px;height:22px;padding:0;font-size:11px;
+    background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.4);
+    color:#ff9999;border-radius:8px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    z-index:2;opacity:.6;transition:.15s;
+  }
+  .loc-del:hover{opacity:1;background:rgba(255,80,80,.3);transform:none}
+
+  /* ➕ плитка */
+  .add-loc{
+    border:2px dashed rgba(160,120,255,.4);
+    background:linear-gradient(160deg,rgba(139,107,255,.08),rgba(255,255,255,.01));
+    align-items:center;justify-content:center;cursor:pointer;
+    transition:.2s;
+  }
+  .add-loc:hover{
+    border-color:#a68bff;
+    background:linear-gradient(160deg,rgba(139,107,255,.18),rgba(255,255,255,.02));
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(139,107,255,.3);
+  }
+  .add-inner{display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+  .add-plus{font-size:36px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.7))}
+  .add-text{font-size:12.5px;font-weight:600;opacity:.7;letter-spacing:.3px}
 
   .zone{
     display:flex;flex-wrap:wrap;gap:7px;min-height:74px;
@@ -120,7 +147,7 @@
     transform:scale(1.08);
   }
 
-  /* ── КАНАЛ 2: бейдж и пузырь мысли ── */
+  /* бейдж Канала 2 */
   .tok .c2badge{
     position:absolute;top:-7px;right:-7px;
     min-width:18px;height:18px;padding:0 4px;
@@ -138,11 +165,27 @@
     box-shadow:0 2px 8px rgba(0,0,0,.5);
   }
 
+  /* чипы бабушки */
+  .grandma-chips{
+    display:flex;flex-direction:column;gap:2px;margin-top:5px;
+    max-width:100%;
+  }
+  .g-chip{
+    font-size:8.5px;line-height:1.2;
+    background:rgba(160,120,255,.22);border:1px solid rgba(160,120,255,.4);
+    border-radius:6px;padding:1px 4px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:82px;
+    pointer-events:none;
+  }
+  .g-chip.thoughts{background:rgba(100,180,255,.22);border-color:rgba(100,180,255,.4)}
+  .g-chip.feelings{background:rgba(255,120,200,.22);border-color:rgba(255,120,200,.4)}
+  .g-chip.actions {background:rgba(120,220,140,.22);border-color:rgba(120,220,140,.4)}
+
   footer{
     text-align:center;font-size:11.5px;opacity:.4;margin-top:22px;padding-bottom:10px;
   }
 
-  /* ── МОДАЛКА ── */
+  /* ── МОДАЛКИ ── */
   .modal{
     position:fixed;inset:0;display:none;align-items:center;justify-content:center;
     background:rgba(5,3,15,.78);backdrop-filter:blur(6px);z-index:100;padding:16px;
@@ -190,13 +233,13 @@
     width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid #a06bff;
     cursor:grab;
   }
-  .param.thought input[type=text]{
+  .param input[type=text]{
     width:100%;background:rgba(255,255,255,.06);
     border:1px solid rgba(255,255,255,.18);border-radius:12px;
     padding:9px 12px;color:#eae6ff;font-size:14px;font-family:inherit;
     outline:none;transition:.15s;
   }
-  .param.thought input[type=text]:focus{border-color:#a06bff;background:rgba(255,255,255,.1)}
+  .param input[type=text]:focus{border-color:#a06bff;background:rgba(255,255,255,.1)}
   .modal-foot{
     display:flex;gap:10px;padding:14px 18px;
     border-top:1px solid rgba(255,255,255,.08);
@@ -206,6 +249,30 @@
     background:linear-gradient(180deg,#8b6bff,#6a45e0);
     border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.5);
   }
+
+  /* секция бабушки */
+  .grandma-section{
+    display:none;flex-direction:column;gap:10px;
+    padding:12px;border-radius:16px;
+    background:linear-gradient(160deg,rgba(255,120,200,.10),rgba(160,120,255,.06));
+    border:1px solid rgba(255,120,200,.25);
+  }
+  .grandma-title{
+    font-size:12.5px;font-weight:800;letter-spacing:.4px;
+    color:#ffc0e8;margin-bottom:2px;
+  }
+  .grandma-section .param-row span:first-child{font-size:12.5px;opacity:.9}
+
+  /* эмодзи-подсказки */
+  .emoji-suggest{display:flex;flex-wrap:wrap;gap:6px}
+  .emoji-btn{
+    width:34px;height:34px;padding:0;font-size:20px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);
+    border-radius:10px;cursor:pointer;transition:.15s;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .emoji-btn:hover{background:rgba(255,255,255,.15);transform:translateY(-1px)}
+  .emoji-btn.on{background:rgba(139,107,255,.4);border-color:#a68bff;box-shadow:0 0 10px rgba(139,107,255,.5)}
 </style>
 </head>
 <body>
@@ -229,17 +296,18 @@
 
   <div class="hint">
     Перетаскивай смайликов мышкой (или <b>тапни смайлика → тапни по дому</b>).<br>
-    <b>📝</b> — режим наблюдения: тап по смайлику → параметры Канала 2 + «💭 о чём думает».<br>
+    <b>➕</b> — добавить своё место (🏬 магазин, 🏥 больница, 🎬 кино…).<br>
+    <b>📝</b> — режим наблюдения: тап по смайлику → параметры Канала 2. У <b>🤩 бабушки</b> ещё и 💭 Мысли / 💗 Чувства / 🏃 Действия.<br>
     Бейдж на смайлике = средний уровень Канала 2 (0–10). Это <b>наблюдение, не оценка</b>.<br>
     <b>7:00–17:00</b> работа и садик · <b>17:00–21:00</b> дома · <b>21:00–7:00</b> сон 😴
   </div>
 
   <div class="grid" id="grid"></div>
 
-  <footer>Прогресс и параметры сохраняются в localStorage 💾</footer>
+  <footer>Прогресс, места и параметры сохраняются в localStorage 💾</footer>
 </div>
 
-<!-- Модалка Канала 2 -->
+<!-- Модалка Канала 2 (+ бабушка) -->
 <div class="modal" id="modal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
@@ -271,9 +339,26 @@
         <div class="param-row"><span>🎛️ Контроль</span><span class="param-val" id="v-control">0</span></div>
         <input type="range" min="0" max="10" value="0" id="s-control">
       </div>
-      <div class="param thought">
+      <div class="param">
         <div class="param-row"><span>💭 О чём думает</span></div>
         <input type="text" id="f-thought" placeholder="🚌, 💰, 💼, 👩…" maxlength="20">
+      </div>
+
+      <!-- 🤩 Внутренний мир бабушки -->
+      <div class="grandma-section" id="grandmaSection">
+        <div class="grandma-title">🤩 Внутренний мир бабушки</div>
+        <div class="param">
+          <div class="param-row"><span>💭 Мысли</span></div>
+          <input type="text" id="f-g-thoughts" maxlength="40" placeholder="о чём думает…">
+        </div>
+        <div class="param">
+          <div class="param-row"><span>💗 Чувства</span></div>
+          <input type="text" id="f-g-feelings" maxlength="40" placeholder="что чувствует…">
+        </div>
+        <div class="param">
+          <div class="param-row"><span>🏃 Действия</span></div>
+          <input type="text" id="f-g-actions" maxlength="40" placeholder="что делает…">
+        </div>
       </div>
     </div>
     <div class="modal-foot">
@@ -283,29 +368,64 @@
   </div>
 </div>
 
+<!-- Модалка «Добавить место» -->
+<div class="modal" id="addLocModal" aria-hidden="true">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-emoji" id="alPreview">🏬</div>
+      <div>
+        <div class="modal-name">Новое место</div>
+        <div class="modal-sub">Добавить локацию на поле</div>
+      </div>
+      <button class="modal-close" id="alClose" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="param">
+        <div class="param-row"><span>Эмодзи</span></div>
+        <div class="emoji-suggest" id="emojiSuggest"></div>
+        <input type="text" id="alEmoji" placeholder="🏬 или вставь своё" maxlength="6">
+      </div>
+      <div class="param">
+        <div class="param-row"><span>Название</span></div>
+        <input type="text" id="alName" placeholder="например, Магазин" maxlength="30">
+      </div>
+      <div class="param">
+        <div class="param-row"><span>Подпись (опционально)</span></div>
+        <input type="text" id="alSub" placeholder="например, магазин у дома" maxlength="30">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button id="alCancel" type="button">Отмена</button>
+      <button id="alAdd" type="button" class="primary">Добавить</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ══════════════ ДАННЫЕ ══════════════ */
 const MEMBERS = [
-  { id:'me',   emoji:'🥳',          name:'Я' },
-  { id:'vika', emoji:'😘',          name:'Вика' },
-  { id:'papa', emoji:'😍',          name:'Папа' },
-  { id:'mama', emoji:'🥰',          name:'Мама' },
-  { id:'baba', emoji:'🤩',          name:'Бабушка' },
-  { id:'ded',  emoji:'😶‍🌫️',        name:'Дедушка' },
+  { id:'me',   emoji:'🥳',  name:'Я' },
+  { id:'vika', emoji:'😘',  name:'Вика' },
+  { id:'papa', emoji:'😍',  name:'Папа' },
+  { id:'mama', emoji:'🥰',  name:'Мама' },
+  { id:'baba', emoji:'🤩',  name:'Бабушка' },
+  { id:'ded',  emoji:'😶‍🌫️', name:'Дедушка' },
 ];
 
-const LOCATIONS = [
-  { id:'myhome',   emoji:'🏡', name:'Мой дом',            sub:'дом',        cls:'' },
-  { id:'vikahome', emoji:'🏠', name:'Викин дом',          sub:'дом',        cls:'' },
-  { id:'work1',    emoji:'🏢', name:'Работа папы и мамы', sub:'10 ч в день', cls:'work' },
-  { id:'work2',    emoji:'🏬', name:'Работа бабушки и дедушки', sub:'10 ч в день', cls:'work' },
-  { id:'sad',      emoji:'🏩', name:'Викин садик',        sub:'10 ч в день', cls:'work' },
-  { id:'sleep',    emoji:'🛏️', name:'Сон',                sub:'21:00 – 7:00', cls:'sleep' },
+const BASE_LOCATIONS = [
+  { id:'myhome',   emoji:'🏡', name:'Мой дом',                 sub:'дом',         cls:'' },
+  { id:'vikahome', emoji:'🏠', name:'Викин дом',               sub:'дом',         cls:'' },
+  { id:'work1',    emoji:'🏢', name:'Работа папы и мамы',      sub:'10 ч в день', cls:'work' },
+  { id:'work2',    emoji:'🏬', name:'Работа бабушки и дедушки',sub:'10 ч в день', cls:'work' },
+  { id:'sad',      emoji:'🏩', name:'Викин садик',             sub:'10 ч в день', cls:'work' },
+  { id:'sleep',    emoji:'🛏️', name:'Сон',                     sub:'21:00 – 7:00',cls:'sleep' },
 ];
+
+const EMOJI_SUGGESTIONS = ['🏬','🏥','🎬','🏫','🏪','🎮','🌳','🏖️','🎪','📚','🍔','⛽','🏦','🎨','🏛️'];
 
 const C2_KEYS = ['judgment','evaluation','narrative','rumination','control'];
 
-const KEY = 'family-schedule-game-v1';
+const KEY = 'family-schedule-game-v2';
 const DAY_START = 420;
 const WORK_END  = 1020;
 const SLEEP     = 1260;
@@ -317,7 +437,9 @@ const defaultState = () => ({
   running: false,
   slot: null,
   placements: {},
-  c2: {},               // { memberId: {judgment,evaluation,narrative,rumination,control,thought} }
+  c2: {},
+  customLocations: [],
+  grandma: { thoughts:'', feelings:'', actions:'' },
   observationMode: false
 });
 
@@ -335,6 +457,20 @@ let state = loadState() || defaultState();
 let selected = null;
 let editingMember = null;
 
+/* ══════════════ ХЕЛПЕРЫ ══════════════ */
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function getAllLocations(){
+  return [...BASE_LOCATIONS, ...(state.customLocations || [])];
+}
+
+function isCustomLocation(id){
+  return (state.customLocations || []).some(c => c.id === id);
+}
+
 /* ══════════════ РАСПИСАНИЕ ══════════════ */
 function getSlot(min){
   if(min >= DAY_START && min < WORK_END) return 'day';
@@ -350,7 +486,17 @@ const PLAN = {
 
 function applySchedule(){
   const plan = PLAN[getSlot(state.time)];
-  state.placements = { ...plan };
+  const next = {};
+  MEMBERS.forEach(m => {
+    const cur = state.placements[m.id];
+    // смайликов в кастомных местах не дёргаем
+    if(cur && isCustomLocation(cur)){
+      next[m.id] = cur;
+    }else{
+      next[m.id] = plan[m.id] || cur || 'myhome';
+    }
+  });
+  state.placements = next;
   state.slot = getSlot(state.time);
 }
 
@@ -373,12 +519,11 @@ function getC2(memberId){
 }
 
 function c2Average(c){
-  const sum = C2_KEYS.reduce((s,k)=>s + (c[k]||0), 0);
-  return sum / C2_KEYS.length;
+  return C2_KEYS.reduce((s,k)=>s + (c[k]||0), 0) / C2_KEYS.length;
 }
 
 function c2Color(avg){
-  if(avg <= 0.5) return null; // не показывать
+  if(avg <= 0.5) return null;
   if(avg <= 2)   return 'rgba(100,180,255,0.9)';
   if(avg <= 4)   return 'rgba(100,220,150,0.9)';
   if(avg <= 6)   return 'rgba(255,220,100,0.95)';
@@ -386,24 +531,103 @@ function c2Color(avg){
   return 'rgba(255,80,80,0.98)';
 }
 
-/* ══════════════ ПОСТРОЕНИЕ DOM ══════════════ */
+/* ══════════════ DOM ══════════════ */
 const gridEl     = document.getElementById('grid');
 const clockEl    = document.getElementById('clock');
 const phaseEl    = document.getElementById('phase');
 const progressEl = document.getElementById('progress');
 
-LOCATIONS.forEach(loc => {
+/* ══════════════ ТОКЕН ══════════════ */
+function makeToken(m){
+  const c2 = getC2(m.id);
+  const avg = c2Average(c2);
+  const badgeColor = c2Color(avg);
+
+  const el = document.createElement('div');
+  el.className = 'tok' + (selected === m.id ? ' sel' : '');
+  el.draggable = true;
+
+  let badgeHtml = '';
+  if(badgeColor){
+    const display = Math.round(avg * 10) / 10;
+    badgeHtml = `<div class="c2badge" style="background:${badgeColor}" title="Средний Канал 2: ${display}/10">${display}</div>`;
+  }
+
+  let thoughtHtml = '';
+  if(c2.thought && c2.thought.trim()){
+    thoughtHtml = `<div class="thought" title="${esc(c2.thought)}">💭 ${esc(c2.thought)}</div>`;
+  }
+
+  let grandmaHtml = '';
+  if(m.id === 'baba'){
+    const g = state.grandma || {};
+    const chips = [];
+    if(g.thoughts) chips.push(`<span class="g-chip thoughts" title="Мысли: ${esc(g.thoughts)}">💭 ${esc(g.thoughts)}</span>`);
+    if(g.feelings) chips.push(`<span class="g-chip feelings" title="Чувства: ${esc(g.feelings)}">💗 ${esc(g.feelings)}</span>`);
+    if(g.actions)  chips.push(`<span class="g-chip actions"  title="Действия: ${esc(g.actions)}">🏃 ${esc(g.actions)}</span>`);
+    if(chips.length) grandmaHtml = `<div class="grandma-chips">${chips.join('')}</div>`;
+  }
+
+  el.innerHTML = `${thoughtHtml}${badgeHtml}<div class="em">${m.emoji}</.classList.add('draggingdiv><div class="nm">${m.name}</div>${grandmaHtml}`;
+
+  el.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', m.id);
+    e.dataTransfer.effectAllowed = 'move';
+    el');
+    selected = null;
+  });
+  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    if(state.observationMode){
+      openEditor(m.id);
+    }else{
+      selected = (selected === m.id) ? null : m.id;
+      render();
+    }
+  });
+
+  return el;
+}
+
+/* ══════════════ РЕНДЕР ══════════════ */
+function render(){
+  getAllLocations().forEach(loc => {
+    const zone = document.querySelector(`[data-zone="${loc.id}"]`);
+    if(!zone) return;
+    zone.innerHTML = '';
+    MEMBERS.forEach(m => {
+      if(state.placements[m.id] === loc.id) zone.appendChild(makeToken(m));
+    });
+  });
+}
+
+function place(memberId, locId){
+  if(!memberId || !locId) return;
+  state.placements[memberId] = locId;
+  save();
+  render();
+}
+
+/* ══════════════ GRID: построение ══════════════ */
+function createLocCard(loc){
   const card = document.createElement('div');
-  card.className = 'loc ' + loc.cls;
+  card.className = 'loc ' + (loc.cls || '') + (loc.isCustom ? ' custom' : '');
   card.dataset.loc = loc.id;
+
+  const delBtn = loc.isCustom
+    ? `<button class="loc-del" type="button" title="Удалить место">✕</button>`
+    : '';
+
   card.innerHTML = `
+    ${delBtn}
     <div class="loc-head">
-      <span class="ico">${loc.emoji}</span>
-      <div>${loc.name}<span class="sub">${loc.sub}</span></div>
+      <span class="ico">${esc(loc.emoji)}</span>
+      <div>${esc(loc.name)}<span class="sub">${esc(loc.sub || '')}</span></div>
     </div>
     <div class="zone" data-zone="${loc.id}"></div>
   `;
-  gridEl.appendChild(card);
 
   const zone = card.querySelector('.zone');
 
@@ -430,67 +654,48 @@ LOCATIONS.forEach(loc => {
     }
   });
   zone.addEventListener('click', e => e.stopPropagation());
-});
 
-/* ══════════════ ТОКЕН ══════════════ */
-function makeToken(m){
-  const c2 = getC2(m.id);
-  const avg = c2Average(c2);
-  const badgeColor = c2Color(avg);
-
-  const el = document.createElement('div');
-  el.className = 'tok' + (selected === m.id ? ' sel' : '');
-  el.draggable = true;
-
-  let badgeHtml = '';
-  if(badgeColor){
-    const display = Math.round(avg * 10) / 10;
-    badgeHtml = `<div class="c2badge" style="background:${badgeColor}" title="Средний Канал 2: ${display}/10">${display}</div>`;
+  if(loc.isCustom){
+    card.querySelector('.loc-del').addEventListener('click', e => {
+      e.stopPropagation();
+      if(confirm(`Удалить «${loc.name}»?\nСмайлики из него вернутся по расписанию.`)){
+        deleteCustomLocation(loc.id);
+      }
+    });
   }
 
-  let thoughtHtml = '';
-  if(c2.thought && c2.thought.trim()){
-    thoughtHtml = `<div class="thought" title="${c2.thought.trim()}">💭 ${c2.thought.trim()}</div>`;
-  }
+  return card;
+}
 
-  el.innerHTML = `${thoughtHtml}${badgeHtml}<div class="em">${m.emoji}</div><div class="nm">${m.name}</div>`;
+function createAddTile(){
+  const tile = document.createElement('div');
+  tile.className = 'loc add-loc';
+  tile.innerHTML = `
+    <div class="add-inner">
+      <div class="add-plus">➕</div>
+      <div class="add-text">Добавить место</div>
+    </div>
+  `;
+  tile.addEventListener('click', openAddLocation);
+  return tile;
+}
 
-  el.addEventListener('dragstart', e => {
-    e.dataTransfer.setData('text/plain', m.id);
-    e.dataTransfer.effectAllowed = 'move';
-    el.classList.add('dragging');
-    selected = null;
-  });
-  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+function rebuildGrid(){
+  gridEl.innerHTML = '';
+  getAllLocations().forEach(loc => gridEl.appendChild(createLocCard(loc)));
+  gridEl.appendChild(createAddTile());
+}
 
-  el.addEventListener('click', e => {
-    e.stopPropagation();
-    if(state.observationMode){
-      openEditor(m.id);
-    }else{
-      selected = (selected === m.id) ? null : m.id;
-      render();
+function deleteCustomLocation(locId){
+  const plan = PLAN[getSlot(state.time)];
+  MEMBERS.forEach(m => {
+    if(state.placements[m.id] === locId){
+      state.placements[m.id] = plan[m.id] || 'myhome';
     }
   });
-
-  return el;
-}
-
-/* ══════════════ РЕНДЕР ══════════════ */
-function render(){
-  LOCATIONS.forEach(loc => {
-    const zone = document.querySelector(`[data-zone="${loc.id}"]`);
-    zone.innerHTML = '';
-    MEMBERS.forEach(m => {
-      if(state.placements[m.id] === loc.id) zone.appendChild(makeToken(m));
-    });
-  });
-}
-
-function place(memberId, locId){
-  if(!memberId || !locId) return;
-  state.placements[memberId] = locId;
+  state.customLocations = (state.customLocations || []).filter(c => c.id !== locId);
   save();
+  rebuildGrid();
   render();
 }
 
@@ -510,9 +715,8 @@ function updateClock(force){
   phaseEl.textContent = slot === 'night' ? '🌙' : slot === 'day' ? '☀️' : '🌇';
 }
 
-/* ══════════════ ИГРОВОЙ ЦИКЛ ══════════════ */
+/* ══════════════ ЦИКЛ ══════════════ */
 const MIN_PER_MS = 1 / 200;
-
 let lastFrame = performance.now();
 function loop(now){
   const dt = Math.min(now - lastFrame, 250);
@@ -547,34 +751,34 @@ playBtn.addEventListener('click', () => {
 obsBtn.addEventListener('click', () => {
   state.observationMode = !state.observationMode;
   obsBtn.classList.toggle('on', state.observationMode);
-  if(state.observationMode){
-    selected = null;
-    render();
-  }
+  if(state.observationMode){ selected = null; render(); }
   save();
 });
 
 document.querySelectorAll('.speed').forEach(btn => {
   btn.addEventListener('click', () => {
     state.speed = Number(btn.dataset.s);
-Member    document.querySelectorAll('.speed').forEach(b =>
+    document.querySelectorAll('.speed').forEach(b =>
       b.classList.toggle('on', b === btn));
     save();
   });
 });
 
 document.getElementById('resetBtn').addEventListener('click', () => {
+  if(!confirm('Сбросить всё: время, места, параметры?')) return;
   localStorage.removeItem(KEY);
   state = defaultState();
   selected = null;
-  editing = null;
+  editingMember = null;
   playBtn.textContent = '▶';
   playBtn.classList.remove('on');
   obsBtn.classList.remove('on');
   document.querySelectorAll('.speed').forEach(b =>
     b.classList.toggle('on', b.dataset.s === '1'));
   closeEditor();
+  closeAddLocation();
   applySchedule();
+  rebuildGrid();
   render();
   updateClock(true);
   save();
@@ -597,6 +801,17 @@ function openEditor(memberId){
   });
   document.getElementById('f-thought').value = c2.thought || '';
 
+  const gs = document.getElementById('grandmaSection');
+  if(memberId === 'baba'){
+    gs.style.display = 'flex';
+    const g = state.grandma || {};
+    document.getElementById('f-g-thoughts').value = g.thoughts || '';
+    document.getElementById('f-g-feelings').value = g.feelings || '';
+    document.getElementById('f-g-actions').value  = g.actions  || '';
+  }else{
+    gs.style.display = 'none';
+  }
+
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
 }
@@ -615,6 +830,15 @@ function saveEditor(){
   });
   c.thought = (document.getElementById('f-thought').value || '').trim();
   state.c2[editingMember] = c;
+
+  if(editingMember === 'baba'){
+    state.grandma = {
+      thoughts: (document.getElementById('f-g-thoughts').value || '').trim(),
+      feelings: (document.getElementById('f-g-feelings').value || '').trim(),
+      actions:  (document.getElementById('f-g-actions').value  || '').trim()
+    };
+  }
+
   save();
   render();
 }
@@ -622,41 +846,112 @@ function saveEditor(){
 C2_KEYS.forEach(k => {
   const slider = document.getElementById('s-' + k);
   const label  = document.getElementById('v-' + k);
-  slider.addEventListener('input', () => {
-    label.textContent = slider.value;
-  });
+  slider.addEventListener('input', () => { label.textContent = slider.value; });
 });
 
-document.getElementById('mClose').addEventListener('click', () => {
-  saveEditor();
-  closeEditor();
-});
-
-document.getElementById('mSave').addEventListener('click', () => {
-  saveEditor();
-  closeEditor();
-});
-
+document.getElementById('mClose').addEventListener('click', () => { saveEditor(); closeEditor(); });
+document.getElementById('mSave').addEventListener('click',  () => { saveEditor(); closeEditor(); });
 document.getElementById('mClear').addEventListener('click', () => {
   C2_KEYS.forEach(k => {
     document.getElementById('s-' + k).value = 0;
     document.getElementById('v-' + k).textContent = 0;
   });
   document.getElementById('f-thought').value = '';
+  if(editingMember === 'baba'){
+    document.getElementById('f-g-thoughts').value = '';
+    document.getElementById('f-g-feelings').value = '';
+    document.getElementById('f-g-actions').value  = '';
+  }
 });
 
 modal.addEventListener('click', e => {
-  if(e.target === modal){
-    saveEditor();
-    closeEditor();
-  }
+  if(e.target === modal){ saveEditor(); closeEditor(); }
 });
 
-document.addEventListener('keydown', e => {
-  if(e.key === 'Escape' && modal.classList.contains('open')){
-    saveEditor();
-    closeEditor();
+/* ══════════════ МОДАЛКА «ДОБАВИТЬ МЕСТО» ══════════════ */
+const addLocModal = document.getElementById('addLocModal');
+const alEmojiEl = document.getElementById('alEmoji');
+const alNameEl  = document.getElementById('alName');
+const alSubEl   = document.getElementById('alSub');
+const alPreview = document.getElementById('alPreview');
+
+let customCounter = Date.now();
+function genCustomId(){ return 'custom_' + (customCounter++); }
+
+// подсказки эмодзи
+const suggestWrap = document.getElementById('emojiSuggest');
+EMOJI_SUGGESTIONS.forEach(em => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'emoji-btn';
+  b.textContent = em;
+  b.addEventListener('click', () => {
+    alEmojiEl.value = em;
+    alPreview.textContent = em || '📍';
+    document.querySelectorAll('.emoji-btn').forEach(x => x.classList.toggle('on', x === b));
+  });
+  suggestWrap.appendChild(b);
+});
+
+alEmojiEl.addEventListener('input', () => {
+  alPreview.textContent = alEmojiEl.value.trim() || '📍';
+});
+
+function openAddLocation(){
+  alEmojiEl.value = '🏬';
+  alNameEl.value  = '';
+  alSubEl.value   = '';
+  alPreview.textContent = '🏬';
+  document.querySelectorAll('.emoji-btn').forEach(b =>
+    b.classList.toggle('on', b.textContent === '🏬'));
+  addLocModal.classList.add('open');
+  addLocModal.setAttribute('aria-hidden', 'false');
+  setTimeout(() => alNameEl.focus(), 50);
+}
+
+function closeAddLocation(){
+  addLocModal.classList.remove('open');
+  addLocModal.setAttribute('aria-hidden', 'true');
+}
+
+document.getElementById('alClose').addEventListener('click', closeAddLocation);
+document.getElementById('alCancel').addEventListener('click', closeAddLocation);
+
+document.getElementById('alAdd').addEventListener('click', () => {
+  const emoji = (alEmojiEl.value || '').trim() || '📍';
+  const name  = (alNameEl.value  || '').trim();
+  const sub   = (alSubEl.value   || '').trim();
+  if(!name){
+    alNameEl.focus();
+    alNameEl.style.borderColor = '#ff8888';
+    setTimeout(()=>{ alNameEl.style.borderColor = ''; }, 800);
+    return;
   }
+
+  state.customLocations = state.customLocations || [];
+  state.customLocations.push({
+    id: genCustomId(),
+    emoji,
+    name,
+    sub: sub || 'своё место',
+    cls: '',
+    isCustom: true
+  });
+  save();
+  rebuildGrid();
+  render();
+  closeAddLocation();
+});
+
+addLocModal.addEventListener('click', e => {
+  if(e.target === addLocModal) closeAddLocation();
+});
+
+/* Esc */
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  if(addLocModal.classList.contains('open')){ closeAddLocation(); return; }
+  if(modal.classList.contains('open')){ saveEditor(); closeEditor(); }
 });
 
 /* ══════════════ СТАРТ ══════════════ */
@@ -675,6 +970,7 @@ playBtn.textContent = state.running ? '⏸' : '▶';
 playBtn.classList.toggle('on', state.running);
 obsBtn.classList.toggle('on', state.observationMode);
 
+rebuildGrid();
 render();
 updateClock(true);
 requestAnimationFrame(loop);
