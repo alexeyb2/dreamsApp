@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Семья: Шахматная доска · Канал 2</title>
+<title>Мир · Шахматная доска · insideMe</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -17,23 +17,23 @@
   header{
     background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.12);
-    border-radius:22px;padding:16px 18px;margin-bottom:16px;
-    display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;
+    border-radius:22px;padding:14px 18px;margin-bottom:14px;
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
     backdrop-filter:blur(8px);
   }
   .clockbox{display:flex;align-items:center;gap:12px}
-  #phase{font-size:30px;line-height:1;filter:drop-shadow(0 0 10px rgba(255,220,120,.6))}
+  #phase{font-size:28px;line-height:1;filter:drop-shadow(0 0 10px rgba(255,220,120,.6))}
   #clock{
-    font-size:40px;font-weight:800;letter-spacing:2px;
+    font-size:34px;font-weight:800;letter-spacing:2px;
     background:linear-gradient(180deg,#fff,#b9a4ff);
     -webkit-background-clip:text;background-clip:text;color:transparent;
     font-variant-numeric:tabular-nums;
   }
   .ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   button{
-    font-family:inherit;font-size:14px;font-weight:600;color:#eae6ff;
+    font-family:inherit;font-size:13.5px;font-weight:600;color:#eae6ff;
     background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
-    border-radius:12px;padding:9px 14px;cursor:pointer;transition:.15s;
+    border-radius:12px;padding:8px 12px;cursor:pointer;transition:.15s;
   }
   button:hover{background:rgba(255,255,255,.16);transform:translateY(-1px)}
   button:active{transform:translateY(0)}
@@ -41,35 +41,32 @@
     background:linear-gradient(180deg,#8b6bff,#6a45e0);
     border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.55);
   }
-  #playBtn{font-size:18px;min-width:52px}
+  #playBtn{font-size:16px;min-width:46px}
 
   .bar{
-    width:100%;height:7px;border-radius:99px;background:rgba(255,255,255,.08);
+    width:100%;height:6px;border-radius:99px;background:rgba(255,255,255,.08);
     overflow:hidden;margin-top:4px;
   }
   #progress{
     height:100%;width:0%;border-radius:99px;
     background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
     transition:width .1s linear;
-    box-shadow:0 0 12px rgba(160,107,255,.8);
   }
 
   .hint{
-    text-align:center;font-size:12.5px;opacity:.55;margin-bottom:14px;line-height:1.7;
+    text-align:center;font-size:12px;opacity:.55;margin-bottom:12px;line-height:1.65;
   }
   .hint b{opacity:.9;color:#c9b6ff}
 
   /* ── ДОСКА ── */
   .board{
     padding:10px;
-    background:
-      linear-gradient(160deg,rgba(70,45,120,.55),rgba(20,12,45,.85));
+    background:linear-gradient(160deg,rgba(70,45,120,.55),rgba(20,12,45,.85));
     border:2px solid rgba(160,120,255,.35);
     border-radius:22px;
     box-shadow:
       inset 0 0 40px rgba(0,0,0,.55),
-      0 10px 40px rgba(0,0,0,.5),
-      0 0 0 1px rgba(160,120,255,.12);
+      0 10px 40px rgba(0,0,0,.5);
   }
   .grid{
     display:grid;gap:5px;
@@ -78,133 +75,125 @@
   @media (max-width:760px){ .grid{grid-template-columns:repeat(2, 1fr);} }
 
   /* ── КЛЕТКА ── */
-  .loc{
+  .cell{
     position:relative;
-    aspect-ratio:1;
-    padding:10px;
+    min-height:165px;
+    padding:9px;
     border-radius:12px;
     border:1px solid rgba(255,255,255,.10);
-    display:flex;flex-direction:column;gap:8px;
-    min-height:0;
-    transition:.18s;
-    overflow:visible;
+    display:flex;flex-direction:column;gap:6px;
+    transition:.15s;
   }
-  .loc.cb-light{
+  .cell.cb-light{
     background:linear-gradient(160deg,rgba(140,118,200,.28),rgba(95,75,160,.18));
     border-color:rgba(180,160,240,.35);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 24px rgba(160,120,255,.10);
   }
-  .loc.cb-dark{
+  .cell.cb-dark{
     background:linear-gradient(160deg,rgba(45,32,82,.72),rgba(25,16,55,.70));
     border-color:rgba(110,90,180,.28);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), inset 0 0 28px rgba(0,0,0,.35);
   }
-  .loc::before{
-    content:'';position:absolute;inset:0;opacity:0;transition:.2s;pointer-events:none;
-    background:radial-gradient(circle at 50% 0%,rgba(180,140,255,.3),transparent 70%);
-    border-radius:inherit;
-  }
-  .loc:hover::before{opacity:1}
-  .loc.dragover{
-    border-color:#a68bff;transform:translateY(-3px);
+  .cell.dragover{
+    border-color:#a68bff;
     box-shadow:0 8px 32px rgba(139,107,255,.55),0 0 0 1px #a68bff inset;
+    transform:translateY(-2px);
+  }
+  .cell.selected-target{
+    border-color:#8bffd0;
+    box-shadow:0 0 20px rgba(139,255,208,.5);
   }
 
-  /* подсветка типов — только тонкая рамка/свечение, не фон */
-  .loc.work  { border-color:rgba(255,190,100,.45); box-shadow:inset 0 0 30px rgba(255,170,80,.12); }
-  .loc.sleep { border-color:rgba(140,170,255,.5);  box-shadow:inset 0 0 34px rgba(100,140,255,.18); }
-  .loc.custom{ border-color:rgba(100,230,200,.45); box-shadow:inset 0 0 30px rgba(80,220,190,.15); }
-
-  .loc-head{
-    display:flex;align-items:center;gap:8px;
+  .cell-head{
+    display:flex;align-items:center;gap:7px;
     font-size:12.5px;font-weight:700;
-    padding-right:22px;
-    min-height:34px;
+    padding-right:20px;
+    min-height:32px;
   }
-  .loc-head .ico{font-size:22px;line-height:1;flex-shrink:0}
-  .loc-head .nm-wrap{min-width:0;overflow:hidden}
-  .loc-head .nm-title{
+  .cell-head .ico{font-size:20px;line-height:1;flex-shrink:0}
+  .cell-head .nm-wrap{min-width:0;overflow:hidden;flex:1}
+  .cell-head .nm-title{
     display:block;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .loc-head .sub{
+  .cell-head .sub{
     font-size:9.5px;font-weight:500;opacity:.5;
     display:block;margin-top:1px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
+  .cell-avg{
+    font-size:10px;font-weight:800;
+    padding:2px 6px;border-radius:8px;
+    background:rgba(160,120,255,.25);
+    border:1px solid rgba(160,120,255,.45);
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .cell-avg.empty{
+    background:rgba(255,255,255,.05);
+    border-color:rgba(255,255,255,.1);
+    opacity:.4;
+  }
 
-  .loc-del{
+  .cell-del{
     position:absolute;top:6px;right:6px;
-    width:22px;height:22px;padding:0;font-size:11px;
+    width:20px;height:20px;padding:0;font-size:10px;
     background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.4);
-    color:#ff9999;border-radius:8px;cursor:pointer;
+    color:#ff9999;border-radius:7px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
     z-index:2;opacity:.55;transition:.15s;
   }
-  .loc-del:hover{opacity:1;background:rgba(255,80,80,.3);transform:none}
+  .cell-del:hover{opacity:1;background:rgba(255,80,80,.35);transform:none}
 
-  /* ➕ пустая клетка */
-  .add-loc{
+  .zone{
+    display:flex;flex-wrap:wrap;gap:6px;
+    align-content:flex-start;flex:1;
+    border-radius:10px;padding:2px;
+    min-height:0;
+  }
+  .zone:empty::after{
+    content:'пусто';
+    font-size:10px;opacity:.2;
+    align-self:center;margin:auto;
+  }
+
+  /* ➕ плитка */
+  .add-cell{
     border:2px dashed rgba(160,120,255,.4);
     background:linear-gradient(160deg,rgba(139,107,255,.06),rgba(255,255,255,.01));
     align-items:center;justify-content:center;cursor:pointer;
-    aspect-ratio:1;
-    transition:.2s;
+    transition:.2s;min-height:165px;
   }
-  .add-loc:hover{
+  .add-cell:hover{
     border-color:#a68bff;
     background:linear-gradient(160deg,rgba(139,107,255,.18),rgba(255,255,255,.02));
     transform:translateY(-2px);
     box-shadow:0 8px 24px rgba(139,107,255,.3);
   }
   .add-inner{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
-  .add-plus{font-size:32px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.7))}
-  .add-text{font-size:12px;font-weight:600;opacity:.7;letter-spacing:.3px;text-align:center}
+  .add-plus{font-size:30px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.7))}
+  .add-text{font-size:12px;font-weight:600;opacity:.75;letter-spacing:.3px;text-align:center}
 
-  .zone{
-    display:flex;flex-wrap:wrap;gap:6px;
-    align-content:flex-start;flex:1;
-    min-height:0;
-    border-radius:10px;padding:2px;
-    transition:.15s;
-  }
-  .zone:empty::after{
-    content:'пусто';
-    font-size:10.5px;opacity:.2;
-    align-self:center;margin:auto;
-  }
-
-  /* ── ФИГУРА (смайлик) ── */
-  .tok{
+  /* ── ЧЕЛОВЕК ── */
+  .person{
     position:relative;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:5px 7px;border-radius:12px;
+    padding:5px 8px;border-radius:12px;
     background:rgba(255,255,255,.10);
-    border:1px solid rgba(255,255,255,.10);
+    border:1px solid rgba(255,255,255,.12);
     cursor:grab;transition:.15s;
     animation:pop .25s ease;
-    box-shadow:
-      0 2px 0 rgba(0,0,0,.25),
-      0 4px 8px rgba(0,0,0,.35);
+    box-shadow:0 2px 0 rgba(0,0,0,.25),0 4px 8px rgba(0,0,0,.35);
   }
   @keyframes pop{from{transform:scale(.6) translateY(2px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
-  .tok:hover{
+  .person:hover{
     background:rgba(255,255,255,.2);
     transform:translateY(-3px) scale(1.05);
-    box-shadow:0 6px 0 rgba(0,0,0,.2), 0 10px 18px rgba(0,0,0,.45);
+    box-shadow:0 6px 0 rgba(0,0,0,.2),0 10px 18px rgba(0,0,0,.45);
   }
-  .tok:active{cursor:grabbing}
-  .tok.dragging{opacity:.35}
-  .tok .em{font-size:24px;line-height:1;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
-  .tok .nm{font-size:9px;margin-top:2px;opacity:.75;pointer-events:none;white-space:nowrap}
-  .tok.sel{
-    background:linear-gradient(180deg,#8b6bff,#6a45e0);
-    border-color:#c9b6ff;
-    box-shadow:0 0 22px rgba(139,107,255,.9), 0 3px 0 rgba(0,0,0,.3);
-    transform:scale(1.08);
-  }
-
-  .tok .c2badge{
+  .person:active{cursor:grabbing}
+  .person.dragging{opacity:.35}
+  .person .em{font-size:24px;line-height:1;pointer-events:none}
+  .person .nm{font-size:9px;margin-top:2px;opacity:.75;pointer-events:none;white-space:nowrap}
+  .person .badge{
     position:absolute;top:-6px;right:-6px;
     min-width:17px;height:17px;padding:0 4px;
     border-radius:9px;font-size:9.5px;font-weight:800;color:#0a0616;
@@ -212,109 +201,140 @@
     border:1px solid rgba(255,255,255,.35);
     box-shadow:0 2px 6px rgba(0,0,0,.5);pointer-events:none;
   }
-  .tok .thought{
-    position:absolute;top:-14px;left:50%;transform:translateX(-50%);
-    font-size:10px;line-height:1;white-space:nowrap;
-    background:rgba(10,6,22,.9);border:1px solid rgba(160,120,255,.4);
-    padding:2px 5px;border-radius:8px;pointer-events:none;
-    max-width:80px;overflow:hidden;text-overflow:ellipsis;
-    box-shadow:0 2px 8px rgba(0,0,0,.5);
-  }
-
-  .grandma-chips{
-    display:flex;flex-direction:column;gap:2px;margin-top:3px;
-    max-width:100%;
-  }
-  .g-chip{
-    font-size:8px;line-height:1.15;
-    background:rgba(160,120,255,.22);border:1px solid rgba(160,120,255,.4);
-    border-radius:5px;padding:1px 3px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;
-    pointer-events:none;
-  }
-  .g-chip.thoughts{background:rgba(100,180,255,.22);border-color:rgba(100,180,255,.4)}
-  .g-chip.feelings{background:rgba(255,120,200,.22);border-color:rgba(255,120,200,.4)}
-  .g-chip.actions {background:rgba(120,220,140,.22);border-color:rgba(120,220,140,.4)}
 
   footer{
-    text-align:center;font-size:11.5px;opacity:.4;margin-top:22px;padding-bottom:10px;
+    text-align:center;font-size:11.5px;opacity:.4;margin-top:20px;padding-bottom:10px;
   }
 
   /* ── МОДАЛКИ ── */
   .modal{
     position:fixed;inset:0;display:none;align-items:center;justify-content:center;
-    background:rgba(5,3,15,.78);backdrop-filter:blur(6px);z-index:100;padding:16px;
+    background:rgba(5,3,15,.8);backdrop-filter:blur(6px);z-index:100;padding:14px;
   }
   .modal.open{display:flex}
   .modal-card{
-    width:100%;max-width:440px;max-height:90vh;overflow:auto;
+    width:100%;max-width:480px;max-height:92vh;overflow:hidden;
+    display:flex;flex-direction:column;
     background:linear-gradient(160deg,#241a44,#140e2a);
     border:1px solid rgba(160,120,255,.35);
     border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.6);
     animation:pop .2s ease;
   }
   .modal-head{
-    display:flex;align-items:center;gap:12px;padding:16px 18px;
+    display:flex;align-items:center;gap:12px;padding:14px 18px;
     border-bottom:1px solid rgba(255,255,255,.08);
+    flex-shrink:0;
   }
-  .modal-emoji{font-size:34px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.5))}
-  .modal-name{font-size:18px;font-weight:800}
-  .modal-sub{font-size:11px;opacity:.5;margin-top:2px}
+  .modal-emoji{font-size:32px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.5))}
+  .modal-name{font-size:17px;font-weight:800}
+  .modal-sub{font-size:11px;opacity:.55;margin-top:2px}
   .modal-close{
     margin-left:auto;background:rgba(255,255,255,.06);
     border:1px solid rgba(255,255,255,.15);border-radius:10px;
     width:32px;height:32px;color:#eae6ff;font-size:14px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
   }
-  .modal-body{padding:14px 18px;display:flex;flex-direction:column;gap:12px}
-  .param{display:flex;flex-direction:column;gap:6px}
-  .param-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600}
-  .param-val{
-    font-variant-numeric:tabular-nums;
-    background:rgba(160,120,255,.25);border:1px solid rgba(160,120,255,.4);
-    padding:1px 8px;border-radius:8px;font-size:12px;min-width:26px;text-align:center;
+  .modal-body{
+    padding:12px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;flex:1;
   }
-  .param input[type=range]{
-    width:100%;height:6px;border-radius:99px;appearance:none;-webkit-appearance:none;
-    background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
-    outline:none;cursor:pointer;
-  }
-  .param input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
-    background:#fff;border:2px solid #a06bff;box-shadow:0 0 10px rgba(160,107,255,.8);
-    cursor:grab;
-  }
-  .param input[type=range]::-moz-range-thumb{
-    width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid #a06bff;
-    cursor:grab;
-  }
-  .param input[type=text]{
-    width:100%;background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.18);border-radius:12px;
-    padding:9px 12px;color:#eae6ff;font-size:14px;font-family:inherit;
-    outline:none;transition:.15s;
-  }
-  .param input[type=text]:focus{border-color:#a06bff;background:rgba(255,255,255,.1)}
   .modal-foot{
-    display:flex;gap:10px;padding:14px 18px;
+    display:flex;gap:10px;padding:12px 16px;
     border-top:1px solid rgba(255,255,255,.08);
+    flex-shrink:0;
   }
-  .modal-foot button{flex:1}
+  .modal-foot button{flex:1;padding:10px}
   .modal-foot .primary{
     background:linear-gradient(180deg,#8b6bff,#6a45e0);
     border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.5);
   }
 
-  .grandma-section{
-    display:none;flex-direction:column;gap:10px;
-    padding:12px;border-radius:16px;
-    background:linear-gradient(160deg,rgba(255,120,200,.10),rgba(160,120,255,.06));
-    border:1px solid rgba(255,120,200,.25);
+  /* строка "текущая локация" */
+  .loc-row{
+    display:flex;align-items:center;gap:10px;
+    background:rgba(139,107,255,.12);
+    border:1px solid rgba(139,107,255,.3);
+    border-radius:14px;padding:9px 12px;
+    font-size:13px;
   }
-  .grandma-title{
-    font-size:12.5px;font-weight:800;letter-spacing:.4px;
-    color:#ffc0e8;margin-bottom:2px;
+  .loc-row .lbl{opacity:.6;font-size:11.5px}
+  .loc-row select{
+    flex:1;background:rgba(0,0,0,.25);color:#eae6ff;
+    border:1px solid rgba(255,255,255,.18);border-radius:10px;
+    padding:6px 8px;font-family:inherit;font-size:13px;
+    outline:none;cursor:pointer;min-width:0;
   }
+  .loc-row select:focus{border-color:#a68bff}
+
+  /* аккордеон впечатлений */
+  .imp{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:14px;overflow:hidden;
+    transition:.15s;
+  }
+  .imp.filled{border-color:rgba(160,120,255,.4);background:rgba(160,120,255,.06)}
+  .imp.open{border-color:#a68bff;box-shadow:0 0 16px rgba(139,107,255,.3)}
+  .imp-head{
+    display:flex;align-items:center;gap:9px;
+    padding:10px 12px;cursor:pointer;
+    font-size:13px;font-weight:600;
+  }
+  .imp-head:hover{background:rgba(255,255,255,.05)}
+  .imp-head .imp-ico{font-size:20px;line-height:1;flex-shrink:0}
+  .imp-head .imp-nm{
+    flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .imp-head .imp-avg{
+    font-size:10.5px;font-weight:800;
+    padding:2px 7px;border-radius:8px;
+    background:rgba(160,120,255,.25);
+    border:1px solid rgba(160,120,255,.45);
+    white-space:nowrap;
+  }
+  .imp-head .imp-avg.empty{background:rgba(255,255,255,.05);opacity:.4}
+  .imp-head .caret{
+    font-size:10px;opacity:.6;transition:.2s;
+    display:inline-block;
+  }
+  .imp.open .caret{transform:rotate(90deg)}
+  .imp-body{
+    display:none;padding:4px 12px 12px;
+    flex-direction:column;gap:8px;
+  }
+  .imp.open .imp-body{display:flex}
+
+  .param{display:flex;flex-direction:column;gap:4px}
+  .param-row{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;font-weight:600;
+  }
+  .param-val{
+    font-variant-numeric:tabular-nums;
+    background:rgba(160,120,255,.25);border:1px solid rgba(160,120,255,.4);
+    padding:0 7px;border-radius:7px;font-size:11px;min-width:24px;text-align:center;
+  }
+  .param input[type=range]{
+    width:100%;height:5px;border-radius:99px;appearance:none;-webkit-appearance:none;
+    background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
+    outline:none;cursor:pointer;
+  }
+  .param input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+    background:#fff;border:2px solid #a06bff;box-shadow:0 0 8px rgba(160,107,255,.8);
+    cursor:grab;
+  }
+  .param input[type=range]::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #a06bff;
+    cursor:grab;
+  }
+  .param input[type=text]{
+    width:100%;background:rgba(0,0,0,.25);
+    border:1px solid rgba(255,255,255,.15);border-radius:10px;
+    padding:7px 10px;color:#eae6ff;font-size:13px;font-family:inherit;
+    outline:none;transition:.15s;
+  }
+  .param input[type=text]:focus{border-color:#a06bff;background:rgba(0,0,0,.35)}
 
   .emoji-suggest{display:flex;flex-wrap:wrap;gap:6px}
   .emoji-btn{
@@ -324,7 +344,26 @@
     display:flex;align-items:center;justify-content:center;
   }
   .emoji-btn:hover{background:rgba(255,255,255,.15);transform:translateY(-1px)}
-  .emoji-btn.on{background:rgba(139,107,255,.4);border-color:#a68bff;box-shadow:0 0 10px rgba(139,107,255,.5)}
+  .emoji-btn.on{background:rgba(139,107,255,.4);border-color:#a68bff}
+
+  .form-group{display:flex;flex-direction:column;gap:6px}
+  .form-group > span{
+    font-size:12px;opacity:.75;font-weight:600;
+  }
+  .form-group input[type=text]{
+    width:100%;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.18);border-radius:12px;
+    padding:9px 12px;color:#eae6ff;font-size:14px;font-family:inherit;
+    outline:none;transition:.15s;
+  }
+  .form-group input[type=text]:focus{border-color:#a68bff;background:rgba(255,255,255,.1)}
+  .form-group select{
+    width:100%;background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.18);border-radius:12px;
+    padding:9px 12px;color:#eae6ff;font-size:14px;font-family:inherit;
+    outline:none;cursor:pointer;
+  }
+  .form-group select:focus{border-color:#a68bff}
 </style>
 </head>
 <body>
@@ -340,157 +379,164 @@
       <button class="speed" data-s="1">×1</button>
       <button class="speed" data-s="5">×5</button>
       <button class="speed" data-s="20">×20</button>
-      <button id="obsBtn" title="Режим наблюдения за Каналом 2">📝</button>
-      <button id="resetBtn">🔄 Сброс</button>
+      <button id="addPersonBtn">👤</button>
+      <button id="resetBtn">🔄</button>
     </div>
     <div class="bar"><div id="progress"></div></div>
   </header>
 
   <div class="hint">
-    Поле — <b>шахматная доска</b> 🏁. Клетки чередуются, смайлики «стоят» как фигуры.<br>
-    Таскай мышкой или <b>тапни смайлика → тапни по клетке</b>. <b>➕</b> — добавить своё место.<br>
-    <b>📝</b> — режим Канала 2: тап по смайлику → параметры. У <b>🤩 бабушки</b> ещё 💭/💗/🏃.<br>
-    <b>7:00–17:00</b> работа и садик · <b>17:00–21:00</b> дома · <b>21:00–7:00</b> сон 😴
+    🏁 <b>Шахматная доска</b> · мир и восприятие разделены.<br>
+    <b>Клик по смайлику</b> → его <b>insideMe</b>: ссылки на места + Канал 2 (мысли/чувства/действия).<br>
+    <b>★ X.X</b> на клетке — среднее по всей группе, кто думает про это место.<br>
+    <b>➕</b> — добавить место. <b>👤</b> — добавить человека. Таскай смайликов мышкой.
   </div>
 
   <div class="board">
     <div class="grid" id="grid"></div>
   </div>
 
-  <footer>Прогресс, места и параметры — в localStorage 💾</footer>
+  <footer>Всё сохраняется в localStorage 💾</footer>
 </div>
 
-<!-- Модалка Канала 2 -->
-<div class="modal" id="modal" aria-hidden="true">
+<!-- ══ Модалка: insideMe человека ══ -->
+<div class="modal" id="personModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
-      <div class="modal-emoji" id="mEmoji">🥳</div>
+      <div class="modal-emoji" id="pmEmoji">🥳</div>
       <div>
-        <div class="modal-name" id="mName">Я</div>
-        <div class="modal-sub">Канал 2 · наблюдение</div>
+        <div class="modal-name" id="pmName">Я</div>
+        <div class="modal-sub">insideMe · восприятие мест</div>
       </div>
-      <button class="modal-close" id="mClose" type="button">✕</button>
+      <button class="modal-close" id="pmClose" type="button">✕</button>
     </div>
     <div class="modal-body">
-      <div class="param">
-        <div class="param-row"><span>🗣️ Суждение</span><span class="param-val" id="v-judgment">0</span></div>
-        <input type="range" min="0" max="10" value="0" id="s-judgment">
+
+      <div class="loc-row">
+        <span class="lbl">📍 где:</span>
+        <select id="pmLoc"></select>
       </div>
-      <div class="param">
-        <div class="param-row"><span>⚖️ Оценка</span><span class="param-val" id="v-evaluation">0</span></div>
-        <input type="range" min="0" max="10" value="0" id="s-evaluation">
-      </div>
-      <div class="param">
-        <div class="param-row"><span>📖 Нарратив</span><span class="param-val" id="v-narrative">0</span></div>
-        <input type="range" min="0" max="10" value="0" id="s-narrative">
-      </div>
-      <div class="param">
-        <div class="param-row"><span>🔁 Руминация</span><span class="param-val" id="v-rumination">0</span></div>
-        <input type="range" min="0" max="10" value="0" id="s-rumination">
-      </div>
-      <div class="param">
-        <div class="param-row"><span>🎛️ Контроль</span><span class="param-val" id="v-control">0</span></div>
-        <input type="range" min="0" max="10" value="0" id="s-control">
-      </div>
-      <div class="param">
-        <div class="param-row"><span>💭 О чём думает</span></div>
-        <input type="text" id="f-thought" placeholder="🚌, 💰, 💼, 👩…" maxlength="20">
-      </div>
-      <div class="grandma-section" id="grandmaSection">
-        <div class="grandma-title">🤩 Внутренний мир бабушки</div>
-        <div class="param">
-          <div class="param-row"><span>💭 Мысли</span></div>
-          <input type="text" id="f-g-thoughts" maxlength="40" placeholder="о чём думает…">
-        </div>
-        <div class="param">
-          <div class="param-row"><span>💗 Чувства</span></div>
-          <input type="text" id="f-g-feelings" maxlength="40" placeholder="что чувствует…">
-        </div>
-        <div class="param">
-          <div class="param-row"><span>🏃 Действия</span></div>
-          <input type="text" id="f-g-actions" maxlength="40" placeholder="что делает…">
-        </div>
-      </div>
+
+      <div id="impressionsList"></div>
+
     </div>
     <div class="modal-foot">
-      <button id="mClear" type="button">Очистить</button>
-      <button id="mSave" type="button" class="primary">Готово</button>
+      <button id="pmClear" type="button">Очистить всё</button>
+      <button id="pmDone" type="button" class="primary">Готово</button>
     </div>
   </div>
 </div>
 
-<!-- Модалка «Добавить место» -->
-<div class="modal" id="addLocModal" aria-hidden="true">
+<!-- ══ Модалка: добавить место ══ -->
+<div class="modal" id="addCellModal" aria-hidden="true">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-head">
-      <div class="modal-emoji" id="alPreview">🏬</div>
+      <div class="modal-emoji" id="acPreview">🏬</div>
       <div>
         <div class="modal-name">Новое место</div>
-        <div class="modal-sub">Добавить клетку на доску</div>
+        <div class="modal-sub">Клетка на доске</div>
       </div>
-      <button class="modal-close" id="alClose" type="button">✕</button>
+      <button class="modal-close" id="acClose" type="button">✕</button>
     </div>
     <div class="modal-body">
-      <div class="param">
-        <div class="param-row"><span>Эмодзи</span></div>
-        <div class="emoji-suggest" id="emojiSuggest"></div>
-        <input type="text" id="alEmoji" placeholder="🏬 или вставь своё" maxlength="6">
+      <div class="form-group">
+        <span>Эмодзи</span>
+        <div class="emoji-suggest" id="acEmojiSuggest"></div>
+        <input type="text" id="acEmoji" placeholder="🏬 или вставь своё" maxlength="6">
       </div>
-      <div class="param">
-        <div class="param-row"><span>Название</span></div>
-        <input type="text" id="alName" placeholder="например, Магазин" maxlength="30">
+      <div class="form-group">
+        <span>Название</span>
+        <input type="text" id="acName" placeholder="например, Магазин" maxlength="30">
       </div>
-      <div class="param">
-        <div class="param-row"><span>Подпись (опционально)</span></div>
-        <input type="text" id="alSub" placeholder="например, магазин у дома" maxlength="30">
+      <div class="form-group">
+        <span>Подпись (опционально)</span>
+        <input type="text" id="acSub" placeholder="например, магазин у дома" maxlength="30">
       </div>
     </div>
     <div class="modal-foot">
-      <button id="alCancel" type="button">Отмена</button>
-      <button id="alAdd" type="button" class="primary">Добавить</button>
+      <button id="acCancel" type="button">Отмена</button>
+      <button id="acAdd" type="button" class="primary">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Модалка: добавить человека ══ -->
+<div class="modal" id="addPersonModal" aria-hidden="true">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-emoji" id="apPreview">👤</div>
+      <div>
+        <div class="modal-name">Новый человек</div>
+        <div class="modal-sub">Фигура на доске</div>
+      </div>
+      <button class="modal-close" id="apClose" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <span>Эмодзи</span>
+        <div class="emoji-suggest" id="apEmojiSuggest"></div>
+        <input type="text" id="apEmoji" placeholder="🙂 или вставь своё" maxlength="6">
+      </div>
+      <div class="form-group">
+        <span>Имя</span>
+        <input type="text" id="apName" placeholder="например, Кот" maxlength="20">
+      </div>
+      <div class="form-group">
+        <span>Где стоит</span>
+        <select id="apLoc"></select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button id="apCancel" type="button">Отмена</button>
+      <button id="apAdd" type="button" class="primary">Добавить</button>
     </div>
   </div>
 </div>
 
 <script>
-/* ══════════════ ДАННЫЕ ══════════════ */
-const MEMBERS = [
-  { id:'me',   emoji:'🥳',  name:'Я' },
-  { id:'vika', emoji:'😘',  name:'Вика' },
-  { id:'papa', emoji:'😍',  name:'Папа' },
-  { id:'mama', emoji:'🥰',  name:'Мама' },
-  { id:'baba', emoji:'🤩',  name:'Бабушка' },
-  { id:'ded',  emoji:'😶‍🌫️', name:'Дедушка' },
-];
-
-const BASE_LOCATIONS = [
-  { id:'myhome',   emoji:'🏡', name:'Мой дом',                 sub:'дом',         cls:'' },
-  { id:'vikahome', emoji:'🏠', name:'Викин дом',               sub:'дом',         cls:'' },
-  { id:'work1',    emoji:'🏢', name:'Работа папы и мамы',      sub:'10 ч в день', cls:'work' },
-  { id:'work2',    emoji:'🏬', name:'Работа бабушки и дедушки',sub:'10 ч в день', cls:'work' },
-  { id:'sad',      emoji:'🏩', name:'Викин садик',             sub:'10 ч в день', cls:'work' },
-  { id:'sleep',    emoji:'🛏️', name:'Сон',                     sub:'21:00 – 7:00',cls:'sleep' },
-];
-
-const EMOJI_SUGGESTIONS = ['🏬','🏥','🎬','🏫','🏪','🎮','🌳','🏖️','🎪','📚','🍔','⛽','🏦','🎨','🏛️'];
+/* ══════════════ ПРЕСЕТЫ ══════════════ */
 const C2_KEYS = ['judgment','evaluation','narrative','rumination','control'];
+const C2_LABELS = {
+  judgment:'🗣️ Суждение',
+  evaluation:'⚖️ Оценка',
+  narrative:'📖 Нарратив',
+  rumination:'🔁 Руминация',
+  control:'🎛️ Контроль'
+};
 
-const KEY = 'family-schedule-game-v2';
-const DAY_START = 420;
-const WORK_END  = 1020;
-const SLEEP     = 1260;
+const DEFAULT_CELLS = [
+  { id:'myhome',   emoji:'🏡', name:'Мой дом',                 sub:'дом' },
+  { id:'vikahome', emoji:'🏠', name:'Викин дом',               sub:'дом' },
+  { id:'work1',    emoji:'🏢', name:'Работа папы и мамы',      sub:'10 ч в день' },
+  { id:'work2',    emoji:'🏬', name:'Работа бабушки и дедушки',sub:'10 ч в день' },
+  { id:'sad',      emoji:'🏩', name:'Викин садик',             sub:'10 ч в день' },
+  { id:'sleep',    emoji:'🛏️', name:'Сон',                     sub:'21:00 – 7:00' }
+];
+
+const DEFAULT_PERSONS = [
+  { id:'me',   emoji:'🥳',  name:'Я',       cellId:'myhome' },
+  { id:'vika', emoji:'😘',  name:'Вика',    cellId:'myhome' },
+  { id:'papa', emoji:'😍',  name:'Папа',    cellId:'myhome' },
+  { id:'mama', emoji:'🥰',  name:'Мама',    cellId:'myhome' },
+  { id:'baba', emoji:'🤩',  name:'Бабушка', cellId:'myhome' },
+  { id:'ded',  emoji:'😶‍🌫️', name:'Дедушка', cellId:'myhome' }
+];
+
+const CELL_EMOJI_SUGGEST = ['🏬','🏥','🎬','🏫','🏪','🎮','🌳','🏖️','🎪','📚','🍔','🏦','🎨'];
+const PERSON_EMOJI_SUGGEST = ['👤','👦','👧','🐱','🐶','🧑‍🦱','👴','👵','🧒','👨','👩'];
+
+const KEY = 'world-chess-insideMe-v1';
+const DAY_START = 420, WORK_END = 1020, SLEEP = 1260;
 
 /* ══════════════ СОСТОЯНИЕ ══════════════ */
 const defaultState = () => ({
   time: DAY_START,
-  speed: 1,
   running: false,
-  slot: null,
-  placements: {},
-  c2: {},
-  customLocations: [],
-  grandma: { thoughts:'', feelings:'', actions:'' },
-  observationMode: false
+  speed: 1,
+  cells: DEFAULT_CELLS.map(c => ({...c})),
+  persons: DEFAULT_PERSONS.map(p => ({...p})),
+  impressions: {},   // {personId: {cellId: {judgment, evaluation, narrative, rumination, control, thought, feelings, actions}}}
+  schemaVersion: 1
 });
 
 function loadState(){
@@ -498,62 +544,54 @@ function loadState(){
     const raw = localStorage.getItem(KEY);
     if(!raw) return null;
     const s = JSON.parse(raw);
-    if(typeof s.time !== 'number' || !s.placements) return null;
+    if(!s || !Array.isArray(s.cells) || !Array.isArray(s.persons)) return null;
+    if(!s.impressions) s.impressions = {};
     return { ...defaultState(), ...s, running:false };
   }catch(e){ return null; }
 }
 
 let state = loadState() || defaultState();
-let selected = null;
-let editingMember = null;
+let editingPersonId = null;
 
+/* ══════════════ ХЕЛПЕРЫ ══════════════ */
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function getAllLocations(){ return [...BASE_LOCATIONS, ...(state.customLocations || [])]; }
-function isCustomLocation(id){ return (state.customLocations || []).some(c => c.id === id); }
-
-/* ══════════════ РАСПИСАНИЕ ══════════════ */
-function getSlot(min){
-  if(min >= DAY_START && min < WORK_END) return 'day';
-  if(min >= WORK_END  && min < SLEEP)    return 'evening';
-  return 'night';
-}
-const PLAN = {
-  day:     { me:'myhome', vika:'sad', papa:'work1', mama:'work1', baba:'work2', ded:'work2' },
-  evening: { me:'myhome', papa:'myhome', mama:'myhome', vika:'vikahome', baba:'vikahome', ded:'vikahome' },
-  night:   { me:'sleep', vika:'sleep', papa:'sleep', mama:'sleep', baba:'sleep', ded:'sleep' },
-};
-
-function applySchedule(){
-  const plan = PLAN[getSlot(state.time)];
-  const next = {};
-  MEMBERS.forEach(m => {
-    const cur = state.placements[m.id];
-    if(cur && isCustomLocation(cur)) next[m.id] = cur;
-    else next[m.id] = plan[m.id] || cur || 'myhome';
-  });
-  state.placements = next;
-  state.slot = getSlot(state.time);
-}
-
+function getCell(id){ return state.cells.find(c => c.id === id); }
+function getPerson(id){ return state.persons.find(p => p.id === id); }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
-
-/* ══════════════ C2 ══════════════ */
-function getC2(memberId){
-  const c = state.c2[memberId] || {};
-  return {
-    judgment:   c.judgment   || 0,
-    evaluation: c.evaluation || 0,
-    narrative:  c.narrative  || 0,
-    rumination: c.rumination || 0,
-    control:    c.control    || 0,
-    thought:    c.thought    || ''
-  };
+function getImpression(personId, cellId){
+  const imp = (state.impressions[personId] || {})[cellId];
+  if(!imp) return null;
+  const out = { thought:'', feelings:'', actions:'' };
+  C2_KEYS.forEach(k => out[k] = imp[k] || 0);
+  out.thought  = imp.thought  || '';
+  out.feelings = imp.feelings || '';
+  out.actions  = imp.actions  || '';
+  return out;
 }
-function c2Average(c){ return C2_KEYS.reduce((s,k)=>s + (c[k]||0), 0) / C2_KEYS.length; }
-function c2Color(avg){
+function impAvg(imp){
+  if(!imp) return 0;
+  return C2_KEYS.reduce((s,k) => s + (imp[k] || 0), 0) / C2_KEYS.length;
+}
+function isImpressionFilled(imp){
+  if(!imp) return false;
+  if(imp.thought || imp.feelings || imp.actions) return true;
+  return C2_KEYS.some(k => imp[k] > 0);
+}
+function cellGroupAvg(cellId){
+  let sum = 0, count = 0;
+  for(const pid in state.impressions){
+    const imp = state.impressions[pid][cellId];
+    if(imp && isImpressionFilled(imp)){
+      sum += impAvg(imp); count++;
+    }
+  }
+  return count ? { avg: sum/count, count } : null;
+}
+function avgColor(avg){
+  if(avg == null) return null;
   if(avg <= 0.5) return null;
   if(avg <= 2)   return 'rgba(100,180,255,0.9)';
   if(avg <= 4)   return 'rgba(100,220,150,0.9)';
@@ -562,13 +600,31 @@ function c2Color(avg){
   return 'rgba(255,80,80,0.98)';
 }
 
+/* ══════════════ РАСПИСАНИЕ (для движения по часам) ══════════════ */
+function getSlot(min){
+  if(min >= DAY_START && min < WORK_END) return 'day';
+  if(min >= WORK_END  && min < SLEEP)    return 'evening';
+  return 'night';
+}
+const PLAN = {
+  day:     { me:'myhome', vika:'sad', papa:'work1', mama:'work1', baba:'work2', ded:'work2' },
+  evening: { me:'myhome', papa:'myhome', mama:'myhome', vika:'vikahome', baba:'vikahome', ded:'vikahome' },
+  night:   { me:'sleep', vika:'sleep', papa:'sleep', mama:'sleep', baba:'sleep', ded:'sleep' }
+};
+function applySchedule(){
+  const plan = PLAN[getSlot(state.time)] || {};
+  state.persons.forEach(p => {
+    if(plan[p.id]) p.cellId = plan[p.id];
+  });
+}
+
 /* ══════════════ DOM ══════════════ */
 const gridEl     = document.getElementById('grid');
 const clockEl    = document.getElementById('clock');
 const phaseEl    = document.getElementById('phase');
 const progressEl = document.getElementById('progress');
 
-/* ══════════════ ШАХМАТНАЯ РАСКРАСКА ══════════════ */
+/* шахматная раскраска */
 function colorCheckerboard(){
   const tiles = [...gridEl.children];
   if(!tiles.length) return;
@@ -578,103 +634,78 @@ function colorCheckerboard(){
   tiles.forEach((el, i) => {
     const row = Math.floor(i / cols);
     const col = i % cols;
-    const isLight = (row + col) % 2 === 0;
-    el.classList.toggle('cb-light', isLight);
-    el.classList.toggle('cb-dark', !isLight);
+    const light = (row + col) % 2 === 0;
+    el.classList.toggle('cb-light', light);
+    el.classList.toggle('cb-dark', !light);
   });
 }
-
 let resizeTimer = null;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(colorCheckerboard, 100);
 });
 
-/* ══════════════ ТОКЕН ══════════════ */
-function makeToken(m){
-  const c2 = getC2(m.id);
-  const avg = c2Average(c2);
-  const badgeColor = c2Color(avg);
-
+/* ══════════════ ТОКЕН ЧЕЛОВЕКА ══════════════ */
+function makePersonToken(p){
   const el = document.createElement('div');
-  el.className = 'tok' + (selected === m.id ? ' sel' : '');
+  el.className = 'person';
   el.draggable = true;
 
+  const imp = getImpression(p.id, p.cellId);
   let badgeHtml = '';
-  if(badgeColor){
-    const display = Math.round(avg * 10) / 10;
-    badgeHtml = `<div class="c2badge" style="background:${badgeColor}" title="Канал 2: ${display}/10">${display}</div>`;
-  }
-  let thoughtHtml = '';
-  if(c2.thought && c2.thought.trim()){
-    thoughtHtml = `<div class="thought" title="${esc(c2.thought)}">💭 ${esc(c2.thought)}</div>`;
-  }
-  let grandmaHtml = '';
-  if(m.id === 'baba'){
-    const g = state.grandma || {};
-    const chips = [];
-    if(g.thoughts) chips.push(`<span class="g-chip thoughts" title="Мысли: ${esc(g.thoughts)}">💭 ${esc(g.thoughts)}</span>`);
-    if(g.feelings) chips.push(`<span class="g-chip feelings" title="Чувства: ${esc(g.feelings)}">💗 ${esc(g.feelings)}</span>`);
-    if(g.actions)  chips.push(`<span class="g-chip actions"  title="Действия: ${esc(g.actions)}">🏃 ${esc(g.actions)}</span>`);
-    if(chips.length) grandmaHtml = `<div class="grandma-chips">${chips.join('')}</div>`;
+  if(imp && isImpressionFilled(imp)){
+    const a = impAvg(imp);
+    const col = avgColor(a);
+    if(col){
+      badgeHtml = `<div class="badge" style="background:${col}" title="Среднее по текущему месту: ${a.toFixed(1)}/10">${a.toFixed(1)}</div>`;
+    }
   }
 
-  el.innerHTML = `${thoughtHtml}${badgeHtml}<div class="em">${m.emoji}</div><div class="nm">${m.name}</div>${grandmaHtml}`;
+  el.innerHTML = `${badgeHtml}<div class="em">${esc(p.emoji)}</div><div class="nm">${esc(p.name)}</div>`;
 
   el.addEventListener('dragstart', e => {
-    e.dataTransfer.setData('text/plain', m.id);
+    e.dataTransfer.setData('text/plain', 'person:' + p.id);
     e.dataTransfer.effectAllowed = 'move';
     el.classList.add('dragging');
-    selected = null;
   });
   el.addEventListener('dragend', () => el.classList.remove('dragging'));
 
   el.addEventListener('click', e => {
     e.stopPropagation();
-    if(state.observationMode) openEditor(m.id);
-    else { selected = (selected === m.id) ? null : m.id; render(); }
+    openPersonModal(p.id);
   });
 
   return el;
 }
 
-/* ══════════════ РЕНДЕР ══════════════ */
-function render(){
-  getAllLocations().forEach(loc => {
-    const zone = document.querySelector(`[data-zone="${loc.id}"]`);
-    if(!zone) return;
-    zone.innerHTML = '';
-    MEMBERS.forEach(m => {
-      if(state.placements[m.id] === loc.id) zone.appendChild(makeToken(m));
-    });
-  });
-}
-function place(memberId, locId){
-  if(!memberId || !locId) return;
-  state.placements[memberId] = locId;
-  save(); render();
-}
-
-/* ══════════════ GRID ══════════════ */
-function createLocCard(loc){
+/* ══════════════ КЛЕТКА ══════════════ */
+function makeCellCard(cell){
   const card = document.createElement('div');
-  card.className = 'loc ' + (loc.cls || '') + (loc.isCustom ? ' custom' : '');
-  card.dataset.loc = loc.id;
+  card.className = 'cell';
+  card.dataset.cellId = cell.id;
 
-  const delBtn = loc.isCustom
-    ? `<button class="loc-del" type="button" title="Удалить место">✕</button>`
-    : '';
+  const groupAvg = cellGroupAvg(cell.id);
+  const avgText = groupAvg ? `★ ${groupAvg.avg.toFixed(1)}` : '—';
+  const avgClass = groupAvg ? '' : 'empty';
+  const avgTitle = groupAvg
+    ? `Среднее по ${groupAvg.count} человек`
+    : 'Пока никто не думает об этом месте';
+
+  const isDefault = DEFAULT_CELLS.some(c => c.id === cell.id);
+  const delBtn = isDefault ? '' :
+    `<button class="cell-del" type="button" title="Удалить место">✕</button>`;
 
   card.innerHTML = `
     ${delBtn}
-    <div class="loc-head">
-      <span class="ico">${esc(loc.emoji)}</span>
+    <div class="cell-head">
+      <span class="ico">${esc(cell.emoji)}</span>
       <div class="nm-wrap">
-        <span class="nm-title">${esc(loc.name)}</span>
-        <span class="sub">${esc(loc.sub || '')}</span>
+        <span class="nm-title">${esc(cell.name)}</span>
+        <span class="sub">${esc(cell.sub || '')}</span>
       </div>
+      <span class="cell-avg ${avgClass}" title="${esc(avgTitle)}">${avgText}</span>
     </div>
-    <div class="zone" data-zone="${loc.id}"></div>
+    <div class="zone" data-zone="${cell.id}"></div>
   `;
 
   const zone = card.querySelector('.zone');
@@ -690,56 +721,73 @@ function createLocCard(loc){
   card.addEventListener('drop', e => {
     e.preventDefault();
     card.classList.remove('dragover');
-    const id = e.dataTransfer.getData('text/plain');
-    if(id) place(id, loc.id);
-  });
-  card.addEventListener('click', e => {
-    if(selected){
-      e.stopPropagation();
-      place(selected, loc.id);
-      selected = null;
+    const data = e.dataTransfer.getData('text/plain');
+    if(data.startsWith('person:')){
+      const pid = data.slice(7);
+      movePerson(pid, cell.id);
     }
   });
+
+  // drop zone для токенов
   zone.addEventListener('click', e => e.stopPropagation());
 
-  if(loc.isCustom){
-    card.querySelector('.loc-del').addEventListener('click', e => {
+  if(!isDefault){
+    card.querySelector('.cell-del').addEventListener('click', e => {
       e.stopPropagation();
-      if(confirm(`Удалить «${loc.name}»?`)) deleteCustomLocation(loc.id);
+      if(confirm(`Удалить «${cell.name}»?\nВпечатления о нём у всех пропадут.`)){
+        deleteCell(cell.id);
+      }
     });
   }
 
   return card;
 }
 
-function createAddTile(){
-  const tile = document.createElement('div');
-  tile.className = 'loc add-loc';
-  tile.innerHTML = `
+function makeAddCellTile(){
+  const t = document.createElement('div');
+  t.className = 'cell add-cell';
+  t.innerHTML = `
     <div class="add-inner">
       <div class="add-plus">➕</div>
       <div class="add-text">Добавить место</div>
     </div>
   `;
-  tile.addEventListener('click', openAddLocation);
-  return tile;
+  t.addEventListener('click', openAddCellModal);
+  return t;
 }
 
-function rebuildGrid(){
+/* ══════════════ РЕНДЕР ДОСКИ ══════════════ */
+function renderBoard(){
   gridEl.innerHTML = '';
-  getAllLocations().forEach(loc => gridEl.appendChild(createLocCard(loc)));
-  gridEl.appendChild(createAddTile());
-  // после вставки — красим в шашечки
-  requestAnimationFrame(colorCheckerboard);
+  state.cells.forEach(cell => gridEl.appendChild(makeCellCard(cell)));
+  gridEl.appendChild(makeAddCellTile());
+  requestAnimationFrame(() => {
+    colorCheckerboard();
+    // наполняем зоны персонами
+    state.persons.forEach(p => {
+      const zone = gridEl.querySelector(`[data-zone="${p.cellId}"]`);
+      if(zone) zone.appendChild(makePersonToken(p));
+    });
+  });
 }
 
-function deleteCustomLocation(locId){
-  const plan = PLAN[getSlot(state.time)];
-  MEMBERS.forEach(m => {
-    if(state.placements[m.id] === locId) state.placements[m.id] = plan[m.id] || 'myhome';
-  });
-  state.customLocations = (state.customLocations || []).filter(c => c.id !== locId);
-  save(); rebuildGrid(); render();
+function movePerson(pid, cellId){
+  const p = getPerson(pid);
+  if(!p || p.cellId === cellId) return;
+  p.cellId = cellId;
+  save();
+  renderBoard();
+}
+
+function deleteCell(cellId){
+  state.cells = state.cells.filter(c => c.id !== cellId);
+  const fallback = state.cells[0]?.id || null;
+  state.persons.forEach(p => { if(p.cellId === cellId) p.cellId = fallback; });
+  for(const pid in state.impressions){
+    delete state.impressions[pid][cellId];
+  }
+  save();
+  renderBoard();
 }
 
 /* ══════════════ ЧАСЫ ══════════════ */
@@ -748,26 +796,28 @@ function updateClock(force){
   const m = Math.floor(state.time) % 1440;
   if(!force && m === lastShown) return;
   lastShown = m;
-  const hh = String(Math.floor(m / 60)).padStart(2,'0');
-  const mm = String(m % 60).padStart(2,'0');
+  const hh = String(Math.floor(m/60)).padStart(2,'0');
+  const mm = String(m%60).padStart(2,'0');
   clockEl.textContent = `${hh}:${mm}`;
   progressEl.style.width = (m / 1440 * 100).toFixed(2) + '%';
   const slot = getSlot(state.time);
   phaseEl.textContent = slot === 'night' ? '🌙' : slot === 'day' ? '☀️' : '🌇';
 }
 
-/* ══════════════ ЦИКЛ ══════════════ */
-const MIN_PER_MS = 1 / 200;
+const MIN_PER_MS = 1/200;
 let lastFrame = performance.now();
 function loop(now){
   const dt = Math.min(now - lastFrame, 250);
   lastFrame = now;
   if(state.running){
+    const prevSlot = getSlot(state.time);
     state.time += dt * MIN_PER_MS * state.speed;
     if(state.time >= 1440) state.time -= 1440;
     const slot = getSlot(state.time);
-    if(slot !== state.slot){
-      applySchedule(); save(); render();
+    if(slot !== prevSlot){
+      applySchedule();
+      save();
+      renderBoard();
     }
   }
   updateClock();
@@ -776,19 +826,11 @@ function loop(now){
 
 /* ══════════════ КНОПКИ ══════════════ */
 const playBtn = document.getElementById('playBtn');
-const obsBtn  = document.getElementById('obsBtn');
 
 playBtn.addEventListener('click', () => {
   state.running = !state.running;
   playBtn.textContent = state.running ? '⏸' : '▶';
   playBtn.classList.toggle('on', state.running);
-  save();
-});
-
-obsBtn.addEventListener('click', () => {
-  state.observationMode = !state.observationMode;
-  obsBtn.classList.toggle('on', state.observationMode);
-  if(state.observationMode){ selected = null; render(); }
   save();
 });
 
@@ -800,163 +842,337 @@ document.querySelectorAll('.speed').forEach(btn => {
   });
 });
 
+document.getElementById('addPersonBtn').addEventListener('click', openAddPersonModal);
+
 document.getElementById('resetBtn').addEventListener('click', () => {
-  if(!confirm('Сбросить всё: время, места, параметры?')) return;
+  if(!confirm('Сбросить всё?')) return;
   localStorage.removeItem(KEY);
   state = defaultState();
-  selected = null; editingMember = null;
-  playBtn.textContent = '▶'; playBtn.classList.remove('on');
-  obsBtn.classList.remove('on');
+  closePersonModal();
+  closeAddCellModal();
+  closeAddPersonModal();
+  playBtn.textContent = '▶';
+  playBtn.classList.remove('on');
   document.querySelectorAll('.speed').forEach(b => b.classList.toggle('on', b.dataset.s === '1'));
-  closeEditor(); closeAddLocation();
-  applySchedule(); rebuildGrid(); render(); updateClock(true); save();
+  renderBoard();
+  updateClock(true);
+  save();
 });
 
-/* ══════════════ МОДАЛКА КАНАЛ 2 ══════════════ */
-const modal = document.getElementById('modal');
+/* ══════════════ МОДАЛКА: insideMe ЧЕЛОВЕКА ══════════════ */
+const personModal = document.getElementById('personModal');
+const pmEmoji  = document.getElementById('pmEmoji');
+const pmName   = document.getElementById('pmName');
+const pmLoc    = document.getElementById('pmLoc');
+const impListEl = document.getElementById('impressionsList');
 
-function openEditor(memberId){
-  editingMember = memberId;
-  const m = MEMBERS.find(x => x.id === memberId);
-  const c2 = getC2(memberId);
-  document.getElementById('mEmoji').textContent = m.emoji;
-  document.getElementById('mName').textContent = m.name;
-  C2_KEYS.forEach(k => {
-    document.getElementById('s-' + k).value = c2[k];
-    document.getElementById('v-' + k).textContent = c2[k];
+function openPersonModal(pid){
+  const p = getPerson(pid);
+  if(!p) return;
+  editingPersonId = pid;
+
+  pmEmoji.textContent = p.emoji;
+  pmName.textContent = p.name;
+
+  pmLoc.innerHTML = state.cells.map(c =>
+    `<option value="${esc(c.id)}" ${c.id === p.cellId ? 'selected' : ''}>${esc(c.emoji)} ${esc(c.name)}</option>`
+  ).join('');
+
+  pmLoc.onchange = () => {
+    const newCell = pmLoc.value;
+    if(newCell && getCell(newCell)){
+      p.cellId = newCell;
+      save();
+      renderBoard();
+    }
+  };
+
+  buildImpressionsList(pid);
+
+  personModal.classList.add('open');
+  personModal.setAttribute('aria-hidden', 'false');
+}
+
+function buildImpressionsList(pid){
+  impListEl.innerHTML = '';
+  state.cells.forEach(cell => {
+    const imp = getImpression(pid, cell.id);
+    const filled = isImpressionFilled(imp);
+    const a = impAvg(imp);
+
+    const item = document.createElement('div');
+    item.className = 'imp' + (filled ? ' filled' : '');
+    item.dataset.cellId = cell.id;
+
+    const avgText = filled ? a.toFixed(1) : '—';
+    const avgClass = filled ? '' : 'empty';
+
+    item.innerHTML = `
+      <div class="imp-head">
+        <span class="imp-ico">${esc(cell.emoji)}</span>
+        <span class="imp-nm">${esc(cell.name)}</span>
+        <span class="imp-avg ${avgClass}">${avgText}</span>
+        <span class="caret">▶</span>
+      </div>
+      <div class="imp-body"></div>
+    `;
+
+    // Слайдеры
+    const body = item.querySelector('.imp-body');
+    C2_KEYS.forEach(k => {
+      const v = imp ? (imp[k] || 0) : 0;
+      const wrap = document.createElement('div');
+      wrap.className = 'param';
+      wrap.innerHTML = `
+        <div class="param-row">
+          <span>${C2_LABELS[k]}</span>
+          <span class="param-val" data-val="${k}">${v}</span>
+        </div>
+        <input type="range" min="0" max="10" value="${v}" data-key="${k}">
+      `;
+      const slider = wrap.querySelector('input');
+      const val    = wrap.querySelector('.param-val');
+      slider.addEventListener('input', () => {
+        val.textContent = slider.value;
+        updateImpression(pid, cell.id, k, Number(slider.value));
+        refreshImpAvg(item, pid, cell.id);
+      });
+      body.appendChild(wrap);
+    });
+
+    // Мысли / Чувства / Действия
+    const textFields = [
+      { key:'thought',  label:'💭 Мысли',     ph:'о чём думает…' },
+      { key:'feelings', label:'💗 Чувства',   ph:'что чувствует…' },
+      { key:'actions',  label:'🏃 Действия',  ph:'что делает…' }
+    ];
+    textFields.forEach(f => {
+      const v = imp ? (imp[f.key] || '') : '';
+      const wrap = document.createElement('div');
+      wrap.className = 'param';
+      wrap.innerHTML = `
+        <div class="param-row"><span>${f.label}</span></div>
+        <input type="text" data-tkey="${f.key}" placeholder="${esc(f.ph)}" maxlength="40" value="${esc(v)}">
+      `;
+      const input = wrap.querySelector('input');
+      input.addEventListener('input', () => {
+        updateImpressionText(pid, cell.id, f.key, input.value);
+        refreshImpFilled(item, pid, cell.id);
+        refreshImpAvg(item, pid, cell.id);
+      });
+      body.appendChild(wrap);
+    });
+
+    // toggle
+    item.querySelector('.imp-head').addEventListener('click', () => {
+      item.classList.toggle('open');
+    });
+
+    impListEl.appendChild(item);
   });
-  document.getElementById('f-thought').value = c2.thought || '';
-  const gs = document.getElementById('grandmaSection');
-  if(memberId === 'baba'){
-    gs.style.display = 'flex';
-    const g = state.grandma || {};
-    document.getElementById('f-g-thoughts').value = g.thoughts || '';
-    document.getElementById('f-g-feelings').value = g.feelings || '';
-    document.getElementById('f-g-actions').value  = g.actions  || '';
-  }else{ gs.style.display = 'none'; }
-  modal.classList.add('open');
-  modal.setAttribute('aria-hidden', 'false');
 }
-function closeEditor(){
-  editingMember = null;
-  modal.classList.remove('open');
-  modal.setAttribute('aria-hidden', 'true');
+
+function updateImpression(pid, cellId, key, value){
+  state.impressions[pid] = state.impressions[pid] || {};
+  state.impressions[pid][cellId] = state.impressions[pid][cellId] || {};
+  state.impressions[pid][cellId][key] = value;
+  save();
 }
-function saveEditor(){
-  if(!editingMember) return;
-  const c = {};
-  C2_KEYS.forEach(k => { c[k] = Number(document.getElementById('s-' + k).value) || 0; });
-  c.thought = (document.getElementById('f-thought').value || '').trim();
-  state.c2[editingMember] = c;
-  if(editingMember === 'baba'){
-    state.grandma = {
-      thoughts: (document.getElementById('f-g-thoughts').value || '').trim(),
-      feelings: (document.getElementById('f-g-feelings').value || '').trim(),
-      actions:  (document.getElementById('f-g-actions').value  || '').trim()
-    };
+function updateImpressionText(pid, cellId, key, value){
+  state.impressions[pid] = state.impressions[pid] || {};
+  state.impressions[pid][cellId] = state.impressions[pid][cellId] || {};
+  state.impressions[pid][cellId][key] = value;
+  save();
+}
+function refreshImpAvg(item, pid, cellId){
+  const imp = getImpression(pid, cellId);
+  const a = impAvg(imp);
+  const filled = isImpressionFilled(imp);
+  const el = item.querySelector('.imp-avg');
+  if(filled){
+    el.textContent = a.toFixed(1);
+    el.classList.remove('empty');
+  }else{
+    el.textContent = '—';
+    el.classList.add('empty');
   }
-  save(); render();
 }
-C2_KEYS.forEach(k => {
-  const slider = document.getElementById('s-' + k);
-  const label  = document.getElementById('v-' + k);
-  slider.addEventListener('input', () => { label.textContent = slider.value; });
+function refreshImpFilled(item, pid, cellId){
+  const imp = getImpression(pid, cellId);
+  item.classList.toggle('filled', isImpressionFilled(imp));
+  // обновляем бейдж на доске и групповые средние
+  renderBoard();
+}
+
+function closePersonModal(){
+  editingPersonId = null;
+  personModal.classList.remove('open');
+  personModal.setAttribute('aria-hidden', 'true');
+}
+
+document.getElementById('pmClose').addEventListener('click', () => {
+  closePersonModal();
+  renderBoard();
 });
-document.getElementById('mClose').addEventListener('click', () => { saveEditor(); closeEditor(); });
-document.getElementById('mSave').addEventListener('click',  () => { saveEditor(); closeEditor(); });
-document.getElementById('mClear').addEventListener('click', () => {
-  C2_KEYS.forEach(k => {
-    document.getElementById('s-' + k).value = 0;
-    document.getElementById('v-' + k).textContent = 0;
+document.getElementById('pmDone').addEventListener('click', () => {
+  closePersonModal();
+  renderBoard();
+});
+document.getElementById('pmClear').addEventListener('click', () => {
+  if(!editingPersonId) return;
+  if(!confirm('Очистить все впечатления этого человека?')) return;
+  delete state.impressions[editingPersonId];
+  save();
+  buildImpressionsList(editingPersonId);
+  renderBoard();
+});
+personModal.addEventListener('click', e => {
+  if(e.target === personModal){ closePersonModal(); renderBoard(); }
+});
+
+/* ══════════════ МОДАЛКА: добавить место ══════════════ */
+const addCellModal = document.getElementById('addCellModal');
+const acEmojiEl = document.getElementById('acEmoji');
+const acNameEl  = document.getElementById('acName');
+const acSubEl   = document.getElementById('acSub');
+const acPreview = document.getElementById('acPreview');
+
+(function buildCellEmojiSuggest(){
+  const wrap = document.getElementById('acEmojiSuggest');
+  CELL_EMOJI_SUGGEST.forEach(em => {
+    const b = document.createElement('button');
+    b.type='button'; b.className='emoji-btn'; b.textContent=em;
+    b.addEventListener('click', () => {
+      acEmojiEl.value = em;
+      acPreview.textContent = em;
+      wrap.querySelectorAll('.emoji-btn').forEach(x => x.classList.toggle('on', x === b));
+    });
+    wrap.appendChild(b);
   });
-  document.getElementById('f-thought').value = '';
-  if(editingMember === 'baba'){
-    document.getElementById('f-g-thoughts').value = '';
-    document.getElementById('f-g-feelings').value = '';
-    document.getElementById('f-g-actions').value  = '';
-  }
-});
-modal.addEventListener('click', e => {
-  if(e.target === modal){ saveEditor(); closeEditor(); }
+})();
+acEmojiEl.addEventListener('input', () => {
+  acPreview.textContent = acEmojiEl.value.trim() || '📍';
 });
 
-/* ══════════════ МОДАЛКА «ДОБАВИТЬ МЕСТО» ══════════════ */
-const addLocModal = document.getElementById('addLocModal');
-const alEmojiEl = document.getElementById('alEmoji');
-const alNameEl  = document.getElementById('alName');
-const alSubEl   = document.getElementById('alSub');
-const alPreview = document.getElementById('alPreview');
-
-let customCounter = Date.now();
-function genCustomId(){ return 'custom_' + (customCounter++); }
-
-const suggestWrap = document.getElementById('emojiSuggest');
-EMOJI_SUGGESTIONS.forEach(em => {
-  const b = document.createElement('button');
-  b.type = 'button'; b.className = 'emoji-btn'; b.textContent = em;
-  b.addEventListener('click', () => {
-    alEmojiEl.value = em;
-    alPreview.textContent = em || '📍';
-    document.querySelectorAll('.emoji-btn').forEach(x => x.classList.toggle('on', x === b));
-  });
-  suggestWrap.appendChild(b);
-});
-alEmojiEl.addEventListener('input', () => {
-  alPreview.textContent = alEmojiEl.value.trim() || '📍';
-});
-
-function openAddLocation(){
-  alEmojiEl.value = '🏬'; alNameEl.value = ''; alSubEl.value = '';
-  alPreview.textContent = '🏬';
-  document.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('on', b.textContent === '🏬'));
-  addLocModal.classList.add('open');
-  addLocModal.setAttribute('aria-hidden', 'false');
-  setTimeout(() => alNameEl.focus(), 50);
+function openAddCellModal(){
+  acEmojiEl.value = '🏬';
+  acNameEl.value = '';
+  acSubEl.value = '';
+  acPreview.textContent = '🏬';
+  document.querySelectorAll('#acEmojiSuggest .emoji-btn')
+    .forEach(b => b.classList.toggle('on', b.textContent === '🏬'));
+  addCellModal.classList.add('open');
+  addCellModal.setAttribute('aria-hidden', 'false');
+  setTimeout(() => acNameEl.focus(), 50);
 }
-function closeAddLocation(){
-  addLocModal.classList.remove('open');
-  addLocModal.setAttribute('aria-hidden', 'true');
+function closeAddCellModal(){
+  addCellModal.classList.remove('open');
+  addCellModal.setAttribute('aria-hidden', 'true');
 }
-document.getElementById('alClose').addEventListener('click', closeAddLocation);
-document.getElementById('alCancel').addEventListener('click', closeAddLocation);
-document.getElementById('alAdd').addEventListener('click', () => {
-  const emoji = (alEmojiEl.value || '').trim() || '📍';
-  const name  = (alNameEl.value  || '').trim();
-  const sub   = (alSubEl.value   || '').trim();
+document.getElementById('acClose').addEventListener('click', closeAddCellModal);
+document.getElementById('acCancel').addEventListener('click', closeAddCellModal);
+document.getElementById('acAdd').addEventListener('click', () => {
+  const emoji = (acEmojiEl.value || '').trim() || '📍';
+  const name  = (acNameEl.value || '').trim();
+  const sub   = (acSubEl.value || '').trim();
   if(!name){
-    alNameEl.focus();
-    alNameEl.style.borderColor = '#ff8888';
-    setTimeout(()=>{ alNameEl.style.borderColor = ''; }, 800);
+    acNameEl.focus();
+    acNameEl.style.borderColor = '#ff8888';
+    setTimeout(() => { acNameEl.style.borderColor = ''; }, 800);
     return;
   }
-  state.customLocations = state.customLocations || [];
-  state.customLocations.push({ id: genCustomId(), emoji, name, sub: sub || 'своё место', cls:'', isCustom:true });
-  save(); rebuildGrid(); render(); closeAddLocation();
+  state.cells.push({
+    id: 'cell_' + Date.now(),
+    emoji, name, sub: sub || 'своё место'
+  });
+  save();
+  renderBoard();
+  closeAddCellModal();
 });
-addLocModal.addEventListener('click', e => {
-  if(e.target === addLocModal) closeAddLocation();
+addCellModal.addEventListener('click', e => {
+  if(e.target === addCellModal) closeAddCellModal();
 });
 
+/* ══════════════ МОДАЛКА: добавить человека ══════════════ */
+const addPersonModal = document.getElementById('addPersonModal');
+const apEmojiEl = document.getElementById('apEmoji');
+const apNameEl  = document.getElementById('apName');
+const apLoc     = document.getElementById('apLoc');
+const apPreview = document.getElementById('apPreview');
+
+(function buildPersonEmojiSuggest(){
+  const wrap = document.getElementById('apEmojiSuggest');
+  PERSON_EMOJI_SUGGEST.forEach(em => {
+    const b = document.createElement('button');
+    b.type='button'; b.className='emoji-btn'; b.textContent=em;
+    b.addEventListener('click', () => {
+      apEmojiEl.value = em;
+      apPreview.textContent = em;
+      wrap.querySelectorAll('.emoji-btn').forEach(x => x.classList.toggle('on', x === b));
+    });
+    wrap.appendChild(b);
+  });
+})();
+apEmojiEl.addEventListener('input', () => {
+  apPreview.textContent = apEmojiEl.value.trim() || '👤';
+});
+
+function openAddPersonModal(){
+  apEmojiEl.value = '👤';
+  apNameEl.value = '';
+  apPreview.textContent = '👤';
+  apLoc.innerHTML = state.cells.map(c =>
+    `<option value="${esc(c.id)}">${esc(c.emoji)} ${esc(c.name)}</option>`
+  ).join('');
+  document.querySelectorAll('#apEmojiSuggest .emoji-btn')
+    .forEach(b => b.classList.toggle('on', b.textContent === '👤'));
+  addPersonModal.classList.add('open');
+  addPersonModal.setAttribute('aria-hidden', 'false');
+  setTimeout(() => apNameEl.focus(), 50);
+}
+function closeAddPersonModal(){
+  addPersonModal.classList.remove('open');
+  addPersonModal.setAttribute('aria-hidden', 'true');
+}
+document.getElementById('apClose').addEventListener('click', closeAddPersonModal);
+document.getElementById('apCancel').addEventListener('click', closeAddPersonModal);
+document.getElementById('apAdd').addEventListener('click', () => {
+  const emoji = (apEmojiEl.value || '').trim() || '👤';
+  const name  = (apNameEl.value || '').trim();
+  const cellId = apLoc.value;
+  if(!name || !cellId){
+    apNameEl.focus();
+    return;
+  }
+  state.persons.push({
+    id: 'person_' + Date.now(),
+    emoji, name, cellId
+  });
+  save();
+  renderBoard();
+  closeAddPersonModal();
+});
+addPersonModal.addEventListener('click', e => {
+  if(e.target === addPersonModal) closeAddPersonModal();
+});
+
+/* ══════════════ ESC ══════════════ */
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
-  if(addLocModal.classList.contains('open')){ closeAddLocation(); return; }
-  if(modal.classList.contains('open')){ saveEditor(); closeEditor(); }
+  if(addCellModal.classList.contains('open')){ closeAddCellModal(); return; }
+  if(addPersonModal.classList.contains('open')){ closeAddPersonModal(); return; }
+  if(personModal.classList.contains('open')){ closePersonModal(); renderBoard(); }
 });
 
 /* ══════════════ СТАРТ ══════════════ */
 setInterval(save, 4000);
 window.addEventListener('beforeunload', save);
 
-if(!state.placements || !Object.keys(state.placements).length || state.slot !== getSlot(state.time)){
-  applySchedule();
-}
 document.querySelectorAll('.speed').forEach(b => b.classList.toggle('on', Number(b.dataset.s) === state.speed));
 playBtn.textContent = state.running ? '⏸' : '▶';
 playBtn.classList.toggle('on', state.running);
-obsBtn.classList.toggle('on', state.observationMode);
 
-rebuildGrid();
-render();
+renderBoard();
 updateClock(true);
 requestAnimationFrame(loop);
 </script>
