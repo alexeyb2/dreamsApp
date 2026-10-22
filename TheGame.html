@@ -3,15 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Мир · Шахматная доска · insideMe</title>
+<title>Мир · Шахматная доска · empty</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{
     font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
     background:radial-gradient(circle at 20% 0%,#2b1f4a 0%,#120d22 45%,#08060f 100%);
     color:#eae6ff;min-height:100vh;padding:16px;
-    user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+    -webkit-tap-highlight-color:transparent;
   }
+  /* ── ФИКС ПОЛЗУНКОВ: разрешаем выделение и скролл инпутов ── */
+  input, textarea, select, button{
+    -webkit-user-select: auto;
+    user-select: auto;
+  }
+
   .wrap{max-width:1100px;margin:0 auto}
 
   header{
@@ -35,8 +41,9 @@
     background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
     border-radius:12px;padding:8px 12px;cursor:pointer;transition:.15s;
   }
-  button:hover{background:rgba(255,255,255,.16);transform:translateY(-1px)}
-  button:active{transform:translateY(0)}
+  button:hover:not(:disabled){background:rgba(255,255,255,.16);transform:translateY(-1px)}
+  button:active:not(:disabled){transform:translateY(0)}
+  button:disabled{cursor:not-allowed}
   button.on{
     background:linear-gradient(180deg,#8b6bff,#6a45e0);
     border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.55);
@@ -70,9 +77,11 @@
   }
   .grid{
     display:grid;gap:5px;
-    grid-template-columns:repeat(4, 1fr);
+    grid-template-columns:repeat(4, minmax(0,1fr));
   }
-  @media (max-width:760px){ .grid{grid-template-columns:repeat(2, 1fr);} }
+  .grid.empty{
+    grid-template-columns:1fr;
+  }
 
   /* ── КЛЕТКА ── */
   .cell{
@@ -96,10 +105,6 @@
     border-color:#a68bff;
     box-shadow:0 8px 32px rgba(139,107,255,.55),0 0 0 1px #a68bff inset;
     transform:translateY(-2px);
-  }
-  .cell.selected-target{
-    border-color:#8bffd0;
-    box-shadow:0 0 20px rgba(139,255,208,.5);
   }
 
   .cell-head{
@@ -172,6 +177,10 @@
   .add-plus{font-size:30px;line-height:1;filter:drop-shadow(0 0 12px rgba(160,120,255,.7))}
   .add-text{font-size:12px;font-weight:600;opacity:.75;letter-spacing:.3px;text-align:center}
 
+  .grid.empty .add-cell{min-height:220px;border-radius:18px}
+  .grid.empty .add-plus{font-size:48px}
+  .grid.empty .add-text{font-size:15px;opacity:.85}
+
   /* ── ЧЕЛОВЕК ── */
   .person{
     position:relative;
@@ -204,6 +213,36 @@
 
   footer{
     text-align:center;font-size:11.5px;opacity:.4;margin-top:20px;padding-bottom:10px;
+  }
+
+  /* ── МОБИЛКА: 5 клеток в ряд ── */
+  @media (max-width:640px){
+    body{padding:8px}
+    header{padding:10px 12px;border-radius:16px;margin-bottom:10px}
+    #clock{font-size:26px}
+    #phase{font-size:22px}
+    .hint{font-size:11px;margin-bottom:8px}
+    .board{padding:6px;border-radius:16px}
+    .grid{grid-template-columns:repeat(5, minmax(0,1fr));gap:3px}
+    .grid.empty{grid-template-columns:1fr}
+    .cell{padding:4px;min-height:78px;border-radius:8px;gap:2px}
+    .cell-head{font-size:9px;gap:2px;min-height:14px;padding-right:13px}
+    .cell-head .ico{font-size:14px}
+    .cell-head .sub{display:none}
+    .cell-head .nm-title{font-size:9px;line-height:1.1}
+    .cell-avg{font-size:8px;padding:0 3px;line-height:1.4}
+    .cell-del{width:14px;height:14px;font-size:8px;top:2px;right:2px;border-radius:5px}
+    .person{padding:3px 4px;border-radius:8px}
+    .person .em{font-size:16px}
+    .person .nm{font-size:7px;margin-top:1px}
+    .person .badge{min-width:13px;height:13px;font-size:7.5px;padding:0 2px;top:-4px;right:-4px}
+    .zone{gap:2px;padding:1px}
+    .add-cell{min-height:78px}
+    .add-plus{font-size:22px}
+    .add-text{font-size:9px}
+    .grid.empty .add-cell{min-height:180px}
+    .grid.empty .add-plus{font-size:40px}
+    .grid.empty .add-text{font-size:13px}
   }
 
   /* ── МОДАЛКИ ── */
@@ -249,7 +288,6 @@
     border-color:#a68bff;box-shadow:0 0 18px rgba(139,107,255,.5);
   }
 
-  /* строка "текущая локация" */
   .loc-row{
     display:flex;align-items:center;gap:10px;
     background:rgba(139,107,255,.12);
@@ -257,7 +295,7 @@
     border-radius:14px;padding:9px 12px;
     font-size:13px;
   }
-  .loc-row .lbl{opacity:.6;font-size:11.5px}
+  .loc-row .lbl{opacity:.6;font-size:11.5px;flex-shrink:0}
   .loc-row select{
     flex:1;background:rgba(0,0,0,.25);color:#eae6ff;
     border:1px solid rgba(255,255,255,.18);border-radius:10px;
@@ -266,7 +304,6 @@
   }
   .loc-row select:focus{border-color:#a68bff}
 
-  /* аккордеон впечатлений */
   .imp{
     background:rgba(255,255,255,.04);
     border:1px solid rgba(255,255,255,.10);
@@ -314,20 +351,42 @@
     background:rgba(160,120,255,.25);border:1px solid rgba(160,120,255,.4);
     padding:0 7px;border-radius:7px;font-size:11px;min-width:24px;text-align:center;
   }
+
+  /* ── ФИКС: ползунок большой, трек отдельно, touch-friendly ── */
   .param input[type=range]{
-    width:100%;height:5px;border-radius:99px;appearance:none;-webkit-appearance:none;
+    width:100%;
+    height:26px;
+    background:transparent;
+    -webkit-appearance:none;
+    appearance:none;
+    outline:none;
+    cursor:pointer;
+    touch-action:pan-y;
+    margin:0;
+  }
+  .param input[type=range]::-webkit-slider-runnable-track{
+    height:8px;border-radius:99px;
     background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
-    outline:none;cursor:pointer;
+  }
+  .param input[type=range]::-moz-range-track{
+    height:8px;border-radius:99px;
+    background:linear-gradient(90deg,#5b8cff,#a06bff,#ff6bd6);
   }
   .param input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
-    background:#fff;border:2px solid #a06bff;box-shadow:0 0 8px rgba(160,107,255,.8);
+    -webkit-appearance:none;
+    width:24px;height:24px;border-radius:50%;
+    background:#fff;border:3px solid #a06bff;
+    box-shadow:0 0 12px rgba(160,107,255,.9);
+    margin-top:-8px;
     cursor:grab;
   }
   .param input[type=range]::-moz-range-thumb{
-    width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #a06bff;
+    width:24px;height:24px;border-radius:50%;
+    background:#fff;border:3px solid #a06bff;
+    box-shadow:0 0 12px rgba(160,107,255,.9);
     cursor:grab;
   }
+
   .param input[type=text]{
     width:100%;background:rgba(0,0,0,.25);
     border:1px solid rgba(255,255,255,.15);border-radius:10px;
@@ -379,21 +438,20 @@
       <button class="speed" data-s="1">×1</button>
       <button class="speed" data-s="5">×5</button>
       <button class="speed" data-s="20">×20</button>
-      <button id="addPersonBtn">👤</button>
+      <button id="addPersonBtn" disabled title="Сначала добавь место ➕">👤</button>
       <button id="resetBtn">🔄</button>
     </div>
     <div class="bar"><div id="progress"></div></div>
   </header>
 
   <div class="hint">
-    🏁 <b>Шахматная доска</b> · мир и восприятие разделены.<br>
-    <b>Клик по смайлику</b> → его <b>insideMe</b>: ссылки на места + Канал 2 (мысли/чувства/действия).<br>
-    <b>★ X.X</b> на клетке — среднее по всей группе, кто думает про это место.<br>
-    <b>➕</b> — добавить место. <b>👤</b> — добавить человека. Таскай смайликов мышкой.
+    🏁 <b>Шахматная доска</b> · по умолчанию пусто.<br>
+    Добавь <b>➕ место</b> и <b>👤 человека</b>. Клик по смайлику → его insideMe.<br>
+    <b>★ X.X</b> на клетке — среднее по всей группе, кто думает про это место.
   </div>
 
   <div class="board">
-    <div class="grid" id="grid"></div>
+    <div class="grid empty" id="grid"></div>
   </div>
 
   <footer>Всё сохраняется в localStorage 💾</footer>
@@ -411,14 +469,11 @@
       <button class="modal-close" id="pmClose" type="button">✕</button>
     </div>
     <div class="modal-body">
-
       <div class="loc-row">
         <span class="lbl">📍 где:</span>
         <select id="pmLoc"></select>
       </div>
-
       <div id="impressionsList"></div>
-
     </div>
     <div class="modal-foot">
       <button id="pmClear" type="button">Очистить всё</button>
@@ -504,28 +559,10 @@ const C2_LABELS = {
   control:'🎛️ Контроль'
 };
 
-const DEFAULT_CELLS = [
-  { id:'myhome',   emoji:'🏡', name:'Мой дом',                 sub:'дом' },
-  { id:'vikahome', emoji:'🏠', name:'Викин дом',               sub:'дом' },
-  { id:'work1',    emoji:'🏢', name:'Работа папы и мамы',      sub:'10 ч в день' },
-  { id:'work2',    emoji:'🏬', name:'Работа бабушки и дедушки',sub:'10 ч в день' },
-  { id:'sad',      emoji:'🏩', name:'Викин садик',             sub:'10 ч в день' },
-  { id:'sleep',    emoji:'🛏️', name:'Сон',                     sub:'21:00 – 7:00' }
-];
-
-const DEFAULT_PERSONS = [
-  { id:'me',   emoji:'🥳',  name:'Я',       cellId:'myhome' },
-  { id:'vika', emoji:'😘',  name:'Вика',    cellId:'myhome' },
-  { id:'papa', emoji:'😍',  name:'Папа',    cellId:'myhome' },
-  { id:'mama', emoji:'🥰',  name:'Мама',    cellId:'myhome' },
-  { id:'baba', emoji:'🤩',  name:'Бабушка', cellId:'myhome' },
-  { id:'ded',  emoji:'😶‍🌫️', name:'Дедушка', cellId:'myhome' }
-];
-
 const CELL_EMOJI_SUGGEST = ['🏬','🏥','🎬','🏫','🏪','🎮','🌳','🏖️','🎪','📚','🍔','🏦','🎨'];
 const PERSON_EMOJI_SUGGEST = ['👤','👦','👧','🐱','🐶','🧑‍🦱','👴','👵','🧒','👨','👩'];
 
-const KEY = 'world-chess-insideMe-v1';
+const KEY = 'world-chess-v2-empty';
 const DAY_START = 420, WORK_END = 1020, SLEEP = 1260;
 
 /* ══════════════ СОСТОЯНИЕ ══════════════ */
@@ -533,10 +570,10 @@ const defaultState = () => ({
   time: DAY_START,
   running: false,
   speed: 1,
-  cells: DEFAULT_CELLS.map(c => ({...c})),
-  persons: DEFAULT_PERSONS.map(p => ({...p})),
-  impressions: {},   // {personId: {cellId: {judgment, evaluation, narrative, rumination, control, thought, feelings, actions}}}
-  schemaVersion: 1
+  cells: [],       // пусто
+  persons: [],     // пусто
+  impressions: {},
+  schemaVersion: 2
 });
 
 function loadState(){
@@ -561,10 +598,11 @@ function esc(s){
 function getCell(id){ return state.cells.find(c => c.id === id); }
 function getPerson(id){ return state.persons.find(p => p.id === id); }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
 function getImpression(personId, cellId){
   const imp = (state.impressions[personId] || {})[cellId];
   if(!imp) return null;
-  const out = { thought:'', feelings:'', actions:'' };
+  const out = {};
   C2_KEYS.forEach(k => out[k] = imp[k] || 0);
   out.thought  = imp.thought  || '';
   out.feelings = imp.feelings || '';
@@ -600,29 +638,19 @@ function avgColor(avg){
   return 'rgba(255,80,80,0.98)';
 }
 
-/* ══════════════ РАСПИСАНИЕ (для движения по часам) ══════════════ */
-function getSlot(min){
-  if(min >= DAY_START && min < WORK_END) return 'day';
-  if(min >= WORK_END  && min < SLEEP)    return 'evening';
-  return 'night';
-}
-const PLAN = {
-  day:     { me:'myhome', vika:'sad', papa:'work1', mama:'work1', baba:'work2', ded:'work2' },
-  evening: { me:'myhome', papa:'myhome', mama:'myhome', vika:'vikahome', baba:'vikahome', ded:'vikahome' },
-  night:   { me:'sleep', vika:'sleep', papa:'sleep', mama:'sleep', baba:'sleep', ded:'sleep' }
-};
-function applySchedule(){
-  const plan = PLAN[getSlot(state.time)] || {};
-  state.persons.forEach(p => {
-    if(plan[p.id]) p.cellId = plan[p.id];
-  });
-}
-
 /* ══════════════ DOM ══════════════ */
 const gridEl     = document.getElementById('grid');
 const clockEl    = document.getElementById('clock');
 const phaseEl    = document.getElementById('phase');
 const progressEl = document.getElementById('progress');
+const addPersonBtn = document.getElementById('addPersonBtn');
+
+function updateAddPersonBtn(){
+  const has = state.cells.length > 0;
+  addPersonBtn.disabled = !has;
+  addPersonBtn.style.opacity = has ? '1' : '0.35';
+  addPersonBtn.title = has ? 'Добавить человека' : 'Сначала добавь место ➕';
+}
 
 /* шахматная раскраска */
 function colorCheckerboard(){
@@ -642,7 +670,7 @@ function colorCheckerboard(){
 let resizeTimer = null;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(colorCheckerboard, 100);
+  resizeTimer = setTimeout(colorCheckerboard, 80);
 });
 
 /* ══════════════ ТОКЕН ЧЕЛОВЕКА ══════════════ */
@@ -650,6 +678,7 @@ function makePersonToken(p){
   const el = document.createElement('div');
   el.className = 'person';
   el.draggable = true;
+  el.dataset.personId = p.id;
 
   const imp = getImpression(p.id, p.cellId);
   let badgeHtml = '';
@@ -660,7 +689,6 @@ function makePersonToken(p){
       badgeHtml = `<div class="badge" style="background:${col}" title="Среднее по текущему месту: ${a.toFixed(1)}/10">${a.toFixed(1)}</div>`;
     }
   }
-
   el.innerHTML = `${badgeHtml}<div class="em">${esc(p.emoji)}</div><div class="nm">${esc(p.name)}</div>`;
 
   el.addEventListener('dragstart', e => {
@@ -691,12 +719,8 @@ function makeCellCard(cell){
     ? `Среднее по ${groupAvg.count} человек`
     : 'Пока никто не думает об этом месте';
 
-  const isDefault = DEFAULT_CELLS.some(c => c.id === cell.id);
-  const delBtn = isDefault ? '' :
-    `<button class="cell-del" type="button" title="Удалить место">✕</button>`;
-
   card.innerHTML = `
-    ${delBtn}
+    <button class="cell-del" type="button" title="Удалить место">✕</button>
     <div class="cell-head">
       <span class="ico">${esc(cell.emoji)}</span>
       <div class="nm-wrap">
@@ -728,17 +752,14 @@ function makeCellCard(cell){
     }
   });
 
-  // drop zone для токенов
   zone.addEventListener('click', e => e.stopPropagation());
 
-  if(!isDefault){
-    card.querySelector('.cell-del').addEventListener('click', e => {
-      e.stopPropagation();
-      if(confirm(`Удалить «${cell.name}»?\nВпечатления о нём у всех пропадут.`)){
-        deleteCell(cell.id);
-      }
-    });
-  }
+  card.querySelector('.cell-del').addEventListener('click', e => {
+    e.stopPropagation();
+    if(confirm(`Удалить «${cell.name}»?\nВпечатления о нём пропадут.`)){
+      deleteCell(cell.id);
+    }
+  });
 
   return card;
 }
@@ -756,19 +777,52 @@ function makeAddCellTile(){
   return t;
 }
 
-/* ══════════════ РЕНДЕР ДОСКИ ══════════════ */
+/* ══════════════ РЕНДЕР ══════════════ */
 function renderBoard(){
   gridEl.innerHTML = '';
+  gridEl.classList.toggle('empty', state.cells.length === 0);
+
   state.cells.forEach(cell => gridEl.appendChild(makeCellCard(cell)));
   gridEl.appendChild(makeAddCellTile());
+
   requestAnimationFrame(() => {
     colorCheckerboard();
-    // наполняем зоны персонами
     state.persons.forEach(p => {
+      if(!p.cellId) return;
       const zone = gridEl.querySelector(`[data-zone="${p.cellId}"]`);
       if(zone) zone.appendChild(makePersonToken(p));
     });
+    updateAddPersonBtn();
   });
+}
+
+function refreshPersonToken(pid){
+  const p = getPerson(pid);
+  if(!p || !p.cellId) return;
+  const zone = gridEl.querySelector(`[data-zone="${p.cellId}"]`);
+  if(!zone) return;
+  const old = zone.querySelector(`[data-person-id="${pid}"]`);
+  const fresh = makePersonToken(p);
+  if(old) old.replaceWith(fresh);
+  else zone.appendChild(fresh);
+}
+
+function refreshCellAvg(cellId){
+  if(!cellId) return;
+  const card = gridEl.querySelector(`[data-cell-id="${cellId}"]`);
+  if(!card) return;
+  const avgEl = card.querySelector('.cell-avg');
+  if(!avgEl) return;
+  const g = cellGroupAvg(cellId);
+  if(g){
+    avgEl.textContent = `★ ${g.avg.toFixed(1)}`;
+    avgEl.classList.remove('empty');
+    avgEl.title = `Среднее по ${g.count} человек`;
+  }else{
+    avgEl.textContent = '—';
+    avgEl.classList.add('empty');
+    avgEl.title = 'Пока никто не думает об этом месте';
+  }
 }
 
 function movePerson(pid, cellId){
@@ -800,7 +854,9 @@ function updateClock(force){
   const mm = String(m%60).padStart(2,'0');
   clockEl.textContent = `${hh}:${mm}`;
   progressEl.style.width = (m / 1440 * 100).toFixed(2) + '%';
-  const slot = getSlot(state.time);
+  const slot = (state.time >= DAY_START && state.time < WORK_END) ? 'day'
+             : (state.time >= WORK_END && state.time < SLEEP) ? 'evening'
+             : 'night';
   phaseEl.textContent = slot === 'night' ? '🌙' : slot === 'day' ? '☀️' : '🌇';
 }
 
@@ -810,15 +866,8 @@ function loop(now){
   const dt = Math.min(now - lastFrame, 250);
   lastFrame = now;
   if(state.running){
-    const prevSlot = getSlot(state.time);
     state.time += dt * MIN_PER_MS * state.speed;
     if(state.time >= 1440) state.time -= 1440;
-    const slot = getSlot(state.time);
-    if(slot !== prevSlot){
-      applySchedule();
-      save();
-      renderBoard();
-    }
   }
   updateClock();
   requestAnimationFrame(loop);
@@ -842,7 +891,13 @@ document.querySelectorAll('.speed').forEach(btn => {
   });
 });
 
-document.getElementById('addPersonBtn').addEventListener('click', openAddPersonModal);
+addPersonBtn.addEventListener('click', () => {
+  if(state.cells.length === 0){
+    alert('Сначала добавь место ➕');
+    return;
+  }
+  openAddPersonModal();
+});
 
 document.getElementById('resetBtn').addEventListener('click', () => {
   if(!confirm('Сбросить всё?')) return;
@@ -859,7 +914,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   save();
 });
 
-/* ══════════════ МОДАЛКА: insideMe ЧЕЛОВЕКА ══════════════ */
+/* ══════════════ МОДАЛКА: insideMe ══════════════ */
 const personModal = document.getElementById('personModal');
 const pmEmoji  = document.getElementById('pmEmoji');
 const pmName   = document.getElementById('pmName');
@@ -895,6 +950,12 @@ function openPersonModal(pid){
 
 function buildImpressionsList(pid){
   impListEl.innerHTML = '';
+
+  if(state.cells.length === 0){
+    impListEl.innerHTML = '<div style="text-align:center;opacity:.5;padding:20px;font-size:13px">Нет мест. Добавь место ➕</div>';
+    return;
+  }
+
   state.cells.forEach(cell => {
     const imp = getImpression(pid, cell.id);
     const filled = isImpressionFilled(imp);
@@ -917,8 +978,9 @@ function buildImpressionsList(pid){
       <div class="imp-body"></div>
     `;
 
-    // Слайдеры
     const body = item.querySelector('.imp-body');
+
+    // Слайдеры
     C2_KEYS.forEach(k => {
       const v = imp ? (imp[k] || 0) : 0;
       const wrap = document.createElement('div');
@@ -926,44 +988,46 @@ function buildImpressionsList(pid){
       wrap.innerHTML = `
         <div class="param-row">
           <span>${C2_LABELS[k]}</span>
-          <span class="param-val" data-val="${k}">${v}</span>
+          <span class="param-val">${v}</span>
         </div>
-        <input type="range" min="0" max="10" value="${v}" data-key="${k}">
+        <input type="range" min="0" max="10" value="${v}" step="1">
       `;
       const slider = wrap.querySelector('input');
-      const val    = wrap.querySelector('.param-val');
+      const valEl  = wrap.querySelector('.param-val');
       slider.addEventListener('input', () => {
-        val.textContent = slider.value;
+        valEl.textContent = slider.value;
         updateImpression(pid, cell.id, k, Number(slider.value));
-        refreshImpAvg(item, pid, cell.id);
+        refreshImpAvgAndFilled(item, pid, cell.id);
+        refreshPersonToken(pid);
+        refreshCellAvg(cell.id);
       });
       body.appendChild(wrap);
     });
 
     // Мысли / Чувства / Действия
-    const textFields = [
-      { key:'thought',  label:'💭 Мысли',     ph:'о чём думает…' },
-      { key:'feelings', label:'💗 Чувства',   ph:'что чувствует…' },
-      { key:'actions',  label:'🏃 Действия',  ph:'что делает…' }
+    const texts = [
+      { key:'thought',  label:'💭 Мысли',    ph:'о чём думает…' },
+      { key:'feelings', label:'💗 Чувства',  ph:'что чувствует…' },
+      { key:'actions',  label:'🏃 Действия', ph:'что делает…' }
     ];
-    textFields.forEach(f => {
+    texts.forEach(f => {
       const v = imp ? (imp[f.key] || '') : '';
       const wrap = document.createElement('div');
       wrap.className = 'param';
       wrap.innerHTML = `
         <div class="param-row"><span>${f.label}</span></div>
-        <input type="text" data-tkey="${f.key}" placeholder="${esc(f.ph)}" maxlength="40" value="${esc(v)}">
+        <input type="text" placeholder="${esc(f.ph)}" maxlength="40" value="${esc(v)}">
       `;
       const input = wrap.querySelector('input');
       input.addEventListener('input', () => {
         updateImpressionText(pid, cell.id, f.key, input.value);
-        refreshImpFilled(item, pid, cell.id);
-        refreshImpAvg(item, pid, cell.id);
+        refreshImpAvgAndFilled(item, pid, cell.id);
+        refreshPersonToken(pid);
+        refreshCellAvg(cell.id);
       });
       body.appendChild(wrap);
     });
 
-    // toggle
     item.querySelector('.imp-head').addEventListener('click', () => {
       item.classList.toggle('open');
     });
@@ -984,24 +1048,20 @@ function updateImpressionText(pid, cellId, key, value){
   state.impressions[pid][cellId][key] = value;
   save();
 }
-function refreshImpAvg(item, pid, cellId){
+function refreshImpAvgAndFilled(item, pid, cellId){
   const imp = getImpression(pid, cellId);
-  const a = impAvg(imp);
   const filled = isImpressionFilled(imp);
+  const a = impAvg(imp);
   const el = item.querySelector('.imp-avg');
   if(filled){
     el.textContent = a.toFixed(1);
     el.classList.remove('empty');
+    item.classList.add('filled');
   }else{
     el.textContent = '—';
     el.classList.add('empty');
+    item.classList.remove('filled');
   }
-}
-function refreshImpFilled(item, pid, cellId){
-  const imp = getImpression(pid, cellId);
-  item.classList.toggle('filled', isImpressionFilled(imp));
-  // обновляем бейдж на доске и групповые средние
-  renderBoard();
 }
 
 function closePersonModal(){
@@ -1010,14 +1070,8 @@ function closePersonModal(){
   personModal.setAttribute('aria-hidden', 'true');
 }
 
-document.getElementById('pmClose').addEventListener('click', () => {
-  closePersonModal();
-  renderBoard();
-});
-document.getElementById('pmDone').addEventListener('click', () => {
-  closePersonModal();
-  renderBoard();
-});
+document.getElementById('pmClose').addEventListener('click', () => { closePersonModal(); renderBoard(); });
+document.getElementById('pmDone').addEventListener('click',  () => { closePersonModal(); renderBoard(); });
 document.getElementById('pmClear').addEventListener('click', () => {
   if(!editingPersonId) return;
   if(!confirm('Очистить все впечатления этого человека?')) return;
@@ -1037,7 +1091,7 @@ const acNameEl  = document.getElementById('acName');
 const acSubEl   = document.getElementById('acSub');
 const acPreview = document.getElementById('acPreview');
 
-(function buildCellEmojiSuggest(){
+(function(){
   const wrap = document.getElementById('acEmojiSuggest');
   CELL_EMOJI_SUGGEST.forEach(em => {
     const b = document.createElement('button');
@@ -1082,8 +1136,8 @@ document.getElementById('acAdd').addEventListener('click', () => {
     return;
   }
   state.cells.push({
-    id: 'cell_' + Date.now(),
-    emoji, name, sub: sub || 'своё место'
+    id: 'cell_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    emoji, name, sub: sub || ''
   });
   save();
   renderBoard();
@@ -1100,7 +1154,7 @@ const apNameEl  = document.getElementById('apName');
 const apLoc     = document.getElementById('apLoc');
 const apPreview = document.getElementById('apPreview');
 
-(function buildPersonEmojiSuggest(){
+(function(){
   const wrap = document.getElementById('apEmojiSuggest');
   PERSON_EMOJI_SUGGEST.forEach(em => {
     const b = document.createElement('button');
@@ -1118,6 +1172,10 @@ apEmojiEl.addEventListener('input', () => {
 });
 
 function openAddPersonModal(){
+  if(state.cells.length === 0){
+    alert('Сначала добавь место ➕');
+    return;
+  }
   apEmojiEl.value = '👤';
   apNameEl.value = '';
   apPreview.textContent = '👤';
@@ -1145,7 +1203,7 @@ document.getElementById('apAdd').addEventListener('click', () => {
     return;
   }
   state.persons.push({
-    id: 'person_' + Date.now(),
+    id: 'person_' + Date.now() + '_' + Math.floor(Math.random()*1000),
     emoji, name, cellId
   });
   save();
